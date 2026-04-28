@@ -24,33 +24,31 @@ export default function CapsulePage({ params }: any) {
 
   // unwrap params
   useEffect(() => {
-    const unwrapParams = async () => {
-      const resolved = await params
-      setSlug(resolved.slug)
+    const unwrap = async () => {
+      const p = await params
+      setSlug(p.slug)
     }
-    unwrapParams()
+    unwrap()
   }, [params])
 
-  // check admin
+  // admin check
   useEffect(() => {
-    const checkAdmin = async () => {
+    const check = async () => {
       const { data } = await supabase.auth.getUser()
-      const user = data.user
-
-      if (user?.email === "revoworldtech@gmail.com") {
+      if (data.user?.email === "revoworldtech@gmail.com") {
         setIsAdmin(true)
       }
     }
-    checkAdmin()
+    check()
   }, [])
 
   // load capsule
   useEffect(() => {
     if (!slug) return
-    fetchCapsule(slug)
+    loadCapsule(slug)
   }, [slug])
 
-  const fetchCapsule = async (slugValue: string) => {
+  const loadCapsule = async (slugValue: string) => {
     const { data } = await supabase
       .from("capsules")
       .select("*")
@@ -59,11 +57,11 @@ export default function CapsulePage({ params }: any) {
 
     if (data) {
       setCapsule(data)
-      fetchContributions(data.id)
+      loadContributions(data.id)
     }
   }
 
-  const fetchContributions = async (capsuleId: string) => {
+  const loadContributions = async (capsuleId: string) => {
     const { data } = await supabase
       .from("contributions")
       .select("*")
@@ -80,7 +78,7 @@ export default function CapsulePage({ params }: any) {
     localStorage.setItem("user_email", email)
     setUserEmail(email)
 
-    const { error } = await supabase.from("contributions").insert([
+    await supabase.from("contributions").insert([
       {
         name,
         email,
@@ -89,18 +87,13 @@ export default function CapsulePage({ params }: any) {
       },
     ])
 
-    if (error) {
-      alert("Something went wrong.")
-      return
-    }
-
     setName("")
     setEmail("")
     setContent("")
 
-    alert("Submitted and awaiting approval.")
+    alert("Submitted and awaiting approval")
 
-    fetchContributions(capsule.id)
+    loadContributions(capsule.id)
   }
 
   // approve
@@ -110,10 +103,10 @@ export default function CapsulePage({ params }: any) {
       .update({ status: "approved" })
       .eq("id", id)
 
-    if (capsule) fetchContributions(capsule.id)
+    loadContributions(capsule.id)
   }
 
-  // admin edit save
+  // update
   const handleUpdate = async (id: string) => {
     await supabase
       .from("contributions")
@@ -123,17 +116,13 @@ export default function CapsulePage({ params }: any) {
     setEditingId(null)
     setEditContent("")
 
-    if (capsule) fetchContributions(capsule.id)
+    loadContributions(capsule.id)
   }
 
-  // admin delete
+  // delete
   const handleDelete = async (id: string) => {
-    await supabase
-      .from("contributions")
-      .delete()
-      .eq("id", id)
-
-    if (capsule) fetchContributions(capsule.id)
+    await supabase.from("contributions").delete().eq("id", id)
+    loadContributions(capsule.id)
   }
 
   // login
@@ -147,17 +136,13 @@ export default function CapsulePage({ params }: any) {
 
   return (
     <main className="p-8 max-w-xl mx-auto space-y-8">
-      <h1 className="text-3xl font-semibold tracking-tight">
-        {capsule.name}
-      </h1>
+      <h1 className="text-3xl font-semibold">{capsule.name}</h1>
 
       <p className="text-sm text-gray-600">
         Share your tribute and memories.
       </p>
 
-      <Button onClick={handleAdminLogin}>
-        Login as Admin
-      </Button>
+      <Button onClick={handleAdminLogin}>Login as Admin</Button>
 
       {/* FORM */}
       <div className="space-y-3">
@@ -173,7 +158,7 @@ export default function CapsulePage({ params }: any) {
           .filter((c) => {
             if (isAdmin) return true
             if (c.status === "approved") return true
-            if (c.status === "pending_review" && c.email === userEmail) return true
+            if (c.email === userEmail) return true
             return false
           })
           .map((c) => (
@@ -193,20 +178,23 @@ export default function CapsulePage({ params }: any) {
                   <p className="text-sm">{c.content}</p>
                 )}
 
+                {/* STATUS LABEL */}
+                <p className={`text-xs ${
+                  c.status === "approved"
+                    ? "text-green-600"
+                    : "text-yellow-500"
+                }`}>
+                  {c.status === "approved" ? "Approved" : "Pending"}
+                </p>
+
                 <p className="text-xs text-gray-500">
                   {new Date(c.created_at).toLocaleString()}
                 </p>
 
-                {c.status === "pending_review" && (
-                  <p className="text-xs text-yellow-500">
-                    Awaiting approval
-                  </p>
-                )}
-
-                {/* ADMIN ACTIONS */}
+                {/* ADMIN CONTROLS ALWAYS AVAILABLE */}
                 {isAdmin && (
                   <div className="flex gap-2 mt-2">
-                    {c.status === "pending_review" && (
+                    {c.status !== "approved" && (
                       <Button size="sm" onClick={() => handleApprove(c.id)}>
                         Approve
                       </Button>
