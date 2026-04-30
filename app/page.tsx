@@ -20,13 +20,15 @@ type Tribute = {
   status: string
   community_id: string
   created_at: string
-  created_by?: string | null
+  created_by: string | null
 }
 
 export default function Home() {
   const [communities, setCommunities] = useState<Community[]>([])
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null)
   const [tributes, setTributes] = useState<Tribute[]>([])
+
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const [name, setName] = useState("")
   const [message, setMessage] = useState("")
@@ -40,19 +42,25 @@ export default function Home() {
   useEffect(() => {
     fetchCommunities()
 
-    if (typeof window !== "undefined") {
-      const savedEmail = localStorage.getItem("user_email")
-      if (savedEmail) {
-        setEmail(savedEmail)
-        setUserEmail(savedEmail)
+    const savedEmail = localStorage.getItem("user_email")
+    if (savedEmail) {
+      setEmail(savedEmail)
+      setUserEmail(savedEmail)
+    }
+  }, [])
+
+  // ADMIN CHECK
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const { data } = await supabase.auth.getUser()
+      const user = data.user
+
+      if (user?.email === "revoworldtech@gmail.com") {
+        setIsAdmin(true)
       }
     }
-      const checkUser = async () => {
-    const { data } = await supabase.auth.getUser()
-    console.log("USER:", data.user)
-  }
 
-  checkUser()
+    checkAdmin()
   }, [])
 
   // OWNERSHIP BINDING
@@ -69,9 +77,9 @@ export default function Home() {
         .eq("email", user.email)
         .is("created_by", null)
 
-      if (!tributesToUpdate || tributesToUpdate.length === 0) return
+      if (!tributesToUpdate?.length) return
 
-      const ids = tributesToUpdate.map((t) => t.id)
+      const ids = tributesToUpdate.map(t => t.id)
 
       await supabase
         .from("tributes")
@@ -133,17 +141,20 @@ export default function Home() {
       return
     }
 
-    await supabase.auth.signInWithOtp({ email })
+    const { data: session } = await supabase.auth.getSession()
+
+    if (!session.session) {
+      await supabase.auth.signInWithOtp({ email })
+      toast("Check your email to verify ownership.")
+    } else {
+      toast("Tribute submitted successfully.")
+    }
 
     setName("")
     setMessage("")
     setEmail("")
 
     await fetchTributes(selectedCommunity.id)
-
-    window.scrollTo({ top: 0, behavior: "smooth" })
-
-    toast("Tribute submitted. Check your email to verify ownership.")
   }
 
   const handleUpdate = async (id: string) => {
@@ -163,8 +174,24 @@ export default function Home() {
     if (selectedCommunity) {
       fetchTributes(selectedCommunity.id)
     }
+  }
 
-    toast("Tribute updated")
+  const handleApprove = async (id: string) => {
+    const { error } = await supabase
+      .from("tributes")
+      .update({ status: "approved" })
+      .eq("id", id)
+
+    if (error) {
+      toast("Error approving tribute")
+      return
+    }
+
+    if (selectedCommunity) {
+      fetchTributes(selectedCommunity.id)
+    }
+
+    toast("Tribute approved")
   }
 
   return (
@@ -175,83 +202,50 @@ export default function Home() {
 
       {/* FORM */}
       <div className="space-y-3">
-        <Input
-          placeholder="Your name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-
-        <Input
-          placeholder="Your email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <Input
-          placeholder="Your message"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-        />
-
+        <Input placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
+        <Input placeholder="Your email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Input placeholder="Your message" value={message} onChange={(e) => setMessage(e.target.value)} />
         <Button onClick={handleSubmit}>Submit Tribute</Button>
       </div>
 
       {/* WALL */}
       <div className="grid gap-4">
         {tributes
-          .filter((tribute) => {
-            if (tribute.status === "approved") return true
-            if (tribute.status === "pending" && tribute.email === userEmail) return true
+          .filter((t) => {
+            if (isAdmin) return true
+            if (t.status === "approved") return true
+            if (t.status === "pending" && t.email === userEmail) return true
             return false
           })
-          .map((tribute) => (
-            <Card key={tribute.id}>
+          .map((t) => (
+            <Card key={t.id}>
               <CardContent className="p-4">
-                <p className="font-semibold">{tribute.name}</p>
+                <p className="font-semibold">{t.name}</p>
 
-                {editingId === tribute.id ? (
+                {editingId === t.id ? (
                   <>
-                    <Input
-                      value={editMessage}
-                      onChange={(e) => setEditMessage(e.target.value)}
-                    />
-                    <Button
-                      onClick={() => handleUpdate(tribute.id)}
-                      className="mt-2"
-                    >
-                      Save
-                    </Button>
+                    <Input value={editMessage} onChange={(e) => setEditMessage(e.target.value)} />
+                    <Button onClick={() => handleUpdate(t.id)} className="mt-2">Save</Button>
                   </>
                 ) : (
                   <>
-                    <p className="text-sm text-muted-foreground">
-                      {tribute.message}
-                    </p>
+                    <p className="text-sm">{t.message}</p>
+                    <p className="text-xs text-gray-500">{new Date(t.created_at).toLocaleString()}</p>
 
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(tribute.created_at).toLocaleString()}
-                    </p>
+                    {t.status === "pending" && t.email === userEmail && (
+                      <Button size="sm" className="mt-2" onClick={() => {
+                        setEditingId(t.id)
+                        setEditMessage(t.message)
+                      }}>
+                        Edit
+                      </Button>
+                    )}
 
-                    {tribute.status === "pending" &&
-                      tribute.email === userEmail && (
-                        <>
-                          <p className="text-xs text-yellow-500 mt-2">
-                            Awaiting approval
-                          </p>
-
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="mt-2"
-                            onClick={() => {
-                              setEditingId(tribute.id)
-                              setEditMessage(tribute.message)
-                            }}
-                          >
-                            Edit
-                          </Button>
-                        </>
-                      )}
+                    {isAdmin && t.status === "pending" && (
+                      <Button size="sm" className="mt-2 ml-2" onClick={() => handleApprove(t.id)}>
+                        Approve
+                      </Button>
+                    )}
                   </>
                 )}
               </CardContent>

@@ -1,65 +1,73 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useParams } from "next/navigation"
+import React, { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
-export default function CapsulePage({ params }: any) {
-  const [slug, setSlug] = useState<string | null>(null)
+const ADMIN_EMAIL = "revoworldtech@gmail.com"
+
+export default function CapsulePage() {
+  const params = useParams()
+  const slug = params?.slug as string
 
   const [capsule, setCapsule] = useState<any>(null)
   const [contributions, setContributions] = useState<any[]>([])
 
-  const [isAdmin, setIsAdmin] = useState(false)
-
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
+  const [city, setCity] = useState("")
+  const [country, setCountry] = useState("")
   const [content, setContent] = useState("")
-  const [userEmail, setUserEmail] = useState<string | null>(null)
+const [isAdmin, setIsAdmin] = useState(false)
 
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editContent, setEditContent] = useState("")
+// 🔁 Load saved email on page load
+useEffect(() => {
+  const savedEmail = localStorage.getItem("user_email")
+  if (savedEmail) {
+    setEmail(savedEmail)
+  }
+}, [])
 
-  // unwrap params
+// 💾 Save email whenever it changes
+useEffect(() => {
+  if (email && email.includes("@")) {
+    localStorage.setItem("user_email", email)
+  }
+}, [email])
+
   useEffect(() => {
-    const unwrap = async () => {
-      const p = await params
-      setSlug(p.slug)
-    }
-    unwrap()
-  }, [params])
+  if (email === ADMIN_EMAIL) {
+    setIsAdmin(true)
+  } else {
+    setIsAdmin(false)
+  }
+}, [email])
+  // ===============================
+  // LOAD CAPSULE + CONTRIBUTIONS
+  // ===============================
+useEffect(() => {
+  if (!slug) return
 
-  // admin check
-  useEffect(() => {
-    const check = async () => {
-      const { data } = await supabase.auth.getUser()
-      if (data.user?.email === "revoworldtech@gmail.com") {
-        setIsAdmin(true)
-      }
-    }
-    check()
-  }, [])
-
-  // load capsule
-  useEffect(() => {
-    if (!slug) return
-    loadCapsule(slug)
-  }, [slug])
-
-  const loadCapsule = async (slugValue: string) => {
-    const { data } = await supabase
+  const loadCapsule = async () => {
+    const { data, error } = await supabase
       .from("capsules")
       .select("*")
-      .eq("slug", slugValue)
+      .eq("slug", slug)
       .single()
+
+    console.log("CAPSULE:", data, error)
 
     if (data) {
       setCapsule(data)
       loadContributions(data.id)
     }
   }
+
+  loadCapsule()
+}, [slug])
 
   const loadContributions = async (capsuleId: string) => {
     const { data } = await supabase
@@ -68,72 +76,115 @@ export default function CapsulePage({ params }: any) {
       .eq("capsule_id", capsuleId)
       .order("created_at", { ascending: false })
 
+    console.log("DATA FROM DB:", data)
+
     if (data) setContributions(data)
   }
 
-  // submit
-  const handleSubmit = async () => {
-    if (!name || !email || !content || !capsule) return
+ 
+  // ===============================
+  // SUBMIT CONTRIBUTION
+  // ===============================
+ const handleSubmit = async () => {
+  if (!name || !email || !content || !capsule) {
+    alert("Missing required fields")
+    return
+  }
 
-    localStorage.setItem("user_email", email)
-    setUserEmail(email)
+if (!name) {
+  alert("Please enter your name")
+  return
+}
 
-    await supabase.from("contributions").insert([
+if (!email) {
+  alert("Please enter a valid email address")
+  return
+}
+
+if (!content) {
+  alert("Please write a tribute message")
+  return
+}
+
+  const { data, error } = await supabase
+    .from("contributions")
+    .insert([
       {
         name,
         email,
         content,
+        city,
+        country,
         capsule_id: capsule.id,
+        status: "pending_review",
       },
     ])
+    .select()
 
-    setName("")
-    setEmail("")
-    setContent("")
+  console.log("INSERT RESULT:", data)
+  console.log("INSERT ERROR:", error)
 
-    alert("Submitted and awaiting approval")
-
-    loadContributions(capsule.id)
+  if (error) {
+    alert(error.message)
+    return
   }
 
-  // approve
+  alert("Message submitted")
+
+  setName("")
+  setContent("")
+  loadContributions(capsule.id)
+}
+
+
+
+  // ===============================
+  // ADMIN ACTIONS
+  // ===============================
   const handleApprove = async (id: string) => {
-    await supabase
-      .from("contributions")
-      .update({ status: "approved" })
-      .eq("id", id)
+  const { error } = await supabase
+    .from("contributions")
+    .update({ status: "approved" })
+    .eq("id", id)
 
-    loadContributions(capsule.id)
+  if (error) {
+    alert(error.message)
+    return
   }
 
-  // update
-  const handleUpdate = async (id: string) => {
-    await supabase
-      .from("contributions")
-      .update({ content: editContent })
-      .eq("id", id)
-
-    setEditingId(null)
-    setEditContent("")
-
-    loadContributions(capsule.id)
-  }
-
-  // delete
-  const handleDelete = async (id: string) => {
-    await supabase.from("contributions").delete().eq("id", id)
-    loadContributions(capsule.id)
-  }
-
-  // login
+  loadContributions(capsule.id)
+}
   const handleAdminLogin = async () => {
     await supabase.auth.signInWithOtp({
-      email: "revoworldtech@gmail.com",
+      email: ADMIN_EMAIL,
     })
   }
 
-  if (!capsule) return <p className="p-6">Loading...</p>
+  // ===============================
+  // LOADING STATE
+  // ===============================
+{email && (
+  <div className="text-sm text-gray-600 mb-2">
+    Logged in as:{" "}
+    <span className="font-semibold">{email}</span>
+    {isAdmin && (
+      <span className="ml-2 text-green-600 font-semibold">(Admin)</span>
+    )}
+  </div>
+)}
 
+  // ===============================
+  // UI
+  // ===============================
+ 
+if (!capsule) {
+  return (
+    <div className="p-6">
+      <p>Loading capsule...</p>
+    </div>
+  )
+}
+ 
   return (
     <main className="p-8 max-w-xl mx-auto space-y-8">
       <h1 className="text-3xl font-semibold">{capsule.name}</h1>
@@ -142,87 +193,108 @@ export default function CapsulePage({ params }: any) {
         Share your tribute and memories.
       </p>
 
-      <Button onClick={handleAdminLogin}>Login as Admin</Button>
 
-      {/* FORM */}
-      <div className="space-y-3">
-        <Input placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
-        <Input placeholder="Your email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <Input placeholder="Your message" value={content} onChange={(e) => setContent(e.target.value)} />
-        <Button onClick={handleSubmit}>Submit Tribute</Button>
-      </div>
+{isAdmin && (
+  <p className="text-xs text-green-600 font-semibold">
+    Admin Mode
+  </p>
+)}
 
+
+     {!isAdmin && (
+  <>
+    {/* FORM */}
+    <div className="space-y-3">
+
+      <Input
+        placeholder="Your name (required)"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+
+      <Input
+        placeholder="Your email (required)"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+
+      <Input
+        placeholder="City (required)"
+        value={city}
+        onChange={(e) => setCity(e.target.value)}
+      />
+
+      <Input
+        placeholder="Country (optional)"
+        value={country}
+        onChange={(e) => setCountry(e.target.value)}
+      />
+
+      <Input
+        placeholder="Your message (required)"
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+      />
+
+      <Button onClick={handleSubmit}>
+        Submit Tribute
+      </Button>
+
+    </div>
+  </>
+)}
       {/* WALL */}
       <div className="space-y-4">
-        {contributions
-          .filter((c) => {
-            if (isAdmin) return true
-            if (c.status === "approved") return true
-            if (c.email === userEmail) return true
-            return false
-          })
-          .map((c) => (
-            <Card key={c.id}>
-              <CardContent className="p-5 space-y-2">
-                <p className="font-semibold">{c.name}</p>
+       
+{contributions
+.filter((c) => {
+  if (isAdmin) return true
 
-                {editingId === c.id ? (
-                  <>
-                    <Input
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                    />
-                    <Button onClick={() => handleUpdate(c.id)}>Save</Button>
-                  </>
-                ) : (
-                  <p className="text-sm">{c.content}</p>
-                )}
+  if (c.status === "approved") return true
 
-                {/* STATUS LABEL */}
-                <p className={`text-xs ${
-                  c.status === "approved"
-                    ? "text-green-600"
-                    : "text-yellow-500"
-                }`}>
-                  {c.status === "approved" ? "Approved" : "Pending"}
-                </p>
+  if (
+    c.status === "pending_review" &&
+    c.email &&
+    email &&
+    c.email.toLowerCase() === email.toLowerCase()
+  ) {
+    return true
+  }
 
-                <p className="text-xs text-gray-500">
-                  {new Date(c.created_at).toLocaleString()}
-                </p>
+  return false
+})
+  .map((c) => (
+          <Card key={c.id}>
+<CardContent className="p-3 space-y-1">
+  <div className="flex justify-between items-start">
+    <p className="font-semibold text-sm">{c.name}</p>
+<p className="text-xs text-gray-500">
+  {c.city || ""}{c.city && c.country ? ", " : ""}{c.country || ""}
+</p>
+    <p className="text-xs text-gray-400">
+      {new Date(c.created_at).toLocaleDateString()}
+    </p>
+  </div>
 
-                {/* ADMIN CONTROLS ALWAYS AVAILABLE */}
-                {isAdmin && (
-                  <div className="flex gap-2 mt-2">
-                    {c.status !== "approved" && (
-                      <Button size="sm" onClick={() => handleApprove(c.id)}>
-                        Approve
-                      </Button>
-                    )}
+  <p className="text-sm">{c.content}</p>
 
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setEditingId(c.id)
-                        setEditContent(c.content)
-                      }}
-                    >
-                      Edit
-                    </Button>
+{isAdmin && c.status === "pending_review" && (
+  <p className="text-yellow-600 text-sm">Pending approval</p>
+)}
 
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDelete(c.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+{!isAdmin &&
+  c.status === "pending_review" &&
+  c.email?.toLowerCase() === email?.toLowerCase() && (
+    <p className="text-yellow-600 text-sm">Awaiting approval</p>
+)}
+ {isAdmin && (
+  <Button onClick={() => handleApprove(c.id)}>
+    Approve
+  </Button>
+)}
+</CardContent>
+          </Card>
+        ))}
       </div>
     </main>
   )
