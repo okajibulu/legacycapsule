@@ -1,74 +1,105 @@
 "use client"
 
+/* =========================================================
+   SECTION 1 — IMPORTS
+========================================================= */
 import { useParams } from "next/navigation"
 import React, { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
+/* =========================================================
+   SECTION 2 — CONFIG
+========================================================= */
 const ADMIN_EMAIL = "revoworldtech@gmail.com"
 
+/* =========================================================
+   SECTION 3 — COMPONENT
+========================================================= */
 export default function CapsulePage() {
+
+/* =========================================================
+   SECTION 4 — ROUTING
+========================================================= */
   const params = useParams()
   const slug = params?.slug as string
 
+/* =========================================================
+   SECTION 5 — STATE (CORE)
+========================================================= */
   const [capsule, setCapsule] = useState<any>(null)
   const [contributions, setContributions] = useState<any[]>([])
 
+/* =========================================================
+   SECTION 6 — STATE (FORM)
+========================================================= */
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [city, setCity] = useState("")
   const [country, setCountry] = useState("")
   const [content, setContent] = useState("")
-const [isAdmin, setIsAdmin] = useState(false)
 
-// 🔁 Load saved email on page load
-useEffect(() => {
-  const savedEmail = localStorage.getItem("user_email")
-  if (savedEmail) {
-    setEmail(savedEmail)
-  }
-}, [])
+/* =========================================================
+   SECTION 7 — STATE (UI)
+========================================================= */
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState("")
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
-// 💾 Save email whenever it changes
-useEffect(() => {
-  if (email && email.includes("@")) {
-    localStorage.setItem("user_email", email)
-  }
-}, [email])
-
+/* =========================================================
+   SECTION 8 — EFFECT: LOAD EMAIL
+========================================================= */
   useEffect(() => {
-  if (email === ADMIN_EMAIL) {
-    setIsAdmin(true)
-  } else {
-    setIsAdmin(false)
-  }
-}, [email])
-  // ===============================
-  // LOAD CAPSULE + CONTRIBUTIONS
-  // ===============================
-useEffect(() => {
-  if (!slug) return
+    const savedEmail = localStorage.getItem("user_email")
+    if (savedEmail) setEmail(savedEmail)
+  }, [])
 
-  const loadCapsule = async () => {
-    const { data, error } = await supabase
-      .from("capsules")
-      .select("*")
-      .eq("slug", slug)
-      .single()
-
-    console.log("CAPSULE:", data, error)
-
-    if (data) {
-      setCapsule(data)
-      loadContributions(data.id)
+/* =========================================================
+   SECTION 9 — EFFECT: SAVE EMAIL
+========================================================= */
+  useEffect(() => {
+    if (email.includes("@")) {
+      localStorage.setItem("user_email", email)
     }
-  }
+  }, [email])
 
-  loadCapsule()
-}, [slug])
+/* =========================================================
+   SECTION 10 — EFFECT: ADMIN
+========================================================= */
+  useEffect(() => {
+    setIsAdmin(email === ADMIN_EMAIL)
+  }, [email])
 
+/* =========================================================
+   SECTION 11 — LOAD CAPSULE
+========================================================= */
+  useEffect(() => {
+    if (!slug) return
+
+    const loadCapsule = async () => {
+      const { data } = await supabase
+        .from("capsules")
+        .select("*")
+        .eq("slug", slug)
+        .single()
+
+      if (data) {
+        setCapsule(data)
+        loadContributions(data.id)
+      }
+    }
+
+    loadCapsule()
+  }, [slug])
+
+/* =========================================================
+   SECTION 12 — LOAD CONTRIBUTIONS
+========================================================= */
   const loadContributions = async (capsuleId: string) => {
     const { data } = await supabase
       .from("contributions")
@@ -76,226 +107,185 @@ useEffect(() => {
       .eq("capsule_id", capsuleId)
       .order("created_at", { ascending: false })
 
-    console.log("DATA FROM DB:", data)
-
     if (data) setContributions(data)
   }
 
- 
-  // ===============================
-  // SUBMIT CONTRIBUTION
-  // ===============================
- const handleSubmit = async () => {
-  if (!name || !email || !content || !capsule) {
-    alert("Missing required fields")
-    return
+/* =========================================================
+   SECTION 13 — VALIDATION
+========================================================= */
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {}
+
+    if (!name.trim()) newErrors.name = "Name is required"
+    if (!email.trim()) newErrors.email = "Email is required"
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      newErrors.email = "Invalid email"
+
+    if (!city.trim()) newErrors.city = "City is required"
+    if (!country.trim()) newErrors.country = "Country is required"
+    if (!content.trim()) newErrors.content = "Message required"
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
-if (!name) {
-  alert("Please enter your name")
-  return
-}
+/* =========================================================
+   SECTION 14 — SUBMIT
+========================================================= */
+  const handleSubmit = async () => {
+    if (!capsule) return
 
-if (!email) {
-  alert("Please enter a valid email address")
-  return
-}
+    if (!validateForm()) return
 
-if (!content) {
-  alert("Please write a tribute message")
-  return
-}
-
-  const { data, error } = await supabase
-    .from("contributions")
-    .insert([
+    const { error } = await supabase.from("contributions").insert([
       {
         name,
         email,
-        content,
         city,
         country,
+        content,
         capsule_id: capsule.id,
         status: "pending_review",
       },
     ])
-    .select()
 
-  console.log("INSERT RESULT:", data)
-  console.log("INSERT ERROR:", error)
+    if (error) {
+      alert(error.message)
+      return
+    }
 
-  if (error) {
-    alert(error.message)
-    return
+    setName("")
+    setCity("")
+    setCountry("")
+    setContent("")
+    setErrors({})
+
+    loadContributions(capsule.id)
   }
 
-  alert("Message submitted")
+/* =========================================================
+   SECTION 15 — UPDATE
+========================================================= */
+  const handleUpdate = async (id: string) => {
+    const { error } = await supabase
+      .from("contributions")
+      .update({ content: editContent })
+      .eq("id", id)
 
-  setName("")
-  setContent("")
-  loadContributions(capsule.id)
-}
+    if (!error) {
+      setEditingId(null)
+      loadContributions(capsule.id)
+    }
+  }
 
-
-
-  // ===============================
-  // ADMIN ACTIONS
-  // ===============================
+/* =========================================================
+   SECTION 16 — APPROVE
+========================================================= */
   const handleApprove = async (id: string) => {
-  const { error } = await supabase
-    .from("contributions")
-    .update({ status: "approved" })
-    .eq("id", id)
+    await supabase
+      .from("contributions")
+      .update({ status: "approved" })
+      .eq("id", id)
 
-  if (error) {
-    alert(error.message)
-    return
+    loadContributions(capsule.id)
   }
 
-  loadContributions(capsule.id)
-}
-  const handleAdminLogin = async () => {
-    await supabase.auth.signInWithOtp({
-      email: ADMIN_EMAIL,
-    })
-  }
+/* =========================================================
+   SECTION 17 — EDIT CONTROL
+========================================================= */
+  const canEdit = (c: any) =>
+    isAdmin || (c.status === "pending_review" && c.email === email)
 
-  // ===============================
-  // LOADING STATE
-  // ===============================
-{email && (
-  <div className="text-sm text-gray-600 mb-2">
-    Logged in as:{" "}
-    <span className="font-semibold">{email}</span>
-    {isAdmin && (
-      <span className="ml-2 text-green-600 font-semibold">(Admin)</span>
-    )}
-  </div>
-)}
-
-  // ===============================
-  // UI
-  // ===============================
- 
-if (!capsule) {
+/* =========================================================
+   SECTION 18 — UI ROOT
+========================================================= */
   return (
-    <div className="p-6">
-      <p>Loading capsule...</p>
-    </div>
-  )
-}
- 
-  return (
-    <main className="p-8 max-w-xl mx-auto space-y-8">
-      <h1 className="text-3xl font-semibold">{capsule.name}</h1>
+    <main className="p-6 max-w-xl mx-auto space-y-4">
 
-      <p className="text-sm text-gray-600">
-        Share your tribute and memories.
+/* =========================================================
+   SECTION 19 — HEADER
+========================================================= */
+      <p className="text-xs text-red-500">
+        Email: {email || "NONE"} | Admin: {isAdmin ? "YES" : "NO"}
       </p>
 
+      <h1 className="text-2xl font-semibold">
+        {capsule?.name || "Loading..."}
+      </h1>
 
-{isAdmin && (
-  <p className="text-xs text-green-600 font-semibold">
-    Admin Mode
-  </p>
-)}
+/* =========================================================
+   SECTION 20 — FORM
+========================================================= */
+      <div className="space-y-2">
+        <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
+        {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
 
+        <Input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
 
-     {!isAdmin && (
-  <>
-    {/* FORM */}
-    <div className="space-y-3">
+        <Input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} />
+        {errors.city && <p className="text-xs text-red-500">{errors.city}</p>}
 
-      <Input
-        placeholder="Your name (required)"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
+        <select
+          className="w-full border rounded-md p-2 text-sm"
+          value={country}
+          onChange={(e) => setCountry(e.target.value)}
+        >
+          <option value="">Select Country</option>
+          <option>Nigeria</option>
+          <option>United Kingdom</option>
+          <option>Germany</option>
+          <option>Canada</option>
+        </select>
+        {errors.country && <p className="text-xs text-red-500">{errors.country}</p>}
 
-      <Input
-        placeholder="Your email (required)"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
+        <Textarea placeholder="Message" value={content} onChange={(e) => setContent(e.target.value)} />
+        {errors.content && <p className="text-xs text-red-500">{errors.content}</p>}
 
-      <Input
-        placeholder="City (required)"
-        value={city}
-        onChange={(e) => setCity(e.target.value)}
-      />
+        <Button onClick={handleSubmit}>Submit</Button>
+      </div>
 
-      <Input
-        placeholder="Country (optional)"
-        value={country}
-        onChange={(e) => setCountry(e.target.value)}
-      />
-
-      <Input
-        placeholder="Your message (required)"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-      />
-
-      <Button onClick={handleSubmit}>
-        Submit Tribute
-      </Button>
-
-    </div>
-  </>
-)}
-      {/* WALL */}
-      <div className="space-y-4">
-       
-{contributions
-.filter((c) => {
-  if (isAdmin) return true
-
-  if (c.status === "approved") return true
-
-  if (
-    c.status === "pending_review" &&
-    c.email &&
-    email &&
-    c.email.toLowerCase() === email.toLowerCase()
-  ) {
-    return true
-  }
-
-  return false
-})
-  .map((c) => (
+/* =========================================================
+   SECTION 21 — TRIBUTE WALL
+========================================================= */
+      <div className="space-y-2">
+        {contributions.map((c) => (
           <Card key={c.id}>
-<CardContent className="p-3 space-y-1">
-  <div className="flex justify-between items-start">
-    <p className="font-semibold text-sm">{c.name}</p>
-<p className="text-xs text-gray-500">
-  {c.city || ""}{c.city && c.country ? ", " : ""}{c.country || ""}
-</p>
-    <p className="text-xs text-gray-400">
-      {new Date(c.created_at).toLocaleDateString()}
-    </p>
-  </div>
+            <CardContent className="p-2 space-y-1">
 
-  <p className="text-sm">{c.content}</p>
+              <div className="flex justify-between text-xs">
+                <span>{c.name}</span>
+                <span>{c.city}, {c.country}</span>
+                <span>{new Date(c.created_at).toLocaleDateString()}</span>
+              </div>
 
-{isAdmin && c.status === "pending_review" && (
-  <p className="text-yellow-600 text-sm">Pending approval</p>
-)}
+              {editingId === c.id ? (
+                <>
+                  <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} />
+                  <Button onClick={() => handleUpdate(c.id)}>Save</Button>
+                </>
+              ) : (
+                <p>{c.content}</p>
+              )}
 
-{!isAdmin &&
-  c.status === "pending_review" &&
-  c.email?.toLowerCase() === email?.toLowerCase() && (
-    <p className="text-yellow-600 text-sm">Awaiting approval</p>
-)}
- {isAdmin && (
-  <Button onClick={() => handleApprove(c.id)}>
-    Approve
-  </Button>
-)}
-</CardContent>
+              {isAdmin && c.status === "pending_review" && (
+                <Button size="sm" onClick={() => handleApprove(c.id)}>Approve</Button>
+              )}
+
+              {canEdit(c) && (
+                <Button size="sm" onClick={() => {
+                  setEditingId(c.id)
+                  setEditContent(c.content)
+                }}>
+                  Edit
+                </Button>
+              )}
+
+            </CardContent>
           </Card>
         ))}
       </div>
+
     </main>
   )
 }
