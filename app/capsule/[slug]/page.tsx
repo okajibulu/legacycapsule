@@ -263,7 +263,7 @@ const handleSubmit = async () => {
   }
 
 {/* =========================================================
-   SECTION 18 — UI: ROOT LAYOUT (FIXED HEADER + SCROLL BODY)
+   SECTION 18 - 20 — UI: ROOT LAYOUT (FIXED HEADER + FORM)
 ========================================================= */}
 return (
   <main className="h-screen flex flex-col max-w-md mx-auto">
@@ -279,111 +279,107 @@ return (
       <h1 className="text-lg font-semibold">
         {capsule?.name || "Loading..."}
       </h1>
-   </div>
-    {/* =========================================================
-       SECTION 20 — UI: FORM (COMPACT GRID)
-    ========================================================= */}
 
-    {/* LINE 1 */}
-    <div className="grid grid-cols-2 gap-2">
-      <Input
-        className="w-full text-sm px-2 py-1"
-        placeholder="Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <Input
-        className="w-full text-sm px-2 py-1"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-    </div>
+      {/* ================= FORM ================= */}
 
-    {/* LINE 2 */}
-    <div className="grid grid-cols-2 gap-2">
-      <Input
-        className="w-full text-sm px-2 py-1"
-        placeholder="City"
-        value={city}
-        onChange={(e) => setCity(e.target.value)}
-      />
+      {/* LINE 1 */}
+      <div className="grid grid-cols-2 gap-2">
+        <Input
+          className="w-full text-sm px-2 py-1"
+          placeholder="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <Input
+          className="w-full text-sm px-2 py-1"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </div>
 
- { /* COUNTRY (SEARCHABLE COMBOBOX) */}
-<div className="relative">
-  <Input
-    className="w-full text-sm px-2 py-1"
-    placeholder="Country"
-    value={countryQuery || country}
-    onChange={(e) => {
-      setCountryQuery(e.target.value)
-      setShowCountryList(true)
-    }}
-    onFocus={() => setShowCountryList(true)}
-  />
+      {/* LINE 2 */}
+      <div className="grid grid-cols-2 gap-2">
+        <Input
+          className="w-full text-sm px-2 py-1"
+          placeholder="City"
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
+        />
 
-  {showCountryList && (
-    <div className="absolute z-10 mt-1 w-full max-h-40 overflow-y-auto bg-white border rounded-md shadow-sm text-sm">
-      {COUNTRIES
-        .filter((c) =>
-          c.toLowerCase().includes((countryQuery || "").toLowerCase())
-        )
-        .slice(0, 20)
-        .map((c) => (
-          <div
-            key={c}
-            className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-            onClick={() => {
-              setCountry(c)
-              setCountryQuery("")
-              setShowCountryList(false)
+        {/* COUNTRY */}
+        <div className="relative">
+          <Input
+            className="w-full text-sm px-2 py-1"
+            placeholder="Country"
+            value={countryQuery || country}
+            onChange={(e) => {
+              setCountryQuery(e.target.value)
+              setShowCountryList(true)
             }}
-          >
-            {c}
-          </div>
-        ))}
+            onFocus={() => setShowCountryList(true)}
+          />
+
+          {showCountryList && (
+            <div className="absolute z-10 mt-1 w-full max-h-40 overflow-y-auto bg-white border rounded-md shadow-sm text-sm">
+              {COUNTRIES
+                .filter((c) =>
+                  c.toLowerCase().includes((countryQuery || "").toLowerCase())
+                )
+                .slice(0, 20)
+                .map((c) => (
+                  <div
+                    key={c}
+                    className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => {
+                      setCountry(c)
+                      setCountryQuery("")
+                      setShowCountryList(false)
+                    }}
+                  >
+                    {c}
+                  </div>
+                ))}
+            </div>
+          )}
+
+          {country === "Not Listed" && (
+            <p className="text-[11px] text-gray-500">
+              City will be used for map positioning
+            </p>
+          )}
+
+          {errors.country && (
+            <p className="text-xs text-red-500 mt-1">
+              {errors.country}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* LINE 3 */}
+      <div className="flex items-end gap-2">
+        <Textarea
+          className="flex-1 text-sm px-3 py-[2px] min-h-[36px]"
+          placeholder="Message"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+        />
+
+        <Button className="px-3 h-[36px]" onClick={handleSubmit}>
+          Submit
+        </Button>
+      </div>
+
+      {/* TITLE */}
+      <div className="flex justify-between items-center pt-1">
+        <p className="text-sm font-semibold">Tribute Wall</p>
+        <p className="text-xs text-gray-500">
+          {contributions.length} tributes
+        </p>
+      </div>
+
     </div>
-  )}
-
-{country === "Not Listed" && (
-  <p className="text-[11px] text-gray-500">
-    City will be used for map positioning
-  </p>
-)}
-
-  {errors.country && (
-    <p className="text-xs text-red-500 mt-1">
-      {errors.country}
-    </p>
-  )}
-</div>
-
-    {/* LINE 3 */}
-    <div className="flex gap-2">
-     <Textarea
-  className="flex-1 text-sm px-3 py-[3x] min-h-[36px]"
-        placeholder="Message"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-      />
-
-      <Button className="h-auto px-3" onClick={handleSubmit}>
-        Submit
-      </Button>
-    </div>
-
-    {/* TITLE */}
-<div className="flex justify-between items-center pt-1">
-  <p className="text-sm font-semibold">
-    Tribute Wall
-  </p>
-
-  <p className="text-xs text-gray-500">
-    {contributions.length} tributes
-  </p>
-</div>
-
-  </div>
 
 {/* =========================================================
    SECTION 21 — TRIBUTE WALL (SCROLLABLE)

@@ -1,0 +1,8 @@
+[33m84e8d24[m[33m ([m[1;36mHEAD[m[33m, [m[1;32mmain[m[33m)[m Stable Tribute without Admin topfreeze
+[33m3bf34e2[m Stable Tribute Wall but work in Progress
+[33m1874ac9[m Separating Admin and adding userID to tribute wall
+[33m1e5e229[m[33m ([m[1;31morigin/main[m[33m)[m Fix: admin control, visibility, status labels, and user restrictions
+[33m2132b02[m Milestone: Capsule contribution system with admin moderation, edit, and delete
+[33m6202047[m Milestone: Ownership binding and edit functionality working
+[33m07ece9b[m Initial LegacyCapsule build with Supabase + community system
+[33m518c026[m Initial commit from Create Next App
