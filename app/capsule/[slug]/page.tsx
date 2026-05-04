@@ -364,6 +364,10 @@ const canEdit = (c: any) => {
 {/* =========================================================
    SECTION 18 - 20 — UI: ROOT LAYOUT (FIXED HEADER + FORM)
 ========================================================= */}
+const inputStyle =
+  "w-full text-sm px-3 py-2 bg-yellow-100/5 border border-yellow-400/60 rounded-md text-gray-900 placeholder:text-gray-500 shadow-sm transition-all duration-200 " +
+  "hover:bg-purple-700/30 hover:text-yellow-200 hover:border-yellow-300 hover:shadow-[0_0_12px_rgba(234,179,8,0.8)] " +
+  "focus:bg-purple-800/35 focus:text-yellow-100 focus:border-yellow-400 focus:shadow-[0_0_14px_rgba(234,179,8,1)] focus:outline-none"
 return (
   <main className="h-screen flex flex-col w-full max-w-lg mx-auto px-2 bg-gradient-to-b from-white to-orange-50">
 
@@ -382,15 +386,16 @@ return (
   <div className="relative z-10 space-y-2">
 
     {/* HEADER */}
-    <p className="text-xs text-white/90 drop-shadow-sm">
-      Logged on as: {email || "Guest"} {isAdmin ? "(Admin)" : ""}
-    </p>
+<div className="flex items-center justify-between">
+  <h1 className="text-xl font-semibold text-white drop-shadow-md">
+    Legacy Capsule Test
+  </h1>
 
-    <h1 className="text-xl font-semibold tracking-tight text-white drop-shadow-md">
-      {capsule?.name || "Loading..."}
-    </h1>
-    </div>
-
+  <p className="text-xs text-white/90">
+    {email || "Guest"}
+  </p>
+</div>
+</div>
       {/* ================= FORM ================= */}
 
       {/* LINE 1 */}
@@ -399,7 +404,7 @@ return (
   {/* NAME */}
   <div>
     <Input
-      className="w-full text-sm px-2 py-1 bg-white/90 backdrop-blur-sm border border-white/40 focus:ring-2 focus:ring-orange-400 focus:outline-none"
+className={inputStyle}
       placeholder="Name"
       value={name}
       onChange={(e) => setName(e.target.value)}
@@ -413,8 +418,7 @@ return (
   {/* EMAIL */}
   <div>
     <Input
-      className="w-full text-sm px-2 py-1 focus:ring-2 focus:ring-orange-400 focus:outline-none"
-      placeholder="Email"
+className={inputStyle}
       value={email}
       onChange={(e) => setEmail(e.target.value)}
       disabled={false}
@@ -432,18 +436,17 @@ return (
 
       {/* LINE 2 */}
       <div className="grid grid-cols-2 gap-2">
-        <Input
-          className="w-full text-sm px-2 py-1 focus:ring-2 focus:ring-orange-400 focus:outline-none"
-          placeholder="City"
-          value={city}
-          maxLength={50}
-          onChange={(e) => setCity(e.target.value)}
-        />
+  <Input
+className={inputStyle}
+    placeholder="City"
+    value={city}
+    onChange={(e) => setCity(e.target.value)}
+  />
 
         {/* COUNTRY */}
         <div className="relative">
           <Input
-            className="w-full text-sm px-2 py-1 focus:ring-2 focus:ring-orange-400 focus:outline-none"
+className={inputStyle}
             placeholder="Country"
             value={countryQuery || country}
             maxLength={50}
@@ -493,29 +496,35 @@ return (
 
       {/* LINE 3 */}
       <div className="flex items-end gap-2">
-        <Textarea
-          className="flex-1 text-sm px-3 py-[2px] min-h-[36px]"
-          placeholder="Message"
-          value={content}
-          maxLength={500}
-          onChange={(e) => setContent(e.target.value)}
-        />
-<p className="text-xs text-gray-400 text-right">
-  {content.length}/500
-</p>
-
-        <Button className="bg-orange-500 text-white hover:bg-orange-600 px-4 py-2 rounded-md">
+ <Textarea
+  className={inputStyle + "h-[36px] resize-none"}
+  placeholder="Message"
+  value={content}
+  onChange={(e) => setContent(e.target.value)}
+/>
+<Button
+  onClick={handleSubmit}
+  className="px-4 py-2 rounded-md bg-yellow-400 text-purple-900 font-semibold border border-yellow-500 shadow-sm
+hover:shadow-[0_0_10px_rgba(234,179,8,0.7)]
+  active:bg-yellow-500 active:scale-[0.98]
+  transition-all duration-200"
+>
   Submit
 </Button>
-      </div>
+</div>
 
       {/* TITLE */}
-      <div className="flex justify-between items-center pt-1">
-        <p className="text-sm font-semibold">Tribute Wall</p>
-        <p className="text-xs text-gray-500">
-          {contributions.length} tributes
-        </p>
-      </div>
+<div className="flex flex-col items-center gap-[2px]">
+  <h2 className="font-bold text-purple-900 tracking-wide
+  drop-shadow-[0_0_6px_rgba(234,179,8,0.9)]">
+    Tribute Wall
+  </h2>
+
+  <p className="text-xs font-semibold text-yellow-300 
+  drop-shadow-[0_0_6px_rgba(234,179,8,0.7)]">
+    {contributions.length} tributes
+  </p>
+</div>
 
     </div>
 
