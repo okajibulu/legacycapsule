@@ -1,8 +1,8 @@
 "use client"
 
-/* =========================================================
+{/* =========================================================
    SECTION 1 — IMPORTS
-========================================================= */
+========================================================= */}
 import { useParams } from "next/navigation"
 import { useState, useEffect, useRef } from "react"
 import { supabase } from "@/lib/supabase"
@@ -12,14 +12,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
-/* =========================================================
+{/* =========================================================
    SECTION 2 — CONFIG
-========================================================= */
+========================================================= */}
 const ADMIN_EMAIL = "revoworldtech@gmail.com"
 
-/* =========================================================
+{/* =========================================================
    SECTION 2A — COUNTRY LIST
-========================================================= */
+========================================================= */}
 const COUNTRIES = [
   "Nigeria", "United Kingdom", "Germany", "Canada", "United States",
   "Ghana", "Kenya", "South Africa", "France", "Italy", "Spain",
@@ -27,26 +27,27 @@ const COUNTRIES = [
   "Brazil", "Mexico", "Australia", "Japan", "South Korea", "Not Listed",
 ]
 
-/* =========================================================
+{/* =========================================================
    SECTION 3 — COMPONENT
-========================================================= */
-export default function CapsulePage() {
+========================================================= */}
+import { use } from "react"
 
-  /* =========================================================
+export default function CapsulePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params)
+ 
+  {/* =========================================================
      SECTION 4 — ROUTING
-  ========================================================= */
-  const params = useParams()
-  const slug = params?.slug as string
+  ========================================================= */}
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 5 — STATE (CORE)
-  ========================================================= */
+  ========================================================= */}
   const [capsule, setCapsule] = useState<any>(null)
   const [contributions, setContributions] = useState<any[]>([])
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 6 — STATE (FORM)
-  ========================================================= */
+  ========================================================= */}
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [city, setCity] = useState("")
@@ -55,9 +56,9 @@ export default function CapsulePage() {
   const [countryQuery, setCountryQuery] = useState("")
   const [showCountryList, setShowCountryList] = useState(false)
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 7 — STATE (UI)
-  ========================================================= */
+  ========================================================= */}
   const [lastSubmitTime, setLastSubmitTime] = useState<number | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -67,33 +68,33 @@ export default function CapsulePage() {
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const countryRef = useRef<HTMLDivElement | null>(null)
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 8 — EFFECT: LOAD EMAIL
-  ========================================================= */
+  ========================================================= */}
   useEffect(() => {
     const savedEmail = localStorage.getItem("lc_email")
     if (savedEmail) setEmail(savedEmail)
   }, [])
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 9 — EFFECT: SAVE EMAIL
-  ========================================================= */
+  ========================================================= */}
   useEffect(() => {
     if (email.includes("@")) {
       localStorage.setItem("lc_email", email)
     }
   }, [email])
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 10 — EFFECT: ADMIN
-  ========================================================= */
+  ========================================================= */}
   useEffect(() => {
     setIsAdmin(email === ADMIN_EMAIL)
   }, [email])
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 10A — EFFECT: CLOSE COUNTRY DROPDOWN ON OUTSIDE CLICK
-  ========================================================= */
+  ========================================================= */}
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (countryRef.current && !countryRef.current.contains(e.target as Node)) {
@@ -104,9 +105,9 @@ export default function CapsulePage() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 11 — LOAD CAPSULE
-  ========================================================= */
+  ========================================================= */}
   useEffect(() => {
     if (!slug) return
 
@@ -126,22 +127,25 @@ export default function CapsulePage() {
     loadCapsule()
   }, [slug])
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 12 — LOAD CONTRIBUTIONS
-  ========================================================= */
+  ========================================================= */}
   const loadContributions = async (capsuleId: string) => {
     const { data } = await supabase
       .from("contributions")
-      .select("*")
+.select("*")
+.eq("capsule_id", capsuleId)
+.eq("status", "approved")
+.order("created_at", { ascending: false })      .select("*")
       .eq("capsule_id", capsuleId)
       .order("created_at", { ascending: false })
 
     if (data) setContributions(data)
   }
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 13 — VALIDATION
-  ========================================================= */
+  ========================================================= */}
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {}
 
@@ -168,9 +172,9 @@ export default function CapsulePage() {
     return Object.keys(newErrors).length === 0
   }
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 14 — SUBMIT HANDLER
-  ========================================================= */
+  ========================================================= */}
   const handleSubmit = async () => {
     if (!validateForm()) return
     if (!capsule) return
@@ -184,7 +188,7 @@ export default function CapsulePage() {
     const isDuplicate = contributions.some(
       (c) =>
         c.email?.toLowerCase() === email?.toLowerCase() &&
-        c.content?.trim().toLowerCase() === content.trim().toLowerCase()
+        c.tribute_text?.trim().toLowerCase() === content.trim().toLowerCase()
     )
     if (isDuplicate) {
       alert("You have already submitted this message.")
@@ -192,7 +196,15 @@ export default function CapsulePage() {
     }
 
     const { error } = await supabase.from("contributions").insert([
-      { name, email, city, country, content, capsule_id: capsule.id, status: "pending_review" },
+      {
+  name,
+  email,
+  city,
+  country,
+  tribute_text: content,
+  capsule_id: capsule.id,
+  status: "pending_review"
+},
     ])
 
     if (error) {
@@ -216,9 +228,9 @@ export default function CapsulePage() {
     }, 200)
   }
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 15 — UPDATE
-  ========================================================= */
+  ========================================================= */}
   const handleUpdate = async (id: string) => {
     const item = contributions.find((c) => c.id === id)
     if (!item) return
@@ -233,7 +245,7 @@ export default function CapsulePage() {
 
     const { error } = await supabase
       .from("contributions")
-      .update({ content: editContent })
+      .update({ tribute_text: editContent })
       .eq("id", id)
 
     if (error) { alert(error.message); return }
@@ -243,24 +255,24 @@ export default function CapsulePage() {
     loadContributions(capsule.id)
   }
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 16 — APPROVE
-  ========================================================= */
+  ========================================================= */}
   const handleApprove = async (id: string) => {
     await supabase.from("contributions").update({ status: "approved" }).eq("id", id)
     loadContributions(capsule.id)
   }
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 17 — HELPERS
-  ========================================================= */
+  ========================================================= */}
   const isOwner = (c: any) => c.email?.toLowerCase() === email?.toLowerCase()
   const isPending = (c: any) => c.status === "pending_review" || c.status === "pending"
   const canEdit = (c: any) => isAdmin || (isOwner(c) && isPending(c))
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 18 — ORDERED CONTRIBUTIONS
-  ========================================================= */
+  ========================================================= */}
   const visibleContributions = contributions.filter((c) => {
     if (isAdmin) return true
     return c.status === "approved" || isOwner(c)
@@ -274,12 +286,12 @@ export default function CapsulePage() {
       })
     : visibleContributions
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 19 — STYLE CONSTANTS
 
      All input fields share one canonical class string.
      The country dropdown inherits the same base.
-  ========================================================= */
+  ========================================================= */}
 
   // ── Gold-glow input ────────────────────────────────────────
   const inputBase = [
@@ -326,9 +338,9 @@ export default function CapsulePage() {
     "drop-shadow-[0_0_6px_rgba(234,179,8,0.75)]",
   ].join(" ")
 
-  /* =========================================================
+  {/* =========================================================
      SECTION 20 — RENDER
-  ========================================================= */
+  ========================================================= */}
   return (
     <main className="h-screen flex flex-col w-full max-w-lg mx-auto bg-gradient-to-b from-[#0a0010] to-[#100018]">
 
@@ -581,7 +593,7 @@ export default function CapsulePage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-white/80 leading-relaxed">{c.content}</p>
+                <p className="text-sm text-white/80 leading-relaxed">{c.tribute_text}</p>
               )}
 
               {/* status + actions */}
@@ -603,7 +615,7 @@ export default function CapsulePage() {
                   )}
                   {canEdit(c) && editingId !== c.id && (
                     <button
-                      onClick={() => { setEditingId(c.id); setEditContent(c.content) }}
+                      onClick={() => { setEditingId(c.id); setEditContent(c.tribute_text) }}
                       className="text-[11px] px-2.5 py-0.5 rounded-md border border-white/15 text-white/50
                         hover:border-yellow-400/40 hover:text-yellow-300/80 transition-colors"
                     >
