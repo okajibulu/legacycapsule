@@ -131,14 +131,12 @@ export default function CapsulePage({ params }: { params: Promise<{ slug: string
      SECTION 12 — LOAD CONTRIBUTIONS
   ========================================================= */}
   const loadContributions = async (capsuleId: string) => {
-    const { data } = await supabase
-      .from("contributions")
-.select("*")
-.eq("capsule_id", capsuleId)
-.eq("status", "approved")
-.order("created_at", { ascending: false })      .select("*")
-      .eq("capsule_id", capsuleId)
-      .order("created_at", { ascending: false })
+const { data } = await supabase
+  .from("contributions")
+  .select("*")
+  .eq("capsule_id", capsuleId)
+  .in("status", ["approved", "pending_review"])
+  .order("created_at", { ascending: false })
 
     if (data) setContributions(data)
   }
@@ -369,8 +367,7 @@ export default function CapsulePage({ params }: { params: Promise<{ slug: string
 
           {/* ── TITLE H1 ── */}
           <h1 className={h1Style}>
-            {capsule?.title ?? "Legacy Capsule"}
-          </h1>
+            {capsule?.honouree_name ?? "Legacy Capsule"}          </h1>
 
           {/* gold ornamental divider */}
           <div className="flex items-center gap-1.5 px-4">
@@ -523,7 +520,8 @@ export default function CapsulePage({ params }: { params: Promise<{ slug: string
       </div>
 
       {/* ── SCROLLABLE TRIBUTE CARDS ─────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-2 py-2 space-y-2">
+      <div className="flex-1 overflow-y-auto px-2 py-0 space-y-1">
+
 
         {orderedContributions.length === 0 && (
           <p className="text-center text-white/30 text-sm pt-10 tracking-wide">
@@ -534,13 +532,13 @@ export default function CapsulePage({ params }: { params: Promise<{ slug: string
         {orderedContributions.map((c) => (
           <Card
             key={c.id}
-            className={`w-full rounded-xl border backdrop-blur-sm transition-all duration-200 ${
+            className={`w-full rounded-lg border backdrop-blur-sm transition-all duration-200 ${
               isOwner(c)
                 ? "border-yellow-400/50 bg-yellow-400/5 shadow-[0_0_12px_rgba(234,179,8,0.15)]"
                 : "border-white/10 bg-white/5"
             }`}
           >
-            <CardContent className="py-2 px-2.5 space-y-1">
+            <CardContent className="py-0 px-2.5 space-y-0.5">
 
               {/* card header */}
               <div className="flex justify-between items-start gap-0.5">
