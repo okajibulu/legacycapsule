@@ -55,6 +55,9 @@ export default function CapsulePage({ params }: { params: Promise<{ slug: string
   const [content, setContent] = useState("")
   const [countryQuery, setCountryQuery] = useState("")
   const [showCountryList, setShowCountryList] = useState(false)
+  const [editingHonouree, setEditingHonouree] = useState(false)
+const [honoureeEdit,    setHonoureeEdit]    = useState("")
+const [autoApprove, setAutoApprove] = useState(false)
 
   {/* =========================================================
      SECTION 7 — STATE (UI)
@@ -125,6 +128,19 @@ export default function CapsulePage({ params }: { params: Promise<{ slug: string
     }
 
     loadCapsule()
+  
+  useEffect(() => {
+  const loadFlag = async () => {
+    const { data } = await supabase
+      .from("lc_feature_flags")
+      .select("enabled")
+      .eq("key", "auto_approve_tributes")
+      .single()
+    if (data) setAutoApprove(data.enabled)
+  }
+  loadFlag()
+}, [])
+  
   }, [slug])
 
   {/* =========================================================
@@ -193,22 +209,44 @@ const { data } = await supabase
       return
     }
 
-    const { error } = await supabase.from("contributions").insert([
-      {
-  name,
-  email,
-  city,
-  country,
-  tribute_text: content,
-  capsule_id: capsule.id,
-  status: "pending_review"
-},
-    ])
+const { error } = await supabase.from("contributions").insert([
+  {
+    contributor_name: name,
+    email,
+    city,
+    country,
+    tribute_text: content,
+    capsule_id:   capsule.id,
+    status:       autoApprove ? "approved" : "pending_review",
+  },
+])
 
     if (error) {
       alert(error.message)
       return
     }
+
+// Get the contribution id that was just inserted
+const { data: newContrib } = await supabase
+  .from("contributions")
+  .select("id")
+  .eq("capsule_id", capsule.id)
+  .eq("email", email)
+  .order("created_at", { ascending: false })
+  .limit(1)
+  .single()
+
+// Geocode by IP — non-blocking
+if (newContrib) {
+  fetch("/api/geocode", {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contributionId: newContrib.id,
+    }),
+  })
+}
+
 
     localStorage.setItem("lc_email", email)
     setLastSubmitTime(now)
@@ -218,12 +256,46 @@ const { data } = await supabase
     setCountryQuery("")
     setContent("")
     setSubmitSuccess(true)
+
+
+// Send contributor verification email
+if (email && newContrib) {
+  fetch("/api/email/verify-contributor", {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      contributorName:  name,
+      contributionId:   newContrib.id,
+      honoreeName:      capsule.honouree_name,
+      capsuleSlug:      slug,
+    }),
+  })
+}
+
+
     setTimeout(() => setSubmitSuccess(false), 3500)
 
     loadContributions(capsule.id)
     setTimeout(() => {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" })
     }, 200)
+ 
+ // Send confirmation email if email provided
+if (email) {
+  await fetch("/api/email/submission", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      to:              email,
+      contributorName: name,
+      honoreeName:     capsule.honouree_name,
+      capsuleSlug:     slug,
+    }),
+  })
+}
+ 
+ 
   }
 
   {/* =========================================================
@@ -260,7 +332,12 @@ const { data } = await supabase
     await supabase.from("contributions").update({ status: "approved" }).eq("id", id)
     loadContributions(capsule.id)
   }
-
+const handleDelete = async (id: string) => {
+  const confirm = window.confirm("Delete this tribute permanently?")
+  if (!confirm) return
+  await supabase.from("contributions").delete().eq("id", id)
+  loadContributions(capsule.id)
+}
   {/* =========================================================
      SECTION 17 — HELPERS
   ========================================================= */}
@@ -366,8 +443,59 @@ const { data } = await supabase
           )}
 
           {/* ── TITLE H1 ── */}
-          <h1 className={h1Style}>
-            {capsule?.honouree_name ?? "Legacy Capsule"}          </h1>
+{isAdmin && editingHonouree ? (
+  <div className="flex gap-2 items-center justify-center">
+    <input
+      value={honoureeEdit}
+      onChange={e => setHonoureeEdit(e.target.value)}
+      style={{
+        background: "rgba(255,255,255,0.1)",
+        border: "1px solid rgba(234,179,8,0.5)",
+        borderRadius: "8px",
+        padding: "4px 10px",
+        color: "white",
+        fontSize: "16px",
+        outline: "none",
+        WebkitTextFillColor: "white",
+        WebkitBoxShadow: "0 0 0px 1000px rgba(26,13,46,0.95) inset",
+      }}
+    />
+    <button
+      onClick={async () => {
+        await supabase.from("capsules")
+          .update({ honouree_name: honoureeEdit })
+          .eq("id", capsule.id)
+        setCapsule({ ...capsule, honouree_name: honoureeEdit })
+        setEditingHonouree(false)
+      }}
+      className="text-xs px-2 py-1 rounded bg-yellow-400 text-purple-950 font-bold"
+    >
+      Save
+    </button>
+    <button
+      onClick={() => setEditingHonouree(false)}
+      className="text-xs px-2 py-1 rounded border border-white/20 text-white/50"
+    >
+      Cancel
+    </button>
+  </div>
+) : (
+  <h1 className={h1Style}>
+    {capsule?.honouree_name ?? "Legacy Capsule"}
+    {isAdmin && (
+      <button
+        onClick={() => {
+          setHonoureeEdit(capsule?.honouree_name ?? "")
+          setEditingHonouree(true)
+        }}
+        className="ml-2 text-xs text-yellow-400/50 hover:text-yellow-400 
+          font-normal normal-case tracking-normal"
+      >
+        ✎
+      </button>
+    )}
+  </h1>
+)}
 
           {/* gold ornamental divider */}
           <div className="flex items-center gap-1.5 px-4">
@@ -544,7 +672,7 @@ const { data } = await supabase
               <div className="flex justify-between items-start gap-0.5">
 <div className="flex justify-between items-center gap-1 w-full">
   <span className="text-xs font-semibold text-yellow-100 truncate max-w-[100px]">
-    {c.name}
+    {c.contributor_name}
     {isOwner(c) && (
       <span className="ml-1.5 text-[9px] font-normal text-yellow-400/70 uppercase tracking-widest">
         You
@@ -602,15 +730,24 @@ const { data } = await supabase
                   </span>
                 )}
                 <div className="flex gap-1.5 ml-auto">
-                  {isAdmin && isPending(c) && editingId !== c.id && (
-                    <button
-                      onClick={() => handleApprove(c.id)}
-                      className="text-[11px] px-2.5 py-0.5 rounded-md bg-green-500/20 border border-green-400/30
-                        text-green-300 hover:bg-green-500/30 transition-colors"
-                    >
-                      Approve
-                    </button>
-                  )}
+{isAdmin && isPending(c) && editingId !== c.id && (
+  <button
+    onClick={() => handleApprove(c.id)}
+    className="text-xs px-2.5 py-0.5 rounded-md bg-green-500/20 border border-green-400/30
+      text-green-300 hover:bg-green-500/30 transition-colors"
+  >
+    Approve
+  </button>
+)}
+{isAdmin && editingId !== c.id && (
+  <button
+    onClick={() => handleDelete(c.id)}
+    className="text-xs px-2.5 py-0.5 rounded-md bg-red-500/20 border border-red-400/30
+      text-red-300 hover:bg-red-500/30 transition-colors"
+  >
+    Delete
+  </button>
+)}
                   {canEdit(c) && editingId !== c.id && (
                     <button
                       onClick={() => { setEditingId(c.id); setEditContent(c.tribute_text) }}
@@ -632,6 +769,32 @@ const { data } = await supabase
 
       {/* gold bottom rule */}
       <div className="h-px bg-gradient-to-r from-transparent via-yellow-400/30 to-transparent flex-shrink-0" />
+   
+   if (capsule && capsule.page_state === "pending_verification") return (
+  <main className="min-h-screen bg-[#0a0010] flex items-center justify-center px-4">
+    <div className="w-full max-w-sm space-y-6 text-center">
+      <div className="text-6xl">⏳</div>
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold text-yellow-100">
+          Capsule not yet active
+        </h1>
+        <p className="text-sm text-white/50 leading-relaxed">
+          The organiser needs to verify their email address 
+          before this Capsule can accept tributes.
+        </p>
+        <p className="text-sm text-white/30">
+          If you are the organiser check your inbox for the 
+          verification email from LegacyCapsule.
+        </p>
+      </div>
+      <div className="h-px bg-gradient-to-r from-transparent via-yellow-400/30 to-transparent" />
+      <p className="text-xs text-white/25">
+        LegacyCapsule · Every event. Preserved.
+      </p>
+    </div>
+  </main>
+)
+   
     </main>
   )
 }

@@ -1,54 +1,45 @@
 "use client"
 
-import { useState } from "react"
-import { supabase } from "@/lib/supabase"
-import { Button } from "@/components/ui/button"
-
-const ADMIN_EMAIL = "revoworldtech@gmail.com"
+import Link from "next/link"
 
 export default function AdminPage() {
-  const [message, setMessage] = useState("")
-  const [loading, setLoading] = useState(false)
-
-  const handleLogin = async () => {
-    if (loading) return
-
-    setLoading(true)
-
-    const { error } = await supabase.auth.signInWithOtp({
-  email: ADMIN_EMAIL,
-  options: {
-    emailRedirectTo: "http://localhost:3000/capsule/test-capsule",
-  },
-})
-
-    if (error) {
-      console.log("LOGIN ERROR:", error)
-      setMessage(error.message)
-      setLoading(false)
-      return
-    }
-
-    setMessage("Secure login link sent to your email.")
-  }
-
   return (
-    <div className="p-8 max-w-md mx-auto space-y-4">
-      <h1 className="text-xl font-semibold">Admin Login</h1>
+    <main className="min-h-screen bg-[#0a0010] flex items-center justify-center px-4">
+      <div className="w-full max-w-sm space-y-6">
 
-      <p className="text-sm text-gray-600">
-        Login to manage tributes
-      </p>
+        <div className="text-center space-y-1">
+          <h1 className="text-xl font-bold text-yellow-100 tracking-widest uppercase">
+            LCAdmin
+          </h1>
+          <p className="text-xs text-white/40">LegacyCapsule Administration</p>
+        </div>
 
-      <Button onClick={handleLogin} disabled={loading}>
-        {loading ? "Sending..." : "Login as Admin"}
-      </Button>
+        <div className="space-y-2">
+          {[
+            { label: "Pricing Configuration", href: "/admin/pricing",
+              desc: "Edit all product prices" },
+            { label: "Feature Flags",          href: "/admin/flags",
+              desc: "Toggle platform features" },
+            { label: "Tribute Moderation",     href: "/capsule/dr-adeyemi-okonkwo-retirement",
+              desc: "Enter admin email on tribute page to moderate" },
+          ].map(item => (
+            <Link key={item.href} href={item.href}
+              className="block px-4 py-3 rounded-xl border border-white/8
+                bg-white/4 hover:border-yellow-400/20 hover:bg-yellow-400/4
+                transition-all duration-150">
+              <p className="text-sm font-medium text-yellow-100">{item.label}</p>
+              <p className="text-xs text-white/35 mt-0.5">{item.desc}</p>
+            </Link>
+          ))}
+        </div>
 
-      {message && (
-        <p className="text-sm text-gray-600">
-          {message}
-        </p>
-      )}
-    </div>
+        <div className="pt-4 border-t border-white/8 text-center">
+          <p className="text-[10px] text-white/20 tracking-widest uppercase">
+            VALNEX, UNIPESSOAL LDA · RevoWorldTech
+          </p>
+        </div>
+
+      </div>
+    </main>
   )
 }
