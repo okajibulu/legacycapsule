@@ -1,8 +1,13 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Toaster } from "@/components/ui/sonner"
 import NavigationWrapper from "@/components/layout/NavigationWrapper"
 import FooterWrapper from "@/components/layout/FooterWrapper"
 import "./globals.css"
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
 
 export const metadata: Metadata = {
   title: "LegacyCapsule — Every Event. Preserved.",

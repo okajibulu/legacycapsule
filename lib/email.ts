@@ -48,9 +48,9 @@ export async function sendSubmissionConfirmation({
           <p style="margin:0;color:#5F5E5A;font-size:13px;">
             You can view the tribute wall at any time:
           </p>
-          <a href="https://itslegacycapsule.com/capsule/${capsuleSlug}"
+          <a href="https://itslegacycapsule.com/event/${capsuleSlug}"
             style="color:#2D1B69;font-size:13px;font-weight:bold;">
-            itslegacycapsule.com/capsule/${capsuleSlug}
+            itslegacycapsule.com/event/${capsuleSlug}
           </a>
         </div>
 
@@ -108,7 +108,7 @@ export async function sendApprovalNotification({
           approved and is now live on the tribute wall.
         </p>
 
-        <a href="https://itslegacycapsule.com/capsule/${capsuleSlug}"
+        <a href="https://itslegacycapsule.com/event/${capsuleSlug}"
           style="display:block;background:#B8960C;color:#2D1B69;
             text-align:center;padding:12px 24px;border-radius:8px;
             font-weight:bold;font-size:14px;text-decoration:none;

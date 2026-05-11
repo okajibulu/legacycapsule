@@ -2,7 +2,7 @@
 import { usePathname } from "next/navigation"
 import Footer from "./Footer"
 
-const HIDE_FOOTER = ["/capsule/", "/admin", "/book"]
+const HIDE_FOOTER = ["/event/", "/admin", "/book"]
 
 export default function FooterWrapper() {
   const pathname = usePathname()
