@@ -364,14 +364,15 @@ background: "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",    
       maxWidth:    "900px",
       padding:     "0 2rem",
     }}>
-      Capture every voice and moment<br />
-      <span style={{
-        color:      "var(--lc-gold)",
-        fontStyle:  "italic",
-        textShadow: "0 0 30px rgba(184,150,12,0.5)",
-      }}>
-        of your event
-      </span>
+Capture every voice<br />
+and moment{" "}
+<span style={{
+  color:      "var(--lc-gold)",
+  fontStyle:  "italic",
+  textShadow: "0 0 30px rgba(184,150,12,0.5)",
+}}>
+  of your event
+</span>
     </h1>
 
     {/* Subline */}
@@ -446,7 +447,7 @@ background: "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",    
     <p style={{
       fontFamily:    "var(--font-body)",
       fontSize:      "var(--text-xs)",
-      color:         "rgba(254,252,232,0.95)",
+      color:         "rgba(254,252,232,1.0)",
       letterSpacing: "var(--tracking-wide)",
       marginBottom:  "var(--space-8)",
     }}>

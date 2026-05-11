@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import LogoCapsule from "@/components/LogoCapsule"
 
 // ── EVENT TYPES ───────────────────────────────────────────
 const EVENT_TYPES = [
@@ -236,44 +237,216 @@ const createCapsule = async () => {
   )
 
   // ── SCREEN 1 — VISITOR TYPE ───────────────────────────────
-  if (screen === 1) return (
-    <main className="min-h-screen bg-[#0a0010] flex items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-1">
-          <p className="text-[10px] text-yellow-400/60 tracking-widest uppercase">
-            LegacyCapsule
-          </p>
-          <h1 className="text-2xl font-bold text-yellow-100">
-            Who are you?
-          </h1>
-          <p className="text-sm text-white/40">
-            This helps us tailor your experience
-          </p>
-        </div>
-        <Progress />
-        <div className="space-y-3">
-          {[
-            { key: "personal",     label: "Personal Organiser",
-              desc: "I am arranging an event for someone I love" },
-            { key: "professional", label: "Event Professional",
-              desc: "I use LegacyCapsule as part of my event services" },
-          ].map(opt => (
-            <button key={opt.key}
-              onClick={() => { setVisitorType(opt.key); setScreen(2) }}
-              className={`w-full text-left px-4 py-4 rounded-xl border transition-all duration-150
-                ${visitorType === opt.key
-                  ? "border-yellow-400/60 bg-yellow-400/10"
-                  : "border-white/10 bg-white/4 hover:border-yellow-400/30 hover:bg-yellow-400/5"
-                }`}>
-              <p className="text-sm font-semibold text-yellow-100">{opt.label}</p>
-              <p className="text-xs text-white/40 mt-0.5">{opt.desc}</p>
-            </button>
-          ))}
-        </div>
-      </div>
-    </main>
-  )
+if (screen === 1) return (
+  <main style={{
+    minHeight:      "100vh",
+    background:     "linear-gradient(160deg, #0D0820 0%, #1A0F3E 50%, #0D0820 100%)",
+    display:        "flex",
+    flexDirection:  "column",
+    alignItems:     "center",
+    justifyContent: "center",
+    padding:        "3rem 1.5rem",
+    position:       "relative",
+    overflow:       "hidden",
+  }}>
 
+    {/* Subtle background glow */}
+    <div style={{
+      position:      "absolute",
+      top:           "30%",
+      left:          "50%",
+      transform:     "translate(-50%, -50%)",
+      width:         "500px",
+      height:        "500px",
+      background:    "radial-gradient(circle, rgba(184,150,12,0.06) 0%, transparent 70%)",
+      pointerEvents: "none",
+    }} />
+
+    <div style={{ width: "100%", maxWidth: "420px", position: "relative" }}>
+
+      {/* Home link */}
+      <div style={{ marginBottom: "2.5rem" }}>
+        <a href="/" style={{
+          fontFamily:    "var(--font-body)",
+          fontSize:      "12px",
+          color:         "rgba(184,150,12,0.7)",
+          textDecoration:"none",
+          letterSpacing: "0.05em",
+          display:       "inline-flex",
+          alignItems:    "center",
+          gap:           "6px",
+          transition:    "color 150ms ease",
+        }}>
+          ← Back to Home
+        </a>
+      </div>
+
+      {/* LC Logo — centred */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: "2.5rem" }}>
+        <LogoCapsule size="md" />
+      </div>
+
+      {/* Gold rule */}
+      <div style={{
+        height:     "1px",
+        background: "linear-gradient(90deg, transparent, rgba(184,150,12,0.5), transparent)",
+        marginBottom: "2.5rem",
+      }} />
+
+      {/* Progress bar */}
+      <div style={{ display: "flex", gap: "8px", marginBottom: "2.5rem" }}>
+        {[1,2,3,4].map(n => (
+          <div key={n} style={{
+            flex:         1,
+            height:       "3px",
+            borderRadius: "2px",
+            background:   n <= screen
+              ? "linear-gradient(90deg, #D4AE2A, #B8960C)"
+              : "rgba(255,255,255,0.1)",
+            transition:   "all 300ms ease",
+            boxShadow:    n <= screen ? "0 0 6px rgba(184,150,12,0.4)" : "none",
+          }} />
+        ))}
+      </div>
+
+      {/* Heading */}
+      <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
+        <p style={{
+          fontFamily:    "var(--font-body)",
+          fontSize:      "10px",
+          fontWeight:    700,
+          color:         "var(--lc-gold)",
+          letterSpacing: "0.25em",
+          textTransform: "uppercase",
+          marginBottom:  "1rem",
+          opacity:       0.8,
+        }}>
+          Step 1 of 4
+        </p>
+        <h1 style={{
+          fontFamily:   "var(--font-heading)",
+          fontSize:     "clamp(1.8rem, 5vw, 2.4rem)",
+          fontWeight:   600,
+          color:        "#FEFCE8",
+          lineHeight:   1.2,
+          marginBottom: "0.75rem",
+          letterSpacing:"-0.01em",
+        }}>
+          How can we help?
+        </h1>
+        <p style={{
+          fontFamily: "var(--font-body)",
+          fontSize:   "14px",
+          color:      "rgba(254,252,232,0.45)",
+          lineHeight: 1.6,
+        }}>
+          Choose your role to get started
+        </p>
+      </div>
+
+      {/* Option buttons */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "2rem" }}>
+        {[
+          {
+            key:   "personal",
+            label: "Personal Organiser",
+            desc:  "I am arranging an event for someone I love",
+            icon:  "🤍",
+          },
+          {
+            key:   "professional",
+            label: "Event Professional",
+            desc:  "I use LegacyCapsule as part of my event services",
+            icon:  "✦",
+          },
+          {
+            key:   "gifter",
+            label: "Gift a Capsule",
+            desc:  "I want to give this experience as a gift",
+            icon:  "🎁",
+          },
+        ].map(opt => (
+          <button key={opt.key}
+            onClick={() => { setVisitorType(opt.key); setScreen(2) }}
+            style={{
+              width:         "100%",
+              textAlign:     "left",
+              padding:       "22px 24px",
+              borderRadius:  "16px",
+              border:        visitorType === opt.key
+                ? "1px solid rgba(184,150,12,0.7)"
+                : "1px solid rgba(184,150,12,0.2)",
+              background:    visitorType === opt.key
+                ? "rgba(184,150,12,0.08)"
+                : "rgba(255,255,255,0.03)",
+              cursor:        "pointer",
+              transition:    "all 200ms ease",
+              boxShadow:     visitorType === opt.key
+                ? "0 0 20px rgba(184,150,12,0.15), inset 0 1px 0 rgba(255,255,255,0.05)"
+                : "inset 0 1px 0 rgba(255,255,255,0.04)",
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.border = "1px solid rgba(184,150,12,0.5)"
+              e.currentTarget.style.background = "rgba(184,150,12,0.06)"
+            }}
+            onMouseLeave={e => {
+              if (visitorType !== opt.key) {
+                e.currentTarget.style.border = "1px solid rgba(184,150,12,0.2)"
+                e.currentTarget.style.background = "rgba(255,255,255,0.03)"
+              }
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "14px" }}>
+              <span style={{ fontSize: "20px", marginTop: "2px", flexShrink: 0 }}>
+                {opt.icon}
+              </span>
+              <div>
+                <p style={{
+                  fontFamily:   "var(--font-body)",
+                  fontSize:     "15px",
+                  fontWeight:   700,
+                  color:        "#FEFCE8",
+                  marginBottom: "6px",
+                  letterSpacing:"0.01em",
+                }}>
+                  {opt.label}
+                </p>
+                <p style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize:   "13px",
+                  color:      "rgba(254,252,232,0.4)",
+                  lineHeight: 1.55,
+                }}>
+                  {opt.desc}
+                </p>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Bottom gold rule */}
+      <div style={{
+        height:     "1px",
+        background: "linear-gradient(90deg, transparent, rgba(184,150,12,0.3), transparent)",
+        marginBottom: "1.5rem",
+      }} />
+
+      {/* Footer attribution */}
+      <p style={{
+        fontFamily:    "var(--font-body)",
+        fontSize:      "10px",
+        color:         "rgba(255,255,255,0.15)",
+        textAlign:     "center",
+        letterSpacing: "0.15em",
+        textTransform: "uppercase",
+      }}>
+        VALNEX, UNIPESSOAL LDA · RevoWorldTech
+      </p>
+
+    </div>
+  </main>
+)
   // ── SCREEN 2 — EVENT TYPE ─────────────────────────────────
   if (screen === 2) return (
     <main className="min-h-screen bg-[#0a0010] px-4 py-8">
@@ -327,8 +500,7 @@ const createCapsule = async () => {
           {PACKAGES.map(pkg => (
             <button key={pkg.key}
               onClick={() => setPackageKey(pkg.key)}
-              className={`w-full text-left px-4 py-4 rounded-xl border transition-all duration-150
-                ${packageKey === pkg.key
+              className={`w-full text-left px-5 py-5 rounded-xl border transition-all duration-150                ${packageKey === pkg.key
                   ? "border-yellow-400/60 bg-yellow-400/10"
                   : "border-white/10 bg-white/4 hover:border-yellow-400/30"
                 }`}>
