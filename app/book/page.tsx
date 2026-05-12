@@ -488,7 +488,7 @@ export default function BookPage() {
                 <button
                   key={ev.label}
                   onClick={() => setEventType(ev.label)}
-                  className="flex flex-col items-center justify-center gap-3 px-3 py-8 min-h-[110px] rounded-2xl border transition-all duration-200"                  style={{
+                  className="flex flex-col items-center justify-center gap-3 px-3 py-5 min-h-[88px] rounded-2xl border transition-all duration-200"                  style={{
                     background: selected ? 'rgba(184,150,12,0.10)' : 'rgba(255,255,255,0.03)',
                     borderColor: selected ? '#B8960C' : 'rgba(255,255,255,0.08)',
                     boxShadow: selected ? '0 0 16px #B8960C22' : 'none',
@@ -924,6 +924,7 @@ export default function BookPage() {
     </ScreenShell>
   )
 }
+
 
 
 
