@@ -884,10 +884,10 @@ export default function BookPage() {
 
   return (
     <ScreenShell>
-      <div className="w-full max-w-xl flex flex-col items-center text-center pt-16">
+      <div className="w-full max-w-xl flex flex-col items-center text-center pt-20 gap-2">
         <BookingLogo />
 
-        <div className="w-16 h-16 rounded-full border border-yellow-400/40 bg-yellow-400/10 flex items-center justify-center mb-6"
+        <div className="w-20 h-20 rounded-full border border-yellow-400/40 bg-yellow-400/10 flex items-center justify-center mb-8 mt-4"
           style={{ boxShadow: '0 0 32px #B8960C33' }}>
           <span className="text-2xl">✦</span>
         </div>
@@ -901,7 +901,7 @@ export default function BookPage() {
           Check your email for your management link.
         </p>
 
-        <div className="px-5 py-4 rounded-xl border border-yellow-400/20 bg-yellow-400/5 w-full mb-8">
+        <div className="px-5 py-4 rounded-xl border border-yellow-400/20 bg-yellow-400/5 w-full mb-10 mt-2">
           <p className="text-[10px] uppercase tracking-widest text-yellow-400/50 mb-1">Your capsule link</p>
           <p className="text-sm text-yellow-200/80 break-all">
             itslegacycapsule.com/capsule/<span className="font-semibold">{slug}</span>
@@ -924,6 +924,9 @@ export default function BookPage() {
     </ScreenShell>
   )
 }
+
+
+
 
 
 
