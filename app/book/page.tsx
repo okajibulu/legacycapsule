@@ -183,7 +183,7 @@ function getHonoureePlaceholder(eventType: string): string {
 
 function getEventTagPlaceholder(eventType: string): string {
   switch (eventType) {
-    case 'Retirement':           return 'e.g. A Life Well Lived'
+    case 'Retirement':           return 'e.g. 35 Years of Dedication'
     case 'Memorial & Funeral':   return 'e.g. Forever in Our Hearts'
     case 'Wedding':              return 'e.g. United in Love'
     case 'Milestone Birthday':   return 'e.g. 80 Glorious Years'
@@ -924,6 +924,7 @@ export default function BookPage() {
     </ScreenShell>
   )
 }
+
 
 
 
