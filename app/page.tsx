@@ -23,18 +23,23 @@ import AnimatedWorldMap from "@/components/AnimatedWorldMap"
    West Africa → UK → North America → rest of world
    ============================================================ */
 
-   const EVENT_TYPES = [
-  { name: "Weddings & Ceremonies" },
-  { name: "Retirements" },
-  { name: "Milestone Birthdays" },
-  { name: "Memorials" },
-  { name: "Graduations" },
-  { name: "Ordinations" },
-  { name: "Chieftaincy Ceremonies" },
-  { name: "Anniversaries" },
-  { name: "Award Ceremonies" },
-  { name: "Thanksgiving Services" },
-  { name: "Conferences" },
+const ROTATING_LINES = [
+  'Free Tribute Wall — Live in Minutes',
+  'Worldwide Tribute Collection',
+  'Live World Map of Your Guests',
+  'Guests from Every Corner of the World',
+  'Live Tribute Wall on Event Day',
+  'Guest Video Moments — Captured Live',
+  'Real-Time D-Day Tribute Collection',
+  'Full Guest List & RSVP Management',
+  'Regular and VIP Guest Tiers',
+  'Access Codes & Table Seating Plans',
+  'Fabric & Attire Coordination',
+  'Post-Event Digital Publication',
+  'Publication Shared with Every Guest',
+  'Permanent Digital Memory Archive',
+  'Event Planner Portfolio & Showcase',
+  'Reseller Programme & White Label',
 ]
 
 function RotatingEventType() {
@@ -45,7 +50,7 @@ function RotatingEventType() {
     const interval = setInterval(() => {
       setVisible(false)
       setTimeout(() => {
-        setCurrent((c) => (c + 1) % EVENT_TYPES.length)
+        setCurrent((c) => (c + 1) % ROTATING_LINES.length)
         setVisible(true)
       }, 400)
     }, 2800)
@@ -54,18 +59,29 @@ function RotatingEventType() {
 
   return (
     <div style={{
-      fontFamily:    "var(--font-heading)",
-      fontSize:      "clamp(var(--text-xl), 3vw, var(--text-3xl))",
-      fontWeight:    400,
-      fontStyle:     "italic",
-      color:         "var(--lc-gold)",
+      textAlign:     "center",
       opacity:       visible ? 1 : 0,
       transform:     visible ? "translateY(0)" : "translateY(-8px)",
       transition:    "all 0.4s ease",
       minHeight:     "1.4em",
-      textAlign:     "center",
+      display:       "flex",
+      alignItems:    "center",
+      justifyContent: "center",
     }}>
-      {EVENT_TYPES[current].name}
+      <p style={{
+        fontFamily: 'var(--font-display, "Cormorant Garamond", serif)',
+        fontStyle: 'italic',
+        fontSize: 'clamp(0.95rem, 2.2vw, 1.35rem)',
+        letterSpacing: '0.1em',
+        color: '#D4AE2A',
+        margin: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <span style={{ color: 'rgba(184,150,12,0.6)', marginRight: '0.5em' }}>✦</span>
+        {ROTATING_LINES[current]}
+      </p>
     </div>
   )
 }
@@ -351,41 +367,44 @@ background: "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",    
     </p>
 
     {/* Main headline */}
-    <h1 style={{
-      fontFamily:  "var(--font-display)",
-      fontSize:    "clamp(2.2rem, 5.5vw, 5rem)",
-      fontWeight:  700,
-      color:       "#FEFCE8",
-      lineHeight:  1.1,
-      letterSpacing: "-0.02em",
-      marginBottom: "var(--space-4)",
-      textShadow:  "0 2px 24px rgba(0,0,0,0.9), 0 0 60px rgba(0,0,0,0.6)",
-      filter:      "drop-shadow(0 0 20px rgba(184,150,12,0.3))",
-      maxWidth:    "900px",
-      padding:     "0 2rem",
-    }}>
-Capture every voice<br />
-and moment{" "}
-<span style={{
-  color:      "var(--lc-gold)",
-  fontStyle:  "italic",
-  textShadow: "0 0 30px rgba(184,150,12,0.5)",
-}}>
-  of your event
-</span>
-    </h1>
+    <div className="flex flex-col items-center gap-1 mb-4">
+      <span
+        style={{
+          fontFamily: 'var(--font-display, "Cormorant Garamond", serif)',
+          fontSize: 'clamp(1.8rem, 4vw, 3.6rem)',
+          fontWeight: 300,
+          color: 'rgba(255,255,255,0.62)',
+          letterSpacing: '0.05em',
+          lineHeight: 1.1,
+        }}>
+        Events end.
+      </span>
+      <span
+        style={{
+          fontFamily: 'var(--font-display, "Cormorant Garamond", serif)',
+          fontSize: 'clamp(2.6rem, 6vw, 5rem)',
+          fontWeight: 700,
+          color: '#FFFFFF',
+          letterSpacing: '-0.01em',
+          lineHeight: 1.1,
+          textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
+        }}>
+        Legacies don't.
+      </span>
+    </div>
 
     {/* Subline */}
     <p style={{
       fontFamily:   "var(--font-display)",
       fontSize:     "clamp(1rem, 2vw, 1.4rem)",
       fontStyle:    "italic",
-      color:        "rgba(254,252,232,0.75)",
+      color:        "rgba(255,255,255,0.45)",
+      maxWidth:     "500px",
       marginBottom: "var(--space-6)",
       textShadow:   "0 2px 12px rgba(0,0,0,0.8)",
       letterSpacing: "0.02em",
     }}>
-      — in one Capsule.
+      captured, preserved, and shared — for everyone who was there.
     </p>
 
     {/* Rotating event type */}
@@ -451,7 +470,11 @@ and moment{" "}
       letterSpacing: "var(--tracking-wide)",
       marginBottom:  "var(--space-8)",
     }}>
-      No technical experience required · Live in minutes · Free to start
+      NO TECHNICAL EXPERIENCE REQUIRED
+      <span style={{ color: 'rgba(184,150,12,0.5)', margin: '0 0.5em' }}>·</span>
+      GO LIVE IN MINUTES
+      <span style={{ color: 'rgba(184,150,12,0.5)', margin: '0 0.5em' }}>·</span>
+      FOR FREE
     </p>
 
     {/* Scroll indicator */}
