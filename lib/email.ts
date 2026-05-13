@@ -145,6 +145,7 @@ export async function sendOrganiserWelcome({
   tier: string
 }) {
   const capsuleUrl = `${process.env.NEXT_PUBLIC_APP_URL}/capsule/${slug}`
+  const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/capsule/${slug}/manage`
   const tierLabel = tier === 'free' ? 'Free Tribute Wall' : tier === 'honour' ? 'Legacy Honour' : 'Legacy Premier'
 
   await resend.emails.send({
@@ -168,6 +169,11 @@ export async function sendOrganiserWelcome({
           <a href="${capsuleUrl}" style="display: inline-block; background: linear-gradient(135deg, #B8960C, #D4AE2A); color: #0D0820; font-weight: 700; font-size: 15px; padding: 14px 32px; border-radius: 8px; text-decoration: none; letter-spacing: 0.05em;">
             View Your Capsule →
           </a>
+          <p style="text-align:center;margin-top:16px;">
+            <a href="${manageUrl}" style="color:#B8960C;font-size:13px;text-decoration:underline;">
+              Manage your capsule & moderate tributes →
+            </a>
+          </p>
         </div>
         <p style="color: rgba(255,255,255,0.4); font-size: 13px; line-height: 1.6;">
           Share your capsule link with guests and start collecting tributes immediately.<br/>

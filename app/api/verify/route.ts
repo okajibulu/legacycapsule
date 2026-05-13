@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
       .single()
 
     return NextResponse.redirect(
-      `${APP_URL}/capsule/${capsule?.slug}?verified=true`
+      `${APP_URL}/capsule/${capsule?.slug}/manage?activated=true&email=${encodeURIComponent(verification.email)}`
     )
   }
 
@@ -98,3 +98,4 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.redirect(`${APP_URL}/`)
 }
+

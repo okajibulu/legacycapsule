@@ -415,6 +415,31 @@ const handleDelete = async (id: string) => {
   {/* =========================================================
      SECTION 20 — RENDER
   ========================================================= */}
+  if (capsule && (capsule.page_state === "pending_verification" || capsule.page_state === "tribute_collection")) return (
+    <main className="min-h-screen bg-[#0a0010] flex items-center justify-center px-4">
+      <div className="w-full max-w-sm space-y-6 text-center">
+        <div className="text-6xl">⏳</div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold text-yellow-100">
+            Capsule not yet active
+          </h1>
+          <p className="text-sm text-white/50 leading-relaxed">
+            The organiser needs to verify their email address 
+            before this Capsule can accept tributes.
+          </p>
+          <p className="text-sm text-white/30">
+            If you are the organiser check your inbox for the 
+            verification email from LegacyCapsule.
+          </p>
+        </div>
+        <div className="h-px bg-gradient-to-r from-transparent via-yellow-400/30 to-transparent" />
+        <p className="text-xs text-white/25">
+          LegacyCapsule · Every event. Preserved.
+        </p>
+      </div>
+    </main>
+  )
+
   return (
     <main className="h-screen flex flex-col w-full max-w-lg mx-auto bg-gradient-to-b from-[#0a0010] to-[#100018]">
 
@@ -769,34 +794,10 @@ const handleDelete = async (id: string) => {
       {/* gold bottom rule */}
       <div className="h-px bg-gradient-to-r from-transparent via-yellow-400/30 to-transparent flex-shrink-0" />
    
-   if (capsule && capsule.page_state === "pending_verification") return (
-  <main className="min-h-screen bg-[#0a0010] flex items-center justify-center px-4">
-    <div className="w-full max-w-sm space-y-6 text-center">
-      <div className="text-6xl">⏳</div>
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold text-yellow-100">
-          Capsule not yet active
-        </h1>
-        <p className="text-sm text-white/50 leading-relaxed">
-          The organiser needs to verify their email address 
-          before this Capsule can accept tributes.
-        </p>
-        <p className="text-sm text-white/30">
-          If you are the organiser check your inbox for the 
-          verification email from LegacyCapsule.
-        </p>
-      </div>
-      <div className="h-px bg-gradient-to-r from-transparent via-yellow-400/30 to-transparent" />
-      <p className="text-xs text-white/25">
-        LegacyCapsule · Every event. Preserved.
-      </p>
-    </div>
-  </main>
-)
-   
     </main>
   )
 }
+
 
 
 
