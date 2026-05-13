@@ -52,8 +52,11 @@ export default function CapsuleManagePage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const emailParam = params.get('email')
-    const activatedParam = params.get('activated')
-    if (emailParam && activatedParam === 'true') {
+    const storedEmail = localStorage.getItem('lc_organiser_email')
+    const organiserEmail = emailParam 
+      ? decodeURIComponent(emailParam) 
+      : storedEmail
+    if (emailParam) {
       localStorage.setItem('lc_organiser_email', decodeURIComponent(emailParam))
     }
 
@@ -73,10 +76,6 @@ export default function CapsuleManagePage() {
         setLoading(false)
         return
       }
-
-      const organiserEmail = typeof window !== 'undefined'
-        ? localStorage.getItem('lc_organiser_email')
-        : null
 
       if (
         !organiserEmail ||

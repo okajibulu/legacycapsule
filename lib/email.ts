@@ -145,7 +145,7 @@ export async function sendOrganiserWelcome({
   tier: string
 }) {
   const capsuleUrl = `${process.env.NEXT_PUBLIC_APP_URL}/capsule/${slug}`
-  const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/capsule/${slug}/manage`
+  const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/capsule/${slug}/manage?email=${encodeURIComponent(to)}`
   const tierLabel = tier === 'free' ? 'Free Tribute Wall' : tier === 'honour' ? 'Legacy Honour' : 'Legacy Premier'
 
   await resend.emails.send({
