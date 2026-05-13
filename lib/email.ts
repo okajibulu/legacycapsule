@@ -2,9 +2,9 @@ import { Resend } from "resend"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-const FROM = "LegacyCapsule <onboarding@resend.dev>"
+// const FROM = "LegacyCapsule <onboarding@resend.dev>"
 // When domain is verified change to:
-// const FROM = "LegacyCapsule <noreply@itslegacycapsule.com>"
+const FROM = "LegacyCapsule <noreply@itslegacycapsule.com>"
 
 // ── SUBMISSION CONFIRMATION ───────────────────────────────
 export async function sendSubmissionConfirmation({
@@ -132,3 +132,4 @@ export async function sendApprovalNotification({
     `,
   })
 }
+
