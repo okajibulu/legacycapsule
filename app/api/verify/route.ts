@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     // Activate capsule
     await db.from("capsules")
       .update({
-        page_state:  "tribute_collection",
+        page_state:  "active",
         verified_at: new Date().toISOString(),
       })
       .eq("id", verification.record_id)
@@ -98,4 +98,5 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.redirect(`${APP_URL}/`)
 }
+
 
