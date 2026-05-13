@@ -8,7 +8,7 @@ const db = createClient(
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-const FROM    = "LegacyCapsule <onboarding@resend.dev>"
+const FROM    = "LegacyCapsule <noreply@itslegacycapsule.com>"
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
 
 // Generate a secure random token
@@ -163,9 +163,9 @@ export async function sendContributorVerification({
           <p style="margin:0;color:#5F5E5A;font-size:13px;">
             View the tribute wall:
           </p>
-          <a href="${APP_URL}/event/${capsuleSlug}"
+          <a href="${APP_URL}/capsule/${capsuleSlug}"
             style="color:#2D1B69;font-size:13px;font-weight:bold;">
-            ${APP_URL}/event/${capsuleSlug}
+            ${APP_URL}/capsule/${capsuleSlug}
           </a>
         </div>
 
@@ -179,3 +179,4 @@ export async function sendContributorVerification({
     `,
   })
 }
+

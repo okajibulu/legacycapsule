@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import LogoCapsule from '@/components/LogoCapsule'
-import { sendOrganiserWelcome } from '@/lib/email'
-
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -314,7 +312,7 @@ export default function BookPage() {
     setError('')
 
     try {
-      const { error: insertError } = await supabase
+      const { data, error: insertError } = await supabase
         .from('capsules')
         .insert({
           honouree_name:  honoureeName.trim(),
@@ -331,7 +329,7 @@ export default function BookPage() {
             ? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
             : null,
         })
-        .select('slug')
+        .select('id, slug')
         .single()
 
       if (insertError) {
@@ -345,15 +343,18 @@ export default function BookPage() {
       }
 
       try {
-        await sendOrganiserWelcome({
-          to: organiserEmail.trim().toLowerCase(),
-          honoureeName: honoureeName.trim(),
-          slug: slug.trim(),
-          tier,
+        await fetch('/api/email/verify-organiser', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: organiserEmail.trim().toLowerCase(),
+            capsuleId: data.id,
+            capsuleSlug: slug.trim(),
+            honoreeName: honoureeName.trim(),
+          }),
         })
       } catch (emailError) {
         console.error('Welcome email failed:', emailError)
-        // Don't block capsule creation if email fails
       }
 
       setScreen(5)
@@ -1016,6 +1017,7 @@ export default function BookPage() {
     </ScreenShell>
   )
 }
+
 
 
 
