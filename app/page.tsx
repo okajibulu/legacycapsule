@@ -53,7 +53,7 @@ function RotatingEventType() {
         setCurrent((c) => (c + 1) % ROTATING_LINES.length)
         setVisible(true)
       }, 400)
-    }, 2800)
+    }, 4200)
     return () => clearInterval(interval)
   }, [])
 
@@ -71,6 +71,7 @@ function RotatingEventType() {
       <p style={{
         fontFamily: 'var(--font-display, "Cormorant Garamond", serif)',
         fontStyle: 'italic',
+        fontWeight: 700,
         fontSize: 'clamp(0.95rem, 2.2vw, 1.35rem)',
         letterSpacing: '0.1em',
         color: '#D4AE2A',
@@ -352,130 +353,135 @@ background: "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",    
     paddingTop:     "var(--nav-height)",
   }}>
 
-    {/* Gold label */}
-    <p style={{
-      fontFamily:    "var(--font-body)",
-      fontSize:      "var(--text-xs)",
-      fontWeight:    700,
-      color:         "var(--lc-gold)",
-      letterSpacing: "var(--tracking-ceremony)",
-      textTransform: "uppercase",
-      marginBottom:  "var(--space-5)",
-      opacity:       0.9,
-    }}>
-      Every Event · Preserved
-    </p>
+    {/* Hero text block */}
+    <div className="flex flex-col items-center text-center z-20 px-6 pointer-events-none"
+      style={{ gap: '1.2rem' }}>
 
-    {/* Main headline */}
-    <div className="flex flex-col items-center gap-1 mb-4">
-      <span
-        style={{
-          fontFamily: 'var(--font-display, "Cormorant Garamond", serif)',
-          fontSize: 'clamp(1.8rem, 4vw, 3.6rem)',
-          fontWeight: 300,
-          color: 'rgba(255,255,255,0.62)',
-          letterSpacing: '0.05em',
-          lineHeight: 1.1,
-        }}>
-        Events end.
-      </span>
-      <span
-        style={{
+      {/* Gold label */}
+      <p style={{
+        fontFamily: 'var(--font-accent, "Cormorant SC", serif)',
+        fontSize: '11px',
+        letterSpacing: '0.35em',
+        color: '#D4AE2A',
+        textTransform: 'uppercase',
+        opacity: 1,
+        textShadow: '0 1px 10px rgba(0,0,0,0.95), 0 0 28px rgba(0,0,0,0.8)',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.45em',
+      }}>
+        <span style={{ color: '#B8960C', fontSize: '12px' }}>•</span>
+        EVERY EVENT · PRESERVED
+        <span style={{ color: '#B8960C', fontSize: '12px' }}>•</span>
+      </p>
+
+      {/* Main headline */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15em' }}>
+        <span style={{
           fontFamily: 'var(--font-display, "Cormorant Garamond", serif)',
           fontSize: 'clamp(2.6rem, 6vw, 5rem)',
           fontWeight: 700,
-          color: '#FFFFFF',
-          letterSpacing: '-0.01em',
-          lineHeight: 1.1,
+          color: 'rgba(255,255,255,0.62)',
+          letterSpacing: '0.02em',
+          lineHeight: 1.05,
+          textShadow: '0 2px 12px rgba(0,0,0,0.9)',
+        }}>
+          Events end.
+        </span>
+        <span style={{
+          fontFamily: 'var(--font-display, "Cormorant Garamond", serif)',
+          fontSize: 'clamp(2.6rem, 6vw, 5rem)',
+          fontWeight: 700,
+          letterSpacing: '0.02em',
+          lineHeight: 1.05,
           textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
         }}>
-        Legacies don't.
-      </span>
+          <span style={{ color: '#D4AE2A' }}>Legacies</span>
+          <span style={{ color: '#FFFFFF' }}> don't.</span>
+        </span>
+      </div>
+
+      {/* Rotating capability line */}
+      <div style={{ height: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <RotatingEventType />
+      </div>
+
+      {/* Subline */}
+      <p style={{
+        fontFamily: 'var(--font-body, "DM Sans", sans-serif)',
+        fontSize: 'clamp(0.85rem, 1.5vw, 1rem)',
+        color: 'rgba(255,255,255,0.75)',
+        fontWeight: 500,
+        letterSpacing: '0.04em',
+        maxWidth: '480px',
+        lineHeight: 1.6,
+        margin: 0,
+      }}>
+        captured, preserved, and digitally shared
+      </p>
+
+      {/* CTAs — pointer-events-auto so they remain clickable */}
+      <div style={{ display: 'flex', gap: '1rem', pointerEvents: 'auto', marginTop: '0.5rem' }}>
+        <Link href="/book" className="btn-primary btn-primary-lg"
+          style={{ pointerEvents: "auto" }}>
+          Start Your Capsule
+        </Link>
+        <Link href="/examples"
+          style={{
+            display:       "inline-flex",
+            alignItems:    "center",
+            justifyContent:"center",
+            padding:       "14px 36px",
+            background:    "rgba(255,255,255,0.06)",
+            backdropFilter:"blur(12px)",
+            color:         "rgba(254,252,232,0.85)",
+            fontFamily:    "var(--font-body)",
+            fontSize:      "var(--text-base)",
+            fontWeight:    600,
+            letterSpacing: "var(--tracking-wide)",
+            borderRadius:  "var(--radius-full)",
+            border:        "1px solid rgba(184,150,12,0.35)",
+            textDecoration:"none",
+            transition:    "all var(--transition-fast)",
+            pointerEvents: "auto",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = "rgba(184,150,12,0.12)"
+            e.currentTarget.style.borderColor = "rgba(184,150,12,0.6)"
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.06)"
+            e.currentTarget.style.borderColor = "rgba(184,150,12,0.35)"
+          }}
+        >
+          See It In Action
+        </Link>
+      </div>
+
+      <p style={{
+        fontFamily: 'var(--font-body, "DM Sans", sans-serif)',
+        fontSize: '10px',
+        letterSpacing: '0.2em',
+        padding: '0 1.5rem',
+        color: 'rgba(255,255,255,0.75)',
+        textTransform: 'uppercase',
+        textAlign: 'center',
+        margin: 0,
+      }}>
+        NO TECHNICAL EXPERIENCE REQUIRED
+        <span style={{
+          color: '#B8960C',
+          fontSize: '18px',
+          lineHeight: '1',
+          verticalAlign: 'middle',
+          margin: '0 0.6em',
+        }}>·</span>
+        <span style={{ color: '#D4AE2A' }}>
+          YOUR TRIBUTE WALL LIVE IN MINUTES FOR FREE
+        </span>
+      </p>
+
     </div>
-
-    {/* Subline */}
-    <p style={{
-      fontFamily:   "var(--font-display)",
-      fontSize:     "clamp(1rem, 2vw, 1.4rem)",
-      fontStyle:    "italic",
-      color:        "rgba(255,255,255,0.45)",
-      maxWidth:     "500px",
-      marginBottom: "var(--space-6)",
-      textShadow:   "0 2px 12px rgba(0,0,0,0.8)",
-      letterSpacing: "0.02em",
-    }}>
-      captured, preserved, and shared — for everyone who was there.
-    </p>
-
-    {/* Rotating event type */}
-    <div style={{
-      marginBottom:  "var(--space-8)",
-      height:        "2rem",
-      display:       "flex",
-      alignItems:    "center",
-      justifyContent:"center",
-    }}>
-      <RotatingEventType />
-    </div>
-
-    {/* CTA buttons */}
-    <div style={{
-      display:       "flex",
-      gap:           "var(--space-4)",
-      flexWrap:      "wrap",
-      justifyContent:"center",
-      marginBottom:  "var(--space-6)",
-    }}>
-      <Link href="/book" className="btn-primary btn-primary-lg"
-        style={{ pointerEvents: "auto" }}>
-        Start Your Capsule
-      </Link>
-      <Link href="/examples"
-        style={{
-          display:       "inline-flex",
-          alignItems:    "center",
-          justifyContent:"center",
-          padding:       "14px 36px",
-          background:    "rgba(255,255,255,0.06)",
-          backdropFilter:"blur(12px)",
-          color:         "rgba(254,252,232,0.85)",
-          fontFamily:    "var(--font-body)",
-          fontSize:      "var(--text-base)",
-          fontWeight:    600,
-          letterSpacing: "var(--tracking-wide)",
-          borderRadius:  "var(--radius-full)",
-          border:        "1px solid rgba(184,150,12,0.35)",
-          textDecoration:"none",
-          transition:    "all var(--transition-fast)",
-          pointerEvents: "auto",
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.background = "rgba(184,150,12,0.12)"
-          e.currentTarget.style.borderColor = "rgba(184,150,12,0.6)"
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.background = "rgba(255,255,255,0.06)"
-          e.currentTarget.style.borderColor = "rgba(184,150,12,0.35)"
-        }}
-      >
-        See It In Action
-      </Link>
-    </div>
-
-    {/* Trust line */}
-    <p style={{
-      fontFamily:    "var(--font-body)",
-      fontSize:      "var(--text-xs)",
-      color:         "rgba(254,252,232,1.0)",
-      letterSpacing: "var(--tracking-wide)",
-      marginBottom:  "var(--space-8)",
-    }}>
-      NO TECHNICAL EXPERIENCE REQUIRED
-      <span style={{ color: 'rgba(184,150,12,0.5)', margin: '0 0.5em' }}>·</span>
-      GO LIVE IN MINUTES
-      <span style={{ color: 'rgba(184,150,12,0.5)', margin: '0 0.5em' }}>·</span>
-      FOR FREE
-    </p>
 
     {/* Scroll indicator */}
     <div style={{
@@ -935,3 +941,9 @@ background: "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",    
     </>
   )
 }
+
+
+
+
+
+
