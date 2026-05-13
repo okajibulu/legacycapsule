@@ -128,7 +128,8 @@ const [autoApprove, setAutoApprove] = useState(false)
     }
 
     loadCapsule()
-  
+  }, [slug])
+
   useEffect(() => {
   const loadFlag = async () => {
     const { data } = await supabase
@@ -140,8 +141,6 @@ const [autoApprove, setAutoApprove] = useState(false)
   }
   loadFlag()
 }, [])
-  
-  }, [slug])
 
   {/* =========================================================
      SECTION 12 — LOAD CONTRIBUTIONS
