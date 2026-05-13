@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import LogoCapsule from '@/components/LogoCapsule'
+import { sendOrganiserWelcome } from '@/lib/email'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -341,6 +342,18 @@ export default function BookPage() {
         }
         setCreating(false)
         return
+      }
+
+      try {
+        await sendOrganiserWelcome({
+          to: organiserEmail.trim().toLowerCase(),
+          honoureeName: honoureeName.trim(),
+          slug: slug.trim(),
+          tier,
+        })
+      } catch (emailError) {
+        console.error('Welcome email failed:', emailError)
+        // Don't block capsule creation if email fails
       }
 
       setScreen(5)
