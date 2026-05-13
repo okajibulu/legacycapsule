@@ -84,7 +84,7 @@ const [autoApprove, setAutoApprove] = useState(false)
   ========================================================= */}
   useEffect(() => {
     if (email.includes("@")) {
-      localStorage.setItem("lc_email", email)
+      if (typeof window !== "undefined") localStorage.setItem("lc_email", email)
     }
   }, [email])
 
@@ -248,7 +248,7 @@ if (newContrib) {
 }
 
 
-    localStorage.setItem("lc_email", email)
+    if (typeof window !== "undefined") localStorage.setItem("lc_email", email)
     setLastSubmitTime(now)
     setName("")
     setCity("")
@@ -333,7 +333,7 @@ if (email) {
     loadContributions(capsule.id)
   }
 const handleDelete = async (id: string) => {
-  const confirm = window.confirm("Delete this tribute permanently?")
+  const confirm = typeof window !== "undefined" && window.confirm("Delete this tribute permanently?")
   if (!confirm) return
   await supabase.from("contributions").delete().eq("id", id)
   loadContributions(capsule.id)
@@ -798,4 +798,6 @@ const handleDelete = async (id: string) => {
     </main>
   )
 }
+
+
 
