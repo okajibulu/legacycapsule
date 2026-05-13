@@ -319,13 +319,16 @@ export default function BookPage() {
           honouree_name:  honoureeName.trim(),
           event_tag:      eventTag.trim() || null,
           event_type:     eventType,
-                    organiser_email: organiserEmail.trim().toLowerCase(),
+          organiser_email: organiserEmail.trim().toLowerCase(),
           slug:           slug.trim(),
           tier:           tier,
           pricing_key:    selectedTierData?.pricing_key ?? '',
           visitor_type:   visitorType,
-          page_state:     'active',
+          page_state:     tier === 'free' ? 'active' : 'active',
           theme:          'classic',
+          free_tier_expires_at: tier === 'free'
+            ? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
+            : null,
         })
         .select('slug')
         .single()
@@ -546,77 +549,142 @@ export default function BookPage() {
       )
     }
 
-    const tiers = [
-      { key: 'honour',  data: honour  },
-      { key: 'premier', data: premier },
+    const cards = [
+      {
+        key: 'free',
+        badge: null,
+        name: 'Go Live Free',
+        tagline: 'Start Now · Pay Later',
+        description: 'Your tribute wall goes live instantly. Collect tributes from anywhere in the world. Upgrade to publish and preserve anytime.',
+        price: null,
+        features: [
+          'Tribute wall live in minutes',
+          'Up to 50 contributors worldwide',
+          'Text tributes with moderation',
+          'Your own capsule link',
+          'Active for 90 days',
+          'Upgrade anytime — no data lost',
+        ],
+        cta: 'Go Live Free →',
+        highlight: false,
+      },
+      {
+        key: 'honour',
+        badge: null,
+        name: honour?.name ?? 'Legacy Honour',
+        tagline: honour?.tagline ?? 'Capture & Preserve',
+        description: honour?.description ?? '',
+        price: honour?.eur_price ?? 50,
+        features: honour?.features ?? [],
+        cta: 'Choose Legacy Honour →',
+        highlight: false,
+      },
+      {
+        key: 'premier',
+        badge: 'Most Complete',
+        name: premier?.name ?? 'Legacy Premier',
+        tagline: premier?.tagline ?? 'Full Platform',
+        description: premier?.description ?? '',
+        price: premier?.eur_price ?? 80,
+        features: premier?.features ?? [],
+        cta: 'Choose Legacy Premier →',
+        highlight: true,
+      },
     ]
 
     return (
       <ScreenShell>
-        <div className="w-full max-w-2xl flex flex-col">
-          <div className="mt-6 mb-8 flex w-full items-center justify-between">
-            <button
-              onClick={() => setScreen(2)}
-              className="text-xs text-white/35 hover:text-yellow-400/70 transition-colors duration-200 tracking-wide">
-              ← Back
-            </button>
-            <Link href="/" className="text-xs text-white/25 hover:text-yellow-400/60 transition-colors duration-200 tracking-wide">
-              ⌂ Home
-            </Link>
-          </div>
+        <div className="w-full max-w-5xl flex flex-col">
+          <button
+            onClick={() => setScreen(2)}
+            className="mb-6 text-xs text-white/35 hover:text-yellow-400/70 transition-colors duration-200 tracking-wide text-left">
+            ← Back
+          </button>
 
           <BookingLogo />
           <ProgressBar step={3} />
 
           <h1 className="text-center text-2xl font-bold text-white/90 mb-2 tracking-wide"
             style={{ fontFamily: 'var(--font-heading, "Playfair Display", serif)' }}>
-            Choose your package
+            How would you like to begin?
           </h1>
           <p className="text-center text-sm text-white/45 mb-8">
-            Both packages include a permanent tribute wall and digital publication
+            Start free and upgrade anytime — or choose your full package now
           </p>
 
           <GoldDivider />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 my-2">
-            {tiers.map(({ key, data }) => {
-              const selected = tier === key
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 my-4">
+            {cards.map((card) => {
+              const selected = tier === card.key
               return (
                 <button
-                  key={key}
-                  onClick={() => setTier(key)}
-                  className="flex flex-col text-left px-6 py-6 rounded-2xl border transition-all duration-200"
+                  key={card.key}
+                  onClick={() => setTier(card.key)}
+                  className="flex flex-col text-left px-6 py-6 rounded-2xl border transition-all duration-200 relative"
                   style={{
-                    background: selected ? 'rgba(184,150,12,0.10)' : 'rgba(255,255,255,0.03)',
-                    borderColor: selected ? '#B8960C' : 'rgba(255,255,255,0.08)',
-                    boxShadow: selected ? '0 0 28px #B8960C28' : 'none',
+                    background: selected
+                      ? 'rgba(184,150,12,0.10)'
+                      : card.highlight
+                      ? 'rgba(184,150,12,0.05)'
+                      : 'rgba(255,255,255,0.03)',
+                    borderColor: selected
+                      ? '#B8960C'
+                      : card.highlight
+                      ? 'rgba(184,150,12,0.35)'
+                      : 'rgba(255,255,255,0.08)',
+                    boxShadow: selected
+                      ? '0 0 28px #B8960C28'
+                      : card.highlight
+                      ? '0 0 16px #B8960C15'
+                      : 'none',
                   }}>
 
-                  {/* Tier header */}
+                  {/* Badge */}
+                  {card.badge && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-semibold"
+                        style={{
+                          background: 'linear-gradient(135deg, #B8960C, #D4AE2A)',
+                          color: '#0D0820',
+                        }}>
+                        {card.badge}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Header */}
                   <div className="mb-4">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-yellow-400/60 mb-1"
                       style={{ fontFamily: 'var(--font-accent, "Cormorant SC", serif)' }}>
-                      {data.tagline}
+                      {card.tagline}
                     </p>
                     <p className="text-lg font-bold text-white/90 tracking-wide"
                       style={{ fontFamily: 'var(--font-heading, "Playfair Display", serif)' }}>
-                      {data.name}
+                      {card.name}
                     </p>
                     <p className="text-xs text-white/40 mt-1 leading-relaxed">
-                      {data.description}
+                      {card.description}
                     </p>
                   </div>
 
                   {/* Price */}
                   <div className="mb-5 pb-5 border-b border-white/8">
-                    <span className="text-3xl font-bold text-yellow-300">
-                      €{data.eur_price}
-                    </span>
+                    {card.price ? (
+                      <span className="text-3xl font-bold text-yellow-300">
+                        €{card.price}
+                      </span>
+                    ) : (
+                      <div className="flex items-end gap-2">
+                        <span className="text-3xl font-bold text-yellow-300">Free</span>
+                        <span className="text-xs text-white/35 mb-1">to start</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Features */}
                   <ul className="flex flex-col gap-2 flex-1">
-                    {data.features.map((feat, i) => (
+                    {card.features.map((feat, i) => (
                       <li key={i} className="flex items-start gap-2">
                         <span className="text-yellow-400/60 mt-0.5 text-xs flex-shrink-0">✦</span>
                         <span className="text-xs text-white/60 leading-relaxed">{feat}</span>
@@ -637,8 +705,8 @@ export default function BookPage() {
             })}
           </div>
 
-          {/* Running total */}
-          {selectedTierData && (
+          {/* Running total — only for paid tiers */}
+          {selectedTierData && tier !== 'free' && (
             <div className="mt-6 px-5 py-4 rounded-xl border border-yellow-400/20 bg-yellow-400/5 flex items-center justify-between">
               <span className="text-xs text-white/50 tracking-wide">Package total</span>
               <span className="text-lg font-bold text-yellow-300">
@@ -647,26 +715,42 @@ export default function BookPage() {
             </div>
           )}
 
-          <div className="w-full max-w-2xl mx-auto mt-12 mb-8 flex-shrink-0"
-            style={{ height: '2px', background: 'linear-gradient(90deg, transparent, #B8960C99, transparent)' }} />
+          {/* Free tier note */}
+          {tier === 'free' && (
+            <div className="mt-6 px-5 py-4 rounded-xl border border-white/8 bg-white/3 text-center">
+              <p className="text-xs text-white/45 leading-relaxed">
+                Your tribute wall goes live immediately at no cost.
+                <br />
+                <span className="text-yellow-400/70">Upgrade to Legacy Honour or Premier anytime</span> — all your tributes are preserved.
+              </p>
+            </div>
+          )}
 
-          <div className="flex gap-3 w-full max-w-2xl mx-auto">
-            <button
-              onClick={() => setScreen(2)}
+          <GoldDivider />
+
+          <div className="flex gap-3 w-full max-w-5xl mx-auto">
+            <Link
+              href="/"
               className="flex-1 flex items-center justify-center py-4 rounded-xl border text-sm font-medium tracking-wide transition-all duration-200"
               style={{ borderColor: 'rgba(184,150,12,0.3)', color: 'rgba(255,255,255,0.45)' }}>
-              ← Back
-            </button>
+              ← Home
+            </Link>
             <button
-              onClick={() => { if (tier) setScreen(4) }}
+              onClick={() => setScreen(4)}
               disabled={!tier}
-              className="flex-[3] flex items-center justify-center px-8 py-4 rounded-xl font-semibold tracking-wide transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-[3] flex items-center justify-center py-4 rounded-xl font-semibold tracking-wide transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
-                background: !tier ? 'rgba(184,150,12,0.15)' : 'linear-gradient(135deg, #B8960C 0%, #D4AE2A 50%, #B8960C 100%)',
+                background: !tier
+                  ? 'rgba(184,150,12,0.15)'
+                  : 'linear-gradient(135deg, #B8960C 0%, #D4AE2A 50%, #B8960C 100%)',
                 color: !tier ? '#B8960C99' : '#0D0820',
                 boxShadow: !tier ? 'none' : '0 4px 24px #B8960C44',
               }}>
-              Continue →
+              {tier === 'free'
+                ? 'Go Live Free →'
+                : tier
+                ? `Continue with ${tier === 'honour' ? honour?.name : premier?.name} →`
+                : 'Select a plan to continue'}
             </button>
           </div>
 
@@ -799,7 +883,15 @@ export default function BookPage() {
           </div>
 
           {/* Summary panel */}
-          {selectedTierData && (
+          {tier === 'free' && (
+            <div className="px-5 py-4 rounded-xl border border-white/8 bg-white/3 mb-6">
+              <p className="text-[10px] uppercase tracking-widest text-white/30 mb-2">Your free capsule</p>
+              <p className="text-xs text-white/55 leading-relaxed">
+                Tribute wall active for 90 days · Up to 50 contributors · Upgrade anytime
+              </p>
+            </div>
+          )}
+          {selectedTierData && tier !== 'free' && (
             <>
               <GoldDivider />
               <div className="px-5 py-4 rounded-xl border border-white/8 bg-white/3 space-y-3 mb-6">
@@ -851,7 +943,11 @@ export default function BookPage() {
                 color: !canSubmit ? '#B8960C99' : '#0D0820',
                 boxShadow: !canSubmit ? 'none' : '0 4px 24px #B8960C44',
               }}>
-              {creating ? 'Creating…' : (content['booking__cta_create'] ?? 'Create Capsule') + ' →'}
+              {creating
+                ? 'Creating…'
+                : tier === 'free'
+                ? 'Go Live Free →'
+                : (content['booking__cta_create'] ?? 'Create Capsule') + ' →'}
             </button>
           </div>
 

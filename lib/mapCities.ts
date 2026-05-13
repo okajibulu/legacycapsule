@@ -41,6 +41,13 @@ export const MAP_CITIES: MapCity[] = [
   { name: 'Chicago',        lat:  41.88, lng: -87.63, stage: 4 },
   { name: 'Los Angeles',    lat:  34.05, lng:-118.24, stage: 4 },
   { name: 'Montreal',       lat:  45.50, lng: -73.57, stage: 4 },
+  { name: 'Vancouver',      lat:  49.28, lng:-123.12, stage: 4 },
+  { name: 'Calgary',        lat:  51.05, lng:-114.07, stage: 4 },
+  { name: 'Ottawa',         lat:  45.42, lng: -75.69, stage: 4 },
+  { name: 'Winnipeg',       lat:  49.90, lng:-97.14, stage: 4 },
+  { name: 'Quebec City',    lat:  46.81, lng: -71.21, stage: 4 },
+  { name: 'Halifax',        lat:  44.65, lng: -63.57, stage: 4 },
+  { name: 'Anchorage',      lat:  61.22, lng:-149.90, stage: 4 },
 
   // Stage 5 — South America
   { name: 'São Paulo',      lat: -23.55, lng: -46.63, stage: 5 },
@@ -48,6 +55,8 @@ export const MAP_CITIES: MapCity[] = [
   { name: 'Buenos Aires',   lat: -34.60, lng: -58.38, stage: 5 },
   { name: 'Bogotá',         lat:   4.71, lng: -74.07, stage: 5 },
   { name: 'Lima',           lat: -12.05, lng: -77.04, stage: 5 },
+  { name: 'Punta Arenas',   lat: -53.16, lng: -70.91, stage: 5 },
+  { name: 'Ushuaia',        lat: -54.81, lng: -68.31, stage: 5 },
 
   // Stage 6 — Middle East & South Asia
   { name: 'Dubai',          lat:  25.20, lng:  55.27, stage: 6 },
