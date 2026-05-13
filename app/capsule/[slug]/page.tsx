@@ -75,7 +75,7 @@ const [autoApprove, setAutoApprove] = useState(false)
      SECTION 8 — EFFECT: LOAD EMAIL
   ========================================================= */}
   useEffect(() => {
-    const savedEmail = localStorage.getItem("lc_email")
+    const savedEmail = typeof window !== "undefined" ? localStorage.getItem("lc_email") : null
     if (savedEmail) setEmail(savedEmail)
   }, [])
 
@@ -798,3 +798,4 @@ const handleDelete = async (id: string) => {
     </main>
   )
 }
+
