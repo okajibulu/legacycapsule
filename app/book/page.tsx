@@ -308,7 +308,7 @@ export default function BookPage() {
   }
 
   async function handleCreateCapsule() {
-    if (!honoureeName.trim() || !eventDate || !organiserEmail.trim() || !slug.trim()) return
+    if (!honoureeName.trim() || !organiserEmail.trim() || !slug.trim()) return
     setCreating(true)
     setError('')
 
@@ -319,8 +319,7 @@ export default function BookPage() {
           honouree_name:  honoureeName.trim(),
           event_tag:      eventTag.trim() || null,
           event_type:     eventType,
-          event_date:     eventDate,
-          organiser_email: organiserEmail.trim().toLowerCase(),
+                    organiser_email: organiserEmail.trim().toLowerCase(),
           slug:           slug.trim(),
           tier:           tier,
           pricing_key:    selectedTierData?.pricing_key ?? '',
@@ -685,7 +684,7 @@ export default function BookPage() {
     const inputClass = 'w-full rounded-xl border bg-white/4 text-white/90 text-sm placeholder:text-white/25 outline-none transition-all duration-200 focus:border-yellow-400/60 focus:bg-yellow-400/5'
     const inputPad = { padding: '16px 20px' } as const
     const labelClass = 'text-[10px] uppercase tracking-[0.15em] text-white/40 mb-1.5 block'
-    const canSubmit = !creating && !!honoureeName.trim() && !!eventDate && !!organiserEmail.trim() && !!slug.trim()
+    const canSubmit = !creating && !!honoureeName.trim() && !!organiserEmail.trim() && !!slug.trim()
 
     return (
       <ScreenShell>
@@ -742,22 +741,6 @@ export default function BookPage() {
                 onChange={e => setEventTag(e.target.value)}
               />
               <p className="text-[10px] text-white/25 mt-1 text-right">{eventTag.length}/80</p>
-            </div>
-
-            {/* Event date */}
-            <div>
-              <label className={labelClass}>Event Date</label>
-              <input
-                type="date"
-                className={inputClass}
-                style={{
-                  ...inputPad,
-                  borderColor: eventDate ? 'rgba(184,150,12,0.4)' : 'rgba(255,255,255,0.08)',
-                  colorScheme: 'dark',
-                }}
-                value={eventDate}
-                onChange={e => setEventDate(e.target.value)}
-              />
             </div>
 
             {/* Organiser email */}
@@ -924,6 +907,9 @@ export default function BookPage() {
     </ScreenShell>
   )
 }
+
+
+
 
 
 
