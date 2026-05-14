@@ -1,8 +1,7 @@
 # CURRENT_STATE.md
 ## LegacyCapsule — Build Session Handoff
-**Date:** 11 May 2026  
-**Session:** claude.ai chat → migrating to VS Code Claude extension  
-**Prepared by:** Claude (Anthropic) for session continuity  
+**Date:** 14 May 2026
+**Prepared by:** Claude (Anthropic) for session continuity
 **Read this file first before touching any code.**
 
 ---
@@ -14,470 +13,425 @@
 | Legal entity | VALNEX, UNIPESSOAL LDA (Portugal) |
 | Trading name | RevoWorldTech |
 | Flagship app | LegacyCapsule |
-| Domain | itslegacycapsule.com (on Cloudflare) |
+| Domain | itslegacycapsule.com |
+| DNS | Cloudflare — nameserver fix pending Cloudflare support response |
+| Vercel | Live — okajibulu-legacycapsule-git-main-okajibulus-projects.vercel.app |
 | Stack | Next.js 16.2.4 · TypeScript · Supabase · Tailwind CSS v4 · Shadcn/UI · Resend · Vercel |
-| Dev environment | VS Code with Claude extension · PowerShell on Windows |
-| Package manager | npm only (not yarn, not pnpm) |
-| Dev server | `npm run dev` → localhost:3000 |
-| Repo | GitHub → connected to Vercel for auto-deploy |
-| Email sender | noreply@itslegacycapsule.com via Resend |
+| Dev environment | VS Code with Claude Code extension · PowerShell on Windows |
+| Package manager | npm only |
+| Repo | GitHub → okajibulu/legacycapsule → connected to Vercel auto-deploy |
+| Email sender | noreply@itslegacycapsule.com via Resend — domain VERIFIED ✅ |
 
 ---
 
 ## 2. ECOSYSTEM CONTEXT
 
-LegacyCapsule is the flagship app of a planned digital ecosystem. Every architectural decision must account for this.
-
 | App | Status | Role |
 |---|---|---|
-| **Valnex** | Active (holding company) | Umbrella company — parent of all products |
-| **RevoWorldTech** | Active (trading name) | Digital app arm of Valnex |
-| **LegacyCapsule** | In build | Flagship. Event tribute and memory preservation platform. |
-| **Communiva** | Planned | Community management hub. Other apps slot in as modules including LegacyCapsule. NOT YET BUILT. |
-| **SMSProvince** | Planned | Bulk SMS — standalone and as Communiva module. NOT YET BUILT. |
-| **CDLS** | Planned | Digital library — rent/sell books from publishing arm. NOT YET BUILT. |
-| **RevoRent** | Planned | Property management. NOT YET BUILT. |
+| **Valnex** | Active | Holding company |
+| **RevoWorldTech** | Active | Digital app arm |
+| **LegacyCapsule** | In build | Flagship — event tribute and memory preservation |
+| **Communiva** | Planned | Community management hub |
+| **SMSProvince** | Planned | Bulk SMS — Phase 2 contributor outreach integration |
+| **CDLS** | Planned | Digital library |
+| **RevoRent** | Planned | Property management |
 
-**Architectural rule:** LegacyCapsule must be designed so it can operate as a module inside Communiva in the future. Do not make decisions that create tight coupling preventing this.
+**Rule:** LegacyCapsule must be designed to operate as a Communiva module in future. No tight coupling.
 
 ---
 
-## 3. DOCUMENT AUTHORITY MAP
+## 3. CURRENT BUILD STATUS — PHASE 1
 
-When any question arises during build, consult the correct document. Never make decisions from memory when a document owns the answer.
+**Overall: ~90% complete**
 
-| Question | Document | Section |
+### ✅ COMPLETE
+
+| Item | Notes |
+|---|---|
+| Full premium homepage | Animated world map, "Events end. Legacies don't." headline, 16 rotating capability lines, all 8 sections |
+| Booking flow — all 5 screens | Dark gradient, premium treatment. Screen 3 has free/honour/premier three-card layout |
+| Free tier path | Go Live Free → tribute wall active immediately, 90-day expiry, `free_tier_expires_at` column |
+| Capsule creation | Writes to Supabase — tier, pricing_key, visitor_type, page_state: pending_verification |
+| Organiser verification email | Sent via Resend from noreply@itslegacycapsule.com on capsule creation |
+| Email verification flow | Organiser clicks link → page_state: active → redirects to manage page |
+| Organiser manage page | `/capsule/[slug]/manage` — moderation queue, approve/decline, stats, share buttons |
+| Navigation + Footer | Wrapper system — hides on /capsule/ /admin /book |
+| LogoCapsule component | Single source of truth SVG logo |
+| AnimatedWorldMap | Homepage hero — 59 cities, 9 stages, Lisbon origin |
+| TributeMap component | Leaflet map — dark tiles, gold CircleMarker pins |
+| LCAdmin hub | `/admin` — server-side password protection |
+| LCAdmin pricing | Reads/writes lc_pricing table |
+| LCAdmin feature flags | Reads/writes lc_feature_flags table |
+| All audience pages | for-you, for-planners, start-planning, gift, resellers |
+| API routes | verify, geocode, email/verify-organiser, email/approval |
+| Supabase schema | All tables present. See Section 4. |
+| lc_content table | 33 rows — all tier names, features, booking copy admin-editable |
+| lc_pricing_zones table | Regional pricing zones with multipliers |
+| lib/eventLabels.ts | Public-facing dynamic labels — no "honouree" in public UI |
+| lib/tributeWallHelpers.ts | Shared tribute wall utilities |
+| Resend domain | Verified ✅ May 12 2026 |
+| Vercel deployment | Live and building on push to main |
+| localStorage hydration fix | Tribute wall — all window/localStorage calls browser-guarded |
+| Nested useEffect fix | Tribute wall — auto_approve flag useEffect moved to top level |
+| page_state fix | Verify route sets active correctly |
+| auto_approve_tributes | Set to FALSE in Supabase — all tributes require organiser approval |
+
+### 🔄 IN PROGRESS
+
+| Item | Status | Notes |
 |---|---|---|
-| What is the complete build sequence? | Master Build Plan v1.0 | Sections 5 and 7 |
-| Full product specification — all features, flows, states | Master Document v3.0 | All sections |
-| Full database schema — every column on every table | MVP Build Guide v2.0 | Section 2.3 |
-| How does payment routing work? | Payment Integration Guide v1.0 | Section 4 |
-| How does Stripe integrate? | Payment Integration Guide v1.0 | Section 5.1 |
-| How does Paystack integrate? | Payment Integration Guide v1.0 | Section 5.2 |
-| What are all the prices? | LCAdmin Build Guide v1.0 | Section 9 |
-| How does the animated world map work? | Animated World Map Build Guide v1.0 | Sections 4–7 |
-| How do the six engagement experiences work? | Six Engagement Experiences v1.0 | All sections |
-| How is the publication built? | Publication Engine Build Guide | All sections |
-| What is the admin console architecture? | LCAdmin Build Guide v1.0 | All sections |
-| What is the reseller system? | EcoControl Spec v1.0 | Reseller Engine sections |
-| What are the regional pricing multipliers? | EcoControl Spec v1.0 | Section 9.1 |
-| What are the RLS policies? | MVP Build Guide v2.0 / LCAdmin Build Guide | Section 3 / Section 1.1 |
-| What deviations were made from original specs? | LegacyCapsule_BuildHandoff_10May2026.docx | Sections 5–8 |
+| Tribute wall premium rebuild | In progress | `app/capsule/[slug]/page.tsx` — syntax error being fixed. New design: ivory cards, sticky bar with map, ambient backdrop, no admin controls |
+| TributeMap component | Created | Needs leaflet CSS import confirmed working on Vercel |
 
-**The Build Handoff .docx** (already in project folder) is the deviation register. Every departure from the original spec documents is recorded there with reasons.
+### ⚠️ NOT YET BUILT
+
+| Item | Priority | Notes |
+|---|---|---|
+| `/capsule/[slug]/submit` | HIGH | Submission form — separate route, premium dark treatment |
+| `/capsule/[slug]/profile` | HIGH | Subject profile page — basic sections only for Phase 1 |
+| `/capsule/[slug]/edit/[token]` | MEDIUM | Contributor edit page — token-based |
+| Submission confirmation email | HIGH | Path A — sent immediately on submit if email given |
+| Keepsake Card email | HIGH | Sent on organiser approval — replaces plain approval email |
+| Stripe integration | HIGH — Phase 1.5 | Stripe account being set up under RevoWorldTech |
+| LCAdmin — lc_content editor | MEDIUM | Edit tier names, features, copy from admin |
+| LCAdmin — lc_pricing_zones editor | MEDIUM | Edit regional multipliers from admin |
+| Regional price detection | MEDIUM | useRegionalPrice hook — detect by IP, show single currency |
+| Honouree Reveal button | MEDIUM | Add to manage page — Experience 5 |
+| About page | LOW | Real copy needed |
+| Examples page | LOW | Real demo capsule slugs needed |
 
 ---
 
-## 4. DATABASE — CURRENT STATE (Supabase)
+## 4. DATABASE — SUPABASE CURRENT STATE
 
-All tables exist. RLS is enabled on all with permissive open policies for Phase 1.
+All tables exist. RLS enabled on all with permissive open policies for Phase 1.
 
-### Tables confirmed present and working:
-- `capsules` — core capsule records
-- `contributions` — tribute submissions (**column is `contributor_name` not `name` — renamed**)
-- `communities` — multi-tenant communities
-- `community_members`
-- `payments`
-- `profiles`
-- `publications`
-- `guests`
-- `event_tables`
-- `gallery_items`
-- `geocode_cache`
-- `capsule_phases`
-- `capsule_admins`
-- `attire_orders`
-- `attire_payments`
-- `attire_variants`
-- `lc_pricing` — 17 price rows seeded. **All prices must be read from here. Never hardcode.**
-- `lc_feature_flags` — 8 flags seeded including `auto_approve_tributes`
-- `admin_audit_log` — append-only, no update/delete RLS
-- `email_verifications`
-- `subscriptions` — Phase 2 ready
-- `capsule_milestones` — Phase 3 ready
-- `contribution_keepsakes` — Phase 3 ready
-- `anniversary_queue` — Phase 3 ready
+### Core tables:
+- `capsules` — includes: tier, pricing_key, visitor_type, free_tier_expires_at, page_state, organiser_email
+- `contributions` — **`contributor_name` not `name`** — also: email_verified, status, latitude, longitude
+- `email_verifications` — organiser + contributor tokens
+- `lc_pricing` — 17 rows. **All prices here. Never hardcode.**
+- `lc_feature_flags` — 8 flags. `auto_approve_tributes` = FALSE
+- `lc_content` — 33 rows. Tier names, features, booking copy. All admin-editable.
+- `lc_pricing_zones` — 8 zones with currency codes, symbols, multipliers, country arrays
+
+### Profile and engagement tables (built, not yet wired):
+- `capsule_profile_sections`
+- `capsule_featured_photos`
+- `capsule_gallery`
+- `honouree_portal_tokens`
+- `capsule_support_accounts`
+- `support_acknowledgements`
+- `honouree_email_templates`
+- `honouree_broadcasts`
+
+### Phase 3 tables (built ahead of schedule):
+- `capsule_milestones`
+- `contribution_keepsakes`
+- `anniversary_queue`
+
+### Other tables:
+- communities, community_members, payments, profiles, publications
+- guests, event_tables, gallery_items, geocode_cache
+- capsule_phases, capsule_admins, attire_orders, attire_payments, attire_variants
+- subscriptions, admin_audit_log
 
 ### Critical column notes:
-- `contributions.contributor_name` — was `name`, renamed. All queries and inserts must use `contributor_name`.
-- `contributions.contribution_type` — added, default `'text'`. Required for Phase 3 voice/video logic.
-- `capsules.approved_contrib_count` — added with trigger `trg_contrib_count` to keep in sync.
-
-### Known schema adaptations required for Phase 3:
-- Six Engagement Experiences code uses `admin.auth.admin.getUserById(owner_user_id)` to get organiser email — **adapt to read `capsules.organiser_email` directly** (we have no Supabase auth).
-- `publications.page_map` column not yet confirmed — add when building Publication Engine.
-- Supabase Realtime not yet enabled on `contributions` — enable when building Experience 3 (Live Wall).
+- `contributions.contributor_name` — was `name`, renamed. Always use `contributor_name`.
+- `capsules.page_state` values: `pending_verification` → `active` → (future: `expired`, `suspended`)
+- `capsules.tier` values: `free`, `honour`, `premier`
 
 ---
 
-## 5. FILE STRUCTURE — CURRENT STATE
+## 5. CONFIRMED DECISIONS — ALL SESSIONS
+
+These are locked decisions. Do not reopen without explicit founder confirmation.
+
+| # | Decision | Detail |
+|---|---|---|
+| D1–D8 | Original spec deviations | See Build Handoff doc |
+| D9 | Admin control over all pricing | No price, tier name, feature list, or commercial copy may be hardcoded. All from lc_pricing or lc_content. |
+| D10 | page_state on creation (Phase 1) | Set to `pending_verification` on creation. Set to `active` after email verification. Phase 1.5 adds `pending_payment` state. |
+| D11 | Package names | Tier 1 = Legacy Honour (lc_pricing key: capture_preserve_base). Tier 2 = Legacy Premier (lc_pricing key: full_platform_base) |
+| D12 | Single currency display | One currency per user based on geographic location. No dual currency shown. Regional detection via IP. |
+| D13 | Tribute moderation — always manual | auto_approve_tributes = FALSE on production always. Any change requires LCAdmin with reason logged. |
+| D14 | Event date removed from booking | Collected post-creation via organiser dashboard. All lifecycle triggers check for null before firing. |
+| D15 | Launch pricing | Legacy Honour: €50 / ₦40,000. Legacy Premier: €80 / ₦70,000. |
+| D16 | Homepage value proposition | "Go Live in minutes for free" — replaces "Free to start" everywhere. |
+| D17 | Image processing rule | All uploads compressed client-side to under 1MB. No raw uncompressed image stored. |
+| D18 | "Ways to Honour" naming | Never "Donate" or "Gift Fund". Framing puts initiative on the guest. Event-type-appropriate labels from lib/eventLabels.ts |
+| D19 | Subject portal access | Unique token link. 30-day session. No password. Paid tier only — visible but locked on free. |
+| D20 | Support acknowledgement flow | Guest ticks "I've sent a gift" → recorded → thank-you email fires → appears in subject portal. |
+| D21 | Broadcast limit | One broadcast per 7 days per capsule. Admin-overridable. |
+| D22 | Premium lock UI | All paid features visible on free tier with semi-transparent gold padlock overlay. Nothing hidden — access gated. |
+| D23 | Moderation responsibility | Tribute moderation = organiser via /manage. LCAdmin = platform-level only. ADMIN_EMAIL check removed from public tribute wall. |
+| D24 | "Honouree" is internal only | Never appears in public UI, emails, or copy. All public references use subject's name or event-type phrase from lib/eventLabels.ts |
+
+---
+
+## 6. FILE STRUCTURE — CURRENT STATE
 
 ```
 legacycapsule/
 ├── app/
-│   ├── page.tsx                    ✅ Full premium homepage — animated world map hero
-│   ├── layout.tsx                  ✅ NavigationWrapper + FooterWrapper (conditional rendering)
-│   ├── globals.css                 ✅ Full design system tokens merged in
-│   ├── book/page.tsx               ⚠️  PARTIAL — Screen 1 rebuilt premium. Screens 2/3/4 need same treatment.
-│   ├── capsule/[slug]/page.tsx     ✅ Tribute wall — contributor_name fix applied
-│   ├── admin/page.tsx              ✅ LCAdmin hub
-│   ├── admin/pricing/page.tsx      ✅ Reads from lc_pricing table
-│   ├── admin/flags/page.tsx        ✅ Feature flags management
-│   ├── admin/dashboard/[slug]/     ⚠️  Redundant — repurpose or remove
-│   ├── for-you/page.tsx            ✅ Audience page
-│   ├── for-planners/page.tsx       ✅ Audience page
-│   ├── start-planning/page.tsx     ✅ Audience page
-│   ├── gift/page.tsx               ✅ Gift page
-│   ├── resellers/page.tsx          ✅ Resellers page
-│   ├── examples/page.tsx           ⚠️  Needs real demo capsule slugs wired in
-│   ├── pricing/page.tsx            ⚠️  Must confirm reads from Supabase not hardcoded
-│   ├── about/page.tsx              ⚠️  Placeholder copy — needs real narrative
-│   ├── test-map/page.tsx           ❌  DELETE BEFORE DEPLOY — Remove-Item -Recurse app\test-map
-│   └── api/
-│       ├── email/approval/route.ts        ✅
-│       ├── email/verify-contributor/      ✅
-│       ├── email/verify-organiser/        ✅
-│       ├── geocode/route.ts               ✅
-│       └── verify/route.ts               ✅
+│   ├── page.tsx                    ✅ Full premium homepage
+│   ├── layout.tsx                  ✅ NavigationWrapper + FooterWrapper
+│   ├── globals.css                 ✅ Full design system tokens
+│   ├── book/page.tsx               ✅ All 5 screens premium — free/honour/premier flow
+│   ├── capsule/[slug]/
+│   │   ├── page.tsx                🔄 Premium rebuild — syntax error being fixed
+│   │   ├── manage/page.tsx         ✅ Organiser control panel
+│   │   ├── submit/page.tsx         ❌ NOT YET BUILT
+│   │   ├── profile/page.tsx        ❌ NOT YET BUILT
+│   │   └── edit/[token]/page.tsx   ❌ NOT YET BUILT
+│   ├── admin/
+│   │   ├── page.tsx                ✅ LCAdmin hub
+│   │   ├── pricing/page.tsx        ✅ lc_pricing editor
+│   │   └── flags/page.tsx          ✅ Feature flags
+│   ├── api/
+│   │   ├── verify/route.ts         ✅ Token verification → page_state: active
+│   │   ├── email/verify-organiser/ ✅ Welcome + verification email
+│   │   ├── email/approval/         ✅ Approval notification
+│   │   └── geocode/route.ts        ✅
+│   ├── for-you/                    ✅
+│   ├── for-planners/               ✅
+│   ├── start-planning/             ✅
+│   ├── gift/                       ✅
+│   ├── resellers/                  ✅
+│   ├── examples/                   ⚠️ Needs real demo slugs
+│   ├── pricing/                    ⚠️ Confirm from Supabase
+│   └── about/                      ⚠️ Needs real copy
 │
 ├── components/
-│   ├── LogoCapsule.tsx             ✅ SVG capsule logo — SINGLE SOURCE OF TRUTH for logo
-│   ├── AnimatedWorldMap.tsx        ✅ Real SVG world map — showOverlay + mode props
+│   ├── LogoCapsule.tsx             ✅ Single source of truth
+│   ├── AnimatedWorldMap.tsx        ✅ Homepage hero map
+│   ├── TributeMap.tsx              ✅ Leaflet — gold pins, dark tiles
 │   └── layout/
-│       ├── Navigation.tsx          ✅ Scroll-triggered, uses LogoCapsule size="sm"
+│       ├── Navigation.tsx          ✅
 │       ├── Footer.tsx              ✅
-│       ├── NavigationWrapper.tsx   ✅ Hides nav on /capsule/ /admin /book
-│       └── FooterWrapper.tsx       ✅ Hides footer on /capsule/ /admin /book
+│       ├── NavigationWrapper.tsx   ✅
+│       └── FooterWrapper.tsx       ✅
 │
 ├── lib/
-│   ├── mapCities.ts                ✅ 59 cities, 9 stages, Lisbon origin (stage 0)
+│   ├── mapCities.ts                ✅ 59 cities, 9 stages
 │   ├── email.ts                    ✅ FROM: noreply@itslegacycapsule.com
-│   ├── verification.ts             ✅
+│   │                                  sendOrganiserWelcome — called via API route
+│   ├── verification.ts             ✅ FROM: noreply@itslegacycapsule.com ✅ fixed
+│   │                                  /capsule/ links use /capsule/ not /event/ ✅ fixed
 │   ├── supabase.ts                 ✅
+│   ├── eventLabels.ts              ✅ Public-facing labels — no "honouree" in public
+│   ├── tributeWallHelpers.ts       ✅ COUNTRIES list, formatTributeDate, getInitials
 │   └── utils.ts                    ✅
 │
 └── public/
-    └── world-map-simple.svg        ✅ Downloaded from simplemaps.com
+    └── world-map-simple.svg        ✅
 ```
 
 ---
 
-## 6. DESIGN SYSTEM — ACTIVE TOKENS
+## 7. TRIBUTE WALL — DESIGN SPEC (for current rebuild)
 
-Defined in `app/globals.css`. Used across all marketing pages. Tribute wall and admin use Tailwind dark theme directly. Both coexist without conflict.
+The tribute wall (`app/capsule/[slug]/page.tsx`) is being rebuilt. The complete design is locked:
 
-### Colours:
-```css
---lc-purple:      #2D1B69   /* Primary brand purple */
---lc-purple-light:#3D2880
---lc-purple-dark: #1A0F3E
---lc-purple-deep: #0D0820   /* Deepest background */
---lc-gold:        #B8960C   /* Primary brand gold */
---lc-gold-light:  #D4AE2A
---lc-gold-dim:    #8A6F09
---lc-ivory:       #F5F3EE   /* Light section backgrounds */
---lc-charcoal:    #1C1C1E
-```
+### Page zones top to bottom:
 
-### Typography:
-```css
---font-display:  'Cormorant Garamond'  /* italic sublines, hero h1 */
---font-heading:  'Playfair Display'    /* h2, h3 */
---font-body:     'DM Sans'             /* body, labels, buttons */
---font-accent:   'Cormorant SC'        /* small caps labels */
-```
+**Zone 1 — Hero (scrolls away)**
+- Deep purple `#2D1B69` background
+- LogoCapsule size="sm" centred
+- Event type emoji ornament
+- Subject name — large Playfair Display, links to /profile
+- Event tag — antique gold, generous letter-spacing
+- Gold threshold rule at bottom
 
-**Google Fonts loaded via `app/layout.tsx` `<link>` tags — NOT via CSS @import** (Tailwind v4 throws CssSyntaxError with @import url() mixed with @import tailwindcss).
+**Zone 2 — Sticky bar (freezes on scroll)**
+- `position: sticky; top: 0; z-index: 50`
+- Left 60%: TributeMap — dark tiles, gold pins, live-updating. "Powered by LegacyCapsule" overlay
+- Right 40%: Event type · Subject name · Event tag · Tribute count · Copy link · WhatsApp share
+- Height: 180px desktop, 140px mobile
 
-### Logo — `components/LogoCapsule.tsx`:
-- Capsule pill shape split at centre
-- Left half: deep purple gradient — "LEGACY" in gold (Playfair Display bold)
-- Right half: gold gradient — "CAPSULE" in deep purple (Playfair Display bold)
-- 3D effect: top gloss sheen, bottom inner shadow, gold rim, inner rim
-- Drop shadow: `drop-shadow(0 3px 8px rgba(0,0,0,0.5)) drop-shadow(0 0 6px rgba(184,150,12,0.3))`
-- Sizes: sm (148×38) · md (188×50) · lg (248×66) · xl (330×90)
-- Used in: Navigation (`size="sm"`) + booking flow (`size="md"`)
+**Zone 3 — Tribute section (scrolls under sticky bar)**
+- Section header: `──── ✦ TRIBUTE WALL ✦ ────` + count
+- Subject photo as ambient backdrop — very faded, `background-attachment: fixed` (parallax desktop, scroll mobile)
+- Tribute cards: warm ivory `#F5F3EE`, box shadow, gold top rule per card
+- Card content: initials avatar or photo · name · city ✦ country · relationship (if given) · date · tribute text · expand toggle
+- No edit, no delete, no admin controls — public wall is clean
+- Profile link card at bottom of tributes section
 
----
+**Zone 4 — Sticky Add Your Tribute CTA**
+- Gold background, deep purple text, links to /submit
 
-## 7. KEY DEVIATIONS FROM ORIGINAL SPEC DOCUMENTS
+**Zone 5 — Footer**
+- Deep purple. VALNEX attribution. "Planning your own event? Start here →" linking to /book
 
-These are deliberate decisions made in this session. All are recorded in full in the Build Handoff .docx.
-
-| # | Deviation | Original spec | What was done | Reason |
-|---|---|---|---|---|
-| 1 | Animated World Map built in Phase 1 | Phase 2 item | Built and integrated into homepage hero | Premium visual needed for stakeholder presentation |
-| 2 | Full frontend homepage integrated | MVP simple homepage | All 8 sections, real map, audience routing | Build once not twice |
-| 3 | LogoCapsule SVG component created | No logo spec existed | New SVG component, single source of truth | Navigation needed a real visual logo |
-| 4 | `contributor_name` column renamed | Was `name` | Renamed in Supabase, all code updated | Phase 3 spec uses `contributor_name` throughout |
-| 5 | Booking Screen 1 has 3 options | 2 options in spec | Added "Gift a Capsule" as 3rd option | Both /gift and booking flow converge to same gifting path |
-| 6 | Nav/Footer in wrapper components | Each page imported directly | NavigationWrapper + FooterWrapper in layout.tsx | Single control point, no page-level duplication |
-| 7 | Google Fonts in layout.tsx link tags | CSS @import at top of globals.css | Moved to `<link>` in layout.tsx `<head>` | Tailwind v4 rejects @import url() mixed with @import tailwindcss |
-| 8 | Ocean colour — blue tint | Original CSS filter spec | Blue gradient background + adjusted filter | Client requested geographic blue ocean not grayscale |
+### Submission form (`/capsule/[slug]/submit` — not yet built):
+Fields: Name* · City* · Country* (dropdown) · Tribute message* (20–1000 chars, live counter) · Relationship · Email · Photo
+Below email: "Leave your email to receive a keepsake of your tribute when it's approved"
+Preview step before submit. Post-submission confirmation screen with WhatsApp share.
 
 ---
 
-## 8. WHAT NEEDS TO BE DONE — ORDERED BY PRIORITY
+## 8. KNOWN ISSUES — OPEN BUGS
 
-### 8.1 Before Deployment (do these first, in order)
-
-- [ ] **Delete `app/test-map/` directory** — `Remove-Item -Recurse app\test-map`
-- [ ] **Rebuild booking flow Screen 2** — event type selection. Same dark gradient premium treatment as Screen 1. Logo centred, gold progress bar, 11 event type cards in grid, generous spacing, gold borders.
-- [ ] **Rebuild booking flow Screen 3** — package selection. TWO tiers clearly presented. **Prices must read from Supabase `lc_pricing` table not hardcoded.** Running total updates in real time.
-- [ ] **Rebuild booking flow Screen 4** — form fields and summary. Honouree name, event tag, date, email, capsule URL with live preview, package summary, total. Gold bordered inputs. Same premium treatment.
-- [ ] **Fix gift flow from Screen 1** — selecting "Gift a Capsule" on Screen 1 currently proceeds to Screen 2 (event type) which is wrong. Needs gift-specific branch or redirect to `/gift` page.
-- [ ] **Confirm Resend domain verified** — check Resend dashboard. `itslegacycapsule.com` must show Verified before any email flow is tested on production.
-- [ ] **Run `npm run build`** — must return zero errors. Current state: clean build, 1 CSS warning (acceptable).
-- [ ] **Push to GitHub** — `git add . && git commit -m "Phase 1 complete — ready for production" && git push`
-
-### 8.2 Vercel Deployment Checklist (in order)
-
-1. All env vars added to Vercel project settings (see Section 9 below)
-2. Deploy — GitHub repo already connected
-3. Add custom domain `itslegacycapsule.com` in Vercel Domains settings
-4. Update Cloudflare DNS — add Vercel CNAME or A record. **Proxy: DNS only (not proxied) for Vercel records**
-5. Confirm SSL — https://itslegacycapsule.com loads with padlock
-6. Update `NEXT_PUBLIC_APP_URL` to `https://itslegacycapsule.com` in Vercel env vars → Redeploy
-7. Full end-to-end production test — book capsule → verify email → submit tribute → moderate → approve → approval email received
-8. Test admin on production — /admin, /admin/pricing, /admin/flags all working
-
-### 8.3 Phase 1.5 — Payment Integration (immediately after deployment)
-
-**Critical warning from Animated World Map Build Guide:** The Start Your Capsule CTA on the homepage must NOT go live until Stripe is tested on the production URL. Keep "Payment coming — capsule created immediately" placeholder until then.
-
-Build order per Payment Integration Guide v1.0 Section 11.1:
-1. Create Stripe account — complete business verification for Valnex LDA
-2. Add env vars: `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
-3. Build `lib/payments/regionDetector.ts`
-4. Build `lib/payments/priceFetcher.ts` — reads from `lc_pricing` table
-5. Build `lib/payments/adapters/StripeAdapter.ts`
-6. Build `lib/payments/PaymentService.ts`
-7. Build `lib/payments/featureUnlocker.ts`
-8. Build `app/api/checkout/route.ts`
-9. Build `app/api/webhooks/stripe/route.ts`
-10. Wire booking flow Screen 4 checkout button to `/api/checkout`
-11. Full end-to-end test on Vercel production URL
-12. Update Stripe webhook endpoint to `https://itslegacycapsule.com/api/webhooks/stripe`
-
-Paystack (Nigeria/Ghana/Kenya) is Phase 2. Flutterwave (cross-border Africa) is Phase 2.
-
-### 8.4 Content — Needs Real Copy Before Launch
-
-- [ ] `app/about/page.tsx` — placeholder copy. Needs founding story, mission, Valnex/RevoWorldTech narrative.
-- [ ] `app/examples/page.tsx` — needs real demo capsule slugs created in Supabase (minimum 4: retirement, memorial, milestone birthday, wedding).
-- [ ] `app/pricing/page.tsx` — confirm reads from Supabase not hardcoded.
-- [ ] Legal documents — 5 needed: Terms, Privacy Policy, Cookie Policy, Refund Policy, GDPR. EU law applies (Portugal).
-- [ ] First client testimonials — needed for homepage social proof block before launch.
-
-### 8.5 Open Decisions — Must Be Made Before Specific Pages Build
-
-| Decision | Blocks | Options |
-|---|---|---|
-| Package names | Pricing page, booking Screen 3, all tier references | Option A: The Record / The Chronicle — Option B: Remembrance / Legacy |
-| Social proof model | Homepage Block 5 | Real live counts (requires API) OR curated milestone numbers at launch |
-| Featured homepage example | Homepage Block 7 | Recommendation: retirement — most universally relatable |
-| Gift voucher denominations | /gift page | Fixed amounts (EUR 25/50/75/120) OR custom OR tier-based |
-| Voucher expiry | /gift page | 12 months (recommended) / 24 months / no expiry |
-| Group gift shortfall | /gift page | Full refund OR unlock at collected amount OR initiator chooses |
-| Reseller commission rate | /resellers page | Percentage not yet set |
-| Planner directory launch state | /for-planners page | Launch empty with Coming Soon OR hold until first planners |
-| About page narrative | /about | Must be written by founder |
+| # | Issue | Location | Status |
+|---|---|---|---|
+| B1 | Syntax error line 314 — missing `<a` tag | app/capsule/[slug]/page.tsx | Being fixed |
+| B2 | Cloudflare nameserver — domain not fully resolving | DNS | Awaiting Cloudflare support |
+| B3 | NEXT_PUBLIC_APP_URL in Vercel points to preview URL not real domain | Vercel env vars | Update when B2 resolved |
+| B4 | Pricing page — confirm not hardcoded | app/pricing/page.tsx | Needs check |
+| B5 | admin/dashboard/[slug] — redundant, repurpose or remove | app/admin/dashboard | Low priority |
 
 ---
 
-## 9. ENVIRONMENT VARIABLES
+## 9. NEXT SESSION — IMMEDIATE TASKS
 
-All must be set in both `.env.local` (local dev) and Vercel project settings (production). Never hardcode any of these.
+**For tribute wall + submission (current session continuing or next session):**
+
+1. Fix syntax error in `app/capsule/[slug]/page.tsx` — missing `<a` tag and encoding corruption
+2. Confirm `npm run build` clean with TributeMap + eventLabels imports
+3. Build `/capsule/[slug]/submit` — separate submission form page
+4. Add submission confirmation email (Path A — immediate send if email given)
+5. Update Keepsake Card email in `lib/email.ts` — replace plain approval email
+
+**For LCAdmin + Stripe (separate session recommended):**
+
+1. Add `lc_content` editor to LCAdmin — edit tier names, features, copy
+2. Add `lc_pricing_zones` editor to LCAdmin — edit regional multipliers
+3. Stripe account setup (RevoWorldTech — test keys ready to integrate)
+4. Build PaymentService and Stripe checkout route
+5. Wire booking flow Screen 3/4 paid paths to Stripe checkout
+6. Stripe webhook → set page_state based on payment status
+7. Add `pending_payment` page_state handling to tribute wall
+
+---
+
+## 10. ENVIRONMENT VARIABLES
+
+### Required in both .env.local and Vercel:
 
 ```bash
-# Supabase
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=         # Server-side only — never expose to client
-
-# Resend
+SUPABASE_SERVICE_ROLE_KEY=
 RESEND_API_KEY=
-
-# App URL
-NEXT_PUBLIC_APP_URL=               # http://localhost:3000 (dev) | https://itslegacycapsule.com (prod)
-
-# Admin (already set)
-NEXT_PUBLIC_ADMIN_PASSWORD=
+NEXT_PUBLIC_APP_URL=  # http://localhost:3000 local | preview URL until domain live
 LCADMIN_PASSWORD=
 LCADMIN_SESSION_SECRET=
 
-# Stripe — PENDING (add when Stripe account created)
+# Stripe — add when account ready
 STRIPE_SECRET_KEY=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 STRIPE_WEBHOOK_SECRET=
-STRIPE_PRICE_PLANNER_MONTHLY=      # Phase 2 — Stripe Price ID
-STRIPE_PRICE_ARCHIVE_ANNUAL=       # Phase 2 — Stripe Price ID
-
-# Paystack — PENDING (Phase 2)
-PAYSTACK_SECRET_KEY=
-
-# Flutterwave — PENDING (Phase 2)
-FLUTTERWAVE_SECRET_KEY=
 ```
 
----
-
-## 10. BOOKING FLOW — DETAILED CURRENT STATE
-
-**Location:** `app/book/page.tsx` — single file, multi-screen with state machine.
-
-### Screen 1 — WHO ARE YOU? ✅ REBUILT PREMIUM
-- Dark gradient background: `linear-gradient(160deg, #0D0820 0%, #1A0F3E 50%, #0D0820 100%)`
-- LogoCapsule `size="md"` centred at top
-- Gold progress bar (3px, glowing)
-- "← Back to Home" link top left
-- "Step 1 of 4" gold uppercase label
-- Three option cards with gold borders on hover/select:
-  1. Personal Organiser — "I am arranging an event for someone I love" 🤍
-  2. Event Professional — "I use LegacyCapsule as part of my event services" ✦
-  3. Gift a Capsule — "I want to give this experience as a gift" 🎁
-- Gold divider rules above and below options
-- Footer: "VALNEX, UNIPESSOAL LDA · RevoWorldTech" in dim text
-
-### Screen 2 — WHAT IS THE OCCASION? ⚠️ NEEDS PREMIUM REBUILD
-- Currently has basic grid of event type cards
-- Needs: same dark gradient treatment, logo, gold progress bar, home link, generous spacing
-- 11 event types: Retirement, Memorial & Funeral, Wedding, Milestone Birthday, Anniversary, Graduation, Ordination, Chieftaincy, Award Ceremony, Thanksgiving Service, Conference, Other Event
-- Each card: emoji + label, centred, gold border, generous padding
-
-### Screen 3 — CHOOSE YOUR PACKAGE ⚠️ NEEDS PREMIUM REBUILD
-- Currently has basic two-tier display with hardcoded prices
-- **Prices MUST be fetched from Supabase `lc_pricing` table**
-- Two tiers: Capture & Preserve (tribute collection + publication) / Full Platform (all three pillars)
-- Package names pending decision (see Open Decisions above)
-- Running total updates in real time as tier selected
-
-### Screen 4 — YOUR CAPSULE DETAILS ⚠️ NEEDS PREMIUM REBUILD
-- Form fields: honouree name (80 char), event tag (80 char), event date, organiser email, capsule URL slug (60 char)
-- Live URL preview box showing `itslegacycapsule.com/capsule/[slug]`
-- Summary: package, event type, total price
-- CTA: "Create Capsule →" (payment coming — capsule created immediately for now)
-- **Payment integration placeholder** — capsule creates in Supabase, link goes live immediately
+**Important:** `NEXT_PUBLIC_APP_URL` currently points to the Vercel preview URL because `itslegacycapsule.com` DNS is pending. Update to `https://itslegacycapsule.com` when Cloudflare support resolves the nameserver issue.
 
 ---
 
-## 11. HOMEPAGE HERO — CURRENT STATE ✅
+## 11. BOOKING FLOW — CURRENT STATE ✅
 
-The hero is fully implemented with:
-- Full viewport height (`100vh`, min `680px`)
-- Real SVG world map from `public/world-map-simple.svg`
-- CSS filter: `hue-rotate(220deg) saturate(2.2) brightness(0.5) contrast(1.3)` — purple landmasses
-- Ocean background: `#0A1628` + `oceanGrad` linear gradient — blue ocean
-- Gold city pins lighting up from Lisbon (stage 0) outward across 9 stages, 59 cities
-- Pulse rings expanding from each city as it activates
-- Loop: 9 seconds, resets and replays
-- Text overlay (`showOverlay={false}` — map is pure background)
-- Radial gold gloss sheen over centre
-- Bottom fade to ivory (Section 2 background)
-- "EVERY EVENT · PRESERVED" gold uppercase label
-- Main headline: Cormorant Garamond, `clamp(2.2rem, 5.5vw, 5rem)`, white with gold drop-shadow
-- "of your event" — gold italic span
-- "— in one Capsule." — italic subline
-- Rotating event type (RotatingEventType component, 2.8s interval, 11 types)
-- Two CTAs: "Start Your Capsule" (gold filled) + "See It In Action" (glass ghost)
-- Trust line: "No technical experience required · Live in minutes · Free to start"
-- SCROLL + animated bounce arrow
+All 5 screens rebuilt premium. Dark gradient: `linear-gradient(160deg, #0D0820 0%, #1A0F3E 50%, #0D0820 100%)`.
 
----
+**Screen 1:** Visitor type — Personal Organiser / Event Professional / Gift a Capsule. Gift → routes to /gift immediately.
 
-## 12. NAVIGATION — CURRENT STATE ✅
+**Screen 2:** Event type — 12 cards in 3×4 grid. Emoji + label. Gold border on select.
 
-- Component: `components/layout/Navigation.tsx`
-- Transparent on load → solid purple on scroll (>20px)
-- Quick access bar hidden until user scrolls past 1.5× viewport height
-- Quick access bar has `opacity: 0; visibility: hidden` until threshold — no flash on load
-- LogoCapsule `size="sm"` (148×38) in top-left
-- Links: Examples · Pricing · For You · Help
-- Right side: Sign In (ghost) · Start Your Capsule (gold pill, centred text, `whiteSpace: nowrap`)
-- Hamburger menu for mobile
-- **Wrapper:** `components/layout/NavigationWrapper.tsx` — hides nav on `/capsule/`, `/admin`, `/book`
-- **Wrapper:** `components/layout/FooterWrapper.tsx` — hides footer on same paths
+**Screen 3:** Three packages:
+- Go Live Free — tribute wall instant, 50 contributors, 90 days, €0
+- Legacy Honour — €50 / ₦40,000 — fetched from lc_pricing (capture_preserve_base)
+- Legacy Premier — €80 / ₦70,000 — fetched from lc_pricing (full_platform_base)
+- All tier names and features fetched from lc_content table
+
+**Screen 4:** Capsule details — subject name (dynamic label per event type), event tag, organiser email, slug (auto-generated, editable). Live URL preview. Order summary (paid tiers only). Free tier shows "active for 90 days" note. Event date REMOVED — collected post-creation.
+
+**Screen 5:** Confirmation — "Your capsule is live". Capsule link. Check email note.
+
+**Email on creation:** POST to `/api/email/verify-organiser` → sends verification + welcome email from noreply@itslegacycapsule.com with manage link embedded.
+
+**Manage link format:** `/capsule/[slug]/manage?email=[encoded_email]`
 
 ---
 
-## 13. ANIMATED WORLD MAP — COMPONENT API
+## 12. ORGANISER MANAGE PAGE — CURRENT STATE ✅
 
-**File:** `components/AnimatedWorldMap.tsx`  
-**Data:** `lib/mapCities.ts`
+**Route:** `/capsule/[slug]/manage`
 
-```tsx
-<AnimatedWorldMap 
-  mode="hero"          // "hero" | "idle"
-  showOverlay={false}  // true shows "Every event. Preserved." text overlay
-  className="w-full"
-/>
-```
+**Access:** Email parameter in URL OR localStorage `lc_organiser_email`. Email written to localStorage on arrival. Access denied screen if neither matches capsule.organiser_email.
 
-**City stages (STAGE_DELAYS in lib/mapCities.ts):**
-- Stage 0 (0ms): Lisbon — origin
-- Stage 1 (800ms): Europe — 5 cities (London, Paris, Berlin, Stockholm, Rome)
-- Stage 2 (1800ms): West Africa — 6 cities (Lagos, Accra, Abidjan, Dakar, Abuja, Freetown)
-- Stage 3 (2600ms): East & Southern Africa — 5 cities
-- Stage 4 (3400ms): North America — 8 cities
-- Stage 5 (4200ms): South America — 5 cities
-- Stage 6 (5000ms): Middle East & South Asia — 5 cities
-- Stage 7 (5800ms): Asia Pacific — 6 cities
-- Stage 8 (6600ms): Global coverage — 7 more cities
-- Loop at 9000ms
+**Redirect from verification:** `/capsule/[slug]/manage?activated=true&email=[encoded_email]`
+
+**Features:**
+- Stats strip: total tributes / pending / approved
+- Share link with copy + WhatsApp buttons (pre-filled warm message)
+- Moderation queue: All / Pending / Approved filter tabs
+- Each tribute card: contributor name, city/country, date, tribute text, status badge
+- Approve / Decline buttons — instant local state update on action
+
+**Not yet on manage page:**
+- Honouree Reveal button (Experience 5)
+- World map widget of contributor locations
+- Capsule settings (event date, event tag edit)
 
 ---
 
-## 14. PHASE ROADMAP — CONTEXT FOR DECISIONS
+## 13. HOMEPAGE HERO — CURRENT STATE ✅
 
-| Phase | Name | Status | Key gates |
+Headline: **"Events end. Legacies don't."**
+- "Events end." — same size, weight 700, `rgba(255,255,255,0.62)`
+- "Legacies" — gold `#D4AE2A`
+- " don't." — white `#FFFFFF`
+
+Rotating lines: 16 capability lines at 4200ms interval. Full list in app/page.tsx ROTATING_LINES array.
+
+Trust line: `NO TECHNICAL EXPERIENCE REQUIRED · YOUR TRIBUTE WALL LIVE IN MINUTES FOR FREE`
+- Muted white base text
+- Gold `#D4AE2A` for the offer clause
+
+Subline: `captured, preserved, and digitally shared`
+
+---
+
+## 14. EMAIL FLOW — CURRENT STATE
+
+### Organiser emails:
+- **Verification + welcome** — sent via `/api/email/verify-organiser` → `lib/verification.ts` `sendOrganiserVerification`. Contains verify link + manage link (with email param).
+- **FROM:** `noreply@itslegacycapsule.com` ✅ confirmed in lib/verification.ts
+
+### Contributor emails:
+- **Submission confirmation** — NOT YET BUILT. Must be built alongside /submit page.
+- **Approval notification** — exists in `lib/email.ts` `sendApprovalNotification`. Plain email. Must be upgraded to Keepsake Card.
+- **Collective Belonging** — Phase 3
+- **Anniversary** — Phase 3
+
+### Keepsake Card:
+Full HTML template exists in `LegacyCapsule_Six_Engagement_Experiences.docx`. Wire into approval flow when building contributor email (next task).
+
+---
+
+## 15. PHASE ROADMAP
+
+| Phase | Name | Status | Gate |
 |---|---|---|---|
-| **1** | MVP — Tribute Page | 85% complete | Booking flow Screens 2/3/4, deploy, Resend verify |
-| **1.5** | Payment Integration | Not started | Stripe account, 3 paying clients to graduate |
-| **2** | Platform Expansion + Coordinate | Not started | 10 paying clients, Supabase auth, Paystack |
-| **3** | Six Engagement Experiences + Publication | Not started | Phase 3 DB tables already exist — ahead of schedule |
-| **4** | Publication Engine | Not started | Organiser dashboard must exist first |
-| **5** | Globe Upgrade | Not started | d3.js + globe.gl replaces current SVG map |
-| **6** | Communiva Integration | Not started | LegacyCapsule as Communiva module |
-
-**Phase 3 note:** The six engagement experiences are emotionally powerful and serve as organic marketing. The database tables (`capsule_milestones`, `contribution_keepsakes`, `anniversary_queue`) are already built. When building Phase 3, adapt all `owner_user_id` auth lookups to use `capsules.organiser_email` directly.
-
-**Payment note:** Stripe (EU/UK/US/CA/ROW) is Phase 1.5. Paystack (NG/GH/KE) and Flutterwave (cross-border Africa) are Phase 2. All revenue settles to Valnex LDA Portugal bank account regardless of processor — required for D2 Visa compliance.
+| **1** | Core platform | ~90% | Tribute wall rebuild + submit page |
+| **1.5** | Stripe payment integration | Next | Stripe account → test → 3 paying clients |
+| **2** | Platform expansion + Coordinate | Not started | 10 paying clients |
+| **3** | Six Engagement Experiences | DB ready | Phase 3 start |
+| **4** | Publication Engine | Not started | Organiser dashboard |
+| **5** | Globe upgrade | Not started | globe.gl |
+| **6** | Communiva integration | Not started | — |
 
 ---
 
-## 15. HOW TO START THE NEW CLAUDE SESSION
+## 16. HOW TO START A NEW SESSION
 
-Follow this exactly. Do not skip steps.
-
-1. Claude reads `CURRENT_STATE.md` (this file) fully before any response
-2. Claude reads `AGENTS.md` for behaviour rules
-3. State which task you are working on today
-4. If touching any spec-governed area, Claude checks the relevant document in project knowledge first
-5. Claude Code handles execution in VS Code; Claude (chat) handles planning and direction
-6. Any new deviation from spec documents must be stated explicitly and agreed before implementation
-7. Commit to GitHub at the end of every session: `git add . && git commit -m "descriptive message" && git push`
-
-**Immediate next task for the new session:**
-> Rebuild booking flow Screen 2 (event type selection) with the same premium dark gradient treatment as Screen 1. Then Screen 3 (package selection, prices from Supabase). Then Screen 4 (form and summary). Then delete test-map. Then deploy to Vercel.
+1. Read `CURRENT_STATE.md` fully
+2. Read `AGENTS.md`
+3. Search project knowledge for context relevant to today's task
+4. State which task you are working on (max 3 items)
+5. Check Section 9 for immediate next tasks
+6. If touching spec-governed areas, search project knowledge first
+7. Commit to GitHub at end of session
 
 ---
 
-## 16. DEVIATION / RULE - Loggedfor all sessions:
-
-Rule D9 — Admin Control Over All Pricing Components
-No price, tier name, tier description, feature list item, or any user-facing commercial component may be hardcoded in the application. All such values must be readable from and modifiable via LCAdmin without a code change. This extends beyond base prices to include: package names, feature bullet points per tier, add-on labels, and any copy that affects a purchasing decision. When a component of this type is needed and no lc_pricing row exists for it yet, add the row to lc_pricing before wiring it to the UI.
-
-
-Decision D10 — Capsule page_state on creation (Phase 1)
-During Phase 1 (no payment integration), capsules created via the booking flow are set to page_state: 'active' immediately on creation. This is a deliberate phase-discipline exception. When Phase 1.5 (Stripe) is built, the default changes to page_state: 'pending_payment' and the feature unlocker webhook sets it to active on payment confirmation. This transition must be recorded as a code change at that time — not a schema change.
-
-
-Decision D11 — Package Names (previously undocumented)
-Tier 1 = Legacy Honour (maps to lc_pricing key capture_preserve_base, €75)
-Tier 2 = Legacy Premier (maps to lc_pricing key full_platform_base, €120)
-These names are decided and final. Remove all references to "The Record / The Chronicle" and "Remembrance / Legacy" from open decisions logs.
-
----
-
-*VALNEX, UNIPESSOAL LDA · RevoWorldTech · LegacyCapsule*  
-*CURRENT_STATE.md — May 2026 — Confidential*
+*VALNEX, UNIPESSOAL LDA · RevoWorldTech · LegacyCapsule*
+*CURRENT_STATE.md — 14 May 2026 — Confidential*

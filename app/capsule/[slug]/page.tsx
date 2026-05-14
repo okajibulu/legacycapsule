@@ -1,694 +1,525 @@
-"use client"
+﻿'use client'
 
-{/* =========================================================
-   SECTION 1 — IMPORTS
-========================================================= */}
-import { useParams } from "next/navigation"
-import { useState, useEffect, useRef } from "react"
-import { supabase } from "@/lib/supabase"
+import { useState, useEffect, useRef } from 'react'
+import { use } from 'react'
+import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
+import LogoCapsule from '@/components/LogoCapsule'
+import {
+  getTributePageTitle,
+  getEventTagDisplay,
+  getProfileLinkLabel,
+  getRelationshipLabel,
+} from '@/lib/eventLabels'
+import {
+  formatTributeDate,
+  getInitials,
+  EVENT_TYPE_ORNAMENT,
+} from '@/lib/tributeWallHelpers'
 
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+// ── Dynamic Leaflet map (no SSR) ─────────────────────────────
+import dynamic from 'next/dynamic'
+const TributeMap = dynamic(() => import('@/components/TributeMap'), { ssr: false })
 
-{/* =========================================================
-   SECTION 2A — COUNTRY LIST
-========================================================= */}
-const COUNTRIES = [
-  "Nigeria", "United Kingdom", "Germany", "Canada", "United States",
-  "Ghana", "Kenya", "South Africa", "France", "Italy", "Spain",
-  "Netherlands", "Sweden", "Norway", "Denmark", "China", "India",
-  "Brazil", "Mexico", "Australia", "Japan", "South Korea", "Not Listed",
-]
+// ── Types ────────────────────────────────────────────────────
+interface Capsule {
+  id: string
+  slug: string
+  honouree_name: string
+  event_tag: string | null
+  event_type: string
+  page_state: string
+  hero_image_url: string | null
+  organiser_email: string
+  tier: string | null
+}
 
-{/* =========================================================
-   SECTION 3 — COMPONENT
-========================================================= */}
-import { use } from "react"
+interface Contribution {
+  id: string
+  capsule_id: string
+  contributor_name: string
+  city: string
+  country: string
+  relationship: string | null
+  tribute_text: string
+  photo_url: string | null
+  email: string | null
+  status: string
+  created_at: string
+  latitude: number | null
+  longitude: number | null
+}
 
-export default function CapsulePage({ params }: { params: Promise<{ slug: string }> }) {
+// ── Component ────────────────────────────────────────────────
+export default function TributeWallPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
   const { slug } = use(params)
- 
-  {/* =========================================================
-     SECTION 4 — ROUTING
-  ========================================================= */}
 
-  {/* =========================================================
-     SECTION 5 — STATE (CORE)
-  ========================================================= */}
-  const [capsule, setCapsule] = useState<any>(null)
-  const [contributions, setContributions] = useState<any[]>([])
+  const [capsule, setCapsule]           = useState<Capsule | null>(null)
+  const [contributions, setContributions] = useState<Contribution[]>([])
+  const [loading, setLoading]           = useState(true)
+  const [expandedIds, setExpandedIds]   = useState<Set<string>>(new Set())
+  const [copied, setCopied]             = useState(false)
+  const stickyRef = useRef<HTMLDivElement>(null)
 
-  {/* =========================================================
-     SECTION 6 — STATE (FORM)
-  ========================================================= */}
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [city, setCity] = useState("")
-  const [country, setCountry] = useState("")
-  const [content, setContent] = useState("")
-  const [countryQuery, setCountryQuery] = useState("")
-  const [showCountryList, setShowCountryList] = useState(false)
-const [autoApprove, setAutoApprove] = useState(false)
-
-  {/* =========================================================
-     SECTION 7 — STATE (UI)
-  ========================================================= */}
-  const [lastSubmitTime, setLastSubmitTime] = useState<number | null>(null)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editContent, setEditContent] = useState("")
-  const [errors, setErrors] = useState<{ [key: string]: string }>({})
-  const [submitSuccess, setSubmitSuccess] = useState(false)
-  const bottomRef = useRef<HTMLDivElement | null>(null)
-  const countryRef = useRef<HTMLDivElement | null>(null)
-
-  {/* =========================================================
-     SECTION 8 — EFFECT: LOAD EMAIL
-  ========================================================= */}
-  useEffect(() => {
-    const savedEmail = typeof window !== "undefined" ? localStorage.getItem("lc_email") : null
-    if (savedEmail) setEmail(savedEmail)
-  }, [])
-
-  {/* =========================================================
-     SECTION 9 — EFFECT: SAVE EMAIL
-  ========================================================= */}
-  useEffect(() => {
-    if (email.includes("@")) {
-      if (typeof window !== "undefined") localStorage.setItem("lc_email", email)
-    }
-  }, [email])
-
-{/* =========================================================
-   SECTION 10A — EFFECT: CLOSE COUNTRY DROPDOWN ON OUTSIDE CLICK
-========================================================= */}
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (countryRef.current && !countryRef.current.contains(e.target as Node)) {
-        setShowCountryList(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
-
-  {/* =========================================================
-     SECTION 11 — LOAD CAPSULE
-  ========================================================= */}
+  // ── Load capsule + contributions ─────────────────────────
   useEffect(() => {
     if (!slug) return
-
-    const loadCapsule = async () => {
-      const { data } = await supabase
-        .from("capsules")
-        .select("*")
-        .eq("slug", slug)
+    async function load() {
+      setLoading(true)
+      const { data: cap } = await supabase
+        .from('capsules')
+        .select('*')
+        .eq('slug', slug)
         .single()
-
-      if (data) {
-        setCapsule(data)
-        loadContributions(data.id)
+      if (cap) {
+        setCapsule(cap)
+        const { data: contribs } = await supabase
+          .from('contributions')
+          .select('*')
+          .eq('capsule_id', cap.id)
+          .eq('status', 'approved')
+          .order('created_at', { ascending: false })
+        setContributions(contribs ?? [])
       }
+      setLoading(false)
     }
-
-    loadCapsule()
+    load()
   }, [slug])
 
+  // ── Real-time contributions ──────────────────────────────
   useEffect(() => {
-  const loadFlag = async () => {
-    const { data } = await supabase
-      .from("lc_feature_flags")
-      .select("enabled")
-      .eq("key", "auto_approve_tributes")
-      .single()
-    if (data) setAutoApprove(data.enabled)
-  }
-  loadFlag()
-}, [])
+    if (!capsule?.id) return
+    const channel = supabase
+      .channel(`tributes-${capsule.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'contributions',
+        filter: `capsule_id=eq.${capsule.id}`,
+      }, () => {
+        supabase
+          .from('contributions')
+          .select('*')
+          .eq('capsule_id', capsule.id)
+          .eq('status', 'approved')
+          .order('created_at', { ascending: false })
+          .then(({ data }) => setContributions(data ?? []))
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [capsule?.id])
 
-  {/* =========================================================
-     SECTION 12 — LOAD CONTRIBUTIONS
-  ========================================================= */}
-  const loadContributions = async (capsuleId: string) => {
-const { data } = await supabase
-  .from("contributions")
-  .select("*")
-  .eq("capsule_id", capsuleId)
-  .in("status", ["approved", "pending_review"])
-  .order("created_at", { ascending: false })
+  // ── Helpers ──────────────────────────────────────────────
+  const capsuleUrl = typeof window !== 'undefined'
+    ? window.location.origin + `/capsule/${slug}`
+    : `https://itslegacycapsule.com/capsule/${slug}`
 
-    if (data) setContributions(data)
-  }
-
-  {/* =========================================================
-     SECTION 13 — VALIDATION
-  ========================================================= */}
-  const validateForm = () => {
-    const newErrors: { [key: string]: string } = {}
-
-    if (!name.trim()) newErrors.name = "Name is required"
-    else if (name.length > 50) newErrors.name = "Max 50 characters"
-
-    if (!email.trim()) {
-      newErrors.email = "Email is required"
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      newErrors.email = "Enter a valid email"
-    } else if (email.length > 100) {
-      newErrors.email = "Max 100 characters"
+  function copyLink() {
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(capsuleUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     }
-
-    if (!city.trim()) newErrors.city = "City is required"
-    else if (city.length > 50) newErrors.city = "Max 50 characters"
-
-    if (!country.trim()) newErrors.country = "Country is required"
-
-    if (!content.trim()) newErrors.content = "Message required"
-    else if (content.length > 500) newErrors.content = "Max 500 characters"
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
   }
 
-  {/* =========================================================
-     SECTION 14 — SUBMIT HANDLER
-  ========================================================= */}
-  const handleSubmit = async () => {
-    if (!validateForm()) return
-    if (!capsule) return
+  function toggleExpand(id: string) {
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
 
-    const now = Date.now()
-    if (lastSubmitTime && now - lastSubmitTime < 10000) {
-      alert("Please wait a moment before submitting again.")
-      return
-    }
-
-    const isDuplicate = contributions.some(
-      (c) =>
-        c.email?.toLowerCase() === email?.toLowerCase() &&
-        c.tribute_text?.trim().toLowerCase() === content.trim().toLowerCase()
+  // ── Loading ──────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center"
+        style={{ background: 'linear-gradient(160deg,#0D0820 0%,#1A0F3E 50%,#0D0820 100%)' }}>
+        <div className="w-8 h-8 rounded-full border-2 border-yellow-400/30 border-t-yellow-400 animate-spin" />
+      </div>
     )
-    if (isDuplicate) {
-      alert("You have already submitted this message.")
-      return
-    }
-
-const { error } = await supabase.from("contributions").insert([
-  {
-    contributor_name: name,
-    email,
-    city,
-    country,
-    tribute_text: content,
-    capsule_id:   capsule.id,
-    status:       autoApprove ? "approved" : "pending_review",
-  },
-])
-
-    if (error) {
-      alert(error.message)
-      return
-    }
-
-// Get the contribution id that was just inserted
-const { data: newContrib } = await supabase
-  .from("contributions")
-  .select("id")
-  .eq("capsule_id", capsule.id)
-  .eq("email", email)
-  .order("created_at", { ascending: false })
-  .limit(1)
-  .single()
-
-// Geocode by IP — non-blocking
-if (newContrib) {
-  fetch("/api/geocode", {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contributionId: newContrib.id,
-    }),
-  })
-}
-
-
-    if (typeof window !== "undefined") localStorage.setItem("lc_email", email)
-    setLastSubmitTime(now)
-    setName("")
-    setCity("")
-    setCountry("")
-    setCountryQuery("")
-    setContent("")
-    setSubmitSuccess(true)
-
-
-// Send contributor verification email
-if (email && newContrib) {
-  fetch("/api/email/verify-contributor", {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email,
-      contributorName:  name,
-      contributionId:   newContrib.id,
-      honoreeName:      capsule.honouree_name,
-      capsuleSlug:      slug,
-    }),
-  })
-}
-
-
-    setTimeout(() => setSubmitSuccess(false), 3500)
-
-    loadContributions(capsule.id)
-    setTimeout(() => {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-    }, 200)
- 
- // Send confirmation email if email provided
-if (email) {
-  await fetch("/api/email/submission", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      to:              email,
-      contributorName: name,
-      honoreeName:     capsule.honouree_name,
-      capsuleSlug:     slug,
-    }),
-  })
-}
- 
- 
   }
 
-  {/* =========================================================
-     SECTION 15 — UPDATE
-  ========================================================= */}
-  const handleUpdate = async (id: string) => {
-    const item = contributions.find((c) => c.id === id)
-    if (!item) return
-
-    const isOwner = item.email?.toLowerCase() === email?.toLowerCase()
-    const canEdit = item.status === "pending_review" && isOwner
-
-    if (!canEdit) {
-      alert("You are not allowed to edit this message.")
-      return
-    }
-
-    const { error } = await supabase
-      .from("contributions")
-      .update({ tribute_text: editContent })
-      .eq("id", id)
-
-    if (error) { alert(error.message); return }
-
-    setEditingId(null)
-    setEditContent("")
-    loadContributions(capsule.id)
+  // ── Not found ────────────────────────────────────────────
+  if (!capsule) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4"
+        style={{ background: 'linear-gradient(160deg,#0D0820 0%,#1A0F3E 50%,#0D0820 100%)' }}>
+        <LogoCapsule size="md" />
+        <h1 className="mt-8 text-2xl font-bold text-white/80"
+          style={{ fontFamily: 'var(--font-heading,"Playfair Display",serif)' }}>
+          Capsule not found
+        </h1>
+        <p className="mt-3 text-sm text-white/40">
+          This link may be incorrect or the capsule may have been removed.
+        </p>
+        <Link href="/" className="mt-8 text-xs text-yellow-400/60 hover:text-yellow-400 transition-colors">
+          ← Return to LegacyCapsule
+        </Link>
+      </div>
+    )
   }
 
-  {/* =========================================================
-     SECTION 17 — HELPERS
-  ========================================================= */}
-  const isOwner = (c: any) => c.email?.toLowerCase() === email?.toLowerCase()
-  const isPending = (c: any) => c.status === "pending_review" || c.status === "pending"
-  const canEdit = (c: any) => isOwner(c) && isPending(c)
-
-  {/* =========================================================
-     SECTION 18 — ORDERED CONTRIBUTIONS
-  ========================================================= */}
-  const visibleContributions = contributions.filter((c) => {
-    return c.status === "approved" || isOwner(c)
-  })
-
-  const orderedContributions = visibleContributions
-
-  {/* =========================================================
-     SECTION 19 — STYLE CONSTANTS
-
-     All input fields share one canonical class string.
-     The country dropdown inherits the same base.
-  ========================================================= */}
-
-  // ── Gold-glow input ────────────────────────────────────────
-  const inputBase = [
-    // layout & text
-    "w-full text-sm px-3 py-1.5 rounded-lg",
-    "text-white placeholder:text-yellow-200/60",
-    // background
-    "bg-white/10 backdrop-blur-sm",
-    // border
-    "border border-yellow-400/50",
-    // default glow (always visible)
-    "shadow-[0_0_6px_rgba(234,179,8,0.30),inset_0_1px_0_rgba(255,255,255,0.08)]",
-    // hover
-    "hover:border-yellow-300/80 hover:bg-white/15",
-    "hover:shadow-[0_0_12px_rgba(234,179,8,0.60),inset_0_1px_0_rgba(255,255,255,0.10)]",
-    // focus
-    "focus:outline-none focus:border-yellow-300",
-    "focus:bg-white/20",
-    "focus:shadow-[0_0_0_2px_rgba(234,179,8,0.25),0_0_16px_rgba(234,179,8,0.70),inset_0_1px_0_rgba(255,255,255,0.12)]",
-    // transition
-    "transition-all duration-200",
-  ].join(" ")
-
-  // ── H1 — title over any image backdrop ────────────────────
-  //    Multiple layered drop-shadows create legibility on both
-  //    light and dark photos without a fixed background colour.
-  const h1Style = [
-    "text-center font-extrabold tracking-widest uppercase",
-    "text-2xl md:text-3xl lg:text-4xl",
-    "text-yellow-100",
-    // dark halo (readability on bright images)
-    "[text-shadow:0_2px_12px_rgba(0,0,0,0.9),0_0_30px_rgba(0,0,0,0.7)]",
-    // gold luminescence
-    "drop-shadow-[0_0_8px_rgba(234,179,8,0.85)]",
-    "drop-shadow-[0_0_20px_rgba(234,179,8,0.55)]",
-  ].join(" ")
-
-  // ── H2 — "Tribute Wall" section heading ───────────────────
-  const h2Style = [
-    "text-center font-bold tracking-widest uppercase",
-    "text-lg md:text-xl",
-    "text-yellow-100",
-    "[text-shadow:0_2px_8px_rgba(0,0,0,0.95),0_0_20px_rgba(0,0,0,0.7)]",
-    "drop-shadow-[0_0_6px_rgba(234,179,8,0.75)]",
-  ].join(" ")
-
-  {/* =========================================================
-     SECTION 20 — RENDER
-  ========================================================= */}
-  if (capsule && (capsule.page_state === "pending_verification" || capsule.page_state === "tribute_collection")) return (
-    <main className="min-h-screen bg-[#0a0010] flex items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6 text-center">
-        <div className="text-6xl">⏳</div>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-yellow-100">
-            Capsule not yet active
+  // ── Not yet active ───────────────────────────────────────
+  if (capsule.page_state === 'pending_verification') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4"
+        style={{ background: 'linear-gradient(160deg,#0D0820 0%,#1A0F3E 50%,#0D0820 100%)' }}>
+        <LogoCapsule size="md" />
+        <div className="mt-10 text-center max-w-sm">
+          <p className="text-4xl mb-6">⏳</p>
+          <h1 className="text-2xl font-bold text-yellow-100 mb-3"
+            style={{ fontFamily: 'var(--font-heading,"Playfair Display",serif)' }}>
+            Not yet active
           </h1>
-          <p className="text-sm text-white/50 leading-relaxed">
-            The organiser needs to verify their email address 
-            before this Capsule can accept tributes.
+          <p className="text-sm text-white/50 leading-relaxed mb-2">
+            The organiser needs to verify their email before this capsule can accept tributes.
           </p>
-          <p className="text-sm text-white/30">
-            If you are the organiser check your inbox for the 
-            verification email from LegacyCapsule.
+          <p className="text-xs text-white/30">
+            If you are the organiser, check your inbox for the verification email.
           </p>
         </div>
-        <div className="h-px bg-gradient-to-r from-transparent via-yellow-400/30 to-transparent" />
-        <p className="text-xs text-white/25">
-          LegacyCapsule · Every event. Preserved.
-        </p>
       </div>
-    </main>
+    )
+  }
+
+  // ── Derived values ───────────────────────────────────────
+  const title       = getTributePageTitle(capsule.event_type, capsule.honouree_name)
+  const eventTag    = getEventTagDisplay(capsule.event_tag)
+  const ornament    = EVENT_TYPE_ORNAMENT[capsule.event_type] ?? '✦'
+  const profileLink = getProfileLinkLabel(capsule.event_type, capsule.honouree_name)
+  const mapPins     = contributions
+    .filter(c => c.latitude && c.longitude)
+    .map(c => ({ lat: c.latitude!, lng: c.longitude!, name: c.contributor_name, country: c.country }))
+
+  const whatsappText = encodeURIComponent(
+    `A tribute wall has been created for ${capsule.honouree_name}. Leave your message here — it will be part of something beautiful.\n${capsuleUrl}\nTakes 2 minutes. Every word matters.`
   )
 
+  // ── RENDER ───────────────────────────────────────────────
   return (
-    <main className="h-screen flex flex-col w-full max-w-lg mx-auto bg-gradient-to-b from-[#0a0010] to-[#100018]">
+    <div className="min-h-screen" style={{ background: '#F5F3EE' }}>
 
-      {/* ── FIXED HERO + FORM PANEL ───────────────────────── */}
-      <div
-        className="relative flex-shrink-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/honouree.jpg')" }}
-      >
-        {/* layered overlay — dark at top & bottom, semi-transparent mid */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/45 to-black/80 pointer-events-none" />
+      {/* ── HERO ── */}
+      <div className="relative flex flex-col items-center justify-center px-6 py-16 text-center"
+        style={{ background: '#2D1B69', minHeight: '320px' }}>
 
-        {/* subtle vignette ring */}
-        <div className="absolute inset-0 shadow-[inset_0_0_60px_rgba(0,0,0,0.6)] pointer-events-none rounded-none" />
-
-        {/* gold top rule */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-yellow-400/80 to-transparent" />
-
-        <div className="relative z-10 px-3 pt-2 pb-2 space-y-2">
-
-          {/* ── TITLE H1 ── */}
-  <h1 className={h1Style}>
-    {capsule?.honouree_name ?? "Legacy Capsule"}
-  </h1>
-
-          {/* gold ornamental divider */}
-          <div className="flex items-center gap-1.5 px-4">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent to-yellow-400/60" />
-            <span className="text-yellow-400/80 text-xs">✦</span>
-            <div className="flex-1 h-px bg-gradient-to-l from-transparent to-yellow-400/60" />
-          </div>
-
-          {/* ── FORM ── */}
-          <div className="space-y-2">
-
-            {/* ROW 1 — Name / Email */}
-            <div className="grid grid-cols-2 gap-1.5">
-              <div>
-                <Input
-                  className={inputBase}
-                  placeholder="Your name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  maxLength={50}
-                />
-                {errors.name && <p className="text-[10px] text-red-400 mt-0.5 pl-1">{errors.name}</p>}
-              </div>
-              <div>
-                <Input
-                  className={inputBase}
-                  placeholder="Email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  maxLength={100}
-                />
-                {errors.email && <p className="text-[10px] text-red-400 mt-0.5 pl-1">{errors.email}</p>}
-              </div>
-            </div>
-
-            {/* ROW 2 — City / Country */}
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Input
-                  className={inputBase}
-                  placeholder="City"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  maxLength={50}
-                />
-                {errors.city && <p className="text-[10px] text-red-400 mt-0.5 pl-1">{errors.city}</p>}
-              </div>
-
-              {/* Country with dropdown */}
-              <div className="relative" ref={countryRef}>
-                <Input
-                  className={inputBase}
-                  placeholder="Country"
-                  value={countryQuery || country}
-                  maxLength={50}
-                  onChange={(e) => {
-                    setCountryQuery(e.target.value)
-                    setCountry("")
-                    setShowCountryList(true)
-                  }}
-                  onFocus={() => setShowCountryList(true)}
-                />
-                {errors.country && <p className="text-[10px] text-red-400 mt-0.5 pl-1">{errors.country}</p>}
-
-                {showCountryList && (
-                  <div className="absolute z-20 mt-1 w-full max-h-40 overflow-y-auto
-                    bg-[#1a0d2e]/95 backdrop-blur-md border border-yellow-400/30
-                    rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.6)] text-sm">
-                    {COUNTRIES
-                      .filter((c) => c.toLowerCase().includes((countryQuery || "").toLowerCase()))
-                      .slice(0, 20)
-                      .map((c) => (
-                        <div
-                          key={c}
-                          className="px-3 py-1.5 text-yellow-100/90 hover:bg-yellow-400/15
-                            hover:text-yellow-200 cursor-pointer transition-colors duration-100
-                            border-b border-yellow-400/10 last:border-0"
-                          onClick={() => {
-                            setCountry(c)
-                            setCountryQuery("")
-                            setShowCountryList(false)
-                          }}
-                        >
-                          {c}
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* ROW 3 — Message + Submit */}
-            <div className="flex gap-2 items-start">
-              <div className="flex-1">
-                <Textarea
-                  className={inputBase + " min-h-[38px] max-h-[80px] resize-none leading-snug py-2"}
-                  placeholder="Leave your tribute message…"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  maxLength={500}
-                />
-                <div className="flex justify-between items-center mt-0.5 px-1">
-                  {errors.content
-                    ? <p className="text-[10px] text-red-400">{errors.content}</p>
-                    : <span />}
-                  <span className={`text-[10px] ${content.length > 450 ? "text-yellow-400" : "text-white/30"}`}>
-                    {content.length}/500
-                  </span>
-                </div>
-              </div>
-
-              <button
-                onClick={handleSubmit}
-                className="flex-shrink-0 mt-0.5 px-4 py-2 rounded-lg font-bold text-sm
-                  bg-gradient-to-b from-yellow-400 to-yellow-500
-                  text-purple-950
-                  border border-yellow-300/60
-                  shadow-[0_0_12px_rgba(234,179,8,0.5),inset_0_1px_0_rgba(255,255,255,0.4)]
-                  hover:from-yellow-300 hover:to-yellow-400
-                  hover:shadow-[0_0_20px_rgba(234,179,8,0.8)]
-                  active:scale-[0.97] active:shadow-[0_0_8px_rgba(234,179,8,0.4)]
-                  transition-all duration-150"
-              >
-                Submit
-              </button>
-            </div>
-
-            {/* Success toast */}
-            {submitSuccess && (
-              <div className="rounded-lg border border-yellow-400/40 bg-yellow-400/10 px-3 py-1.5
-                text-yellow-200 text-xs text-center tracking-wide animate-fade-in">
-                ✦ Your tribute has been received — thank you.
-              </div>
-            )}
-          </div>
-
-          {/* ── TRIBUTE WALL HEADING H2 ── */}
-          <div className="pt-0.5 pb-0">
-            <h2 className={h2Style}>
-              Tribute Wall{" "}
-              <span className="text-yellow-400/70 font-normal normal-case tracking-normal">
-                · {contributions.length}
-              </span>
-            </h2>
-            {/* gold rule below h2 */}
-            <div className="h-px bg-gradient-to-r from-transparent via-yellow-400/50 to-transparent" />
-          </div>
-
+        {/* LC logo mark */}
+        <div className="mb-6">
+          <LogoCapsule size="sm" />
         </div>
-      </div>
 
-      {/* ── SCROLLABLE TRIBUTE CARDS ─────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-2 py-0 space-y-1">
+        {/* Event type ornament */}
+        <p className="text-2xl mb-4">{ornament}</p>
 
+        {/* Honouree name — public display */}
+        <Link href={`/capsule/${slug}/profile`}>
+          <h1 className="text-4xl font-bold text-white cursor-pointer hover:text-yellow-200 transition-colors duration-200"
+            style={{ fontFamily: 'var(--font-heading,"Playfair Display",serif)', letterSpacing: '0.02em' }}>
+            {title}
+          </h1>
+        </Link>
 
-        {orderedContributions.length === 0 && (
-          <p className="text-center text-white/30 text-sm pt-10 tracking-wide">
-            Be the first to leave a tribute.
+        {/* Event tag */}
+        {eventTag && (
+          <p className="mt-4 text-xs tracking-[0.35em] uppercase"
+            style={{ color: '#B8960C', fontFamily: 'var(--font-accent,"Cormorant SC",serif)' }}>
+            {eventTag}
           </p>
         )}
 
-        {orderedContributions.map((c) => (
-          <Card
-            key={c.id}
-            className={`w-full rounded-lg border backdrop-blur-sm transition-all duration-200 ${
-              isOwner(c)
-                ? "border-yellow-400/50 bg-yellow-400/5 shadow-[0_0_12px_rgba(234,179,8,0.15)]"
-                : "border-white/10 bg-white/5"
-            }`}
-          >
-            <CardContent className="py-0 px-2.5 space-y-0.5">
-
-              {/* card header */}
-              <div className="flex justify-between items-start gap-0.5">
-<div className="flex justify-between items-center gap-1 w-full">
-  <span className="text-xs font-semibold text-yellow-100 truncate max-w-[100px]">
-    {c.contributor_name}
-    {isOwner(c) && (
-      <span className="ml-1.5 text-[9px] font-normal text-yellow-400/70 uppercase tracking-widest">
-        You
-      </span>
-  
-    )}
-  </span>
-  <span className="text-[10px] text-white/45 tracking-wide truncate flex-1 text-center px-1">
-    {[c.city, c.country].filter(Boolean).join(", ")}
-  </span>
-  <span className="text-[10px] text-white/30 whitespace-nowrap">
-      {new Date(c.created_at).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })}
-    </span>
-</div>
-  </div>
-              {/* message body */}
-              {editingId === c.id ? (
-                <div className="space-y-1.5">
-                  <Textarea
-                    className={inputBase + " text-xs min-h-[60px] resize-none"}
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    maxLength={500}
-                  />
-                  <div className="flex gap-1.5">
-                    <button
-                      onClick={() => handleUpdate(c.id)}
-                      className="text-[11px] px-3 py-1 rounded-md bg-yellow-400 text-purple-950 font-semibold
-                        hover:bg-yellow-300 transition-colors"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => { setEditingId(null); setEditContent("") }}
-                      className="text-[11px] px-3 py-1 rounded-md border border-white/20 text-white/60
-                        hover:border-white/40 hover:text-white/80 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-white/80 leading-relaxed">{c.tribute_text}</p>
-              )}
-
-              {/* status + actions */}
-              <div className="flex items-center gap-2 pt-0.5">
-                {isPending(c) && (
-                  <span className="text-[10px] text-yellow-500/80 tracking-wide uppercase">
-                    · Pending approval
-                  </span>
-                )}
-                <div className="flex gap-1.5 ml-auto">
-                  {canEdit(c) && editingId !== c.id && (
-                    <button
-                      onClick={() => { setEditingId(c.id); setEditContent(c.tribute_text) }}
-                      className="text-[11px] px-2.5 py-0.5 rounded-md border border-white/15 text-white/50
-                        hover:border-yellow-400/40 hover:text-yellow-300/80 transition-colors"
-                    >
-                      Edit
-                    </button>
-                  )}
-                </div>
-              </div>
-
-            </CardContent>
-          </Card>
-        ))}
-
-        <div ref={bottomRef} />
+        {/* Gold threshold rule */}
+        <div className="absolute bottom-0 left-0 right-0 h-[2px]"
+          style={{ background: 'linear-gradient(90deg,transparent,#B8960C,transparent)' }} />
       </div>
 
-      {/* gold bottom rule */}
-      <div className="h-px bg-gradient-to-r from-transparent via-yellow-400/30 to-transparent flex-shrink-0" />
-   
-    </main>
+      {/* ── STICKY BAR ── */}
+      <div ref={stickyRef}
+        className="sticky top-0 z-50 w-full"
+        style={{
+          background: '#2D1B69',
+          borderBottom: '1px solid rgba(184,150,12,0.25)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+        }}>
+        <div className="flex items-stretch" style={{ height: '180px' }}>
+
+          {/* Map — left 60% */}
+          <div className="relative flex-1" style={{ minWidth: 0 }}>
+            <TributeMap pins={mapPins} />
+            {/* Powered by overlay */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 pointer-events-none z-10">
+              <p className="text-[9px] uppercase tracking-[0.2em] opacity-40"
+                style={{ color: '#B8960C', fontFamily: 'var(--font-body,"DM Sans",sans-serif)' }}>
+                Powered by LegacyCapsule
+              </p>
+            </div>
+          </div>
+
+          {/* Info panel — right 40% */}
+          <div className="flex flex-col justify-between px-5 py-4 flex-shrink-0"
+            style={{ width: '40%', borderLeft: '1px solid rgba(184,150,12,0.15)' }}>
+
+            {/* Event name + honouree */}
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.2em] mb-1"
+                style={{ color: 'rgba(184,150,12,0.7)', fontFamily: 'var(--font-accent,"Cormorant SC",serif)' }}>
+                {capsule.event_type}
+              </p>
+              <p className="text-base font-bold leading-tight"
+                style={{ color: '#FFFFFF', fontFamily: 'var(--font-heading,"Playfair Display",serif)' }}>
+                {capsule.honouree_name}
+              </p>
+              {capsule.event_tag && (
+                <p className="text-[10px] mt-1 leading-relaxed"
+                  style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  {capsule.event_tag}
+                </p>
+              )}
+            </div>
+
+            {/* Tribute count */}
+            <div className="flex items-center gap-1.5">
+              <span style={{ color: '#B8960C', fontSize: '10px' }}>✦</span>
+              <span className="text-xs font-semibold"
+                style={{ color: 'rgba(255,255,255,0.7)' }}>
+                {contributions.length} {contributions.length === 1 ? 'tribute' : 'tributes'}
+              </span>
+            </div>
+
+            {/* Share buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={copyLink}
+                className="flex-1 text-[10px] py-1.5 rounded-lg border transition-all duration-200"
+                style={{
+                  borderColor: 'rgba(184,150,12,0.3)',
+                  color: copied ? '#B8960C' : 'rgba(255,255,255,0.5)',
+                  background: 'rgba(255,255,255,0.04)',
+                }}>
+                {copied ? 'Copied ✓' : 'Copy link'}
+              </button>
+              <a
+                href={`https://wa.me/?text=${whatsappText}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 text-[10px] py-1.5 rounded-lg text-center transition-all duration-200"
+                style={{
+                  background: 'rgba(37,211,102,0.15)',
+                  color: 'rgba(37,211,102,0.8)',
+                  border: '1px solid rgba(37,211,102,0.25)',
+                }}>
+                WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── TRIBUTE SECTION ── */}
+      <div className="relative">
+
+        {/* Honouree photo ambient backdrop */}
+        {capsule.hero_image_url && (
+          <div className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage: `url(${capsule.hero_image_url})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundAttachment: 'fixed',
+              opacity: 0.07,
+            }} />
+        )}
+
+        <div className="relative z-10 max-w-2xl mx-auto px-4 py-10">
+
+          {/* Section header */}
+          <div className="text-center mb-8">
+            <div className="flex items-center gap-3 justify-center mb-2">
+              <div className="h-px flex-1"
+                style={{ background: 'linear-gradient(90deg,transparent,#B8960C)' }} />
+              <p className="text-[10px] uppercase tracking-[0.3em]"
+                style={{ color: '#B8960C', fontFamily: 'var(--font-accent,"Cormorant SC",serif)' }}>
+                ✦ Tribute Wall ✦
+              </p>
+              <div className="h-px flex-1"
+                style={{ background: 'linear-gradient(90deg,#B8960C,transparent)' }} />
+            </div>
+            <p className="text-sm" style={{ color: '#5F5E5A' }}>
+              {contributions.length} {contributions.length === 1 ? 'tribute' : 'tributes'}
+            </p>
+          </div>
+
+          {/* Empty state */}
+          {contributions.length === 0 && (
+            <div className="text-center py-16">
+              <p className="text-3xl mb-4">✦</p>
+              <p className="text-base font-medium" style={{ color: '#5F5E5A' }}>
+                No tributes yet
+              </p>
+              <p className="text-sm mt-2" style={{ color: '#9F9E9A' }}>
+                Be the first to leave a tribute
+              </p>
+            </div>
+          )}
+
+          {/* Tribute cards */}
+          <div className="flex flex-col gap-5">
+            {contributions.map(c => {
+              const isLong    = c.tribute_text.length > 300
+              const expanded  = expandedIds.has(c.id)
+              const displayText = isLong && !expanded
+                ? c.tribute_text.slice(0, 300) + '…'
+                : c.tribute_text
+
+              return (
+                <div key={c.id}
+                  className="rounded-2xl overflow-hidden"
+                  style={{
+                    background: '#F5F3EE',
+                    boxShadow: '0 2px 16px rgba(45,27,105,0.10), 0 1px 4px rgba(45,27,105,0.06)',
+                    border: '1px solid rgba(184,150,12,0.12)',
+                  }}>
+
+                  {/* Gold top rule */}
+                  <div className="h-[2px]"
+                    style={{ background: 'linear-gradient(90deg,transparent,#B8960C,transparent)' }} />
+
+                  <div className="px-6 py-5">
+
+                    {/* Contributor header */}
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <div className="flex items-center gap-3">
+
+                        {/* Photo or initials */}
+                        {c.photo_url ? (
+                          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0"
+                            style={{ border: '2px solid #B8960C' }}>
+                            <img src={c.photo_url} alt={c.contributor_name}
+                              className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
+                            style={{ background: '#2D1B69', color: '#B8960C', border: '2px solid #B8960C' }}>
+                            {getInitials(c.contributor_name)}
+                          </div>
+                        )}
+
+                        <div>
+                          <p className="font-semibold text-sm"
+                            style={{ color: '#1C1C1E', fontFamily: 'var(--font-body,"DM Sans",sans-serif)' }}>
+                            {c.contributor_name}
+                          </p>
+                          <p className="text-xs mt-0.5"
+                            style={{ color: '#5F5E5A' }}>
+                            {c.city}
+                            <span className="mx-1.5" style={{ color: '#B8960C' }}>✦</span>
+                            {c.country}
+                          </p>
+                          {c.relationship && (
+                            <p className="text-xs mt-0.5 italic"
+                              style={{ color: '#9F9E9A' }}>
+                              {c.relationship}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Date */}
+                      <p className="text-[10px] flex-shrink-0 mt-1"
+                        style={{ color: '#9F9E9A' }}>
+                        {formatTributeDate(c.created_at)}
+                      </p>
+                    </div>
+
+                    {/* Tribute text */}
+                    <p className="text-sm leading-relaxed"
+                      style={{
+                        color: '#1C1C1E',
+                        fontFamily: 'var(--font-body,"DM Sans",sans-serif)',
+                        lineHeight: '1.8',
+                      }}>
+                      {displayText}
+                    </p>
+
+                    {/* Expand toggle */}
+                    {isLong && (
+                      <button
+                        onClick={() => toggleExpand(c.id)}
+                        className="mt-2 text-xs font-medium transition-colors duration-200"
+                        style={{ color: '#B8960C' }}>
+                        {expanded ? 'Show less ↑' : 'Read more ↓'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Profile link card */}
+          {capsule && (
+            <Link href={`/capsule/${slug}/profile`}>
+              <div className="mt-10 rounded-2xl px-6 py-5 text-center cursor-pointer transition-all duration-200 hover:shadow-md"
+                style={{
+                  background: '#F5F3EE',
+                  border: '1px solid rgba(184,150,12,0.25)',
+                  boxShadow: '0 2px 12px rgba(45,27,105,0.08)',
+                }}>
+                <p className="text-[10px] uppercase tracking-widest mb-2"
+                  style={{ color: '#B8960C', fontFamily: 'var(--font-accent,"Cormorant SC",serif)' }}>
+                  ✦
+                </p>
+                <p className="text-sm font-semibold"
+                  style={{ color: '#2D1B69', fontFamily: 'var(--font-heading,"Playfair Display",serif)' }}>
+                  {profileLink}
+                </p>
+                <p className="text-xs mt-1" style={{ color: '#9F9E9A' }}>
+                  View profile →
+                </p>
+              </div>
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* ── ADD YOUR TRIBUTE CTA ── */}
+      <div className="sticky bottom-0 z-40 px-4 py-4"
+        style={{ background: 'linear-gradient(0deg,#F5F3EE 60%,transparent)' }}>
+        <Link href={`/capsule/${slug}/submit`}>
+          <div className="max-w-sm mx-auto rounded-2xl py-4 text-center font-semibold text-base tracking-wide transition-all duration-300 hover:opacity-90 active:scale-[0.98]"
+            style={{
+              background: 'linear-gradient(135deg,#B8960C 0%,#D4AE2A 50%,#B8960C 100%)',
+              color: '#2D1B69',
+              boxShadow: '0 4px 24px rgba(184,150,12,0.35)',
+              fontFamily: 'var(--font-body,"DM Sans",sans-serif)',
+            }}>
+            ✦ Add Your Tribute
+          </div>
+        </Link>
+      </div>
+
+      {/* ── FOOTER ── */}
+      <div className="px-4 py-10 text-center"
+        style={{ background: '#2D1B69' }}>
+        <p className="text-[10px] uppercase tracking-[0.25em] mb-3"
+          style={{ color: 'rgba(184,150,12,0.5)' }}>
+          VALNEX, UNIPESSOAL LDA · RevoWorldTech · LegacyCapsule
+        </p>
+        <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+          Planning your own event?{' '}
+          <Link href="/book"
+            className="underline underline-offset-2 hover:text-yellow-400/50 transition-colors duration-200"
+            style={{ color: 'rgba(184,150,12,0.4)' }}>
+            Start here →
+          </Link>
+        </p>
+      </div>
+
+    </div>
   )
 }
-
-
-
-
 

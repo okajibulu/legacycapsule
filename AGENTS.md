@@ -1,8 +1,8 @@
 # AGENTS.md
 ## LegacyCapsule — Claude Agent Behaviour Rules
-**For:** Claude (claude.ai chat) + Claude Code (VS Code extension)  
-**Applies to:** Every Claude session on this project without exception.  
-**Last updated:** 11 May 2026
+**For:** Claude (claude.ai chat) + Claude Code (VS Code extension)
+**Applies to:** Every Claude session on this project without exception.
+**Last updated:** 14 May 2026
 
 ---
 
@@ -20,32 +20,30 @@ If project knowledge search is available, search it before answering any technic
 
 ## 2. ROLE SPLIT — CLAUDE CHAT vs CLAUDE CODE
 
-This project uses two Claude interfaces. Each has a defined role. Do not blur them.
-
 ### Claude (claude.ai chat) — PLANNING & DIRECTION
 - Reads documents and current state
 - Plans what to build and in what order
 - Makes architectural decisions
 - Writes complete file content for Claude Code to apply
 - Flags deviations from spec documents before they happen
-- Never executes terminal commands directly (that is Claude Code's job)
-- Produces clear, precise instructions Claude Code can execute without ambiguity
+- Never executes terminal commands directly
+- Produces clear, precise, complete instructions Claude Code can execute without ambiguity
+- **Token efficiency:** Gives Claude Code one complete, self-contained instruction per task — no incremental back-and-forth corrections
 
 ### Claude Code (VS Code extension) — EXECUTION
 - Applies code changes to files
 - Runs terminal commands
 - Reports errors and output back to Claude chat
 - Does not make architectural decisions independently
-- Asks Claude chat for direction when encountering unexpected errors or conflicts
-- Never modifies spec document files — those are read-only references
+- Asks Claude chat for direction when encountering unexpected errors
+- Never modifies spec document files — read-only references
+- **Must run `npm run build` after every change and report results**
 
-**If Claude Code encounters something unexpected:** stop, report the exact error to Claude chat, wait for direction. Do not improvise architectural solutions.
+**If Claude Code encounters something unexpected:** stop, report the exact error, wait for direction. Do not improvise.
 
 ---
 
-## 3. DOCUMENT AUTHORITY — NON-NEGOTIABLE
-
-The project has a defined set of authoritative documents. Claude must consult them before making decisions in their domain.
+## 3. DOCUMENT AUTHORITY
 
 | Domain | Authoritative document |
 |---|---|
@@ -58,70 +56,87 @@ The project has a defined set of authoritative documents. Claude must consult th
 | Six engagement experiences | Six Engagement Experiences v1.0 |
 | Publication engine | Publication Engine Build Guide |
 | Reseller system and regional pricing | EcoControl Spec v1.0 |
-| All deviations from the above | LegacyCapsule_BuildHandoff_10May2026.docx |
+| All deviations from the above | LegacyCapsule_BuildHandoff (latest version) |
+| All session decisions | CURRENT_STATE.md Section 5 |
 
-**Rule:** If Claude is about to suggest something that affects one of these domains, it must search project knowledge first. If the suggestion conflicts with the authoritative document, Claude must say so explicitly and propose a deliberate deviation decision — not silently proceed.
+**Rule:** If Claude is about to suggest something that affects one of these domains, search project knowledge first. If the suggestion conflicts, say so explicitly and propose a deliberate deviation — do not silently proceed.
 
 ---
 
 ## 4. CODING RULES
 
 ### 4.1 General
-- Language: TypeScript everywhere. No JavaScript files in the app or lib directories.
-- Package manager: `npm` only. Never suggest `yarn` or `pnpm` commands.
-- Terminal: PowerShell on Windows. Use `;` not `&&` to chain commands.
-- Never use `&&` in PowerShell — it is not a valid statement separator in Windows PowerShell.
-- Framework: Next.js 16 App Router. No Pages Router patterns.
-- All new routes go in `app/` directory following Next.js App Router conventions.
+- Language: TypeScript everywhere. No .js files in app/ or lib/
+- Package manager: `npm` only. Never `yarn` or `pnpm`
+- Terminal: PowerShell on Windows. Use `;` not `&&` to chain commands
+- Framework: Next.js 16 App Router. No Pages Router patterns
+- All new routes go in `app/` directory
 
 ### 4.2 Imports
-- Use `@/` alias for all internal imports. It maps to the project root (`./*`).
+- Use `@/` alias for all internal imports
 - Correct: `import LogoCapsule from "@/components/LogoCapsule"`
 - Wrong: `import LogoCapsule from "../../components/LogoCapsule"`
-- Google Fonts must be loaded via `<link>` tags in `app/layout.tsx` — NOT via CSS `@import url()`.
+- Google Fonts: `<link>` tags in `app/layout.tsx` only — NOT CSS `@import url()`
 
 ### 4.3 Styling
-- Marketing pages (homepage, audience pages, booking flow, public pages): use CSS custom properties from `app/globals.css` (e.g. `var(--lc-gold)`, `var(--font-heading)`).
-- Tribute wall (`/capsule/[slug]`) and admin pages: use Tailwind dark theme classes directly.
-- Both systems coexist. Never mix them on the same element.
-- Never use `@apply border-border` or `@apply bg-background` in globals.css — Tailwind v4 does not support these utility class references in CSS `@apply`. Use plain CSS values instead.
+- Marketing pages: CSS custom properties from `app/globals.css`
+- Tribute wall and admin: Tailwind dark theme directly
+- Never mix both systems on the same element
+- Never `@apply border-border` or `@apply bg-background` — Tailwind v4 does not support these
 
 ### 4.4 Database
-- **Never hardcode prices.** All prices read from `lc_pricing` Supabase table via `priceFetcher.ts` (Phase 1.5+) or direct Supabase query.
-- **Use `contributor_name` not `name`** on the `contributions` table. The column was renamed. Using `name` will cause runtime errors.
-- All Supabase queries from server components or API routes use the service role client (`SUPABASE_SERVICE_ROLE_KEY`). Client components use the anon client (`NEXT_PUBLIC_SUPABASE_ANON_KEY`).
-- Never expose `SUPABASE_SERVICE_ROLE_KEY` to client-side code.
+- **Never hardcode prices.** Always read from `lc_pricing` Supabase table
+- **Never hardcode tier names or feature lists.** Read from `lc_content` table
+- **Use `contributor_name` not `name`** on contributions table — renamed, `name` causes runtime errors
+- Server components and API routes: service role client (`SUPABASE_SERVICE_ROLE_KEY`)
+- Client components: anon client (`NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+- Never expose `SUPABASE_SERVICE_ROLE_KEY` to client-side code
+- **Do not import server-only modules (Resend, etc.) into `'use client'` components.** Use API routes instead.
 
 ### 4.5 Components
-- `LogoCapsule.tsx` is the single source of truth for the logo. Never create alternative logo implementations. If the logo needs to change, change `LogoCapsule.tsx` only.
-- `AnimatedWorldMap.tsx` uses props: `mode="hero"|"idle"`, `showOverlay={boolean}`, `className`. Always pass `showOverlay={false}` when using the map as a background — the homepage already has its own hero text.
-- `NavigationWrapper.tsx` and `FooterWrapper.tsx` in `app/layout.tsx` handle conditional nav/footer rendering. Never import `Navigation` or `Footer` directly inside individual page files.
+- `LogoCapsule.tsx` — single source of truth for the logo. Never create alternatives.
+- `AnimatedWorldMap.tsx` — props: `mode="hero"|"idle"`, `showOverlay={boolean}`. Always `showOverlay={false}` on homepage.
+- `TributeMap.tsx` — Leaflet map for tribute wall. Always dynamically imported with `ssr: false`.
+- `NavigationWrapper.tsx` and `FooterWrapper.tsx` in `app/layout.tsx` — never import Navigation or Footer directly in page files.
 
 ### 4.6 Environment variables
-- All env vars are in `.env.local` for local dev. Never commit this file.
-- All env vars must be duplicated in Vercel project settings for production.
-- `NEXT_PUBLIC_APP_URL` must be `http://localhost:3000` locally and `https://itslegacycapsule.com` on Vercel. This affects email links, capsule URLs, and payment redirect URLs.
+- All env vars in `.env.local` for local dev. Never commit this file.
+- All env vars must be duplicated in Vercel project settings.
+- `NEXT_PUBLIC_APP_URL` — `http://localhost:3000` locally. Currently Vercel preview URL until `itslegacycapsule.com` DNS resolves fully.
+
+### 4.7 Public-facing language
+- **"Honouree" is internal language only.** Never use in public UI, emails, or page copy.
+- All public references use the subject's name or an event-type phrase from `lib/eventLabels.ts`.
+- All public-facing dynamic labels go through `lib/eventLabels.ts`. Do not hardcode event-specific copy.
+
+### 4.8 Email sending
+- All email sends must go through API routes — never import Resend or email functions directly into `'use client'` components.
+- FROM address: `noreply@itslegacycapsule.com` — confirmed in both `lib/email.ts` and `lib/verification.ts`.
+- The `/capsule/` route (not `/event/`) must be used in all email links. Double-check every email template.
 
 ---
 
 ## 5. WHAT CLAUDE MUST NEVER DO
 
-These are hard stops. No exceptions regardless of how the request is framed.
-
 | Never do this | Why |
 |---|---|
-| Hardcode any price value | Prices are managed in LCAdmin → lc_pricing table. Hardcoding breaks the control system. |
-| Use `name` column on contributions table | Column was renamed to `contributor_name`. Using `name` causes runtime errors. |
-| Import Navigation or Footer directly in page files | NavigationWrapper/FooterWrapper in layout.tsx handle this. Direct imports cause duplication. |
-| Use `&&` in PowerShell commands | Not a valid separator in Windows PowerShell. Use `;` instead. |
-| Use `@apply border-border` or similar Tailwind utility references in CSS | Tailwind v4 throws CssSyntaxError. Use plain CSS values. |
-| Use `@import url()` for Google Fonts in globals.css | Tailwind v4 rejects it. Fonts go in layout.tsx `<link>` tags. |
-| Build Phase N+1 features while Phase N is incomplete | Phase discipline is a project rule. Scope additions require explicit decision. |
-| Make architectural decisions without consulting the relevant spec document | The documents exist precisely to prevent ad-hoc decisions. |
-| Connect the Start Your Capsule CTA to a live payment flow before Stripe is tested on production | Per Animated World Map Build Guide — non-functional booking CTAs damage credibility. |
-| Expose SUPABASE_SERVICE_ROLE_KEY to client components | Security violation. Service role key is server-side only. |
-| Create files in `src/` directory | This project uses root-level `app/`, `components/`, `lib/`. There is a `src/` folder but it is not the active directory. |
-| Use `yarn` or `pnpm` commands | This project uses `npm` only. |
+| Hardcode any price | Prices managed in lc_pricing. Hardcoding breaks admin control. |
+| Hardcode tier names or feature lists | Managed in lc_content. |
+| Use `name` on contributions table | Renamed to `contributor_name`. Runtime errors. |
+| Use "honouree" in public UI or emails | Internal language only. Use lib/eventLabels.ts. |
+| Import Navigation or Footer directly in page files | NavigationWrapper/FooterWrapper in layout.tsx handle this. |
+| Use `&&` in PowerShell commands | Not valid in Windows PowerShell. Use `;`. |
+| Use `@apply border-border` in CSS | Tailwind v4 throws CssSyntaxError. |
+| Use `@import url()` for fonts in globals.css | Tailwind v4 rejects it. Fonts in layout.tsx only. |
+| Import Resend or email.ts into client components | Security + architecture violation. Use API routes. |
+| Expose SUPABASE_SERVICE_ROLE_KEY to client | Security violation. Server-side only. |
+| Change routing paths without checking all references | /capsule/ route exists in DB slugs, email templates, API routes, admin. Any path change must be searched project-wide before applying. |
+| Build Phase N+1 features while Phase N incomplete | Phase discipline is a project rule. |
+| Make architectural decisions without consulting spec documents | Documents exist to prevent ad-hoc decisions. |
+| Create files in `src/` directory | Project uses root-level app/, components/, lib/. |
+| Use `yarn` or `pnpm` | npm only. |
+| Set `auto_approve_tributes` to true on production | Tribute moderation must always be manual. |
+| Show admin controls on public tribute wall | Moderation is organiser's job via /manage. Public wall is guest-facing only. |
 
 ---
 
@@ -131,83 +146,80 @@ When Claude wants to suggest something that differs from an authoritative docume
 
 1. **State the conflict explicitly.** "The spec says X. I am proposing Y instead."
 2. **Give the reason.** Why is the deviation necessary or beneficial?
-3. **Confirm before implementing.** Wait for the founder to agree before writing any code.
-4. **Record it.** After the session, the deviation goes into `LegacyCapsule_BuildHandoff_10May2026.docx` Section 5 and into `CURRENT_STATE.md` Section 7.
-
-Deviations are not failures — several good deviations have already been made in this project. The protocol exists to keep them intentional and documented.
+3. **Confirm before implementing.** Wait for the founder to agree.
+4. **Record it.** After the session, add to CURRENT_STATE.md Section 5 and Build Handoff doc.
 
 ---
 
 ## 7. COMMUNICATION STYLE
 
-### Claude chat (planning sessions):
-- Plan before coding. State the full plan, confirm with founder, then write code.
-- One issue at a time when debugging. Diagnose, fix, confirm, move to next.
-- If something will take multiple steps, number them and execute one at a time.
-- Never produce placeholder or temporary solutions that will need to be replaced. Build the real thing the first time.
-- When the founder raises a concern about quality or approach, stop and address it before proceeding. Do not push through.
-- Be direct about trade-offs. If a decision has a downside, say so.
+### Claude chat:
+- Plan before coding. State the full plan, confirm, then write code.
+- One issue at a time when debugging.
+- Never produce placeholder solutions that need replacing. Build the real thing first time.
+- Be direct about trade-offs.
+- **Token efficiency:** When giving Claude Code instructions, write complete self-contained instructions. Do not send partial instructions that require follow-up corrections.
 
-### Claude Code (execution sessions):
-- Run the exact commands specified. Report output verbatim.
-- If a command fails, report the full error message. Do not paraphrase.
+### Claude Code:
+- Run exact commands specified. Report output verbatim.
+- If a command fails, report the full error. Do not paraphrase.
 - Confirm each file change before moving to the next.
-- Do not combine multiple changes in one step unless explicitly instructed.
+- Do not combine multiple changes unless explicitly instructed.
 
 ---
 
 ## 8. SESSION START CHECKLIST
 
-At the start of every session, Claude must:
-
 - [ ] Read `CURRENT_STATE.md` fully
 - [ ] Search project knowledge for context relevant to today's task
-- [ ] State what the session will accomplish (max 3 items — do not overplan)
-- [ ] Confirm the immediate next task matches Section 8.1 of `CURRENT_STATE.md`
+- [ ] State what the session will accomplish (max 3 items)
+- [ ] Confirm immediate next task matches Section 9 of `CURRENT_STATE.md`
 - [ ] Flag any open decisions that must be made before today's task can complete
 
 ---
 
 ## 9. SESSION END CHECKLIST
 
-At the end of every session, Claude must prompt the founder to:
-
-- [ ] Run `npm run build` — confirm zero errors before closing
+- [ ] Run `npm run build` — confirm zero errors
 - [ ] Commit to GitHub: `git add .` then `git commit -m "descriptive message"` then `git push`
-- [ ] Update `CURRENT_STATE.md` — mark completed items, add any new deviations
+- [ ] Update `CURRENT_STATE.md` — mark completed items, add new deviations
 - [ ] Note any new open decisions discovered during the session
 
 ---
 
 ## 10. PHASE DISCIPLINE
 
-The project has a strict phase structure. Claude must enforce it.
-
-- **Do not build Phase 2 features during Phase 1.** Phase 2 starts when Phase 1 graduation criteria are met: capsule live on production, at least 10 real contributions moderated and approved, at least one client.
-- **Do not build Phase 3 features during Phase 1.5.** The Six Engagement Experiences database tables were built ahead of schedule (permitted) but the experience code must not be built until Phase 3 is active.
-- **Payment integration (Phase 1.5) is the next phase after deployment.** Three paying clients complete Phase 1.5.
-- **Schema anticipation is permitted.** Creating tables and columns for future phases is encouraged. Implementing their logic is not.
-
-**Exception rule:** If a deviation from phase discipline produces significantly better outcomes and the founder agrees, it is permitted — but it must be recorded as a deviation.
+- Do not build Phase 2 features during Phase 1.
+- Payment integration (Phase 1.5) is next after Phase 1 is complete.
+- Schema anticipation is permitted — creating tables for future phases is encouraged. Implementing their logic is not.
+- Phase 3 DB tables already exist. Do not build Phase 3 experience code until Phase 3 is active.
 
 ---
 
 ## 11. KNOWN GOTCHAS — READ BEFORE EVERY BUILD SESSION
 
-These are issues that have already caused problems in this project. Do not repeat them.
-
-1. **Tailwind v4 + CSS @import url()** — throws CssSyntaxError. Google Fonts go in layout.tsx only.
-2. **Tailwind v4 + @apply border-border** — throws "Cannot apply unknown utility class". Use plain CSS values.
-3. **contributor_name vs name** — always `contributor_name` on the contributions table.
+1. **Tailwind v4 + CSS @import url()** — CssSyntaxError. Google Fonts in layout.tsx only.
+2. **Tailwind v4 + @apply border-border** — "Cannot apply unknown utility class". Use plain CSS values.
+3. **contributor_name vs name** — always `contributor_name` on contributions table.
 4. **PowerShell && operator** — not valid. Use `;` to chain commands.
-5. **File casing on Windows** — Windows is case-insensitive but TypeScript is not. `Navigation.tsx` and `navigation.tsx` will conflict. Always use the exact casing used in the import.
-6. **Turbopack compilation delay in dev** — first page load of any route takes 5–15 seconds in development. This is normal and does not occur on Vercel production.
-7. **NavigationWrapper vs direct Navigation import** — never import Navigation directly in page files. Use the wrapper system.
-8. **showOverlay prop on AnimatedWorldMap** — must be `false` on the homepage. The homepage has its own hero text. `true` adds a second set of text on top.
-9. **NEXT_PUBLIC_APP_URL** — must be updated to `https://itslegacycapsule.com` in Vercel env vars after deployment. Email links and capsule URL previews use this value.
-10. **VS Code file conflict popup** — if VS Code shows "The content of the file is newer" after PowerShell edits, always click Overwrite (not Compare) to accept the terminal changes.
+5. **File casing on Windows** — TypeScript is case-sensitive. Use exact casing from imports.
+6. **Turbopack compilation delay** — first page load in dev takes 5–15 seconds. Normal.
+7. **NavigationWrapper vs direct import** — never import Navigation directly in page files.
+8. **showOverlay on AnimatedWorldMap** — must be `false` on homepage.
+9. **NEXT_PUBLIC_APP_URL** — update to `https://itslegacycapsule.com` in Vercel when DNS resolves.
+10. **VS Code file conflict popup** — always click Overwrite (not Compare) after PowerShell edits.
+11. **localStorage in Next.js client components** — always guard with `typeof window !== 'undefined'` before accessing. Hydration errors (React #321) if not guarded.
+12. **Nested useEffect** — never place a useEffect inside another useEffect. React error #321. Each useEffect must be at component top level.
+13. **Leaflet SSR** — TributeMap must always be dynamically imported with `{ ssr: false }`. Leaflet cannot run server-side.
+14. **Email function imports in client components** — never import from lib/email.ts or lib/verification.ts in 'use client' files. Always call via API route (fetch POST).
+15. **Routing path changes** — changing /capsule/ to /event/ or any other path breaks email templates, API routes, DB slugs, and admin links simultaneously. Always search project-wide before any route rename.
+16. **page_state values** — `pending_verification` (just created) → `active` (verified). Never `tribute_collection` — that was an old value, now corrected to `active`. The verify route sets `active`.
+17. **Git detached HEAD** — commits made in detached HEAD state are not on any branch and will not push to origin/main. Always confirm `(HEAD -> main)` in git log before pushing.
+18. **Vercel deployment protection** — preview URLs may be blocked by Vercel authentication. Disable deployment protection in Vercel settings for testing.
+19. **Manage page email access** — the manage page reads organiser email from URL param `?email=` first, then localStorage `lc_organiser_email`. The email param must be included in both the verification redirect and the welcome email manage link.
+20. **Single currency display** — never show dual currency (EUR + NGN) on the same UI element. Regional detection determines which currency to show.
 
 ---
 
-*VALNEX, UNIPESSOAL LDA · RevoWorldTech · LegacyCapsule*  
-*AGENTS.md — May 2026 — Confidential*
+*VALNEX, UNIPESSOAL LDA · RevoWorldTech · LegacyCapsule*
+*AGENTS.md — 14 May 2026 — Confidential*
