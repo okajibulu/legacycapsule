@@ -13,11 +13,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 {/* =========================================================
-   SECTION 2 — CONFIG
-========================================================= */}
-const ADMIN_EMAIL = "revoworldtech@gmail.com"
-
-{/* =========================================================
    SECTION 2A — COUNTRY LIST
 ========================================================= */}
 const COUNTRIES = [
@@ -55,15 +50,12 @@ export default function CapsulePage({ params }: { params: Promise<{ slug: string
   const [content, setContent] = useState("")
   const [countryQuery, setCountryQuery] = useState("")
   const [showCountryList, setShowCountryList] = useState(false)
-  const [editingHonouree, setEditingHonouree] = useState(false)
-const [honoureeEdit,    setHonoureeEdit]    = useState("")
 const [autoApprove, setAutoApprove] = useState(false)
 
   {/* =========================================================
      SECTION 7 — STATE (UI)
   ========================================================= */}
   const [lastSubmitTime, setLastSubmitTime] = useState<number | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState("")
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
@@ -88,16 +80,9 @@ const [autoApprove, setAutoApprove] = useState(false)
     }
   }, [email])
 
-  {/* =========================================================
-     SECTION 10 — EFFECT: ADMIN
-  ========================================================= */}
-  useEffect(() => {
-    setIsAdmin(email === ADMIN_EMAIL)
-  }, [email])
-
-  {/* =========================================================
-     SECTION 10A — EFFECT: CLOSE COUNTRY DROPDOWN ON OUTSIDE CLICK
-  ========================================================= */}
+{/* =========================================================
+   SECTION 10A — EFFECT: CLOSE COUNTRY DROPDOWN ON OUTSIDE CLICK
+========================================================= */}
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (countryRef.current && !countryRef.current.contains(e.target as Node)) {
@@ -305,7 +290,7 @@ if (email) {
     if (!item) return
 
     const isOwner = item.email?.toLowerCase() === email?.toLowerCase()
-    const canEdit = isAdmin || (item.status === "pending_review" && isOwner)
+    const canEdit = item.status === "pending_review" && isOwner
 
     if (!canEdit) {
       alert("You are not allowed to edit this message.")
@@ -325,40 +310,20 @@ if (email) {
   }
 
   {/* =========================================================
-     SECTION 16 — APPROVE
-  ========================================================= */}
-  const handleApprove = async (id: string) => {
-    await supabase.from("contributions").update({ status: "approved" }).eq("id", id)
-    loadContributions(capsule.id)
-  }
-const handleDelete = async (id: string) => {
-  const confirm = typeof window !== "undefined" && window.confirm("Delete this tribute permanently?")
-  if (!confirm) return
-  await supabase.from("contributions").delete().eq("id", id)
-  loadContributions(capsule.id)
-}
-  {/* =========================================================
      SECTION 17 — HELPERS
   ========================================================= */}
   const isOwner = (c: any) => c.email?.toLowerCase() === email?.toLowerCase()
   const isPending = (c: any) => c.status === "pending_review" || c.status === "pending"
-  const canEdit = (c: any) => isAdmin || (isOwner(c) && isPending(c))
+  const canEdit = (c: any) => isOwner(c) && isPending(c)
 
   {/* =========================================================
      SECTION 18 — ORDERED CONTRIBUTIONS
   ========================================================= */}
   const visibleContributions = contributions.filter((c) => {
-    if (isAdmin) return true
     return c.status === "approved" || isOwner(c)
   })
 
-  const orderedContributions = isAdmin
-    ? visibleContributions.slice().sort((a, b) => {
-        if (isPending(a) && !isPending(b)) return -1
-        if (!isPending(a) && isPending(b)) return 1
-        return 0
-      })
-    : visibleContributions
+  const orderedContributions = visibleContributions
 
   {/* =========================================================
      SECTION 19 — STYLE CONSTANTS
@@ -459,67 +424,10 @@ const handleDelete = async (id: string) => {
 
         <div className="relative z-10 px-3 pt-2 pb-2 space-y-2">
 
-          {/* admin email tag */}
-          {isAdmin && (
-            <p className="text-center text-[10px] text-yellow-300/60 tracking-widest uppercase">
-              Admin · {email}
-            </p>
-          )}
-
           {/* ── TITLE H1 ── */}
-{isAdmin && editingHonouree ? (
-  <div className="flex gap-2 items-center justify-center">
-    <input
-      value={honoureeEdit}
-      onChange={e => setHonoureeEdit(e.target.value)}
-      style={{
-        background: "rgba(255,255,255,0.1)",
-        border: "1px solid rgba(234,179,8,0.5)",
-        borderRadius: "8px",
-        padding: "4px 10px",
-        color: "white",
-        fontSize: "16px",
-        outline: "none",
-        WebkitTextFillColor: "white",
-        WebkitBoxShadow: "0 0 0px 1000px rgba(26,13,46,0.95) inset",
-      }}
-    />
-    <button
-      onClick={async () => {
-        await supabase.from("capsules")
-          .update({ honouree_name: honoureeEdit })
-          .eq("id", capsule.id)
-        setCapsule({ ...capsule, honouree_name: honoureeEdit })
-        setEditingHonouree(false)
-      }}
-      className="text-xs px-2 py-1 rounded bg-yellow-400 text-purple-950 font-bold"
-    >
-      Save
-    </button>
-    <button
-      onClick={() => setEditingHonouree(false)}
-      className="text-xs px-2 py-1 rounded border border-white/20 text-white/50"
-    >
-      Cancel
-    </button>
-  </div>
-) : (
   <h1 className={h1Style}>
     {capsule?.honouree_name ?? "Legacy Capsule"}
-    {isAdmin && (
-      <button
-        onClick={() => {
-          setHonoureeEdit(capsule?.honouree_name ?? "")
-          setEditingHonouree(true)
-        }}
-        className="ml-2 text-xs text-yellow-400/50 hover:text-yellow-400 
-          font-normal normal-case tracking-normal"
-      >
-        ✎
-      </button>
-    )}
   </h1>
-)}
 
           {/* gold ornamental divider */}
           <div className="flex items-center gap-1.5 px-4">
@@ -754,24 +662,6 @@ const handleDelete = async (id: string) => {
                   </span>
                 )}
                 <div className="flex gap-1.5 ml-auto">
-{isAdmin && isPending(c) && editingId !== c.id && (
-  <button
-    onClick={() => handleApprove(c.id)}
-    className="text-xs px-2.5 py-0.5 rounded-md bg-green-500/20 border border-green-400/30
-      text-green-300 hover:bg-green-500/30 transition-colors"
-  >
-    Approve
-  </button>
-)}
-{isAdmin && editingId !== c.id && (
-  <button
-    onClick={() => handleDelete(c.id)}
-    className="text-xs px-2.5 py-0.5 rounded-md bg-red-500/20 border border-red-400/30
-      text-red-300 hover:bg-red-500/30 transition-colors"
-  >
-    Delete
-  </button>
-)}
                   {canEdit(c) && editingId !== c.id && (
                     <button
                       onClick={() => { setEditingId(c.id); setEditContent(c.tribute_text) }}

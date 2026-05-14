@@ -72,8 +72,8 @@ function RotatingEventType() {
         fontFamily: 'var(--font-display, "Cormorant Garamond", serif)',
         fontStyle: 'italic',
         fontWeight: 700,
-        fontSize: 'clamp(0.95rem, 2.2vw, 1.35rem)',
-        letterSpacing: '0.1em',
+        fontSize: 'clamp(1.1rem, 2.6vw, 1.6rem)',
+        letterSpacing: '0.06em',
         color: '#D4AE2A',
         margin: 0,
         display: 'flex',
@@ -351,11 +351,12 @@ background: "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",    
     textAlign:      "center",
     padding:        "0 1.5rem",
     paddingTop:     "var(--nav-height)",
+    transform:      "translateY(-3vh)",
   }}>
 
     {/* Hero text block */}
     <div className="flex flex-col items-center text-center z-20 px-6 pointer-events-none"
-      style={{ gap: '1.2rem' }}>
+      style={{ gap: '1.08rem' }}>
 
       {/* Gold label */}
       <p style={{
@@ -381,7 +382,7 @@ background: "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",    
           fontFamily: 'var(--font-display, "Cormorant Garamond", serif)',
           fontSize: 'clamp(2.6rem, 6vw, 5rem)',
           fontWeight: 700,
-          color: 'rgba(255,255,255,0.62)',
+          color: 'rgba(255,255,255,0.74)',
           letterSpacing: '0.02em',
           lineHeight: 1.05,
           textShadow: '0 2px 12px rgba(0,0,0,0.9)',
@@ -402,7 +403,7 @@ background: "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",    
       </div>
 
       {/* Rotating capability line */}
-      <div style={{ height: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ height: '2.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <RotatingEventType />
       </div>
 
