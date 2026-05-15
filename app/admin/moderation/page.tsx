@@ -67,7 +67,7 @@ export default function ModerationPage() {
         <div className="rounded-xl border border-white/8 bg-white/4 p-12 text-center">
           <p className="text-white/25 text-sm">No escalated content — queue is clear.</p>
           <p className="text-white/15 text-xs mt-1">
-            Per-capsule moderation is handled by organisers at /for/[slug]/manage
+            Per-capsule moderation is handled by organisers at /manage/[slug]
           </p>
         </div>
       )}
