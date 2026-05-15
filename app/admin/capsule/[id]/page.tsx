@@ -55,7 +55,7 @@ export default function CapsuleDetailPage() {
       flash('Reason is required for all actions', 'err')
       return
     }
-    const res = await fetch(`/api/admin/capsule/${action}`, {
+    const res = await fetch(`/api/admin/for/${action}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, reason, ...body }),
@@ -70,7 +70,7 @@ export default function CapsuleDetailPage() {
 
   const saveNote = async () => {
     if (!note.trim()) return
-    const res = await fetch('/api/admin/capsule/note', {
+    const res = await fetch('/api/admin/for/note', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, note }),
@@ -134,7 +134,7 @@ export default function CapsuleDetailPage() {
       </div>
 
       <Link
-        href={`/capsule/${capsule.slug}`}
+        href={`/for/${capsule.slug}`}
         target="_blank"
         className="inline-flex items-center gap-2 text-xs text-yellow-400/60 hover:text-yellow-300 transition-colors"
       >

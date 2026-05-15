@@ -865,7 +865,7 @@ export default function BookPage() {
                 style={{ borderColor: slug ? 'rgba(184,150,12,0.4)' : 'rgba(255,255,255,0.08)' }}>
                 <span className="text-xs text-white/30 bg-white/4 border-r border-white/8 whitespace-nowrap flex-shrink-0"
                   style={{ padding: '16px 14px' }}>
-                  itslegacycapsule.com/capsule/
+                  itslegacycapsule.com/for/
                 </span>
                 <input
                   className="flex-1 bg-white/4 text-white/90 text-sm outline-none placeholder:text-white/25"
@@ -890,7 +890,7 @@ export default function BookPage() {
               <div className="px-4 py-3 rounded-xl border border-yellow-400/20 bg-yellow-400/5">
                 <p className="text-[10px] uppercase tracking-widest text-yellow-400/50 mb-1">Your capsule link</p>
                 <p className="text-xs text-yellow-200/80 break-all">
-                  itslegacycapsule.com/capsule/<span className="font-semibold">{slug}</span>
+                  itslegacycapsule.com/for/<span className="font-semibold">{slug}</span>
                 </p>
               </div>
             )}
@@ -997,12 +997,12 @@ export default function BookPage() {
         <div className="px-5 py-4 rounded-xl border border-yellow-400/20 bg-yellow-400/5 w-full mb-10 mt-2">
           <p className="text-[10px] uppercase tracking-widest text-yellow-400/50 mb-1">Your capsule link</p>
           <p className="text-sm text-yellow-200/80 break-all">
-            itslegacycapsule.com/capsule/<span className="font-semibold">{slug}</span>
+            itslegacycapsule.com/for/<span className="font-semibold">{slug}</span>
           </p>
         </div>
 
         <Link
-          href={`/capsule/${slug}`}
+          href={`/for/${slug}`}
           className="inline-flex items-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm tracking-wide transition-all duration-300"
           style={{
             background: 'linear-gradient(135deg, #B8960C 0%, #D4AE2A 50%, #B8960C 100%)',
@@ -1017,6 +1017,7 @@ export default function BookPage() {
     </ScreenShell>
   )
 }
+
 
 
 

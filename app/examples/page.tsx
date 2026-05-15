@@ -22,7 +22,7 @@ const EXAMPLES = [
     from:       "Lagos, London, Toronto, New York",
     tributes:   124,
     countries:  18,
-    href:       "/capsule/professor-okonkwo-demo",
+    href:       "/for/professor-okonkwo-demo",
     color:      "#8B9FD4",
     accent:     "var(--lc-gold)",
     tag_color:  "var(--lc-gold)",
@@ -36,7 +36,7 @@ const EXAMPLES = [
     from:       "Abuja, London, Houston",
     tributes:   89,
     countries:  12,
-    href:       "/capsule/tunde-amara-demo",
+    href:       "/for/tunde-amara-demo",
     color:      "#C4956A",
     accent:     "#C4956A",
     tag_color:  "#C4956A",
@@ -50,7 +50,7 @@ const EXAMPLES = [
     from:       "Enugu, London, Atlanta",
     tributes:   156,
     countries:  9,
-    href:       "/capsule/chief-obinna-demo",
+    href:       "/for/chief-obinna-demo",
     color:      "#7EC8A4",
     accent:     "#7EC8A4",
     tag_color:  "#7EC8A4",
@@ -64,7 +64,7 @@ const EXAMPLES = [
     from:       "Port Harcourt, Manchester, Dubai",
     tributes:   203,
     countries:  14,
-    href:       "/capsule/mama-grace-demo",
+    href:       "/for/mama-grace-demo",
     color:      "var(--lc-gold)",
     accent:     "var(--lc-gold)",
     tag_color:  "var(--lc-gold)",
@@ -78,7 +78,7 @@ const EXAMPLES = [
     from:       "Onitsha, Birmingham, Melbourne",
     tributes:   78,
     countries:  7,
-    href:       "/capsule/rev-obiechina-demo",
+    href:       "/for/rev-obiechina-demo",
     color:      "#B4A0D8",
     accent:     "#B4A0D8",
     tag_color:  "#B4A0D8",
@@ -92,7 +92,7 @@ const EXAMPLES = [
     from:       "Ibadan, Edinburgh, Boston",
     tributes:   67,
     countries:  11,
-    href:       "/capsule/chisom-eze-demo",
+    href:       "/for/chisom-eze-demo",
     color:      "#C4956A",
     accent:     "#C4956A",
     tag_color:  "#C4956A",
@@ -304,5 +304,6 @@ export default function ExamplesPage() {
       </section>    </>
   )
 }
+
 
 

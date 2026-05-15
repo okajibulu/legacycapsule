@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import { use } from 'react'
@@ -115,8 +115,8 @@ export default function TributeWallPage({
 
   // ── Helpers ──────────────────────────────────────────────
   const capsuleUrl = typeof window !== 'undefined'
-    ? window.location.origin + `/capsule/${slug}`
-    : `https://itslegacycapsule.com/capsule/${slug}`
+    ? window.location.origin + `/for/${slug}`
+    : `https://itslegacycapsule.com/for/${slug}`
 
   function copyLink() {
     if (typeof window !== 'undefined') {
@@ -217,7 +217,7 @@ export default function TributeWallPage({
         <p className="text-2xl mb-4">{ornament}</p>
 
         {/* Honouree name — public display */}
-        <Link href={`/capsule/${slug}/profile`}>
+        <Link href={`/for/${slug}/profile`}>
           <h1 className="text-4xl font-bold text-white cursor-pointer hover:text-yellow-200 transition-colors duration-200"
             style={{ fontFamily: 'var(--font-heading,"Playfair Display",serif)', letterSpacing: '0.02em' }}>
             {title}
@@ -462,7 +462,7 @@ export default function TributeWallPage({
 
           {/* Profile link card */}
           {capsule && (
-            <Link href={`/capsule/${slug}/profile`}>
+            <Link href={`/for/${slug}/profile`}>
               <div className="mt-10 rounded-2xl px-6 py-5 text-center cursor-pointer transition-all duration-200 hover:shadow-md"
                 style={{
                   background: '#F5F3EE',
@@ -489,7 +489,7 @@ export default function TributeWallPage({
       {/* ── ADD YOUR TRIBUTE CTA ── */}
       <div className="sticky bottom-0 z-40 px-4 py-4"
         style={{ background: 'linear-gradient(0deg,#F5F3EE 60%,transparent)' }}>
-        <Link href={`/capsule/${slug}/submit`}>
+        <Link href={`/for/${slug}/submit`}>
           <div className="max-w-sm mx-auto rounded-2xl py-4 text-center font-semibold text-base tracking-wide transition-all duration-300 hover:opacity-90 active:scale-[0.98]"
             style={{
               background: 'linear-gradient(135deg,#B8960C 0%,#D4AE2A 50%,#B8960C 100%)',

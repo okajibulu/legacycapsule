@@ -24,3 +24,4 @@ export async function isAdminAuthenticated(): Promise<boolean> {
   const cookie = cookieStore.get(SESSION_KEY)
   return cookie?.value === process.env.LCADMIN_SESSION_SECRET
 }
+

@@ -20,7 +20,7 @@ export default function AdminPage() {
               desc: "Edit all product prices" },
             { label: "Feature Flags",          href: "/admin/flags",
               desc: "Toggle platform features" },
-            { label: "Tribute Moderation",     href: "/capsule/dr-adeyemi-okonkwo-retirement",
+            { label: "Tribute Moderation",     href: "/for/dr-adeyemi-okonkwo-retirement",
               desc: "Enter admin email on tribute page to moderate" },
           ].map(item => (
             <Link key={item.href} href={item.href}
@@ -43,3 +43,4 @@ export default function AdminPage() {
     </main>
   )
 }
+

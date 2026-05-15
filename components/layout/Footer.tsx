@@ -220,3 +220,4 @@ const LEGAL_LINKS = [
   { href: "/legal/cookies",     label: "Cookie Policy"         },
   { href: "/legal/refunds",     label: "Refund Policy"         },
 ]
+

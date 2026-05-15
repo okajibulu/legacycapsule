@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
         .eq("id", verification.record_id)
         .single()
       return NextResponse.redirect(
-        `${APP_URL}/capsule/${capsule?.slug}?verified=already`
+        `${APP_URL}/for/${capsule?.slug}?verified=already`
       )
     }
   }
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
       .single()
 
     return NextResponse.redirect(
-      `${APP_URL}/capsule/${capsule?.slug}/manage?activated=true&email=${encodeURIComponent(verification.email)}`
+      `${APP_URL}/for/${capsule?.slug}/manage?activated=true&email=${encodeURIComponent(verification.email)}`
     )
   }
 
@@ -92,11 +92,12 @@ export async function GET(req: NextRequest) {
       .single()
 
     return NextResponse.redirect(
-      `${APP_URL}/capsule/${capsule?.slug}?confirmed=true`
+      `${APP_URL}/for/${capsule?.slug}?confirmed=true`
     )
   }
 
   return NextResponse.redirect(`${APP_URL}/`)
 }
+
 
 

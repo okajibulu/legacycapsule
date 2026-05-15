@@ -163,9 +163,9 @@ export async function sendContributorVerification({
           <p style="margin:0;color:#5F5E5A;font-size:13px;">
             View the tribute wall:
           </p>
-          <a href="${APP_URL}/capsule/${capsuleSlug}"
+          <a href="${APP_URL}/for/${capsuleSlug}"
             style="color:#2D1B69;font-size:13px;font-weight:bold;">
-            ${APP_URL}/capsule/${capsuleSlug}
+            ${APP_URL}/for/${capsuleSlug}
           </a>
         </div>
 
@@ -179,4 +179,5 @@ export async function sendContributorVerification({
     `,
   })
 }
+
 

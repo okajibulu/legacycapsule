@@ -105,7 +105,7 @@ export default function CapsuleManagePage() {
   }, [slug])
 
   const honoureeName = capsule?.honouree_name ?? 'Legacy Capsule'
-  const tributeUrl = `${appUrl}/capsule/${slug}`
+  const tributeUrl = `${appUrl}/for/${slug}`
 
   const filteredContributions = useMemo(() => {
     if (activeFilter === 'all') return contributions
@@ -190,7 +190,7 @@ export default function CapsuleManagePage() {
             This page is only accessible to the capsule organiser. Check your email for your management link.
           </p>
           <Link
-            href={`/capsule/${slug}`}
+            href={`/for/${slug}`}
             className="inline-flex rounded-full border border-[#B8960C] px-5 py-2.5 text-sm font-semibold text-[#D4AE2A]"
             style={{ fontFamily: 'var(--font-body, "DM Sans", sans-serif)' }}
           >
@@ -220,7 +220,7 @@ export default function CapsuleManagePage() {
 
         <div className="flex justify-center md:w-48 md:justify-end">
           <Link
-            href={`/capsule/${slug}`}
+            href={`/for/${slug}`}
             className="rounded-full border border-[#B8960C] px-4 py-2 text-xs font-semibold text-[#D4AE2A]"
           >
             View Tribute Wall →
@@ -238,7 +238,7 @@ export default function CapsuleManagePage() {
 
           <div className="p-5" style={{ ...cardStyle, borderColor: 'rgba(184,150,12,0.35)' }}>
             <p className="mb-2 text-[10px] uppercase tracking-[0.24em] text-white/35">Your tribute wall link</p>
-            <p className="mb-4 break-all text-sm text-[#D4AE2A]">itslegacycapsule.com/capsule/{slug}</p>
+            <p className="mb-4 break-all text-sm text-[#D4AE2A]">itslegacycapsule.com/for/{slug}</p>
             <div className="flex flex-wrap gap-3">
               <button onClick={copyLink} className="rounded-lg border border-[#B8960C] px-4 py-2 text-xs font-semibold text-[#D4AE2A]">
                 {copied ? 'Copied' : 'Copy Link'}
