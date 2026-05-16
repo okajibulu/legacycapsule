@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import LogoCapsule from '@/components/LogoCapsule'
 import { supabase } from '@/lib/supabase'
@@ -39,7 +39,9 @@ const cardStyle = {
 
 export default function CapsuleManagePage() {
   const params = useParams<{ slug: string }>()
+  const searchParams = useSearchParams()
   const slug = params.slug
+  const paymentSuccess = searchParams.get('payment') === 'success'
 
   const [capsule, setCapsule] = useState<Capsule | null>(null)
   const [contributions, setContributions] = useState<Contribution[]>([])
@@ -203,6 +205,27 @@ export default function CapsuleManagePage() {
 
   return (
     <main className="min-h-screen text-white" style={{ background, fontFamily: 'var(--font-body, "DM Sans", sans-serif)' }}>
+      {paymentSuccess && (
+        <div style={{
+          background:   'linear-gradient(135deg, rgba(184,150,12,0.12), rgba(184,150,12,0.24))',
+          border:       '1px solid #B8960C',
+          borderRadius: '10px',
+          padding:      '14px 20px',
+          margin:       '24px auto 0',
+          color:        '#B8960C',
+          fontWeight:   600,
+          fontSize:     '0.9rem',
+          display:      'flex',
+          alignItems:   'center',
+          gap:          '10px',
+          maxWidth:     '72rem',
+          width:        'calc(100% - 40px)',
+        }}>
+          <span style={{ fontSize: '1.1rem' }}>✓</span>
+          Payment confirmed — your capsule is now live and accepting tributes.
+        </div>
+      )}
+
       <header className="flex flex-col gap-4 border-b px-6 py-4 md:flex-row md:items-center md:justify-between"
         style={{ background: 'rgba(13,8,32,0.95)', borderColor: 'rgba(184,150,12,0.15)' }}>
         <div className="flex justify-center md:w-48 md:justify-start">

@@ -151,7 +151,7 @@ These are locked decisions. Do not reopen without explicit founder confirmation.
 |---|---|---|
 | D1–D8 | Original spec deviations | See Build Handoff doc |
 | D9 | Admin control over all pricing | No price, tier name, feature list, or commercial copy may be hardcoded. All from lc_pricing or lc_content. |
-| D10 | page_state on creation (Phase 1) | Set to `pending_verification` on creation. Set to `active` after email verification. Phase 1.5 adds `pending_payment` state. |
+| D10 | page_state on creation/payment | Free tier: `active` immediately on creation. Paid tiers: `pending_payment` on creation, then `active` after webhook confirms payment. |
 | D11 | Package names | Tier 1 = Legacy Honour (lc_pricing key: capture_preserve_base). Tier 2 = Legacy Premier (lc_pricing key: full_platform_base) |
 | D12 | Single currency display | One currency per user based on geographic location. No dual currency shown. Regional detection via IP. |
 | D13 | Tribute moderation — always manual | auto_approve_tributes = FALSE on production always. Any change requires LCAdmin with reason logged. |
@@ -166,6 +166,8 @@ These are locked decisions. Do not reopen without explicit founder confirmation.
 | D22 | Premium lock UI | All paid features visible on free tier with semi-transparent gold padlock overlay. Nothing hidden — access gated. |
 | D23 | Moderation responsibility | Tribute moderation = organiser via /manage. LCAdmin = platform-level only. ADMIN_EMAIL check removed from public tribute wall. |
 | D24 | "Honouree" is internal only | Never appears in public UI, emails, or copy. All public references use subject's name or event-type phrase from lib/eventLabels.ts |
+| P06 | page_state flow | Free tier: active immediately on creation. Paid tiers: pending_payment on creation, active after webhook confirms payment. 'tribute_collection' is a retired invalid value — never use. |
+| P09 | Route map locked (post-handoff update) | Public wall: /for/[slug] · Submit: /for/[slug]/submit · Manage: /manage/[slug] · All success_url and cancel_url references use these paths. |
 
 ---
 
