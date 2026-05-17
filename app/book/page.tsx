@@ -6,12 +6,11 @@ import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import LogoCapsule from '@/components/LogoCapsule'
 const supabase = createClient(
+
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
-
-// ── Types ────────────────────────────────────────────────────────────────────
-
+// ── Types ────────────────────────────────────────────────────────────────────────────────────────
 interface ContentMap {
   [key: string]: string
 }
@@ -232,6 +231,25 @@ function BookPage() {
   const [loading,  setLoading]  = useState(true)
   const [creating, setCreating] = useState(false)
   const [error,    setError]    = useState('')
+
+  // ── Regional price state — D12: single currency per user ──────────────
+  const [regionalSymbol,       setRegionalSymbol]       = useState('€')
+  const [regionalHonourPrice,  setRegionalHonourPrice]  = useState<number | null>(null)
+  const [regionalPremierPrice, setRegionalPremierPrice] = useState<number | null>(null)
+
+  // ── Regional price detection — calls server route, returns zone + prices
+  useEffect(() => {
+    fetch('/api/regional-prices')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.symbol)       setRegionalSymbol(data.symbol)
+        if (data.honourPrice)  setRegionalHonourPrice(data.honourPrice)
+        if (data.premierPrice) setRegionalPremierPrice(data.premierPrice)
+      })
+      .catch(() => {
+        // Silent fallback — EUR defaults remain
+      })
+  }, [])
 
   // ── Fetch lc_content + lc_pricing in parallel on mount
   useEffect(() => {
@@ -788,7 +806,7 @@ function BookPage() {
                   <div className="mb-5 pb-5 border-b border-white/8">
                     {card.price ? (
                       <span className="text-3xl font-bold text-yellow-300">
-                        €{card.price}
+                        {regionalSymbol}{card.key === 'honour' ? (regionalHonourPrice ?? card.price) : (regionalPremierPrice ?? card.price)}
                       </span>
                     ) : (
                       <div className="flex items-end gap-2">
@@ -826,7 +844,7 @@ function BookPage() {
             <div className="mt-6 px-5 py-4 rounded-xl border border-yellow-400/20 bg-yellow-400/5 flex items-center justify-between">
               <span className="text-xs text-white/50 tracking-wide">Package total</span>
               <span className="text-lg font-bold text-yellow-300">
-                €{selectedTierData.eur_price}
+                {regionalSymbol}{selectedTierData.pricing_key === 'capture_preserve_base' ? (regionalHonourPrice ?? selectedTierData.eur_price) : (regionalPremierPrice ?? selectedTierData.eur_price)}
               </span>
             </div>
           )}
@@ -1046,7 +1064,7 @@ function BookPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-white/55">Total</span>
                   <span className="text-sm font-bold text-yellow-300">
-                    €{selectedTierData.eur_price}
+                    {regionalSymbol}{selectedTierData.pricing_key === 'capture_preserve_base' ? (regionalHonourPrice ?? selectedTierData.eur_price) : (regionalPremierPrice ?? selectedTierData.eur_price)}
                   </span>
                 </div>
 <p className="text-[10px] text-white/25 pt-1">
