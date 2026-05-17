@@ -931,7 +931,7 @@ function BookPage() {
 
 <GoldDivider />
 
-          {/* ── PAYMENT CANCELLED BANNER ─────────────────────────────────── */}
+          {/* ── PAYMENT CANCELLED BANNER ────────────────────────────────── */}
           {/* Shown when user returns from abandoned Stripe session           */}
           {paymentCancelled && retrySlug && (
             <div className="mb-4 px-5 py-4 rounded-xl border border-yellow-400/30 bg-yellow-400/6">
