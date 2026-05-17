@@ -13,10 +13,10 @@ const db = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// â”€â”€ ZERO-DECIMAL CURRENCIES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Stripe does not multiply these by 100 â€” amount IS the integer sent to Stripe.
+// Stripe zero-decimal currencies — amount sent as-is (no × 100)
+// NGN is NOT zero-decimal on Stripe — it uses kobo (× 100)
 // Reference: https://stripe.com/docs/currencies#zero-decimal
-const ZERO_DECIMAL_CURRENCIES = new Set(['ngn', 'jpy', 'krw', 'vnd', 'gnf', 'mga'])
+const ZERO_DECIMAL_CURRENCIES = new Set(['jpy', 'krw', 'vnd', 'gnf', 'mga'])
 
 // â”€â”€ TYPES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export interface RegionalPrice {
@@ -72,9 +72,10 @@ export async function getRegionalPrice(
   const stripe_currency = currency.toLowerCase()
   const is_zero_decimal = ZERO_DECIMAL_CURRENCIES.has(stripe_currency)
 
-  // Stripe amount: zero-decimal currencies send amount as-is, others Ã— 100
+ // Stripe amount: zero-decimal currencies send amount as-is, all others × 100
+  // NGN uses kobo as smallest unit (like EUR uses cents) — so × 100 is correct for NGN
   const amount_for_stripe = is_zero_decimal ? amount : amount * 100
-
+  
   return {
     pricing_key,
     amount,
