@@ -9,9 +9,9 @@ const adminClient = createClient(
 export default async function TributeWallPage({
   params,
 }: {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }) {
-  const { slug } = params
+  const { slug } = await params
 
   const { data: capsule, error } = await adminClient
     .from('capsules')
