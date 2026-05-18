@@ -787,9 +787,9 @@ function formatEventDate(dateStr: string | null): string {
 export default async function PublicationRenderPage({
   params,
 }: {
-  params: { token: string };
+params: Promise<{ token: string }>;
 }) {
-  const { token } = params;
+  const { token } = await params;
 
   if (!token || token.length < 32) return notFound();
 
