@@ -91,7 +91,7 @@ export default async function TributeWallPage({
     .from('contributions')
     .select('id, contributor_name, city, country, relationship, tribute_text, photo_url, latitude, longitude, created_at')
     .eq('capsule_id', capsule.id)
-    .eq('status', 'approved')
+.in('status', ['approved', 'pending_review', 'pending'])
     .order('created_at', { ascending: false })
 
   return (
