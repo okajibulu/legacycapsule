@@ -1,10 +1,9 @@
 'use client'
 
 // ─────────────────────────────────────────────────────────────
-// TRIBUTE WALL — Single-Page Experience
-// Map hero backdrop → tribute cards → inline form drawer.
-// Everything happens on one surface. No route changes.
-// D43: Client island. Server component owns initial data fetch.
+// TRIBUTE WALL — Single-Page Experience v2
+// Map hero → inline form → tribute cards. One surface. No routes.
+// Design: Rich amethyst palette, warm gold, breathing typography.
 // ─────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -14,77 +13,64 @@ import { createClient } from '@supabase/supabase-js'
 import { getTributePageTitle } from '@/lib/eventLabels'
 import { COUNTRIES, formatTributeDate, getInitials } from '@/lib/tributeWallHelpers'
 
-// ─────────────────────────────────────────────────────────────
-// DYNAMIC IMPORT — TributeMap (Leaflet, ssr: false mandatory)
-// ─────────────────────────────────────────────────────────────
+// ── TributeMap — ssr: false mandatory (Leaflet) ─────────────
 const TributeMap = dynamic(() => import('@/components/TributeMap'), {
   ssr: false,
-  loading: () => (
-    <div style={{
-      width: '100%', height: '100%',
-      backgroundColor: '#080014',
-    }} />
-  ),
+  loading: () => <div style={{ width: '100%', height: '100%', backgroundColor: '#120E24' }} />,
 })
 
-// ─────────────────────────────────────────────────────────────
-// SUPABASE — anon key for client-side operations
-// ─────────────────────────────────────────────────────────────
+// ── Supabase client ──────────────────────────────────────────
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-// ─────────────────────────────────────────────────────────────
-// ORNAMENT MAP
-// ─────────────────────────────────────────────────────────────
-const ORNAMENTS: Record<string, string> = {
-  'Memorial & Funeral': '🕊️', 'Wedding': '💍',
-  'Retirement': '🏅', 'Milestone Birthday': '🎂',
-  'Anniversary': '💛', 'Graduation': '🎓',
-  'Ordination': '✝️', 'Chieftaincy Ceremony': '👑',
-  'Award Ceremony': '🏆', 'Thanksgiving Service': '🙏',
-  'Conference': '🎙️', 'Other': '✦',
-}
-
-// ─────────────────────────────────────────────────────────────
-// CONSTANTS
-// ─────────────────────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────────
 const MIN_CHARS = 20
 const MAX_CHARS = 1000
 const BUCKET = 'tribute-photos'
-const LS_EMAIL_KEY = 'lc_visitor_email'
+const LS_EMAIL = 'lc_visitor_email'
 
-// ─────────────────────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────────────────────
+const ORNAMENTS: Record<string, string> = {
+  'Memorial & Funeral': '🕊️', 'Wedding': '💍', 'Retirement': '🏅',
+  'Milestone Birthday': '🎂', 'Anniversary': '💛', 'Graduation': '🎓',
+  'Ordination': '✝️', 'Chieftaincy Ceremony': '👑', 'Award Ceremony': '🏆',
+  'Thanksgiving Service': '🙏', 'Conference': '🎙️', 'Other': '✦',
+}
+
+// ── Palette — rich amethyst, warm gold, breathing ────────────
+const P = {
+  bg1: '#1A1035',
+  bg2: '#241848',
+  card: '#FEFCF8',
+  cardShadow: 'rgba(0,0,0,0.12)',
+  gold: '#E2C36B',
+  goldDim: 'rgba(226,195,107,0.35)',
+  goldGlow: 'rgba(226,195,107,0.15)',
+  text: '#2C2840',
+  textLight: '#6E6888',
+  textFaint: 'rgba(255,255,255,0.4)',
+  white90: 'rgba(255,255,255,0.9)',
+  white60: 'rgba(255,255,255,0.6)',
+  white25: 'rgba(255,255,255,0.25)',
+  white10: 'rgba(255,255,255,0.1)',
+  green: '#34D399',
+  red: '#f87171',
+}
+
+// ── Types ────────────────────────────────────────────────────
 interface Capsule {
-  id: string
-  slug: string
-  honouree_name: string
-  event_type: string
-  event_tag: string | null
-  page_state: string
-  tier: string
-  hero_image_url: string | null
-  organiser_email: string
-  free_tier_expires_at: string | null
-  created_at: string
+  id: string; slug: string; honouree_name: string; event_type: string
+  event_tag: string | null; page_state: string; tier: string
+  hero_image_url: string | null; organiser_email: string
+  free_tier_expires_at: string | null; created_at: string
 }
 
 interface Contribution {
-  id: string
-  contributor_name: string
-  city: string
-  country: string
-  relationship: string | null
-  tribute_text: string
-thumbnail_url: string | null
-lat: number | null
-lng: number | null
-  status: string
-  email: string | null
-  created_at: string
+  id: string; contributor_name: string; city: string; country: string
+  relationship: string | null; tribute_text: string
+  thumbnail_url: string | null; lat: number | null; lng: number | null
+  status: string; email: string | null; created_at: string
 }
 
 interface Props {
@@ -92,9 +78,7 @@ interface Props {
   initialContributions: Contribution[]
 }
 
-// ─────────────────────────────────────────────────────────────
-// PHOTO COMPRESSION — D17
-// ─────────────────────────────────────────────────────────────
+// ── Photo compression ────────────────────────────────────────
 async function compressPhoto(file: File): Promise<File> {
   try {
     const ic = (await import('browser-image-compression')).default
@@ -102,14 +86,11 @@ async function compressPhoto(file: File): Promise<File> {
   } catch { return file }
 }
 
-// ─────────────────────────────────────────────────────────────
-// GEOCODE HELPER
-// ─────────────────────────────────────────────────────────────
+// ── Geocode ──────────────────────────────────────────────────
 async function geocode(city: string, country: string) {
   try {
     const r = await fetch('/api/geocode', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ city, country }),
     })
     if (!r.ok) return null
@@ -119,86 +100,66 @@ async function geocode(city: string, country: string) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// TRIBUTE CARD — Compact, ivory, gold left border
+// TRIBUTE CARD — warm white, gold left accent, compact
 // ─────────────────────────────────────────────────────────────
 function TributeCard({
-  c, isAdmin, isOwn, onApprove,
+  c, isAdmin, isOwn, onApprove, isNew,
 }: {
-  c: Contribution
-  isAdmin: boolean
-  isOwn: boolean
-  onApprove: (id: string) => void
+  c: Contribution; isAdmin: boolean; isOwn: boolean
+  onApprove: (id: string) => void; isNew?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
-  const isLong = c.tribute_text.length > 280
-  const text = isLong && !expanded
-    ? c.tribute_text.slice(0, 280) + '…'
-    : c.tribute_text
+  const isLong = c.tribute_text.length > 300
+  const text = isLong && !expanded ? c.tribute_text.slice(0, 300) + '…' : c.tribute_text
   const isPending = c.status === 'pending_review' || c.status === 'pending'
 
   return (
     <div style={{
-      backgroundColor: isPending ? 'rgba(212,174,42,0.06)' : '#F5F3EE',
-      borderLeft: '3px solid ' + (isPending ? 'rgba(212,174,42,0.4)' : '#D4AE2A'),
-      borderRadius: '8px',
-      padding: '10px 14px',
-      marginBottom: '8px',
-      border: isPending ? '1px dashed rgba(212,174,42,0.3)' : undefined,
-      borderLeftWidth: '3px',
-      borderLeftStyle: 'solid',
-      borderLeftColor: isPending ? 'rgba(212,174,42,0.4)' : '#D4AE2A',
+      backgroundColor: isPending ? 'rgba(226,195,107,0.06)' : P.card,
+      borderLeft: '3px solid ' + (isPending ? P.goldDim : P.gold),
+      borderRadius: '6px',
+      padding: '10px 14px 10px 14px',
+      marginBottom: '6px',
+      boxShadow: isPending ? 'none' : '0 1px 4px ' + P.cardShadow,
+      transition: 'all 0.4s ease',
+      animation: isNew ? 'fadeSlideIn 0.5s ease-out' : undefined,
+      ...(isPending ? { border: '1px dashed ' + P.goldDim, borderLeftWidth: '3px', borderLeftStyle: 'solid' } : {}),
     }}>
-      {/* Header row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-
-        {/* Avatar */}
-{c.thumbnail_url ? (
-  <img src={c.thumbnail_url} alt="" style={{
-            width: '32px', height: '32px', borderRadius: '50%',
-            objectFit: 'cover', flexShrink: 0,
-          }} />
-        ) : (
-          <div style={{
-            width: '32px', height: '32px', borderRadius: '50%',
-            backgroundColor: '#2D1B69',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <span style={{ color: '#D4AE2A', fontSize: '12px', fontWeight: 700 }}>
-              {getInitials(c.contributor_name)}
-            </span>
-          </div>
-        )}
-
-        {/* Name + location */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+      {/* Header — name, location, date. One row. */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
+        <span style={{
+          fontFamily: "'Playfair Display', Georgia, serif",
+          fontSize: '14px', fontWeight: 600,
+          color: isPending ? 'rgba(255,255,255,0.7)' : P.text,
+        }}>
+          {c.contributor_name}
+        </span>
+        {isOwn && (
           <span style={{
-            fontFamily: 'Playfair Display, Georgia, serif',
-            fontSize: '14px', fontWeight: 600, color: '#1a1a2e',
-          }}>
-            {c.contributor_name}
-          </span>
-          {isOwn && (
-            <span style={{
-              marginLeft: '6px', fontSize: '9px', color: '#B8960C',
-              textTransform: 'uppercase', letterSpacing: '0.1em',
-            }}>You</span>
-          )}
-          <div style={{ fontSize: '11px', color: '#7a7a8a', marginTop: '1px' }}>
-            {c.city}{c.country ? ' · ' + c.country : ''}
-            {c.relationship ? ' · ' + c.relationship : ''}
-          </div>
-        </div>
-
-        {/* Date */}
-        <span style={{ fontSize: '10px', color: '#9a9aaa', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            fontSize: '8px', color: P.gold, textTransform: 'uppercase',
+            letterSpacing: '0.12em', fontWeight: 700,
+          }}>you</span>
+        )}
+        <span style={{
+          fontSize: '11px',
+          color: isPending ? 'rgba(255,255,255,0.3)' : P.textLight,
+          marginLeft: 'auto', whiteSpace: 'nowrap',
+        }}>
+          {c.city}{c.country ? ' · ' + c.country : ''}
+        </span>
+        <span style={{
+          fontSize: '10px',
+          color: isPending ? 'rgba(255,255,255,0.2)' : '#B0ACBA',
+          whiteSpace: 'nowrap',
+        }}>
           {formatTributeDate(c.created_at)}
         </span>
       </div>
 
       {/* Message */}
       <p style={{
-        fontSize: '13.5px', lineHeight: '1.65', color: '#2a2a3e',
+        fontSize: '13.5px', lineHeight: '1.6',
+        color: isPending ? 'rgba(255,255,255,0.55)' : P.text,
         margin: 0, whiteSpace: 'pre-wrap',
       }}>
         {text}
@@ -206,24 +167,28 @@ function TributeCard({
 
       {isLong && (
         <button onClick={() => setExpanded(e => !e)} style={{
-          marginTop: '4px', fontSize: '11px', color: '#B8960C',
-          background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600,
+          marginTop: '3px', fontSize: '11px', color: P.gold,
+          background: 'none', border: 'none', cursor: 'pointer',
+          padding: 0, fontWeight: 600,
         }}>
-          {expanded ? 'Show less' : 'Read more'}
+          {expanded ? 'Less' : 'More'}
         </button>
       )}
 
-      {/* Pending + Approve */}
+      {/* Pending badge + approve */}
       {isPending && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-          <span style={{ fontSize: '10px', color: '#B8960C', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Pending approval
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '5px' }}>
+          <span style={{
+            fontSize: '9px', color: P.gold, letterSpacing: '0.1em',
+            textTransform: 'uppercase', fontWeight: 600,
+          }}>
+            Pending
           </span>
           {isAdmin && (
             <button onClick={() => onApprove(c.id)} style={{
-              marginLeft: 'auto', fontSize: '11px', padding: '3px 12px',
-              borderRadius: '12px', backgroundColor: 'rgba(34,197,94,0.15)',
-              border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e',
+              marginLeft: 'auto', fontSize: '10px', padding: '2px 10px',
+              borderRadius: '10px', backgroundColor: 'rgba(52,211,153,0.12)',
+              border: '1px solid rgba(52,211,153,0.3)', color: P.green,
               cursor: 'pointer', fontWeight: 600,
             }}>
               Approve
@@ -241,82 +206,67 @@ function TributeCard({
 export default function TributeWallClient({ capsule, initialContributions }: Props) {
 
   // ── State ──────────────────────────────────────────────────
-  const [allContributions, setAllContributions] = useState<Contribution[]>(initialContributions)
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [all, setAll] = useState<Contribution[]>(initialContributions)
+  const [formOpen, setFormOpen] = useState(false)
   const [visitorEmail, setVisitorEmail] = useState('')
   const [copied, setCopied] = useState(false)
+  const [newId, setNewId] = useState<string | null>(null)
 
-  // ── Form state ─────────────────────────────────────────────
-  const [formStep, setFormStep] = useState<'form' | 'preview'>('form')
+  // ── Form ───────────────────────────────────────────────────
   const [fName, setFName] = useState('')
   const [fCity, setFCity] = useState('')
   const [fCountry, setFCountry] = useState('')
-  const [fMessage, setFMessage] = useState('')
-  const [fRelationship, setFRelationship] = useState('')
+  const [fMsg, setFMsg] = useState('')
+  const [fRel, setFRel] = useState('')
   const [fEmail, setFEmail] = useState('')
   const [fPhoto, setFPhoto] = useState<File | null>(null)
   const [fPhotoPreview, setFPhotoPreview] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-  const [showCountryDropdown, setShowCountryDropdown] = useState(false)
-  const [countryFilter, setCountryFilter] = useState('')
+  const [submitErr, setSubmitErr] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [showCountries, setShowCountries] = useState(false)
+  const [countryQ, setCountryQ] = useState('')
   const photoRef = useRef<HTMLInputElement>(null)
   const countryRef = useRef<HTMLDivElement>(null)
+  const formRef = useRef<HTMLDivElement>(null)
 
   // ── Derived ────────────────────────────────────────────────
-  const subjectName = capsule.honouree_name
-  const pageTitle = getTributePageTitle(capsule.event_type, subjectName)
+  const name = capsule.honouree_name
+  const title = getTributePageTitle(capsule.event_type, name)
   const ornament = ORNAMENTS[capsule.event_type] ?? '✦'
-  const isAdmin = visitorEmail.toLowerCase() === capsule.organiser_email?.toLowerCase() && visitorEmail !== ''
+  const isAdmin = visitorEmail !== '' && visitorEmail.toLowerCase() === capsule.organiser_email?.toLowerCase()
 
-  const capsuleUrl = typeof window !== 'undefined'
+  const url = typeof window !== 'undefined'
     ? window.location.origin + '/for/' + capsule.slug
     : 'https://itslegacycapsule.com/for/' + capsule.slug
 
-  // Visible contributions — approved for everyone, pending for owner/admin
-  const visibleContributions = allContributions.filter(c => {
+  const visible = all.filter(c => {
     if (c.status === 'approved') return true
     if (isAdmin) return true
     if (visitorEmail && c.email?.toLowerCase() === visitorEmail.toLowerCase()) return true
     return false
   })
 
-  // Map pins
-  const mapPins = allContributions
-.filter(c => c.status === 'approved' && c.lat && c.lng)
-.map(c => ({
-  lat: c.lat as number,
-  lng: c.lng as number,
-      name: c.contributor_name,
-      country: c.country,
-    }))
+  const pins = all
+    .filter(c => c.status === 'approved' && c.lat && c.lng)
+    .map(c => ({ lat: c.lat as number, lng: c.lng as number, name: c.contributor_name, country: c.country }))
 
-  // Unique countries count
-  const uniqueCountries = new Set(
-    allContributions.filter(c => c.status === 'approved').map(c => c.country)
-  ).size
+  const approved = all.filter(c => c.status === 'approved').length
+  const countries = new Set(all.filter(c => c.status === 'approved').map(c => c.country)).size
 
-  const approvedCount = allContributions.filter(c => c.status === 'approved').length
-
-  // WhatsApp
-  const whatsappUrl = 'https://wa.me/?text=' + encodeURIComponent(
-    'Leave a tribute for ' + subjectName + ': ' + capsuleUrl
+  const whatsapp = 'https://wa.me/?text=' + encodeURIComponent(
+    'Leave a tribute for ' + name + ': ' + url
   )
 
-  // ── Load visitor email from localStorage ───────────────────
+  // ── Email persistence ──────────────────────────────────────
   useEffect(() => {
-    const stored = localStorage.getItem(LS_EMAIL_KEY)
-    if (stored) {
-      setVisitorEmail(stored)
-      setFEmail(stored)
-    }
+    const s = localStorage.getItem(LS_EMAIL)
+    if (s) { setVisitorEmail(s); setFEmail(s) }
   }, [])
 
-  // ── Save email to localStorage when form email changes ─────
   useEffect(() => {
     if (fEmail.includes('@')) {
-      localStorage.setItem(LS_EMAIL_KEY, fEmail)
+      localStorage.setItem(LS_EMAIL, fEmail)
       setVisitorEmail(fEmail)
     }
   }, [fEmail])
@@ -325,10 +275,10 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
   const poll = useCallback(async () => {
     const { data } = await supabase
       .from('contributions')
-   .select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, lat, lng, status, email, created_at')
+      .select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, lat, lng, status, email, created_at')
       .eq('capsule_id', capsule.id)
       .order('created_at', { ascending: false })
-    if (data) setAllContributions(data as Contribution[])
+    if (data) setAll(data as Contribution[])
   }, [capsule.id])
 
   useEffect(() => {
@@ -336,446 +286,366 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
     return () => clearInterval(iv)
   }, [poll])
 
-  // ── Close country dropdown on outside click ────────────────
+  // ── Outside click — country dropdown ───────────────────────
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (countryRef.current && !countryRef.current.contains(e.target as Node)) {
-        setShowCountryDropdown(false)
-      }
+    const h = (e: MouseEvent) => {
+      if (countryRef.current && !countryRef.current.contains(e.target as Node))
+        setShowCountries(false)
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
   }, [])
 
-  // ── Copy link ──────────────────────────────────────────────
+  // ── Handlers ───────────────────────────────────────────────
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(capsuleUrl)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    await navigator.clipboard.writeText(url)
+    setCopied(true); setTimeout(() => setCopied(false), 2000)
   }
 
-  // ── Approve ────────────────────────────────────────────────
   const handleApprove = async (id: string) => {
     await supabase.from('contributions').update({ status: 'approved' }).eq('id', id)
-
-    // Trigger keepsake card email
     fetch('/api/email/approval', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contributionId: id }),
     }).catch(() => {})
-
     poll()
   }
 
-  // ── Photo handler ──────────────────────────────────────────
   const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const compressed = await compressPhoto(file)
-    setFPhoto(compressed)
-    const reader = new FileReader()
-    reader.onload = (ev) => setFPhotoPreview(ev.target?.result as string)
-    reader.readAsDataURL(compressed)
+    const f = e.target.files?.[0]
+    if (!f) return
+    const c = await compressPhoto(f)
+    setFPhoto(c)
+    const r = new FileReader()
+    r.onload = ev => setFPhotoPreview(ev.target?.result as string)
+    r.readAsDataURL(c)
   }
 
-  // ── Validate ───────────────────────────────────────────────
-  const validate = (): boolean => {
+  const validate = () => {
     const e: Record<string, string> = {}
     if (!fName.trim()) e.name = 'Required'
     if (!fCity.trim()) e.city = 'Required'
     if (!fCountry) e.country = 'Required'
-    if (fMessage.trim().length < MIN_CHARS) e.message = MIN_CHARS + ' chars minimum'
-    if (fMessage.trim().length > MAX_CHARS) e.message = 'Over ' + MAX_CHARS + ' limit'
-    setFieldErrors(e)
-    return Object.keys(e).length === 0
+    if (fMsg.trim().length < MIN_CHARS) e.msg = MIN_CHARS + '+ chars'
+    if (fMsg.trim().length > MAX_CHARS) e.msg = 'Too long'
+    setErrors(e)
+    return !Object.keys(e).length
   }
 
-  // ── Preview ────────────────────────────────────────────────
-  const handlePreview = () => {
-    if (!validate()) return
-    setFormStep('preview')
-  }
-
-  // ── Submit ─────────────────────────────────────────────────
   const handleSubmit = async () => {
-    setSubmitting(true)
-    setSubmitError('')
+    if (!validate()) return
+    setSubmitting(true); setSubmitErr('')
     try {
       let photoUrl: string | null = null
       if (fPhoto) {
         const ext = fPhoto.name.split('.').pop() ?? 'jpg'
         const path = capsule.id + '/' + Date.now() + '.' + ext
-        const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, fPhoto, { upsert: false })
-        if (!upErr) {
-          const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path)
-          photoUrl = urlData.publicUrl
-        }
+        const { error: ue } = await supabase.storage.from(BUCKET).upload(path, fPhoto, { upsert: false })
+        if (!ue) { photoUrl = supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl }
       }
 
       const coords = await geocode(fCity.trim(), fCountry)
 
-      // CRITICAL: contributor_name — not name. Gotcha #3.
-      const { data: newContrib, error: insertErr } = await supabase
+      const { data: nc, error: ie } = await supabase
         .from('contributions')
         .insert({
           capsule_id: capsule.id,
           contributor_name: fName.trim(),
           city: fCity.trim(),
           country: fCountry,
-          relationship: fRelationship.trim() || null,
-          tribute_text: fMessage.trim(),
+          relationship: fRel.trim() || null,
+          tribute_text: fMsg.trim(),
           email: fEmail.trim() || null,
-thumbnail_url: photoUrl,
-lat: coords?.lat ?? null,
-lng: coords?.lng ?? null,
+          thumbnail_url: photoUrl,
+          lat: coords?.lat ?? null,
+          lng: coords?.lng ?? null,
           status: 'pending_review',
         })
-        .select('id')
-        .single()
+        .select('id').single()
 
-      if (insertErr) {
-        setSubmitError(insertErr.message || 'Failed to submit. Try again.')
-        setSubmitting(false)
-        return
-      }
+      if (ie) { setSubmitErr(ie.message); setSubmitting(false); return }
 
-      // Trigger confirmation email if email provided
-      if (fEmail.trim() && newContrib) {
+      if (fEmail.trim() && nc) {
         fetch('/api/email/submission-confirmation', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contributionId: newContrib.id,
-            capsuleSlug: capsule.slug,
-            contributorName: fName.trim(),
-            contributorEmail: fEmail.trim(),
-            subjectName: capsule.honouree_name,
-            eventType: capsule.event_type,
-            tributeText: fMessage.trim(),
+            contributionId: nc.id, capsuleSlug: capsule.slug,
+            contributorName: fName.trim(), contributorEmail: fEmail.trim(),
+            subjectName: name, eventType: capsule.event_type, tributeText: fMsg.trim(),
           }),
         }).catch(() => {})
       }
 
-      // Save email, close drawer, reset form, refresh
       if (fEmail.includes('@')) {
-        localStorage.setItem(LS_EMAIL_KEY, fEmail)
-        setVisitorEmail(fEmail)
+        localStorage.setItem(LS_EMAIL, fEmail); setVisitorEmail(fEmail)
       }
-      setDrawerOpen(false)
-      setFormStep('form')
-      setFName(''); setFCity(''); setFCountry(''); setFMessage('')
-      setFRelationship(''); setFPhoto(null); setFPhotoPreview(null)
-      setFieldErrors({})
+
+      setNewId(nc?.id ?? null)
+      setTimeout(() => setNewId(null), 3000)
+
+      setFormOpen(false)
+      setFName(''); setFCity(''); setFCountry(''); setFMsg('')
+      setFRel(''); setFPhoto(null); setFPhotoPreview(null); setErrors({})
       poll()
-    } catch {
-      setSubmitError('Something went wrong. Try again.')
-    }
+    } catch { setSubmitErr('Something went wrong.') }
     setSubmitting(false)
   }
 
-  // ── Filtered countries for dropdown ────────────────────────
-  const filteredCountries = COUNTRIES.filter(c =>
-    c.toLowerCase().includes(countryFilter.toLowerCase())
-  ).slice(0, 15)
+  const filtered = COUNTRIES.filter(c => c.toLowerCase().includes(countryQ.toLowerCase())).slice(0, 12)
 
-  // ── Shared input style ─────────────────────────────────────
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '8px 12px', borderRadius: '8px',
-    border: '1px solid rgba(212,174,42,0.25)',
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    color: '#FFFFFF', fontSize: '13px', outline: 'none',
-    boxSizing: 'border-box', fontFamily: 'DM Sans, sans-serif',
+  // ── Input style ────────────────────────────────────────────
+  const inp: React.CSSProperties = {
+    width: '100%', padding: '9px 12px', borderRadius: '8px',
+    border: '1px solid ' + P.goldDim,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    color: P.white90, fontSize: '13px', outline: 'none',
+    boxSizing: 'border-box',
+    fontFamily: "'DM Sans', sans-serif",
+    transition: 'border-color 0.2s',
   }
 
   // ─────────────────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0D0820' }}>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(168deg, ' + P.bg1 + ' 0%, ' + P.bg2 + ' 50%, ' + P.bg1 + ' 100%)',
+    }}>
+
+      {/* Keyframe for new card animation */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes fadeSlideIn {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}} />
 
       {/* ════════════════════════════════════════════════════
-          ZONE 1 — MAP HERO BACKDROP (full viewport)
+          TOP BAR — Logo left, "To Profile" right. Clean.
+      ════════════════════════════════════════════════════ */}
+      <header style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 60,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 20px',
+        background: 'linear-gradient(to bottom, rgba(26,16,53,0.9) 0%, transparent 100%)',
+        pointerEvents: 'none',
+      }}>
+        <span style={{
+          fontSize: '11px', fontWeight: 700, color: P.gold,
+          letterSpacing: '0.08em', pointerEvents: 'auto',
+        }}>
+          LEGACY<span style={{ color: P.white60 }}>CAPSULE</span>
+        </span>
+        <span
+          style={{
+            fontSize: '11px', color: P.white25, pointerEvents: 'auto',
+            cursor: 'default',
+          }}
+          title="Capsule profile — coming soon"
+        >
+          To Profile
+        </span>
+      </header>
+
+      {/* ════════════════════════════════════════════════════
+          ZONE 1 — MAP HERO (full viewport)
       ════════════════════════════════════════════════════ */}
       <section style={{ position: 'relative', height: '100vh', overflow: 'hidden' }}>
 
-        {/* Map fills entire viewport */}
+        {/* Map backdrop */}
         <div style={{ position: 'absolute', inset: 0 }}>
-          <TributeMap pins={mapPins} />
+          <TributeMap pins={pins} />
         </div>
 
-        {/* Dark gradient overlay */}
+        {/* Gradient veil — softer than before */}
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(to bottom, rgba(13,8,32,0.5) 0%, rgba(13,8,32,0.3) 40%, rgba(13,8,32,0.85) 100%)',
+          background: 'linear-gradient(to bottom, rgba(26,16,53,0.45) 0%, rgba(26,16,53,0.25) 35%, rgba(26,16,53,0.8) 85%, ' + P.bg1 + ' 100%)',
           pointerEvents: 'none',
         }} />
 
-        {/* Content floating over map */}
+        {/* Content over map */}
         <div style={{
-          position: 'relative', zIndex: 10,
-          height: '100%', display: 'flex', flexDirection: 'column',
+          position: 'relative', zIndex: 10, height: '100%',
+          display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
           padding: '0 24px', textAlign: 'center',
         }}>
 
-          {/* Small logo */}
-          <p style={{
-            fontSize: '9px', color: 'rgba(212,174,42,0.5)',
-            letterSpacing: '0.25em', textTransform: 'uppercase',
-            marginBottom: '24px',
-          }}>
-            LegacyCapsule
-          </p>
-
           {/* Ornament */}
-          <div style={{ fontSize: '32px', marginBottom: '12px', lineHeight: 1 }}>
+          <div style={{ fontSize: '28px', marginBottom: '10px', lineHeight: 1, opacity: 0.9 }}>
             {ornament}
           </div>
 
-          {/* Honouree name */}
+          {/* Name */}
           <h1 style={{
-            fontFamily: 'Playfair Display, Georgia, serif',
-            fontSize: 'clamp(28px, 6vw, 52px)',
+            fontFamily: "'Playfair Display', Georgia, serif",
+            fontSize: 'clamp(26px, 5.5vw, 48px)',
             fontWeight: 700, color: '#FFFFFF',
-            margin: '0 0 10px', lineHeight: 1.15,
-            textShadow: '0 2px 20px rgba(0,0,0,0.6)',
+            margin: '0 0 8px', lineHeight: 1.15,
+            textShadow: '0 2px 24px rgba(0,0,0,0.5)',
           }}>
-            {pageTitle}
+            {title}
           </h1>
 
           {/* Event tag */}
           {capsule.event_tag && (
             <p style={{
-              color: '#D4AE2A', fontSize: '12px',
-              letterSpacing: '0.2em', textTransform: 'uppercase',
-              margin: '0 0 20px',
+              color: P.gold, fontSize: '11px',
+              letterSpacing: '0.22em', textTransform: 'uppercase',
+              margin: '0 0 16px', fontWeight: 500,
             }}>
               {capsule.event_tag}
             </p>
           )}
 
-          {/* Tribute count */}
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', margin: '0 0 24px' }}>
-            {approvedCount === 0
+          {/* Count */}
+          <p style={{ fontSize: '12px', color: P.white60, margin: '0 0 20px' }}>
+            {approved === 0
               ? 'Be the first to leave a tribute'
-              : approvedCount + ' tribute' + (approvedCount !== 1 ? 's' : '') +
-                (uniqueCountries > 1 ? ' from ' + uniqueCountries + ' countries' : '')}
+              : approved + ' tribute' + (approved !== 1 ? 's' : '') +
+                (countries > 1 ? ' from ' + countries + ' countries' : '')}
           </p>
 
-          {/* Share buttons */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+          {/* Share pills */}
+          <div style={{ display: 'flex', gap: '8px' }}>
             <button onClick={handleCopy} style={{
-              padding: '6px 16px', borderRadius: '20px',
-              border: '1px solid rgba(212,174,42,0.3)',
-              backgroundColor: 'rgba(255,255,255,0.05)',
-              color: copied ? '#D4AE2A' : 'rgba(255,255,255,0.5)',
-              fontSize: '11px', cursor: 'pointer',
+              padding: '5px 14px', borderRadius: '16px',
+              border: '1px solid ' + P.goldDim,
+              backgroundColor: P.goldGlow, color: copied ? P.gold : P.white60,
+              fontSize: '11px', cursor: 'pointer', fontWeight: 500,
+              transition: 'all 0.2s',
             }}>
-              {copied ? '✓ Copied' : 'Copy link'}
+              {copied ? '✓ Copied' : 'Share link'}
             </button>
-            <Link href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{
-              padding: '6px 16px', borderRadius: '20px',
-              border: '1px solid rgba(37,211,102,0.3)',
-              backgroundColor: 'rgba(255,255,255,0.05)',
-              color: 'rgba(37,211,102,0.7)',
-              fontSize: '11px', textDecoration: 'none',
+            <Link href={whatsapp} target="_blank" rel="noopener noreferrer" style={{
+              padding: '5px 14px', borderRadius: '16px',
+              border: '1px solid rgba(52,211,153,0.25)',
+              backgroundColor: 'rgba(52,211,153,0.08)',
+              color: 'rgba(52,211,153,0.7)', fontSize: '11px',
+              textDecoration: 'none', fontWeight: 500,
             }}>
               WhatsApp
             </Link>
           </div>
 
-          {/* Profile link — greyed out, coming soon */}
-          <p style={{
-            fontSize: '12px', color: 'rgba(255,255,255,0.2)',
-            cursor: 'default',
-          }} title="Capsule profile — coming soon">
-            About {subjectName} — Coming Soon
-          </p>
-
+          {/* Scroll indicator */}
+          <div style={{
+            position: 'absolute', bottom: '24px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+          }}>
+            <span style={{ fontSize: '10px', color: P.white25, letterSpacing: '0.1em' }}>
+              SCROLL
+            </span>
+            <div style={{
+              width: '1px', height: '20px',
+              background: 'linear-gradient(to bottom, ' + P.goldDim + ', transparent)',
+            }} />
+          </div>
         </div>
       </section>
 
       {/* ════════════════════════════════════════════════════
-          ZONE 2 — TRIBUTE CARDS
+          ZONE 2 — TRIBUTE WALL
       ════════════════════════════════════════════════════ */}
       <section style={{
-        maxWidth: '640px', margin: '0 auto',
-        padding: '24px 16px 100px',
+        maxWidth: '600px', margin: '0 auto',
+        padding: '28px 16px 110px',
       }}>
 
-        {/* Section header */}
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+        {/* Section label */}
+        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
           <p style={{
-            color: 'rgba(212,174,42,0.5)', fontSize: '10px',
-            letterSpacing: '0.25em', textTransform: 'uppercase', margin: '0 0 6px',
+            color: P.goldDim, fontSize: '9px',
+            letterSpacing: '0.3em', textTransform: 'uppercase', margin: 0,
           }}>
-            ── ✦ TRIBUTE WALL ✦ ──
+            ✦ TRIBUTE WALL ✦
           </p>
         </div>
 
-        {/* Cards */}
-        {visibleContributions.map(c => (
-          <TributeCard
-            key={c.id}
-            c={c}
-            isAdmin={isAdmin}
-            isOwn={visitorEmail !== '' && c.email?.toLowerCase() === visitorEmail.toLowerCase()}
-            onApprove={handleApprove}
-          />
-        ))}
-
-        {/* Empty state */}
-        {visibleContributions.length === 0 && (
-          <p style={{
-            textAlign: 'center', color: 'rgba(255,255,255,0.15)',
-            fontSize: '13px', padding: '40px 0',
-          }}>
-            No tributes yet — be the first.
-          </p>
-        )}
-
-        {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: '32px' }}>
-          <p style={{ color: 'rgba(255,255,255,0.1)', fontSize: '10px' }}>
-            VALNEX, UNIPESSOAL LDA · RevoWorldTech · LegacyCapsule
-          </p>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════════════════
-          ZONE 3 — FIXED BOTTOM CTA
-      ════════════════════════════════════════════════════ */}
-      <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
-        backgroundColor: '#D4AE2A', textAlign: 'center',
-        padding: '12px 24px', cursor: 'pointer',
-      }} onClick={() => { setDrawerOpen(true); setFormStep('form') }}>
-        <span style={{
-          color: '#0D0820', fontWeight: 700, fontSize: '14px',
-          letterSpacing: '0.05em', fontFamily: 'DM Sans, sans-serif',
+        {/* ── Inline form (collapsible) ───────────────────── */}
+        <div ref={formRef} style={{
+          maxHeight: formOpen ? '600px' : '0',
+          overflow: 'hidden',
+          transition: 'max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1)',
+          marginBottom: formOpen ? '16px' : '0',
         }}>
-          ✦ Add Your Tribute
-        </span>
-      </div>
-
-      {/* ════════════════════════════════════════════════════
-          DRAWER — Slides up 75%
-      ════════════════════════════════════════════════════ */}
-
-      {/* Scrim */}
-      {drawerOpen && (
-        <div
-          onClick={() => { setDrawerOpen(false); setFormStep('form') }}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 90,
-            backgroundColor: 'rgba(0,0,0,0.55)',
-            transition: 'opacity 0.3s',
-          }}
-        />
-      )}
-
-      {/* Drawer panel */}
-      <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        height: '75vh', zIndex: 100,
-        backgroundColor: '#0D0820',
-        borderTopLeftRadius: '20px', borderTopRightRadius: '20px',
-        borderTop: '2px solid rgba(212,174,42,0.3)',
-        transform: drawerOpen ? 'translateY(0)' : 'translateY(100%)',
-        transition: 'transform 0.4s cubic-bezier(0.32, 0.72, 0, 1)',
-        overflowY: 'auto',
-        padding: '20px 20px 32px',
-      }}>
-
-        {/* Drag handle */}
-        <div style={{
-          width: '36px', height: '4px', borderRadius: '2px',
-          backgroundColor: 'rgba(212,174,42,0.3)',
-          margin: '0 auto 16px',
-        }} />
-
-        {/* ── FORM STEP ────────────────────────────────────── */}
-        {formStep === 'form' && (
-          <div style={{ maxWidth: '480px', margin: '0 auto' }}>
-
+          <div style={{
+            backgroundColor: 'rgba(255,255,255,0.04)',
+            border: '1px solid ' + P.goldDim,
+            borderRadius: '10px',
+            padding: '16px',
+          }}>
             <p style={{
-              fontSize: '10px', color: 'rgba(212,174,42,0.6)',
-              letterSpacing: '0.2em', textTransform: 'uppercase',
-              marginBottom: '12px', textAlign: 'center',
+              fontSize: '10px', color: P.gold, letterSpacing: '0.18em',
+              textTransform: 'uppercase', marginBottom: '10px', textAlign: 'center',
             }}>
-              Leave a tribute for {subjectName}
+              Leave a tribute for {name}
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
-              {/* Name row with photo button */}
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+              {/* Name + photo button */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 <div style={{ flex: 1 }}>
                   <input type="text" value={fName} onChange={e => setFName(e.target.value)}
-                    placeholder="Your name *" style={inputStyle} />
-                  {fieldErrors.name && <p style={{ color: '#f87171', fontSize: '10px', marginTop: '2px' }}>{fieldErrors.name}</p>}
+                    placeholder="Your name *" style={inp}
+                    onFocus={e => e.target.style.borderColor = P.gold}
+                    onBlur={e => e.target.style.borderColor = P.goldDim} />
+                  {errors.name && <p style={{ color: P.red, fontSize: '10px', margin: '2px 0 0' }}>{errors.name}</p>}
                 </div>
-
-                {/* Photo circle button */}
-                <div
-                  onClick={() => photoRef.current?.click()}
-                  title={fPhotoPreview ? 'Change photo' : 'Add photo'}
+                <div onClick={() => photoRef.current?.click()} title={fPhotoPreview ? 'Change photo' : 'Add photo'}
                   style={{
-                    width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0,
-                    border: '2px dashed rgba(212,174,42,0.3)',
-                    backgroundColor: 'rgba(255,255,255,0.05)',
-                    cursor: 'pointer', overflow: 'hidden',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0,
+                    border: '1.5px dashed ' + P.goldDim,
+                    backgroundColor: 'rgba(255,255,255,0.04)', cursor: 'pointer',
+                    overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     transition: 'border-color 0.2s',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(212,174,42,0.6)')}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(212,174,42,0.3)')}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = P.gold}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = P.goldDim}
                 >
-                  {fPhotoPreview ? (
-                    <img src={fPhotoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <span style={{ color: 'rgba(212,174,42,0.4)', fontSize: '16px' }}>+</span>
-                  )}
+                  {fPhotoPreview
+                    ? <img src={fPhotoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <span style={{ color: P.goldDim, fontSize: '14px' }}>+</span>
+                  }
                 </div>
                 <input ref={photoRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: 'none' }} />
               </div>
 
-              {/* City + Country row */}
+              {/* City + Country */}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <div style={{ flex: 1 }}>
                   <input type="text" value={fCity} onChange={e => setFCity(e.target.value)}
-                    placeholder="City *" style={inputStyle} />
-                  {fieldErrors.city && <p style={{ color: '#f87171', fontSize: '10px', marginTop: '2px' }}>{fieldErrors.city}</p>}
+                    placeholder="City *" style={inp}
+                    onFocus={e => e.target.style.borderColor = P.gold}
+                    onBlur={e => e.target.style.borderColor = P.goldDim} />
+                  {errors.city && <p style={{ color: P.red, fontSize: '10px', margin: '2px 0 0' }}>{errors.city}</p>}
                 </div>
                 <div style={{ flex: 1, position: 'relative' }} ref={countryRef}>
-                  <input
-                    type="text"
-                    value={fCountry || countryFilter}
-                    onChange={e => { setCountryFilter(e.target.value); setFCountry(''); setShowCountryDropdown(true) }}
-                    onFocus={() => setShowCountryDropdown(true)}
-                    placeholder="Country *"
-                    style={inputStyle}
-                  />
-                  {fieldErrors.country && <p style={{ color: '#f87171', fontSize: '10px', marginTop: '2px' }}>{fieldErrors.country}</p>}
-                  {showCountryDropdown && (
+                  <input type="text" value={fCountry || countryQ}
+                    onChange={e => { setCountryQ(e.target.value); setFCountry(''); setShowCountries(true) }}
+                    onFocus={() => setShowCountries(true)}
+                    placeholder="Country *" style={inp} />
+                  {errors.country && <p style={{ color: P.red, fontSize: '10px', margin: '2px 0 0' }}>{errors.country}</p>}
+                  {showCountries && (
                     <div style={{
-                      position: 'absolute', top: '100%', left: 0, right: 0,
-                      zIndex: 110, maxHeight: '160px', overflowY: 'auto',
-                      backgroundColor: 'rgba(13,8,32,0.97)', border: '1px solid rgba(212,174,42,0.25)',
-                      borderRadius: '8px', marginTop: '4px',
+                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20,
+                      maxHeight: '140px', overflowY: 'auto',
+                      backgroundColor: P.bg2, border: '1px solid ' + P.goldDim,
+                      borderRadius: '6px', marginTop: '3px',
                     }}>
-                      {filteredCountries.map(c => (
-                        <div key={c} onClick={() => { setFCountry(c); setCountryFilter(''); setShowCountryDropdown(false) }}
+                      {filtered.map(c => (
+                        <div key={c}
+                          onClick={() => { setFCountry(c); setCountryQ(''); setShowCountries(false) }}
                           style={{
-                            padding: '6px 12px', fontSize: '12px', color: 'rgba(255,255,255,0.7)',
-                            cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.05)',
+                            padding: '6px 10px', fontSize: '12px', color: P.white60,
+                            cursor: 'pointer', borderBottom: '1px solid ' + P.white10,
                           }}
-                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(212,174,42,0.1)')}
-                          onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                        >
-                          {c}
-                        </div>
+                          onMouseEnter={e => e.currentTarget.style.backgroundColor = P.goldGlow}
+                          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                        >{c}</div>
                       ))}
                     </div>
                   )}
@@ -784,130 +654,97 @@ lng: coords?.lng ?? null,
 
               {/* Message */}
               <div>
-                <textarea
-                  rows={4} value={fMessage}
-                  onChange={e => setFMessage(e.target.value)}
-                  placeholder={'Your tribute for ' + subjectName + ' *'}
-                  style={{ ...inputStyle, resize: 'none', lineHeight: '1.5' }}
-                />
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
-                  {fieldErrors.message
-                    ? <span style={{ color: '#f87171', fontSize: '10px' }}>{fieldErrors.message}</span>
-                    : <span />}
+                <textarea rows={3} value={fMsg} onChange={e => setFMsg(e.target.value)}
+                  placeholder={'Your tribute for ' + name + ' *'}
+                  style={{ ...inp, resize: 'none', lineHeight: '1.5' }}
+                  onFocus={e => e.target.style.borderColor = P.gold}
+                  onBlur={e => e.target.style.borderColor = P.goldDim} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1px' }}>
+                  {errors.msg ? <span style={{ color: P.red, fontSize: '10px' }}>{errors.msg}</span> : <span />}
                   <span style={{
                     fontSize: '10px',
-                    color: fMessage.length > MAX_CHARS ? '#f87171'
-                      : fMessage.length >= MIN_CHARS ? 'rgba(212,174,42,0.5)'
-                      : 'rgba(255,255,255,0.2)',
-                  }}>
-                    {fMessage.length}/{MAX_CHARS}
-                  </span>
+                    color: fMsg.length > MAX_CHARS ? P.red : fMsg.length >= MIN_CHARS ? P.goldDim : P.white25,
+                  }}>{fMsg.length}/{MAX_CHARS}</span>
                 </div>
               </div>
 
-              {/* Relationship */}
-              <input type="text" value={fRelationship} onChange={e => setFRelationship(e.target.value)}
-                placeholder="Relationship (optional)" style={inputStyle} />
-
-              {/* Email */}
-              <div>
+              {/* Relationship + Email on one row */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input type="text" value={fRel} onChange={e => setFRel(e.target.value)}
+                  placeholder="Relationship" style={{ ...inp, flex: 1 }}
+                  onFocus={e => e.target.style.borderColor = P.gold}
+                  onBlur={e => e.target.style.borderColor = P.goldDim} />
                 <input type="email" value={fEmail} onChange={e => setFEmail(e.target.value)}
-                  placeholder="Email (for keepsake card)" style={inputStyle} />
-                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', marginTop: '3px' }}>
-                  We will send you a keepsake of your tribute when approved
-                </p>
+                  placeholder="Email (keepsake)" style={{ ...inp, flex: 1 }}
+                  onFocus={e => e.target.style.borderColor = P.gold}
+                  onBlur={e => e.target.style.borderColor = P.goldDim} />
               </div>
 
-              {/* Preview CTA */}
-              <button onClick={handlePreview} style={{
-                width: '100%', padding: '12px', borderRadius: '10px',
-                background: 'linear-gradient(135deg, #D4AE2A, #B8960C)',
-                border: 'none', color: '#0D0820', fontWeight: 700,
-                fontSize: '14px', cursor: 'pointer', marginTop: '4px',
-                fontFamily: 'DM Sans, sans-serif',
+              {submitErr && <p style={{ color: P.red, fontSize: '11px', textAlign: 'center' }}>{submitErr}</p>}
+
+              {/* Submit */}
+              <button onClick={handleSubmit} disabled={submitting} style={{
+                width: '100%', padding: '10px', borderRadius: '8px',
+                background: 'linear-gradient(135deg, ' + P.gold + ', #C9A84E)',
+                border: 'none', color: P.bg1, fontWeight: 700,
+                fontSize: '13px', cursor: submitting ? 'wait' : 'pointer',
+                opacity: submitting ? 0.7 : 1,
+                fontFamily: "'DM Sans', sans-serif",
+                letterSpacing: '0.03em',
+                transition: 'opacity 0.2s',
               }}>
-                Preview Tribute →
+                {submitting ? 'Sending…' : 'Submit Tribute'}
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Cards */}
+        {visible.map(c => (
+          <TributeCard
+            key={c.id} c={c} isAdmin={isAdmin}
+            isOwn={visitorEmail !== '' && c.email?.toLowerCase() === visitorEmail.toLowerCase()}
+            onApprove={handleApprove}
+            isNew={c.id === newId}
+          />
+        ))}
+
+        {visible.length === 0 && !formOpen && (
+          <p style={{ textAlign: 'center', color: P.white25, fontSize: '13px', padding: '32px 0' }}>
+            No tributes yet — be the first.
+          </p>
         )}
 
-        {/* ── PREVIEW STEP ─────────────────────────────────── */}
-        {formStep === 'preview' && (
-          <div style={{ maxWidth: '480px', margin: '0 auto' }}>
+        {/* Footer */}
+        <div style={{ textAlign: 'center', marginTop: '28px', paddingBottom: '8px' }}>
+          <p style={{ color: P.white10, fontSize: '9px', letterSpacing: '0.08em' }}>
+            VALNEX, UNIPESSOAL LDA · RevoWorldTech · LegacyCapsule
+          </p>
+        </div>
+      </section>
 
-            <p style={{
-              fontSize: '10px', color: 'rgba(212,174,42,0.6)',
-              letterSpacing: '0.2em', textTransform: 'uppercase',
-              marginBottom: '8px', textAlign: 'center',
-            }}>
-              Your tribute preview
-            </p>
-
-            <button onClick={() => setFormStep('form')} style={{
-              background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)',
-              fontSize: '12px', cursor: 'pointer', padding: 0, marginBottom: '10px',
-            }}>
-              ← Edit
-            </button>
-
-            {/* Preview card — exactly as it will appear */}
-            <div style={{
-              backgroundColor: '#F5F3EE', borderLeft: '3px solid #D4AE2A',
-              borderRadius: '8px', padding: '10px 14px', marginBottom: '12px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                {fPhotoPreview ? (
-                  <img src={fPhotoPreview} alt="" style={{
-                    width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover',
-                  }} />
-                ) : (
-                  <div style={{
-                    width: '32px', height: '32px', borderRadius: '50%',
-                    backgroundColor: '#2D1B69',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <span style={{ color: '#D4AE2A', fontSize: '12px', fontWeight: 700 }}>
-                      {getInitials(fName || 'You')}
-                    </span>
-                  </div>
-                )}
-                <div style={{ flex: 1 }}>
-                  <span style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '14px', fontWeight: 600, color: '#1a1a2e' }}>
-                    {fName || 'Your name'}
-                  </span>
-                  <div style={{ fontSize: '11px', color: '#7a7a8a' }}>
-                    {fCity || 'City'}{fCountry ? ' · ' + fCountry : ''}
-                    {fRelationship ? ' · ' + fRelationship : ''}
-                  </div>
-                </div>
-                <span style={{ fontSize: '10px', color: '#9a9aaa' }}>
-                  {formatTributeDate(new Date().toISOString())}
-                </span>
-              </div>
-              <p style={{ fontSize: '13.5px', lineHeight: '1.65', color: '#2a2a3e', margin: 0, whiteSpace: 'pre-wrap' }}>
-                {fMessage}
-              </p>
-            </div>
-
-            {submitError && (
-              <p style={{ color: '#f87171', fontSize: '12px', textAlign: 'center', marginBottom: '8px' }}>
-                {submitError}
-              </p>
-            )}
-
-            <button onClick={handleSubmit} disabled={submitting} style={{
-              width: '100%', padding: '12px', borderRadius: '10px',
-              background: 'linear-gradient(135deg, #D4AE2A, #B8960C)',
-              border: 'none', color: '#0D0820', fontWeight: 700,
-              fontSize: '14px', cursor: submitting ? 'not-allowed' : 'pointer',
-              opacity: submitting ? 0.7 : 1, fontFamily: 'DM Sans, sans-serif',
-            }}>
-              {submitting ? 'Submitting…' : 'Submit Tribute'}
-            </button>
-          </div>
-        )}
-
+      {/* ════════════════════════════════════════════════════
+          ZONE 3 — FIXED BOTTOM CTA
+      ════════════════════════════════════════════════════ */}
+      <div
+        onClick={() => {
+          setFormOpen(o => !o)
+          if (!formOpen) setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+        }}
+        style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+          background: 'linear-gradient(135deg, ' + P.gold + ', #C9A84E)',
+          textAlign: 'center', padding: '11px 24px', cursor: 'pointer',
+          boxShadow: '0 -2px 16px rgba(226,195,107,0.2)',
+        }}
+      >
+        <span style={{
+          color: P.bg1, fontWeight: 700, fontSize: '13px',
+          letterSpacing: '0.06em',
+          fontFamily: "'DM Sans', sans-serif",
+        }}>
+          {formOpen ? '✕ Close' : '✦ Add Your Tribute'}
+        </span>
       </div>
 
     </div>
