@@ -24,7 +24,7 @@ export default function TributeMap({ pins }: TributeMapProps) {
       ]
     : [20, 0]
 
-  const zoom = pins.length === 0 ? 1
+  const zoom = pins.length === 0 ? 2
     : pins.length === 1 ? 4
     : 2
 

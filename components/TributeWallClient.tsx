@@ -458,10 +458,22 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
           <TributeMap pins={pins} />
         </div>
 
+        {/* Honouree photo — low opacity behind the map */}
+<div style={{
+  position: 'absolute', inset: 0, zIndex: 1,
+  backgroundImage: capsule.hero_image_url
+    ? 'url(' + capsule.hero_image_url + ')'
+    : 'url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80)',
+  backgroundSize: 'cover',
+  backgroundPosition: 'center top',
+  opacity: capsule.hero_image_url ? 0.25 : 0.12,
+  mixBlendMode: 'luminosity',
+}} />
+
         {/* Gradient veil — softer than before */}
         <div style={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(to bottom, rgba(26,16,53,0.45) 0%, rgba(26,16,53,0.25) 35%, rgba(26,16,53,0.8) 85%, ' + P.bg1 + ' 100%)',
+          position: 'absolute', inset: 0, zIndex: 2,
+          background: 'linear-gradient(to bottom, rgba(13,8,32,0.6) 0%, rgba(13,8,32,0.55) 40%, rgba(13,8,32,0.85) 85%, ' + P.bg1 + ' 100%)',
           pointerEvents: 'none',
         }} />
 
