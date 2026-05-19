@@ -79,9 +79,9 @@ interface Contribution {
   country: string
   relationship: string | null
   tribute_text: string
-  photo_url: string | null
-  latitude: number | null
-  longitude: number | null
+thumbnail_url: string | null
+lat: number | null
+lng: number | null
   status: string
   email: string | null
   created_at: string
@@ -152,8 +152,8 @@ function TributeCard({
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
 
         {/* Avatar */}
-        {c.photo_url ? (
-          <img src={c.photo_url} alt="" style={{
+{c.thumbnail_url ? (
+  <img src={c.thumbnail_url} alt="" style={{
             width: '32px', height: '32px', borderRadius: '50%',
             objectFit: 'cover', flexShrink: 0,
           }} />
@@ -284,10 +284,10 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
 
   // Map pins
   const mapPins = allContributions
-    .filter(c => c.status === 'approved' && c.latitude && c.longitude)
-    .map(c => ({
-      lat: c.latitude as number,
-      lng: c.longitude as number,
+.filter(c => c.status === 'approved' && c.lat && c.lng)
+.map(c => ({
+  lat: c.lat as number,
+  lng: c.lng as number,
       name: c.contributor_name,
       country: c.country,
     }))
@@ -325,7 +325,7 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
   const poll = useCallback(async () => {
     const { data } = await supabase
       .from('contributions')
-      .select('id, contributor_name, city, country, relationship, tribute_text, photo_url, latitude, longitude, status, email, created_at')
+   .select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, lat, lng, status, email, created_at')
       .eq('capsule_id', capsule.id)
       .order('created_at', { ascending: false })
     if (data) setAllContributions(data as Contribution[])
@@ -426,9 +426,9 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
           relationship: fRelationship.trim() || null,
           tribute_text: fMessage.trim(),
           email: fEmail.trim() || null,
-          photo_url: photoUrl,
-          latitude: coords?.lat ?? null,
-          longitude: coords?.lng ?? null,
+thumbnail_url: photoUrl,
+lat: coords?.lat ?? null,
+lng: coords?.lng ?? null,
           status: 'pending_review',
         })
         .select('id')

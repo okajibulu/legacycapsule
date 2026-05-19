@@ -58,11 +58,11 @@ function formatDate(dateStr: string | null): string {
 // ============================================================
 
 interface PageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export default async function ProfilePage({ params }: PageProps) {
-  const { slug } = params;
+  const { slug } = await params;
 
   // ── 2.1  Fetch capsule ────────────────────────────────────
   const { data: capsule, error } = await adminClient
@@ -361,7 +361,8 @@ export default async function ProfilePage({ params }: PageProps) {
 // SECTION 3 — Metadata
 // ============================================================
 
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
   const adminClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -369,7 +370,7 @@ export async function generateMetadata({ params }: PageProps) {
   const { data } = await adminClient
     .from('capsules')
     .select('honouree_name, event_tag, event_type')
-    .eq('slug', params.slug)
+   .eq('slug', slug)
     .maybeSingle();
 
   if (!data) return { title: 'Profile | LegacyCapsule' };

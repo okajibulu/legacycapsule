@@ -89,7 +89,7 @@ export default async function TributeWallPage({
 
   const { data: contributions } = await adminClient
     .from('contributions')
-    .select('id, contributor_name, city, country, relationship, tribute_text, photo_url, latitude, longitude, created_at')
+    .select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, lat, lng, status, email, created_at')
     .eq('capsule_id', capsule.id)
 .in('status', ['approved', 'pending_review', 'pending'])
     .order('created_at', { ascending: false })
