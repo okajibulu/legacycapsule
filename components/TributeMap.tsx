@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
 import { MapContainer, TileLayer, CircleMarker, Tooltip } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -16,7 +15,6 @@ interface TributeMapProps {
 }
 
 export default function TributeMap({ pins }: TributeMapProps) {
-  // Calculate centre and zoom from pins
   const centre: [number, number] = pins.length > 0
     ? [
         pins.reduce((s, p) => s + p.lat, 0) / pins.length,
@@ -24,20 +22,23 @@ export default function TributeMap({ pins }: TributeMapProps) {
       ]
     : [20, 0]
 
-const zoom = 2
+  const bounds: [[number, number], [number, number]] = [[-90, -180], [90, 180]]
 
   return (
     <MapContainer
       center={centre}
-      zoom={zoom}
-       minZoom={2}
-  maxZoom={2}
+      zoom={2}
+      minZoom={2}
+      maxZoom={2}
+      maxBounds={bounds}
+      maxBoundsViscosity={1.0}
       style={{ width: '100%', height: '100%', background: '#0D0820' }}
       zoomControl={false}
       scrollWheelZoom={false}
       dragging={false}
       attributionControl={false}
-        worldCopyJump={false}>
+      worldCopyJump={false}
+    >
       <TileLayer
         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
       />
@@ -51,7 +52,8 @@ const zoom = 2
             fillOpacity: 0.9,
             color: '#D4AE2A',
             weight: 1.5,
-          }}>
+          }}
+        >
           <Tooltip>
             <span style={{ fontSize: '11px' }}>
               {pin.name} · {pin.country}
