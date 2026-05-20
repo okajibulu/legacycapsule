@@ -38,8 +38,7 @@ const ORNAMENTS: Record<string, string> = {
   'Thanksgiving Service': '🙏', 'Conference': '🎙️', 'Other': '✦',
 }
 
-const [mounted, setMounted] = useState(false)
-useEffect(() => setMounted(true), [])
+
 
 // ── Palette — rich amethyst, warm gold, breathing ────────────
 const P = {
@@ -523,24 +522,25 @@ const validate = () => {
 {/* ── SECTION: HONOUREE PHOTO BACKDROP ─────────── */}
 <div style={{
   position: 'absolute', inset: 0, zIndex: 1,
-  backgroundImage: 'url(' + (capsule.hero_image_url || 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=1400&auto=format&fit=crop&q=60') + ')',
-  backgroundSize: 'cover',
-  backgroundPosition: 'center',
-  opacity: capsule.hero_image_url ? 0.3 : 0.15,
+backgroundImage: capsule.hero_image_url
+  ? 'url(' + capsule.hero_image_url + ')'
+  : undefined,
+backgroundSize: 'cover',
+backgroundPosition: 'center',
+opacity: 0.3,
 }} />
 
         {/* Gradient veil — softer than before */}
         <div style={{
           position: 'absolute', inset: 0, zIndex: 5,
-          background: 'linear-gradient(to bottom, rgba(13,8,32,0.6) 0%, rgba(13,8,32,0.55) 40%, rgba(13,8,32,0.85) 85%, ' + P.bg1 + ' 100%)',
+background: 'linear-gradient(to bottom, rgba(13,8,32,0.55) 0%, rgba(13,8,32,0.45) 30%, rgba(13,8,32,0.75) 75%, ' + P.bg1 + ' 100%)',
           pointerEvents: 'none',
         }} />
 
  {/* ── SECTION: HERO CONTENT ────────────────────── */}
 <div style={{
   position: 'relative', zIndex: 20,
-  opacity: mounted ? 1 : 0,
-  transition: 'opacity 0.3s ease',
+
   height: '100%',
   display: 'flex', flexDirection: 'column',
   alignItems: 'center', justifyContent: 'center',
