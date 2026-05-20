@@ -145,7 +145,7 @@ function TributeCard({
         ? 'border-yellow-400/30 bg-white/8'
         : 'border-white/10 bg-white/5'
     }`}>
-      <div className="py-1.5 px-2.5">
+      <div className="py-2 px-3">
 
         {/* ── Card header ──────────────────────────── */}
         <div className="flex justify-between items-center gap-1 w-full mb-0.5">
@@ -453,7 +453,7 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
     <main className="h-screen flex flex-col w-full max-w-lg mx-auto overflow-hidden"
       style={{ background: 'linear-gradient(to bottom, #0a0010, #100018)' }}>
 
-      {/* ═══════════════════════════════════════════════════
+{/* ═══════════════════════════════════════════════════
           SECTION 10 — TOP BAR
           Logo left · To Profile pill right
       ═══════════════════════════════════════════════════ */}
@@ -481,14 +481,15 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
             : undefined,
           backgroundColor: capsule.hero_image_url ? undefined : '#0D0820',
         }}
-      >
+      ></div>
         {/* Layered overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/45 to-black/80 pointer-events-none" />
         <div className="absolute inset-0 shadow-[inset_0_0_60px_rgba(0,0,0,0.5)] pointer-events-none" />
         {/* Gold top rule */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-yellow-400/70 to-transparent" />
 
-        <div className="relative z-10 px-3 pt-1.5 pb-2 space-y-1.5">
+        <div className="relative z-10 px-3 pt-1.5 pb-2">
+          <div className="flex flex-col gap-1.5">
 
           {/* Ornament + Title */}
           <div className="text-center space-y-0.5">
@@ -603,30 +604,34 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
               </div>
             </div>
 
-            {/* Row 3 — Message + Submit */}
+{/* Row 3 — Message + counter + Submit */}
             <div className="flex gap-1.5 items-start">
-              <div className="flex-1">
+              {/* Tribute textarea — fixed width, not flex-1 */}
+              <div style={{ flex: '0 0 60%' }}>
                 <textarea
-                  className={inputBase + ' min-h-[36px] max-h-[72px] resize-none leading-snug py-1.5'}
-                  placeholder={'Leave your tribute for ' + honourName + '…'}
+                  className={inputBase + ' min-h-[36px] max-h-[72px] resize-none leading-snug py-1.5 w-full'}
+                  placeholder={'Tribute for ' + honourName + '…'}
                   value={fMsg}
                   onChange={e => setFMsg(e.target.value)}
                   maxLength={MAX_CHARS}
                   rows={2}
                 />
-                <div className="flex justify-between items-center mt-0.5 px-1">
-                  {errors.msg
-                    ? <p className="text-[10px] text-red-400">{errors.msg}</p>
-                    : <span />}
-                  <span className={`text-[10px] ${fMsg.length > 900 ? 'text-yellow-400' : 'text-white/25'}`}>
-                    {fMsg.length}/{MAX_CHARS}
-                  </span>
-                </div>
+                {errors.msg && (
+                  <p className="text-[10px] text-red-400 mt-0.5 pl-1">{errors.msg}</p>
+                )}
               </div>
+              {/* Counter — vertical centre */}
+              <div className="flex flex-col items-center justify-center pt-1" style={{ flex: '0 0 auto' }}>
+                <span className={`text-[10px] tabular-nums ${fMsg.length > 900 ? 'text-yellow-400' : 'text-white/25'}`}>
+                  {fMsg.length}
+                </span>
+                <span className="text-[8px] text-white/15">/{MAX_CHARS}</span>
+              </div>
+              {/* Submit button */}
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="flex-shrink-0 mt-0.5 px-4 py-2 rounded-lg font-bold text-sm bg-gradient-to-b from-yellow-400 to-yellow-500 text-purple-950 border border-yellow-300/50 shadow-[0_0_10px_rgba(234,179,8,0.4),inset_0_1px_0_rgba(255,255,255,0.35)] hover:from-yellow-300 hover:to-yellow-400 hover:shadow-[0_0_18px_rgba(234,179,8,0.7)] active:scale-[0.97] transition-all duration-150 disabled:opacity-60"
+                className="flex-shrink-0 px-3 py-2 rounded-lg font-bold text-sm bg-gradient-to-b from-yellow-400 to-yellow-500 text-purple-950 border border-yellow-300/50 shadow-[0_0_10px_rgba(234,179,8,0.4),inset_0_1px_0_rgba(255,255,255,0.35)] hover:from-yellow-300 hover:to-yellow-400 hover:shadow-[0_0_18px_rgba(234,179,8,0.7)] active:scale-[0.97] transition-all duration-150 disabled:opacity-60 self-start"
               >
                 {submitting ? '…' : 'Submit'}
               </button>
@@ -662,7 +667,7 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
           SECTION 12 — MAP BAND (frozen, flex-shrink-0)
           Gold border · rounded · full world view · pin count
       ═══════════════════════════════════════════════════ */}
-      <div className="flex-shrink-0 mx-3 my-1.5 relative" style={{ height: '120px' }}>
+      <div className="flex-shrink-0 mx-3 my-1.5 relative" style={{ height: '150px' }}>
         <div className="w-full h-full rounded-xl overflow-hidden border border-yellow-400/25 shadow-[0_2px_12px_rgba(0,0,0,0.4)]">
           <TributeMap pins={pins} />
         </div>
@@ -699,7 +704,7 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
       {/* ═══════════════════════════════════════════════════
           SECTION 14 — SCROLLABLE TRIBUTE CARDS
       ═══════════════════════════════════════════════════ */}
-      <div className="flex-1 overflow-y-auto px-2 py-1 space-y-1.5 scrollbar-thin scrollbar-thumb-yellow-400/20 scrollbar-track-transparent">
+      <div className="flex-1 overflow-y-auto px-2 py-2 space-y-2 scrollbar-thin scrollbar-thumb-yellow-400/20 scrollbar-track-transparent">
 
         {visible.length === 0 && (
           <p className="text-center text-white/25 text-sm pt-8 tracking-wide">
