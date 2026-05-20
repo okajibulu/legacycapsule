@@ -2,7 +2,7 @@
 import { usePathname } from "next/navigation"
 import Navigation from "./Navigation"
 
-const HIDE_NAV = ["/event/", "/admin", "/book"]
+const HIDE_NAV = ["/event/", "/admin", "/book", "/for/", "/manage/"]
 
 export default function NavigationWrapper() {
   const pathname = usePathname()
