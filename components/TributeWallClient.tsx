@@ -713,9 +713,10 @@ const validate = () => {
     </button>
   </div>
 
-  {submitErr && <p style={{ color: P.red, fontSize: '11px', textAlign: 'center', margin: '2px 0 0' }}>{submitErr}</p>}
-
+{submitErr && <p style={{ color: P.red, fontSize: '11px', textAlign: 'center', margin: '2px 0 0' }}>{submitErr}</p>}
 </div>
+          </div>
+        </div>
 
         {/* Cards */}
         {visible.map(c => (
