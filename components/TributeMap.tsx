@@ -1,5 +1,12 @@
 'use client'
 
+/* =========================================================
+   TributeMap — v2
+   Full world view, Americas visible, decorative/locked.
+   Gold pins from IP-geocoded lat/lng on approved contributions.
+   Dynamic import only — never SSR (D43).
+========================================================= */
+
 import { MapContainer, TileLayer, CircleMarker, Tooltip } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -15,24 +22,26 @@ interface TributeMapProps {
 }
 
 export default function TributeMap({ pins }: TributeMapProps) {
-  const centre: [number, number] = pins.length > 0
-    ? [
-        pins.reduce((s, p) => s + p.lat, 0) / pins.length,
-        pins.reduce((s, p) => s + p.lng, 0) / pins.length,
-      ]
-    : [20, 0]
+  // Fixed centre — slightly north of equator, centred on 10°W
+  // This keeps Americas, Europe, Africa and Asia all visible at zoom 1
+  const centre: [number, number] = [20, 10]
 
-  const bounds: [[number, number], [number, number]] = [[-90, -180], [90, 180]]
+  // Hard bounds — full world, no repeat
+  const bounds: [[number, number], [number, number]] = [[-75, -175], [80, 185]]
 
   return (
     <MapContainer
       center={centre}
-      zoom={2}
-      minZoom={2}
-      maxZoom={2}
+      zoom={1}
+      minZoom={1}
+      maxZoom={1}
       maxBounds={bounds}
       maxBoundsViscosity={1.0}
-      style={{ width: '100%', height: '100%', background: '#0D0820' }}
+      style={{
+        width: '100%',
+        height: '100%',
+        background: '#130630',
+      }}
       zoomControl={false}
       scrollWheelZoom={false}
       dragging={false}
@@ -46,11 +55,11 @@ export default function TributeMap({ pins }: TributeMapProps) {
         <CircleMarker
           key={i}
           center={[pin.lat, pin.lng]}
-          radius={6}
+          radius={5}
           pathOptions={{
-            fillColor: '#B8960C',
+            fillColor: '#E2C36B',
             fillOpacity: 0.9,
-            color: '#D4AE2A',
+            color: '#F0D878',
             weight: 1.5,
           }}
         >
