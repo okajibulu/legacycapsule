@@ -138,13 +138,20 @@ function TributeCard({
   const canDelete = isOwn || isAdmin
 
   return (
-    <div className={`w-full rounded-xl border backdrop-blur-sm transition-all duration-200 ${
-      isPending
-        ? 'border-yellow-400/40 bg-yellow-400/5 shadow-[0_0_10px_rgba(234,179,8,0.1)]'
+<div style={{
+      width: '100%', borderRadius: '12px',
+      backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+      transition: 'all 0.2s',
+      backgroundColor: isPending
+        ? 'rgba(234,179,8,0.06)'
+        : 'rgba(255,255,255,0.07)',
+      border: '1px solid ' + (isPending
+        ? 'rgba(234,179,8,0.35)'
         : isOwn
-        ? 'border-yellow-400/30 bg-white/8'
-        : 'border-white/10 bg-white/5'
-    }`}>
+        ? 'rgba(234,179,8,0.25)'
+        : 'rgba(255,255,255,0.1)'),
+      boxShadow: isPending ? '0 0 10px rgba(234,179,8,0.08)' : 'none',
+    }}>
       <div className="py-2 px-3">
 
         {/* ── Card header ──────────────────────────── */}
@@ -458,8 +465,15 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
           Logo left · To Profile pill right
       ═══════════════════════════════════════════════════ */}
       <div className="flex-shrink-0 flex items-center justify-between px-3 pt-2 pb-1">
-        <Link href="/">
-          <LogoCapsule size="sm" />
+<Link href="/" style={{ textDecoration: 'none' }}>
+          <span style={{
+            fontSize: '13px', fontWeight: 800, letterSpacing: '0.04em',
+            background: 'linear-gradient(135deg, #E2C36B, #C9A84E)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            fontFamily: "'DM Sans', sans-serif",
+          }}>
+            LEGACY<span style={{ WebkitTextFillColor: 'rgba(255,255,255,0.5)', background: 'none' }}>CAPSULE</span>
+          </span>
         </Link>
         <span
           className="text-[10px] px-3 py-1 rounded-full border border-yellow-400/40 text-yellow-400/60 cursor-default tracking-wide"
@@ -621,11 +635,14 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
                 )}
               </div>
               {/* Counter — vertical centre */}
-              <div className="flex flex-col items-center justify-center pt-1" style={{ flex: '0 0 auto' }}>
-                <span className={`text-[10px] tabular-nums ${fMsg.length > 900 ? 'text-yellow-400' : 'text-white/25'}`}>
-                  {fMsg.length}
+<div style={{ flexShrink: 0, paddingTop: '6px', textAlign: 'center' }}>
+                <span style={{
+                  fontSize: '10px',
+                  color: fMsg.length > 900 ? '#E2C36B' : 'rgba(255,255,255,0.25)',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {fMsg.length}<span style={{ color: 'rgba(255,255,255,0.15)', fontSize: '9px' }}>/{MAX_CHARS}</span>
                 </span>
-                <span className="text-[8px] text-white/15">/{MAX_CHARS}</span>
               </div>
               {/* Submit button */}
               <button
@@ -667,8 +684,14 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
           SECTION 12 — MAP BAND (frozen, flex-shrink-0)
           Gold border · rounded · full world view · pin count
       ═══════════════════════════════════════════════════ */}
-      <div className="flex-shrink-0 mx-3 my-1.5 relative" style={{ height: '150px' }}>
-        <div className="w-full h-full rounded-xl overflow-hidden border border-yellow-400/25 shadow-[0_2px_12px_rgba(0,0,0,0.4)]">
+<div className="flex-shrink-0 mx-0 my-1.5 relative" style={{ height: '160px' }}>
+        <div style={{
+          position: 'absolute', top: 0, bottom: 0, left: '-12px', right: '-12px',
+          borderTop: '1px solid rgba(226,195,107,0.2)',
+          borderBottom: '1px solid rgba(226,195,107,0.2)',
+          overflow: 'hidden',
+        }}>        <div className="w-full h-full rounded-xl overflow-hidden border border-yellow-400/25 shadow-[0_2px_12px_rgba(0,0,0,0.4)]">
+         </div>
           <TributeMap pins={pins} />
         </div>
         {/* Pin/country overlay */}
