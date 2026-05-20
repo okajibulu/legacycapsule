@@ -1,7 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
-};
-module.exports = nextConfig;
-
-// rebuild trigger 20260518-1719
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/admin',
+        permanent: false,
+        has: [{ type: 'host', value: 'admin.revoworldtech.uk' }],
+      },
+    ]
+  },
+}
+module.exports = nextConfig

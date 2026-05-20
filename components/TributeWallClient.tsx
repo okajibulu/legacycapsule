@@ -358,8 +358,7 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
     }).catch(() => {})
     poll()
   }
-
-// ── SECTION: DELETE HANDLER ────────────────────────
+  // ── SECTION: DELETE HANDLER ────────────────────────
   const handleDelete = async (id: string) => {
     await supabase.from('contributions').delete().eq('id', id)
     poll()
@@ -367,7 +366,9 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
 
   // ── SECTION: EDIT HANDLER ──────────────────────────
   const handleEdit = async (id: string, text: string) => {
-    await supabase.from('contributions').update({ tribute_text: text }).eq('id', id)
+    await supabase.from('contributions')
+      .update({ tribute_text: text })
+      .eq('id', id)
     poll()
   }
 
