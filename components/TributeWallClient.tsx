@@ -321,11 +321,12 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
     r.readAsDataURL(c)
   }
 
-  const validate = () => {
+const validate = () => {
     const e: Record<string, string> = {}
     if (!fName.trim()) e.name = 'Required'
     if (!fCity.trim()) e.city = 'Required'
     if (!fCountry) e.country = 'Required'
+    if (!fEmail.trim() || !fEmail.includes('@')) e.email = 'Valid email required'
     if (fMsg.trim().length < MIN_CHARS) e.msg = MIN_CHARS + '+ chars'
     if (fMsg.trim().length > MAX_CHARS) e.msg = 'Too long'
     setErrors(e)
@@ -671,9 +672,10 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
     </div>
     <div style={{ flex: 1 }}>
       <input type="email" value={fEmail} onChange={e => setFEmail(e.target.value)}
-        placeholder="Email (keepsake)" style={inp}
+        placeholder="Email *" style={inp}
         onFocus={e => e.target.style.borderColor = P.gold}
         onBlur={e => e.target.style.borderColor = P.goldDim} />
+        {errors.email && <p style={{ color: P.red, fontSize: '10px', margin: '1px 0 0' }}>{errors.email}</p>}
     </div>
   </div>
 
