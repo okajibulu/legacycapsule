@@ -460,7 +460,7 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
 
         {/* Honouree photo — low opacity behind the map */}
 <div style={{
-  position: 'absolute', inset: 0, zIndex: 1,
+  position: 'absolute', inset: 0, zIndex: 0,
   backgroundImage: capsule.hero_image_url
     ? 'url(' + capsule.hero_image_url + ')'
     : 'url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80)',
@@ -472,14 +472,14 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
 
         {/* Gradient veil — softer than before */}
         <div style={{
-          position: 'absolute', inset: 0, zIndex: 2,
+          position: 'absolute', inset: 0, zIndex: 5,
           background: 'linear-gradient(to bottom, rgba(13,8,32,0.6) 0%, rgba(13,8,32,0.55) 40%, rgba(13,8,32,0.85) 85%, ' + P.bg1 + ' 100%)',
           pointerEvents: 'none',
         }} />
 
         {/* Content over map */}
         <div style={{
-          position: 'relative', zIndex: 10, height: '100%',
+          position: 'relative', zIndex: 20, height: '100%',
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
           padding: '0 24px', textAlign: 'center',
@@ -589,127 +589,131 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
             borderRadius: '10px',
             padding: '16px',
           }}>
-            <p style={{
-              fontSize: '10px', color: P.gold, letterSpacing: '0.18em',
-              textTransform: 'uppercase', marginBottom: '10px', textAlign: 'center',
-            }}>
-              Leave a tribute for {name}
-            </p>
+<p style={{
+  fontSize: '10px', color: P.gold, letterSpacing: '0.18em',
+  textTransform: 'uppercase', marginBottom: '10px', textAlign: 'center',
+}}>
+  Leave a tribute for {name}
+</p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
 
-              {/* Name + photo button */}
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                <div style={{ flex: 1 }}>
-                  <input type="text" value={fName} onChange={e => setFName(e.target.value)}
-                    placeholder="Your name *" style={inp}
-                    onFocus={e => e.target.style.borderColor = P.gold}
-                    onBlur={e => e.target.style.borderColor = P.goldDim} />
-                  {errors.name && <p style={{ color: P.red, fontSize: '10px', margin: '2px 0 0' }}>{errors.name}</p>}
-                </div>
-                <div onClick={() => photoRef.current?.click()} title={fPhotoPreview ? 'Change photo' : 'Add photo'}
-                  style={{
-                    width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0,
-                    border: '1.5px dashed ' + P.goldDim,
-                    backgroundColor: 'rgba(255,255,255,0.04)', cursor: 'pointer',
-                    overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'border-color 0.2s',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = P.gold}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = P.goldDim}
-                >
-                  {fPhotoPreview
-                    ? <img src={fPhotoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <span style={{ color: P.goldDim, fontSize: '14px' }}>+</span>
-                  }
-                </div>
-                <input ref={photoRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: 'none' }} />
-              </div>
+  {/* Row 1 — Name + Relationship + photo button */}
+  <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
+    <div style={{ flex: 1 }}>
+      <input type="text" value={fName} onChange={e => setFName(e.target.value)}
+        placeholder="Your name *" style={inp}
+        onFocus={e => e.target.style.borderColor = P.gold}
+        onBlur={e => e.target.style.borderColor = P.goldDim} />
+      {errors.name && <p style={{ color: P.red, fontSize: '10px', margin: '1px 0 0' }}>{errors.name}</p>}
+    </div>
+    <div style={{ flex: 1 }}>
+      <input type="text" value={fRel} onChange={e => setFRel(e.target.value)}
+        placeholder="Relationship" style={inp}
+        onFocus={e => e.target.style.borderColor = P.gold}
+        onBlur={e => e.target.style.borderColor = P.goldDim} />
+    </div>
+    {/* Photo circle */}
+    <div onClick={() => photoRef.current?.click()}
+      title={fPhotoPreview ? 'Change photo' : 'Add photo'}
+      style={{
+        width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0,
+        border: '1.5px dashed ' + P.goldDim,
+        backgroundColor: 'rgba(255,255,255,0.04)', cursor: 'pointer',
+        overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+      onMouseEnter={e => e.currentTarget.style.borderColor = P.gold}
+      onMouseLeave={e => e.currentTarget.style.borderColor = P.goldDim}
+    >
+      {fPhotoPreview
+        ? <img src={fPhotoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        : <span style={{ color: P.goldDim, fontSize: '14px' }}>+</span>
+      }
+    </div>
+    <input ref={photoRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: 'none' }} />
+  </div>
 
-              {/* City + Country */}
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <div style={{ flex: 1 }}>
-                  <input type="text" value={fCity} onChange={e => setFCity(e.target.value)}
-                    placeholder="City *" style={inp}
-                    onFocus={e => e.target.style.borderColor = P.gold}
-                    onBlur={e => e.target.style.borderColor = P.goldDim} />
-                  {errors.city && <p style={{ color: P.red, fontSize: '10px', margin: '2px 0 0' }}>{errors.city}</p>}
-                </div>
-                <div style={{ flex: 1, position: 'relative' }} ref={countryRef}>
-                  <input type="text" value={fCountry || countryQ}
-                    onChange={e => { setCountryQ(e.target.value); setFCountry(''); setShowCountries(true) }}
-                    onFocus={() => setShowCountries(true)}
-                    placeholder="Country *" style={inp} />
-                  {errors.country && <p style={{ color: P.red, fontSize: '10px', margin: '2px 0 0' }}>{errors.country}</p>}
-                  {showCountries && (
-                    <div style={{
-                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20,
-                      maxHeight: '140px', overflowY: 'auto',
-                      backgroundColor: P.bg2, border: '1px solid ' + P.goldDim,
-                      borderRadius: '6px', marginTop: '3px',
-                    }}>
-                      {filtered.map(c => (
-                        <div key={c}
-                          onClick={() => { setFCountry(c); setCountryQ(''); setShowCountries(false) }}
-                          style={{
-                            padding: '6px 10px', fontSize: '12px', color: P.white60,
-                            cursor: 'pointer', borderBottom: '1px solid ' + P.white10,
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.backgroundColor = P.goldGlow}
-                          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                        >{c}</div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Message */}
-              <div>
-                <textarea rows={3} value={fMsg} onChange={e => setFMsg(e.target.value)}
-                  placeholder={'Your tribute for ' + name + ' *'}
-                  style={{ ...inp, resize: 'none', lineHeight: '1.5' }}
-                  onFocus={e => e.target.style.borderColor = P.gold}
-                  onBlur={e => e.target.style.borderColor = P.goldDim} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1px' }}>
-                  {errors.msg ? <span style={{ color: P.red, fontSize: '10px' }}>{errors.msg}</span> : <span />}
-                  <span style={{
-                    fontSize: '10px',
-                    color: fMsg.length > MAX_CHARS ? P.red : fMsg.length >= MIN_CHARS ? P.goldDim : P.white25,
-                  }}>{fMsg.length}/{MAX_CHARS}</span>
-                </div>
-              </div>
-
-              {/* Relationship + Email on one row */}
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input type="text" value={fRel} onChange={e => setFRel(e.target.value)}
-                  placeholder="Relationship" style={{ ...inp, flex: 1 }}
-                  onFocus={e => e.target.style.borderColor = P.gold}
-                  onBlur={e => e.target.style.borderColor = P.goldDim} />
-                <input type="email" value={fEmail} onChange={e => setFEmail(e.target.value)}
-                  placeholder="Email (keepsake)" style={{ ...inp, flex: 1 }}
-                  onFocus={e => e.target.style.borderColor = P.gold}
-                  onBlur={e => e.target.style.borderColor = P.goldDim} />
-              </div>
-
-              {submitErr && <p style={{ color: P.red, fontSize: '11px', textAlign: 'center' }}>{submitErr}</p>}
-
-              {/* Submit */}
-              <button onClick={handleSubmit} disabled={submitting} style={{
-                width: '100%', padding: '10px', borderRadius: '8px',
-                background: 'linear-gradient(135deg, ' + P.gold + ', #C9A84E)',
-                border: 'none', color: P.bg1, fontWeight: 700,
-                fontSize: '13px', cursor: submitting ? 'wait' : 'pointer',
-                opacity: submitting ? 0.7 : 1,
-                fontFamily: "'DM Sans', sans-serif",
-                letterSpacing: '0.03em',
-                transition: 'opacity 0.2s',
-              }}>
-                {submitting ? 'Sending…' : 'Submit Tribute'}
-              </button>
-            </div>
-          </div>
+  {/* Row 2 — City + Country + Email */}
+  <div style={{ display: 'flex', gap: '6px' }}>
+    <div style={{ flex: 1 }}>
+      <input type="text" value={fCity} onChange={e => setFCity(e.target.value)}
+        placeholder="City *" style={inp}
+        onFocus={e => e.target.style.borderColor = P.gold}
+        onBlur={e => e.target.style.borderColor = P.goldDim} />
+      {errors.city && <p style={{ color: P.red, fontSize: '10px', margin: '1px 0 0' }}>{errors.city}</p>}
+    </div>
+    <div style={{ flex: 1, position: 'relative' }} ref={countryRef}>
+      <input type="text" value={fCountry || countryQ}
+        onChange={e => { setCountryQ(e.target.value); setFCountry(''); setShowCountries(true) }}
+        onFocus={() => setShowCountries(true)}
+        placeholder="Country *" style={inp} />
+      {errors.country && <p style={{ color: P.red, fontSize: '10px', margin: '1px 0 0' }}>{errors.country}</p>}
+      {showCountries && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20,
+          maxHeight: '140px', overflowY: 'auto',
+          backgroundColor: P.bg2, border: '1px solid ' + P.goldDim,
+          borderRadius: '6px', marginTop: '3px',
+        }}>
+          {filtered.map(c => (
+            <div key={c}
+              onClick={() => { setFCountry(c); setCountryQ(''); setShowCountries(false) }}
+              style={{
+                padding: '6px 10px', fontSize: '12px', color: P.white60,
+                cursor: 'pointer', borderBottom: '1px solid ' + P.white10,
+              }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = P.goldGlow}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+            >{c}</div>
+          ))}
         </div>
+      )}
+    </div>
+    <div style={{ flex: 1 }}>
+      <input type="email" value={fEmail} onChange={e => setFEmail(e.target.value)}
+        placeholder="Email (keepsake)" style={inp}
+        onFocus={e => e.target.style.borderColor = P.gold}
+        onBlur={e => e.target.style.borderColor = P.goldDim} />
+    </div>
+  </div>
+
+  {/* Row 3 — Message + Submit side by side */}
+  <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
+    <div style={{ flex: 1 }}>
+      <textarea rows={2} value={fMsg} onChange={e => setFMsg(e.target.value)}
+        placeholder={'Your tribute for ' + name + ' *'}
+        style={{ ...inp, resize: 'vertical', lineHeight: '1.5', minHeight: '38px' }}
+        onFocus={e => e.target.style.borderColor = P.gold}
+        onBlur={e => e.target.style.borderColor = P.goldDim} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1px' }}>
+        {errors.msg
+          ? <span style={{ color: P.red, fontSize: '10px' }}>{errors.msg}</span>
+          : <span />}
+        <span style={{
+          fontSize: '10px',
+          color: fMsg.length > MAX_CHARS ? P.red
+            : fMsg.length >= MIN_CHARS ? P.goldDim
+            : P.white25,
+        }}>{fMsg.length}/{MAX_CHARS}</span>
+      </div>
+    </div>
+    <button onClick={handleSubmit} disabled={submitting} style={{
+      flexShrink: 0, padding: '9px 16px', borderRadius: '8px',
+      background: 'linear-gradient(135deg, ' + P.gold + ', #C9A84E)',
+      border: 'none', color: P.bg1, fontWeight: 700,
+      fontSize: '12px', cursor: submitting ? 'wait' : 'pointer',
+      opacity: submitting ? 0.7 : 1,
+      fontFamily: "'DM Sans', sans-serif",
+      whiteSpace: 'nowrap', alignSelf: 'flex-start',
+      marginTop: '0px',
+    }}>
+      {submitting ? '…' : 'Submit'}
+    </button>
+  </div>
+
+  {submitErr && <p style={{ color: P.red, fontSize: '11px', textAlign: 'center', margin: '2px 0 0' }}>{submitErr}</p>}
+
+</div>
 
         {/* Cards */}
         {visible.map(c => (
