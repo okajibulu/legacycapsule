@@ -38,6 +38,9 @@ const ORNAMENTS: Record<string, string> = {
   'Thanksgiving Service': '🙏', 'Conference': '🎙️', 'Other': '✦',
 }
 
+const [mounted, setMounted] = useState(false)
+useEffect(() => setMounted(true), [])
+
 // ── Palette — rich amethyst, warm gold, breathing ────────────
 const P = {
   bg1: '#1A1035',
@@ -103,99 +106,144 @@ async function geocode(city: string, country: string) {
 // TRIBUTE CARD — warm white, gold left accent, compact
 // ─────────────────────────────────────────────────────────────
 function TributeCard({
-  c, isAdmin, isOwn, onApprove, isNew,
+  c, isAdmin, isOwn, onApprove, onDelete, onEdit, isNew,
 }: {
   c: Contribution; isAdmin: boolean; isOwn: boolean
-  onApprove: (id: string) => void; isNew?: boolean
+  onApprove: (id: string) => void
+  onDelete: (id: string) => void
+  onEdit: (id: string, text: string) => void
+  isNew?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editText, setEditText] = useState(c.tribute_text)
   const isLong = c.tribute_text.length > 300
   const text = isLong && !expanded ? c.tribute_text.slice(0, 300) + '…' : c.tribute_text
   const isPending = c.status === 'pending_review' || c.status === 'pending'
+  const canEdit = isOwn && isPending
+  const canDelete = isOwn || isAdmin
 
   return (
     <div style={{
-      backgroundColor: isPending ? 'rgba(226,195,107,0.06)' : P.card,
-      borderLeft: '3px solid ' + (isPending ? P.goldDim : P.gold),
-      borderRadius: '6px',
-      padding: '10px 14px 10px 14px',
-      marginBottom: '6px',
-      boxShadow: isPending ? 'none' : '0 1px 4px ' + P.cardShadow,
-      transition: 'all 0.4s ease',
-      animation: isNew ? 'fadeSlideIn 0.5s ease-out' : undefined,
-      ...(isPending ? { border: '1px dashed ' + P.goldDim, borderLeftWidth: '3px', borderLeftStyle: 'solid' } : {}),
+backgroundColor: isPending ? 'rgba(226,195,107,0.06)' : 'rgba(255,255,255,0.08)',
+backdropFilter: 'blur(12px)',
+WebkitBackdropFilter: 'blur(12px)',
+borderLeft: '3px solid ' + (isPending ? P.goldDim : P.gold),
+borderRadius: '6px',
+padding: '10px 14px',
+marginBottom: '6px',
+boxShadow: '0 2px 12px rgba(0,0,0,0.15)',      animation: isNew ? 'fadeSlideIn 0.5s ease-out' : undefined,
+      border: isPending ? '1px dashed ' + P.goldDim : undefined,
+      borderLeftWidth: '3px',
+      borderLeftStyle: 'solid',
+      borderLeftColor: isPending ? P.goldDim : P.gold,
     }}>
-      {/* Header — name, location, date. One row. */}
+
+      {/* ── Header row ─────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
         <span style={{
           fontFamily: "'Playfair Display', Georgia, serif",
           fontSize: '14px', fontWeight: 600,
-          color: isPending ? 'rgba(255,255,255,0.7)' : P.text,
-        }}>
+          color: isPending ? 'rgba(255,255,255,0.5)' : P.white90,        }}>
           {c.contributor_name}
         </span>
         {isOwn && (
-          <span style={{
-            fontSize: '8px', color: P.gold, textTransform: 'uppercase',
-            letterSpacing: '0.12em', fontWeight: 700,
-          }}>you</span>
+          <span style={{ fontSize: '8px', color: P.gold, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 700 }}>
+            you
+          </span>
         )}
-        <span style={{
-          fontSize: '11px',
-          color: isPending ? 'rgba(255,255,255,0.3)' : P.textLight,
-          marginLeft: 'auto', whiteSpace: 'nowrap',
-        }}>
+        <span style={{ fontSize: '11px', color: isPending ? 'rgba(255,255,255,0.3)' : P.white60, marginLeft: 'auto', whiteSpace: 'nowrap' }}>
           {c.city}{c.country ? ' · ' + c.country : ''}
         </span>
-        <span style={{
-          fontSize: '10px',
-          color: isPending ? 'rgba(255,255,255,0.2)' : '#B0ACBA',
-          whiteSpace: 'nowrap',
-        }}>
+        <span style={{ fontSize: '10px', color: isPending ? 'rgba(255,255,255,0.2)' : P.white60, whiteSpace: 'nowrap' }}>
           {formatTributeDate(c.created_at)}
         </span>
       </div>
 
-      {/* Message */}
-      <p style={{
-        fontSize: '13.5px', lineHeight: '1.6',
-        color: isPending ? 'rgba(255,255,255,0.55)' : P.text,
-        margin: 0, whiteSpace: 'pre-wrap',
-      }}>
-        {text}
-      </p>
+      {/* ── Message or edit field ───────────────────── */}
+      {editing ? (
+        <div>
+          <textarea
+            value={editText}
+            onChange={e => setEditText(e.target.value)}
+            rows={3}
+            style={{
+              width: '100%', padding: '6px 8px', borderRadius: '6px',
+              border: '1px solid ' + P.goldDim,
+              backgroundColor: 'rgba(255,255,255,0.06)',
+              color: P.white90, fontSize: '13px', resize: 'vertical',
+              fontFamily: "'DM Sans', sans-serif", outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+          <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+            <button onClick={() => { onEdit(c.id, editText); setEditing(false) }} style={{
+              fontSize: '11px', padding: '3px 10px', borderRadius: '6px',
+              backgroundColor: P.gold, border: 'none', color: P.bg1,
+              cursor: 'pointer', fontWeight: 700,
+            }}>Save</button>
+            <button onClick={() => { setEditing(false); setEditText(c.tribute_text) }} style={{
+              fontSize: '11px', padding: '3px 10px', borderRadius: '6px',
+              backgroundColor: 'transparent', border: '1px solid ' + P.white25,
+              color: P.white60, cursor: 'pointer',
+            }}>Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <p style={{
+          fontSize: '13.5px', lineHeight: '1.6',
+          color: isPending ? 'rgba(255,255,255,0.45)' : P.white90,
+          margin: 0, whiteSpace: 'pre-wrap',
+        }}>
+          {text}
+        </p>
+      )}
 
-      {isLong && (
+      {isLong && !editing && (
         <button onClick={() => setExpanded(e => !e)} style={{
           marginTop: '3px', fontSize: '11px', color: P.gold,
-          background: 'none', border: 'none', cursor: 'pointer',
-          padding: 0, fontWeight: 600,
+          background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600,
         }}>
           {expanded ? 'Less' : 'More'}
         </button>
       )}
 
-      {/* Pending badge + approve */}
-      {isPending && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '5px' }}>
-          <span style={{
-            fontSize: '9px', color: P.gold, letterSpacing: '0.1em',
-            textTransform: 'uppercase', fontWeight: 600,
-          }}>
+      {/* ── Actions row ────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '5px' }}>
+        {isPending && (
+          <span style={{ fontSize: '9px', color: P.gold, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>
             Pending
           </span>
-          {isAdmin && (
+        )}
+        <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
+          {canEdit && !editing && (
+            <button onClick={() => setEditing(true)} style={{
+              fontSize: '10px', padding: '2px 8px', borderRadius: '8px',
+              backgroundColor: 'transparent',
+              border: '1px solid ' + P.goldDim,
+              color: P.gold, cursor: 'pointer',
+            }}>Edit</button>
+          )}
+          {canDelete && !editing && (
+            <button onClick={() => {
+              if (window.confirm('Delete this tribute?')) onDelete(c.id)
+            }} style={{
+              fontSize: '10px', padding: '2px 8px', borderRadius: '8px',
+              backgroundColor: 'transparent',
+              border: '1px solid rgba(248,113,113,0.3)',
+              color: '#f87171', cursor: 'pointer',
+            }}>Delete</button>
+          )}
+          {isAdmin && isPending && !editing && (
             <button onClick={() => onApprove(c.id)} style={{
-              marginLeft: 'auto', fontSize: '10px', padding: '2px 10px',
-              borderRadius: '10px', backgroundColor: 'rgba(52,211,153,0.12)',
-              border: '1px solid rgba(52,211,153,0.3)', color: P.green,
-              cursor: 'pointer', fontWeight: 600,
-            }}>
-              Approve
-            </button>
+              fontSize: '10px', padding: '2px 10px', borderRadius: '8px',
+              backgroundColor: 'rgba(52,211,153,0.12)',
+              border: '1px solid rgba(52,211,153,0.3)',
+              color: P.green, cursor: 'pointer', fontWeight: 600,
+            }}>Approve</button>
           )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -308,6 +356,18 @@ export default function TributeWallClient({ capsule, initialContributions }: Pro
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contributionId: id }),
     }).catch(() => {})
+    poll()
+  }
+
+// ── SECTION: DELETE HANDLER ────────────────────────
+  const handleDelete = async (id: string) => {
+    await supabase.from('contributions').delete().eq('id', id)
+    poll()
+  }
+
+  // ── SECTION: EDIT HANDLER ──────────────────────────
+  const handleEdit = async (id: string, text: string) => {
+    await supabase.from('contributions').update({ tribute_text: text }).eq('id', id)
     poll()
   }
 
@@ -459,16 +519,13 @@ const validate = () => {
           <TributeMap pins={pins} />
         </div>
 
-        {/* Honouree photo — low opacity behind the map */}
+{/* ── SECTION: HONOUREE PHOTO BACKDROP ─────────── */}
 <div style={{
-  position: 'absolute', inset: 0, zIndex: 0,
-  backgroundImage: capsule.hero_image_url
-    ? 'url(' + capsule.hero_image_url + ')'
-    : 'url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80)',
+  position: 'absolute', inset: 0, zIndex: 1,
+  backgroundImage: 'url(' + (capsule.hero_image_url || 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=1400&auto=format&fit=crop&q=60') + ')',
   backgroundSize: 'cover',
-  backgroundPosition: 'center top',
-  opacity: capsule.hero_image_url ? 0.25 : 0.12,
-  mixBlendMode: 'luminosity',
+  backgroundPosition: 'center',
+  opacity: capsule.hero_image_url ? 0.3 : 0.15,
 }} />
 
         {/* Gradient veil — softer than before */}
@@ -478,14 +535,16 @@ const validate = () => {
           pointerEvents: 'none',
         }} />
 
-        {/* Content over map */}
-        <div style={{
-          position: 'relative', zIndex: 20, height: '100%',
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          padding: '0 24px', textAlign: 'center',
-        }}>
-
+ {/* ── SECTION: HERO CONTENT ────────────────────── */}
+<div style={{
+  position: 'relative', zIndex: 20,
+  opacity: mounted ? 1 : 0,
+  transition: 'opacity 0.3s ease',
+  height: '100%',
+  display: 'flex', flexDirection: 'column',
+  alignItems: 'center', justifyContent: 'center',
+  padding: '0 24px', textAlign: 'center',
+}}>
           {/* Ornament */}
           <div style={{ fontSize: '28px', marginBottom: '10px', lineHeight: 1, opacity: 0.9 }}>
             {ornament}
@@ -719,14 +778,16 @@ const validate = () => {
         </div>
 
         {/* Cards */}
-        {visible.map(c => (
-          <TributeCard
-            key={c.id} c={c} isAdmin={isAdmin}
-            isOwn={visitorEmail !== '' && c.email?.toLowerCase() === visitorEmail.toLowerCase()}
-            onApprove={handleApprove}
-            isNew={c.id === newId}
-          />
-        ))}
+{visible.map(c => (
+  <TributeCard
+    key={c.id} c={c} isAdmin={isAdmin}
+    isOwn={visitorEmail !== '' && c.email?.toLowerCase() === visitorEmail.toLowerCase()}
+    onApprove={handleApprove}
+    onDelete={handleDelete}
+    onEdit={handleEdit}
+    isNew={c.id === newId}
+  />
+))}
 
         {visible.length === 0 && !formOpen && (
           <p style={{ textAlign: 'center', color: P.white25, fontSize: '13px', padding: '32px 0' }}>

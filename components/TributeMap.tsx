@@ -24,19 +24,20 @@ export default function TributeMap({ pins }: TributeMapProps) {
       ]
     : [20, 0]
 
-  const zoom = pins.length === 0 ? 2
-    : pins.length === 1 ? 4
-    : 2
+const zoom = 2
 
   return (
     <MapContainer
       center={centre}
       zoom={zoom}
+       minZoom={2}
+  maxZoom={2}
       style={{ width: '100%', height: '100%', background: '#0D0820' }}
       zoomControl={false}
       scrollWheelZoom={false}
       dragging={false}
-      attributionControl={false}>
+      attributionControl={false}
+        worldCopyJump={false}>
       <TileLayer
         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
       />
