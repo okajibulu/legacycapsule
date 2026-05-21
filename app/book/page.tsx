@@ -1,21 +1,51 @@
 'use client'
 
+/* =========================================================
+   BOOKING FLOW — /book
+   Premium rebuild. Two paths. Purple/gold theme.
+   All Stripe logic preserved intact.
+
+   SCREENS:
+   0  — Path chooser (Free / Build Your Capsule / Gift)
+   1  — Event type (styled dropdown)
+   2  — Capsule details (name, tag, email, slug)
+   3  — Package / component selector (Path 2 only)
+   4  — Verification code entry
+   5  — Live confirmation
+
+   SECTION MAP:
+   1.  Imports & types
+   2.  Constants
+   3.  Helpers (slug, labels, placeholders)
+   4.  Shared primitives
+   5.  Main component
+   6.  — State
+   7.  — Effects
+   8.  — Handlers
+   9.  — Screen renders
+       9a. Screen 0 — Path chooser
+       9b. Screen 1 — Event type
+       9c. Screen 2 — Details
+       9d. Screen 3 — Package selector (Path 2)
+       9e. Screen 4 — Verify code
+       9f. Screen 5 — Confirmed
+   10. Suspense wrapper export
+========================================================= */
+
+/* =========================================================
+   SECTION 1 — IMPORTS & TYPES
+========================================================= */
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
-import LogoCapsule from '@/components/LogoCapsule'
-const supabase = createClient(
 
+const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
-// ── Types ────────────────────────────────────────────────────────────────────────────────────────
-interface ContentMap {
-  [key: string]: string
-}
 
-
+interface ContentMap { [key: string]: string }
 
 interface TierData {
   name: string
@@ -27,8 +57,11 @@ interface TierData {
   pricing_key: string
 }
 
-// ── Event types ───────────────────────────────────────────────────────────────
+type Path = 'free' | 'build' | 'gift' | ''
 
+/* =========================================================
+   SECTION 2 — CONSTANTS
+========================================================= */
 const EVENT_TYPES = [
   { emoji: '🏆', label: 'Retirement' },
   { emoji: '🕊️', label: 'Memorial & Funeral' },
@@ -44,1156 +77,1192 @@ const EVENT_TYPES = [
   { emoji: '✨', label: 'Other Event' },
 ]
 
-// ── Shared layout primitives ──────────────────────────────────────────────────
+// Design tokens
+const pageBg = 'linear-gradient(160deg, #0f0a1e 0%, #1a0845 45%, #120630 100%)'
+const gold = '#E2C36B'
+const goldBtn = 'linear-gradient(135deg, #E2C36B 0%, #C9A84E 100%)'
+const cardBorder = 'rgba(226,195,107,0.15)'
+const textPrimary = 'rgba(255,255,255,0.92)'
+const textSecondary = 'rgba(255,255,255,0.50)'
+const textFaint = 'rgba(255,255,255,0.28)'
 
-const BG = 'min-h-screen bg-[linear-gradient(160deg,#0D0820_0%,#1A0F3E_50%,#0D0820_100%)]'
+/* =========================================================
+   SECTION 3 — HELPERS
+========================================================= */
+function toSlug(str: string): string {
+  return str.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-').slice(0, 60)
+}
 
-function ScreenShell({ children }: { children: React.ReactNode }) {
+function getHonoureeLabel(eventType: string): string {
+  switch (eventType) {
+    case 'Wedding': return 'Names of the couple'
+    case 'Memorial & Funeral': return 'In memory of'
+    case 'Milestone Birthday': return 'Who is this celebration for'
+    case 'Graduation': return "Graduate's full name"
+    case 'Ordination': return "Ordinand's full name"
+    case 'Chieftaincy': return "Title holder's full name"
+    case 'Conference': return 'Conference or organisation name'
+    default: return 'Name of the person being celebrated'
+  }
+}
+
+function getHonoureePlaceholder(eventType: string): string {
+  switch (eventType) {
+    case 'Wedding': return 'e.g. James Whitfield & Elena Fontaine'
+    case 'Conference': return 'e.g. Global Leadership Summit 2026'
+    case 'Chieftaincy': return 'e.g. Chief James Alexander Whitfield'
+    case 'Ordination': return 'e.g. Reverend James Alexander Whitfield'
+    case 'Graduation': return 'e.g. Dr. James Alexander Whitfield'
+    default: return 'e.g. James Alexander Whitfield'
+  }
+}
+
+function getEventTagPlaceholder(eventType: string): string {
+  switch (eventType) {
+    case 'Retirement': return 'e.g. 35 Years of Dedication'
+    case 'Memorial & Funeral': return 'e.g. Forever in Our Hearts'
+    case 'Wedding': return 'e.g. United in Love'
+    case 'Milestone Birthday': return 'e.g. 80 Glorious Years'
+    case 'Anniversary': return 'e.g. Fifty Years of Us'
+    case 'Graduation': return 'e.g. The Future Begins'
+    case 'Ordination': return 'e.g. Called to Serve'
+    case 'Chieftaincy': return 'e.g. A New Season of Leadership'
+    case 'Award Ceremony': return 'e.g. Celebrating Excellence'
+    case 'Thanksgiving Service': return 'e.g. Gratitude and Grace'
+    case 'Conference': return 'e.g. Ideas That Move the World'
+    default: return 'e.g. A Moment Worth Preserving'
+  }
+}
+
+/* =========================================================
+   SECTION 4 — SHARED PRIMITIVES
+========================================================= */
+function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`${BG} flex flex-col`}>
-      <div className="min-h-screen flex flex-col items-center px-4 pb-16 pt-8">
+    <div style={{ minHeight: '100vh', background: pageBg, fontFamily: "'DM Sans', sans-serif" }}>
+      <div style={{
+        minHeight: '100vh', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', padding: '0 16px 80px',
+      }}>
         {children}
       </div>
     </div>
   )
 }
 
-function BookingLogo() {
+function BookLogo() {
   return (
-    <div className="mb-6 flex justify-center">
-      <LogoCapsule size="md" />
-    </div>
+    <Link href="/" style={{ textDecoration: 'none', display: 'block', textAlign: 'center', padding: '28px 0 20px' }}>
+      <span style={{
+        fontSize: '13px', fontWeight: 800, letterSpacing: '0.18em',
+        background: 'linear-gradient(135deg, #E2C36B, #C9A84E)',
+        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+      }}>LEGACY</span>
+      <span style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.28)', marginLeft: '0.1em' }}>CAPSULE</span>
+    </Link>
   )
 }
 
-function GoldDivider() {
+function GoldRule() {
   return (
-    <div className="w-full max-w-xl mx-auto my-6"
-      style={{ height: '2px', background: 'linear-gradient(90deg, transparent, #B8960C99, transparent)' }} />
+    <div style={{
+      width: '100%', maxWidth: '480px', height: '1px', margin: '20px auto',
+      background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.35), transparent)',
+    }} />
   )
 }
 
-function ProgressBar({ step, total = 4 }: { step: number; total?: number }) {
-  const pct = (step / total) * 100
+function StepBar({ step, total = 4 }: { step: number; total?: number }) {
   return (
-    <div className="w-full max-w-xl mx-auto mb-6">
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-yellow-400/70 font-medium"
-          style={{ fontFamily: 'var(--font-accent, "Cormorant SC", serif)' }}>
+    <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto 28px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+        <span style={{ fontSize: '10px', color: 'rgba(226,195,107,0.55)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
           Step {step} of {total}
         </span>
       </div>
-      <div className="h-[3px] w-full rounded-full bg-white/8">
-        <div
-          className="h-full rounded-full transition-all duration-700"
-          style={{
-            width: `${pct}%`,
-            background: 'linear-gradient(90deg, #B8960C, #D4AE2A)',
-            boxShadow: '0 0 8px #B8960C88',
-          }}
-        />
+      <div style={{ height: '2px', background: 'rgba(255,255,255,0.06)', borderRadius: '1px', overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', width: `${(step / total) * 100}%`,
+          background: goldBtn,
+          boxShadow: '0 0 8px rgba(226,195,107,0.5)',
+          borderRadius: '1px',
+          transition: 'width 0.6s ease',
+        }} />
       </div>
     </div>
   )
 }
 
-function BackLink({ href, label = 'Back' }: { href?: string; onClick?: () => void; label?: string }) {
-  if (href) {
-    return (
-      <Link href={href}
-        className="self-start mb-6 text-xs text-white/35 hover:text-yellow-400/70 transition-colors duration-200 tracking-wide">
-        ← {label}
-      </Link>
-    )
-  }
-  return null
-}
-
-function BookingFooter() {
-  return (
-    <p className="mt-12 text-center text-[10px] tracking-widest text-white/20 uppercase">
-      VALNEX, UNIPESSOAL LDA · RevoWorldTech
-    </p>
-  )
-}
-
-function GoldButton({
-  onClick,
-  disabled,
-  children,
-}: {
+function PrimaryBtn({ onClick, disabled, loading, children }: {
   onClick: () => void
   disabled?: boolean
+  loading?: boolean
   children: React.ReactNode
 }) {
   return (
     <button
       onClick={onClick}
-      disabled={disabled}
-      className="w-full max-w-xl mx-auto flex items-center justify-center gap-2 py-4 rounded-xl font-semibold tracking-wide transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
+      disabled={disabled || loading}
       style={{
-        background: disabled
-          ? 'rgba(184,150,12,0.15)'
-          : 'linear-gradient(135deg, #B8960C 0%, #D4AE2A 50%, #B8960C 100%)',
-        color: disabled ? '#B8960C99' : '#0D0820',
-        boxShadow: disabled ? 'none' : '0 4px 24px #B8960C44',
-        fontFamily: 'var(--font-body, "DM Sans", sans-serif)',
-      }}>
+        width: '100%', maxWidth: '480px',
+        padding: '14px 24px', borderRadius: '12px',
+        fontSize: '14px', fontWeight: 700, letterSpacing: '0.04em',
+        border: 'none', cursor: disabled || loading ? 'not-allowed' : 'pointer',
+        background: disabled || loading ? 'rgba(226,195,107,0.12)' : goldBtn,
+        color: disabled || loading ? 'rgba(226,195,107,0.4)' : '#1a0845',
+        boxShadow: disabled || loading ? 'none' : '0 4px 24px rgba(226,195,107,0.3)',
+        transition: 'all 0.2s',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+      }}
+    >
+      {loading ? (
+        <>
+          <span style={{
+            width: '14px', height: '14px', borderRadius: '50%',
+            border: '2px solid rgba(226,195,107,0.3)', borderTopColor: gold,
+            animation: 'spin 0.8s linear infinite', display: 'inline-block',
+          }} />
+          {children}
+        </>
+      ) : children}
+    </button>
+  )
+}
+
+function GhostBtn({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '14px 20px', borderRadius: '12px',
+        fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em',
+        border: '1px solid rgba(226,195,107,0.2)',
+        background: 'rgba(255,255,255,0.03)',
+        color: textFaint, cursor: 'pointer', transition: 'all 0.2s',
+      }}
+    >
       {children}
     </button>
   )
 }
 
-// ── Slug helper ───────────────────────────────────────────────────────────────
-
-function toSlug(str: string): string {
-  return str
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .slice(0, 60)
+function InputField({ label, hint, error, children }: {
+  label: string
+  hint?: string
+  error?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div style={{ marginBottom: '20px' }}>
+      <label style={{
+        display: 'block', fontSize: '10px', textTransform: 'uppercase',
+        letterSpacing: '0.12em', color: 'rgba(226,195,107,0.55)', marginBottom: '8px',
+      }}>{label}</label>
+      {children}
+      {hint && !error && <p style={{ fontSize: '11px', color: textFaint, marginTop: '5px' }}>{hint}</p>}
+      {error && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.8)', marginTop: '5px' }}>{error}</p>}
+    </div>
+  )
 }
 
-// ── Dynamic honouree label + placeholder (driven by event type) ───────────────
-
-function getHonoureeLabel(eventType: string): string {
-  switch (eventType) {
-    case 'Wedding':            return 'Names of the couple'
-    case 'Memorial & Funeral': return 'In memory of'
-    case 'Milestone Birthday': return 'Who is this celebration for'
-    case 'Graduation':         return "Graduate's full name"
-    case 'Ordination':         return "Ordinand's full name"
-    case 'Chieftaincy':        return "Title holder's full name"
-    case 'Conference':         return 'Conference or organisation name'
-    default:                   return 'Name of the person being celebrated'
-  }
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(226,195,107,0.22)',
+  borderRadius: '10px',
+  padding: '13px 16px',
+  color: textPrimary,
+  fontSize: '14px',
+  outline: 'none',
+  transition: 'all 0.2s',
+  fontFamily: "'DM Sans', sans-serif",
+  boxSizing: 'border-box',
 }
 
-function getHonoureePlaceholder(eventType: string): string {
-  switch (eventType) {
-    case 'Wedding':            return 'e.g. James Whitfield & Elena Fontaine'
-    case 'Conference':         return 'e.g. Global Leadership Summit 2026'
-    case 'Chieftaincy':        return 'e.g. Chief James Alexander Whitfield'
-    case 'Ordination':         return 'e.g. Reverend James Alexander Whitfield'
-    case 'Graduation':         return 'e.g. Dr. James Alexander Whitfield'
-    default:                   return 'e.g. James Alexander Whitfield'
-  }
+function Footer() {
+  return (
+    <p style={{
+      marginTop: '48px', textAlign: 'center',
+      fontSize: '10px', letterSpacing: '0.15em',
+      color: 'rgba(255,255,255,0.12)', textTransform: 'uppercase',
+    }}>
+      VALNEX, UNIPESSOAL LDA · RevoWorldTech
+    </p>
+  )
 }
 
-function getEventTagPlaceholder(eventType: string): string {
-  switch (eventType) {
-    case 'Retirement':           return 'e.g. 35 Years of Dedication'
-    case 'Memorial & Funeral':   return 'e.g. Forever in Our Hearts'
-    case 'Wedding':              return 'e.g. United in Love'
-    case 'Milestone Birthday':   return 'e.g. 80 Glorious Years'
-    case 'Anniversary':          return 'e.g. Fifty Years of Us'
-    case 'Graduation':           return 'e.g. The Future Begins'
-    case 'Ordination':           return 'e.g. Called to Serve'
-    case 'Chieftaincy':          return 'e.g. A New Season of Leadership'
-    case 'Award Ceremony':       return 'e.g. Celebrating Excellence'
-    case 'Thanksgiving Service': return 'e.g. Gratitude and Grace'
-    case 'Conference':           return 'e.g. Ideas That Move the World'
-    default:                     return 'e.g. A Moment Worth Preserving'
-  }
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
-
+/* =========================================================
+   SECTION 5 — MAIN COMPONENT
+========================================================= */
 function BookPage() {
   const router = useRouter()
-
-// ── Navigation state
-  const [screen, setScreen] = useState(1)
-
-  // ── Payment cancelled / retry state ──────────────────────────────────────────
-  // Populated when user returns from a cancelled Stripe session via
-  // /book?payment=cancelled&slug=[slug]&pid=[payment_id]
-  const searchParams    = useSearchParams()
+  const searchParams = useSearchParams()
   const paymentCancelled = searchParams.get('payment') === 'cancelled'
-  const retrySlug        = searchParams.get('slug') ?? ''
- 
-  // ── Booking form state
-  const [visitorType, setVisitorType] = useState('')
-  const [eventType,   setEventType]   = useState('')
-  const [tier,        setTier]        = useState('')   // 'honour' | 'premier'
+  const retrySlug = searchParams.get('slug') ?? ''
+
+  /* =========================================================
+     SECTION 6 — STATE
+  ========================================================= */
+  const [screen, setScreen] = useState(0)
+  const [path, setPath] = useState<Path>('')
+  const [eventType, setEventType] = useState('')
+  const [tier, setTier] = useState('')
   const [honoureeName, setHonoureeName] = useState('')
-  const [eventTag,     setEventTag]     = useState('')
-  const [eventDate,    setEventDate]    = useState('')
+  const [eventTag, setEventTag] = useState('')
   const [organiserEmail, setOrganiserEmail] = useState('')
-  const [slug,           setSlug]          = useState('')
-  const [slugManual,     setSlugManual]    = useState(false)
-
-  // ── Remote data
-  const [content,  setContent]  = useState<ContentMap>({})
-  const [honour,   setHonour]   = useState<TierData | null>(null)
-  const [premier,  setPremier]  = useState<TierData | null>(null)
-  const [loading,  setLoading]  = useState(true)
+  const [slug, setSlug] = useState('')
+  const [slugManual, setSlugManual] = useState(false)
+  const [verifyCode, setVerifyCode] = useState('')
+  const [verifyError, setVerifyError] = useState('')
+  const [verifying, setVerifying] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [error,    setError]    = useState('')
-
-  // ── Regional price state — D12: single currency per user ──────────────
-  const [regionalSymbol,       setRegionalSymbol]       = useState('€')
-  const [regionalHonourPrice,  setRegionalHonourPrice]  = useState<number | null>(null)
+  const [error, setError] = useState('')
+  const [content, setContent] = useState<ContentMap>({})
+  const [honour, setHonour] = useState<TierData | null>(null)
+  const [premier, setPremier] = useState<TierData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [regionalSymbol, setRegionalSymbol] = useState('€')
+  const [regionalHonourPrice, setRegionalHonourPrice] = useState<number | null>(null)
   const [regionalPremierPrice, setRegionalPremierPrice] = useState<number | null>(null)
+  // Tracks if capsule was created (for code screen)
+  const [capsuleId, setCapsuleId] = useState('')
+  const [capsuleSlug, setCapsuleSlug] = useState('')
 
-  // ── Regional price detection — calls server route, returns zone + prices
+  /* =========================================================
+     SECTION 7 — EFFECTS
+  ========================================================= */
   useEffect(() => {
     fetch('/api/regional-prices')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.symbol)       setRegionalSymbol(data.symbol)
-        if (data.honourPrice)  setRegionalHonourPrice(data.honourPrice)
+      .then(r => r.json())
+      .then(data => {
+        if (data.symbol) setRegionalSymbol(data.symbol)
+        if (data.honourPrice) setRegionalHonourPrice(data.honourPrice)
         if (data.premierPrice) setRegionalPremierPrice(data.premierPrice)
       })
-      .catch(() => {
-        // Silent fallback — EUR defaults remain
-      })
+      .catch(() => {})
   }, [])
 
-  // ── Fetch lc_content + lc_pricing in parallel on mount
   useEffect(() => {
     async function fetchAll() {
       setLoading(true)
       const [contentRes, pricingRes] = await Promise.all([
-        supabase
-          .from('lc_content')
-          .select('key, value')
-          .in('group_key', ['tier_honour', 'tier_premier', 'booking_flow'])
-          .order('sort_order'),
-        supabase
-          .from('lc_pricing')
-          .select('key, eur_price, ngn_price')
+        supabase.from('lc_content').select('key, value')
+          .in('group_key', ['tier_honour', 'tier_premier', 'booking_flow']).order('sort_order'),
+        supabase.from('lc_pricing').select('key, eur_price, ngn_price')
           .in('key', ['capture_preserve_base', 'full_platform_base']),
       ])
-
-      // Build content map
       const map: ContentMap = {}
-      for (const row of contentRes.data ?? []) {
-        map[row.key] = row.value
-      }
+      for (const row of contentRes.data ?? []) map[row.key] = row.value
       setContent(map)
 
-      // Build tier data
       const pricing = pricingRes.data ?? []
-      const honourPrice  = pricing.find(p => p.key === 'capture_preserve_base')
-      const premierPrice = pricing.find(p => p.key === 'full_platform_base')
+      const hp = pricing.find(p => p.key === 'capture_preserve_base')
+      const pp = pricing.find(p => p.key === 'full_platform_base')
 
-      const honourFeatures: string[] = []
-      const premierFeatures: string[] = []
+      const hf: string[] = [], pf: string[] = []
       for (let i = 1; i <= 10; i++) {
-        if (map[`tier_honour__feat_${i}`])  honourFeatures.push(map[`tier_honour__feat_${i}`])
-        if (map[`tier_premier__feat_${i}`]) premierFeatures.push(map[`tier_premier__feat_${i}`])
+        if (map[`tier_honour__feat_${i}`]) hf.push(map[`tier_honour__feat_${i}`])
+        if (map[`tier_premier__feat_${i}`]) pf.push(map[`tier_premier__feat_${i}`])
       }
-
-      if (honourPrice) {
-        setHonour({
-          name:        map['tier_honour__name']        ?? 'Legacy Honour',
-          tagline:     map['tier_honour__tagline']     ?? 'Capture & Preserve',
-          description: map['tier_honour__description'] ?? '',
-          features:    honourFeatures,
-          eur_price:   honourPrice.eur_price,
-          ngn_price:   honourPrice.ngn_price,
-          pricing_key: 'capture_preserve_base',
-        })
-      }
-      if (premierPrice) {
-        setPremier({
-          name:        map['tier_premier__name']        ?? 'Legacy Premier',
-          tagline:     map['tier_premier__tagline']     ?? 'Full Platform',
-          description: map['tier_premier__description'] ?? '',
-          features:    premierFeatures,
-          eur_price:   premierPrice.eur_price,
-          ngn_price:   premierPrice.ngn_price,
-          pricing_key: 'full_platform_base',
-        })
-      }
-
+      if (hp) setHonour({ name: map['tier_honour__name'] ?? 'Legacy Honour', tagline: map['tier_honour__tagline'] ?? 'Capture & Preserve', description: map['tier_honour__description'] ?? '', features: hf, eur_price: hp.eur_price, ngn_price: hp.ngn_price, pricing_key: 'capture_preserve_base' })
+      if (pp) setPremier({ name: map['tier_premier__name'] ?? 'Legacy Premier', tagline: map['tier_premier__tagline'] ?? 'Full Platform', description: map['tier_premier__description'] ?? '', features: pf, eur_price: pp.eur_price, ngn_price: pp.ngn_price, pricing_key: 'full_platform_base' })
       setLoading(false)
     }
     fetchAll()
   }, [])
 
-  // ── Auto-generate slug from honouree name
   useEffect(() => {
-    if (!slugManual && honoureeName) {
-      setSlug(toSlug(honoureeName))
-    }
+    if (!slugManual && honoureeName) setSlug(toSlug(honoureeName))
   }, [honoureeName, slugManual])
 
-  // ── Helpers
-  const selectedTierData = tier === 'honour' ? honour : tier === 'premier' ? premier : null
+  /* =========================================================
+     SECTION 8 — HANDLERS
+  ========================================================= */
 
-  function handleScreen1Continue() {
-    if (!visitorType) return
-    if (visitorType === 'gift') {
-      router.push('/gift')
-      return
-    }
-    setScreen(2)
-  }
-
-// ── CREATE CAPSULE + ROUTE BY TIER ───────────────────────────────────────────
-  // Free tier:  create capsule (page_state: active) → send email → Screen 5
-  // Paid tiers: create capsule (page_state: pending_payment) → POST /api/checkout
-  //             → redirect to Stripe. No Screen 5 for paid — Stripe handles it.
-  async function handleCreateCapsule() {
+  // Create capsule + send verification code
+  async function handleCreateAndVerify() {
     if (!honoureeName.trim() || !organiserEmail.trim() || !slug.trim()) return
-    setCreating(true)
-    setError('')
-
+    setCreating(true); setError('')
     try {
-      // ── STEP 1: create capsule row ──────────────────────────────────────────
       const { data, error: insertError } = await supabase
         .from('capsules')
         .insert({
-          honouree_name:   honoureeName.trim(),
-          event_tag:       eventTag.trim() || null,
-          event_type:      eventType,
+          honouree_name: honoureeName.trim(),
+          event_tag: eventTag.trim() || null,
+          event_type: eventType,
           organiser_email: organiserEmail.trim().toLowerCase(),
-          slug:            slug.trim(),
-          tier:            tier,
-          pricing_key:     selectedTierData?.pricing_key ?? '',
-          visitor_type:    visitorType,
-          // Free → active immediately. Paid → pending_payment until webhook fires.
-          page_state:      tier === 'free' ? 'active' : 'pending_payment',
-          theme:           'classic',
-          free_tier_expires_at: tier === 'free'
-            ? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
-            : null,
+          slug: slug.trim(),
+          tier: path === 'free' ? 'free' : tier || 'free',
+          pricing_key: path === 'free' ? '' : (tier === 'honour' ? 'capture_preserve_base' : 'full_platform_base'),
+          visitor_type: path === 'gift' ? 'gift' : 'personal',
+          page_state: 'tribute_collection',
+          theme: 'classic',
+          free_tier_expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
         })
-        .select('id, slug')
-        .single()
+        .select('id, slug').single()
 
       if (insertError) {
-        if (insertError.code === '23505') {
-          setError('That capsule URL is already taken. Please choose a different one.')
-        } else {
-          setError('Something went wrong. Please try again.')
-        }
-        setCreating(false)
-        return
+        setError(insertError.code === '23505'
+          ? 'That capsule URL is already taken. Please choose a different one.'
+          : 'Something went wrong. Please try again.')
+        setCreating(false); return
       }
 
-      // ── FREE TIER PATH ──────────────────────────────────────────────────────
-      if (tier === 'free') {
-        // Send welcome + verification email
-        try {
-          await fetch('/api/email/verify-organiser', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email:       organiserEmail.trim().toLowerCase(),
-              capsuleId:   data.id,
-              capsuleSlug: slug.trim(),
-              honoreeName: honoureeName.trim(),
-            }),
-          })
-        } catch (emailError) {
-          console.error('Welcome email failed:', emailError)
-        }
-        // Show confirmation screen
-        setScreen(5)
-        return
-      }
+      setCapsuleId(data.id)
+      setCapsuleSlug(data.slug)
 
-      // ── PAID TIER PATH (honour / premier) ───────────────────────────────────
-      // Capsule exists as pending_payment. Now initiate Stripe checkout.
-      const pricingKey = tier === 'honour' ? 'capture_preserve_base' : 'full_platform_base'
-
-      const checkoutRes = await fetch('/api/checkout', {
-        method:  'POST',
+      // Send 4-char verification code
+      await fetch('/api/email/verify-code', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          capsule_id:      data.id,
-          capsule_slug:    data.slug,
-          tier,
-          pricing_keys:    [pricingKey],
-          honouree_name:   honoureeName.trim(),
-          organiser_email: organiserEmail.trim().toLowerCase(),
+          capsuleId: data.id,
+          capsuleSlug: data.slug,
+          organiserEmail: organiserEmail.trim().toLowerCase(),
+          honoureeName: honoureeName.trim(),
         }),
       })
 
-      const checkoutData = await checkoutRes.json()
-
-      if (!checkoutRes.ok || !checkoutData.checkout_url) {
-        setError(checkoutData.error ?? 'Payment setup failed. Please try again.')
-        setCreating(false)
-        return
-      }
-
-      // Redirect to Stripe checkout — Stripe handles confirmation screen
-      window.location.href = checkoutData.checkout_url
-
+      setScreen(4)
     } catch {
       setError('Something went wrong. Please try again.')
-      setCreating(false)
     }
+    setCreating(false)
   }
 
-  // ── RETRY PAYMENT ─────────────────────────────────────────────────────────────
-  // Called when user returns from cancelled Stripe session.
-  // Reuses the existing capsule — never creates a duplicate.
+  // Verify the 4-char code entered by user
+  async function handleVerifyCode() {
+    if (verifyCode.trim().length < 4) return
+    setVerifying(true); setVerifyError('')
+    try {
+      const res = await fetch('/api/email/verify-code', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          capsuleId,
+          code: verifyCode.trim().toUpperCase(),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.valid) {
+        setVerifyError('That code is incorrect. Please check your email and try again.')
+        setVerifying(false); return
+      }
+
+      // For paid paths — route to Stripe
+      if (path === 'build' && tier && tier !== 'free') {
+        const pricingKey = tier === 'honour' ? 'capture_preserve_base' : 'full_platform_base'
+        const checkoutRes = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            capsule_id: capsuleId,
+            capsule_slug: capsuleSlug,
+            tier,
+            pricing_keys: [pricingKey],
+            honouree_name: honoureeName.trim(),
+            organiser_email: organiserEmail.trim().toLowerCase(),
+          }),
+        })
+        const checkoutData = await checkoutRes.json()
+        if (checkoutData.checkout_url) {
+          window.location.href = checkoutData.checkout_url
+          return
+        }
+      }
+
+      // Free path — go to confirmation
+      setScreen(5)
+    } catch {
+      setVerifyError('Verification failed. Please try again.')
+    }
+    setVerifying(false)
+  }
+
+  // Retry payment (cancelled Stripe session)
   async function handleRetryPayment() {
     if (!retrySlug || !organiserEmail.trim()) return
-    setCreating(true)
-    setError('')
-
+    setCreating(true); setError('')
     try {
-      // Fetch existing capsule by slug
       const { data: capsule, error: fetchError } = await supabase
-        .from('capsules')
-        .select('id, slug, honouree_name, tier')
-        .eq('slug', retrySlug)
-        .single()
-
-      if (fetchError || !capsule) {
-        setError('Could not find your capsule. Please contact support.')
-        setCreating(false)
-        return
-      }
-
+        .from('capsules').select('id, slug, honouree_name, tier').eq('slug', retrySlug).single()
+      if (fetchError || !capsule) { setError('Could not find your capsule. Please contact support.'); setCreating(false); return }
       const pricingKey = capsule.tier === 'honour' ? 'capture_preserve_base' : 'full_platform_base'
-
       const checkoutRes = await fetch('/api/checkout', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          capsule_id:      capsule.id,
-          capsule_slug:    capsule.slug,
-          tier:            capsule.tier,
-          pricing_keys:    [pricingKey],
-          honouree_name:   capsule.honouree_name,
-          organiser_email: organiserEmail.trim().toLowerCase(),
-        }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ capsule_id: capsule.id, capsule_slug: capsule.slug, tier: capsule.tier, pricing_keys: [pricingKey], honouree_name: capsule.honouree_name, organiser_email: organiserEmail.trim().toLowerCase() }),
       })
-
       const checkoutData = await checkoutRes.json()
-
-      if (!checkoutRes.ok || !checkoutData.checkout_url) {
-        setError(checkoutData.error ?? 'Payment setup failed. Please try again.')
-        setCreating(false)
-        return
-      }
-
-      window.location.href = checkoutData.checkout_url
-
-    } catch {
-      setError('Something went wrong. Please try again.')
-      setCreating(false)
-    }
+      if (checkoutData.checkout_url) { window.location.href = checkoutData.checkout_url; return }
+      setError(checkoutData.error ?? 'Payment setup failed.')
+    } catch { setError('Something went wrong.') }
+    setCreating(false)
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // SCREEN 1 — Who are you?
-  // ─────────────────────────────────────────────────────────────────────────
+  const selectedTierData = tier === 'honour' ? honour : tier === 'premier' ? premier : null
 
-  if (screen === 1) {
-    const options = [
+  /* =========================================================
+     SECTION 9 — SCREEN RENDERS
+  ========================================================= */
+
+  /* ─────────────────────────────────────────────────────────
+     SCREEN 0 — PATH CHOOSER
+     Two primary paths + gift option
+  ───────────────────────────────────────────────────────── */
+  if (screen === 0) {
+    const paths = [
       {
-        key: 'personal',
-        emoji: '🤍',
-        title: content['booking__visitor_personal_title'] ?? 'Personal Organiser',
-        sub:   content['booking__visitor_personal_sub']   ?? 'I am arranging an event for someone I love',
+        id: 'free' as Path,
+        icon: '✦',
+        title: 'Go Live Free',
+        sub: 'Your tribute wall is live in minutes. No payment needed. Upgrade anytime.',
+        tag: 'Start Now',
+        tagColor: 'rgba(74,222,128,0.7)',
+        tagBorder: 'rgba(74,222,128,0.25)',
       },
       {
-        key: 'planner',
-        emoji: '✦',
-        title: content['booking__visitor_planner_title'] ?? 'Event Professional',
-        sub:   content['booking__visitor_planner_sub']   ?? 'I use LegacyCapsule as part of my event services',
+        id: 'build' as Path,
+        icon: '◈',
+        title: 'Build Your Capsule',
+        sub: 'Choose exactly what your event needs. Configure and pay upfront. Gift-ready.',
+        tag: 'Configure & Pay',
+        tagColor: 'rgba(226,195,107,0.75)',
+        tagBorder: 'rgba(226,195,107,0.25)',
       },
       {
-        key: 'gift',
-        emoji: '🎁',
-        title: content['booking__visitor_gift_title'] ?? 'Gift a Capsule',
-        sub:   content['booking__visitor_gift_sub']   ?? 'I want to give this experience as a gift',
+        id: 'gift' as Path,
+        icon: '🎁',
+        title: 'Gift a Capsule',
+        sub: 'Give the experience as a gift. We set it up for the recipient.',
+        tag: 'Gift',
+        tagColor: 'rgba(180,140,255,0.7)',
+        tagBorder: 'rgba(180,140,255,0.25)',
       },
     ]
 
     return (
-      <ScreenShell>
-        <div className="w-full max-w-xl flex flex-col">
-          <Link href="/"
-            className="mt-6 mb-8 self-start text-xs text-white/35 hover:text-yellow-400/70 transition-colors duration-200 tracking-wide">
-            ← Back to Home
-          </Link>
+      <Shell>
+        <div style={{ width: '100%', maxWidth: '480px' }}>
+          <BookLogo />
 
-          <BookingLogo />
-          <ProgressBar step={1} />
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <h1 style={{
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontSize: 'clamp(22px, 5vw, 28px)',
+              fontWeight: 800, color: textPrimary,
+              lineHeight: 1.25, marginBottom: '10px',
+            }}>
+              How would you like to begin?
+            </h1>
+            <p style={{ fontSize: '14px', color: textSecondary, lineHeight: 1.6 }}>
+              Every capsule starts the same way — your event, preserved and shared.
+            </p>
+          </div>
 
-          <h1 className="text-center text-2xl font-bold text-white/90 mb-2 tracking-wide"
-            style={{ fontFamily: 'var(--font-heading, "Playfair Display", serif)' }}>
-            Who are you?
-          </h1>
-          <p className="text-center text-sm text-white/45 mb-8">
-            Help us tailor your experience
-          </p>
+          <GoldRule />
 
-          <GoldDivider />
-
-          <div className="flex flex-col gap-6 my-6">
-            {options.map(opt => {
-              const selected = visitorType === opt.key
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', margin: '24px 0 32px' }}>
+            {paths.map(p => {
+              const selected = path === p.id
               return (
                 <button
-                  key={opt.key}
-                  onClick={() => setVisitorType(opt.key)}
-                  className="w-full text-left px-6 py-7 rounded-2xl border transition-all duration-200 min-h-[88px]"
+                  key={p.id}
+                  onClick={() => setPath(p.id)}
                   style={{
-                    background: selected ? 'rgba(184,150,12,0.10)' : 'rgba(255,255,255,0.03)',
-                    borderColor: selected ? '#B8960C' : 'rgba(255,255,255,0.08)',
-                    boxShadow: selected ? '0 0 20px #B8960C22' : 'none',
-                  }}>
-                  <div className="flex items-start gap-4">
-                    <span className="text-3xl leading-none flex-shrink-0">{opt.emoji}</span>
-                    <div>
-                      <p className="text-white/90 font-semibold tracking-wide text-sm">{opt.title}</p>
-                      <p className="text-white/40 text-xs mt-1 leading-relaxed">{opt.sub}</p>
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="w-full max-w-xl mx-auto mt-12 mb-8 flex-shrink-0"
-            style={{ height: '2px', background: 'linear-gradient(90deg, transparent, #B8960C99, transparent)' }} />
-
-          <div className="flex gap-3 w-full max-w-xl mx-auto">
-            <Link
-              href="/"
-              className="flex-1 flex items-center justify-center py-4 rounded-xl border text-sm font-medium tracking-wide transition-all duration-200"
-              style={{ borderColor: 'rgba(184,150,12,0.3)', color: 'rgba(255,255,255,0.45)' }}>
-              ← Home
-            </Link>
-            <button
-              onClick={handleScreen1Continue}
-              disabled={!visitorType}
-              className="flex-[3] flex items-center justify-center px-8 py-4 rounded-xl font-semibold tracking-wide transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{
-                background: !visitorType ? 'rgba(184,150,12,0.15)' : 'linear-gradient(135deg, #B8960C 0%, #D4AE2A 50%, #B8960C 100%)',
-                color: !visitorType ? '#B8960C99' : '#0D0820',
-                boxShadow: !visitorType ? 'none' : '0 4px 24px #B8960C44',
-              }}>
-              Continue →
-            </button>
-          </div>
-
-          <BookingFooter />
-        </div>
-      </ScreenShell>
-    )
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // SCREEN 2 — What is the occasion?
-  // ─────────────────────────────────────────────────────────────────────────
-
-  if (screen === 2) {
-    return (
-      <ScreenShell>
-        <div className="w-full max-w-2xl flex flex-col">
-          <div className="mt-6 mb-8 flex w-full items-center justify-between">
-            <button
-              onClick={() => setScreen(1)}
-              className="text-xs text-white/35 hover:text-yellow-400/70 transition-colors duration-200 tracking-wide">
-              ← Back
-            </button>
-            <Link href="/" className="text-xs text-white/25 hover:text-yellow-400/60 transition-colors duration-200 tracking-wide">
-              ⌂ Home
-            </Link>
-          </div>
-
-          <BookingLogo />
-          <ProgressBar step={2} />
-
-          <h1 className="text-center text-2xl font-bold text-white/90 mb-2 tracking-wide"
-            style={{ fontFamily: 'var(--font-heading, "Playfair Display", serif)' }}>
-            What is the occasion?
-          </h1>
-          <p className="text-center text-sm text-white/45 mb-8">
-            Choose the event you are creating this capsule for
-          </p>
-
-          <GoldDivider />
-
-          <div className="grid grid-cols-2 gap-4 my-6 md:grid-cols-3">
-            {EVENT_TYPES.map(ev => {
-              const selected = eventType === ev.label
-              return (
-                <button
-                  key={ev.label}
-                  onClick={() => setEventType(ev.label)}
-                  className="flex flex-col items-center justify-center gap-3 px-3 py-5 min-h-[88px] rounded-2xl border transition-all duration-200"                  style={{
-                    background: selected ? 'rgba(184,150,12,0.10)' : 'rgba(255,255,255,0.03)',
-                    borderColor: selected ? '#B8960C' : 'rgba(255,255,255,0.08)',
-                    boxShadow: selected ? '0 0 16px #B8960C22' : 'none',
-                  }}>
-                  <span className="text-4xl leading-none">{ev.emoji}</span>
-                  <span className="text-[11px] text-white/70 text-center leading-relaxed font-medium tracking-wide mt-1">
-
-                    {ev.label}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="w-full max-w-2xl mx-auto mt-12 mb-8 flex-shrink-0"
-            style={{ height: '2px', background: 'linear-gradient(90deg, transparent, #B8960C99, transparent)' }} />
-
-          <div className="flex gap-3 w-full max-w-2xl mx-auto">
-            <button
-              onClick={() => setScreen(1)}
-              className="flex-1 flex items-center justify-center py-4 rounded-xl border text-sm font-medium tracking-wide transition-all duration-200"
-              style={{ borderColor: 'rgba(184,150,12,0.3)', color: 'rgba(255,255,255,0.45)' }}>
-              ← Back
-            </button>
-            <button
-              onClick={() => { if (eventType) setScreen(3) }}
-              disabled={!eventType}
-              className="flex-[3] flex items-center justify-center px-8 py-4 rounded-xl font-semibold tracking-wide transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{
-                background: !eventType ? 'rgba(184,150,12,0.15)' : 'linear-gradient(135deg, #B8960C 0%, #D4AE2A 50%, #B8960C 100%)',
-                color: !eventType ? '#B8960C99' : '#0D0820',
-                boxShadow: !eventType ? 'none' : '0 4px 24px #B8960C44',
-              }}>
-              Continue →
-            </button>
-          </div>
-
-          <BookingFooter />
-        </div>
-      </ScreenShell>
-    )
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // SCREEN 3 — Choose your package
-  // ─────────────────────────────────────────────────────────────────────────
-
-  if (screen === 3) {
-    if (loading || !honour || !premier) {
-      return (
-        <ScreenShell>
-          <div className="flex-1 flex items-center justify-center">
-            <div className="w-8 h-8 rounded-full border-2 border-yellow-400/30 border-t-yellow-400 animate-spin" />
-          </div>
-        </ScreenShell>
-      )
-    }
-
-    const cards = [
-      {
-        key: 'free',
-        badge: null,
-        name: 'Go Live Free',
-        tagline: 'Start Now · Pay Later',
-        description: 'Your tribute wall goes live instantly. Collect tributes from anywhere in the world. Upgrade to publish and preserve anytime.',
-        price: null,
-        features: [
-          'Tribute wall live in minutes',
-          'Up to 50 contributors worldwide',
-          'Text tributes with moderation',
-          'Your own capsule link',
-          'Active for 90 days',
-          'Upgrade anytime — no data lost',
-        ],
-        cta: 'Go Live Free →',
-        highlight: false,
-      },
-      {
-        key: 'honour',
-        badge: null,
-        name: honour?.name ?? 'Legacy Honour',
-        tagline: honour?.tagline ?? 'Capture & Preserve',
-        description: honour?.description ?? '',
-        price: honour?.eur_price ?? 50,
-        features: honour?.features ?? [],
-        cta: 'Choose Legacy Honour →',
-        highlight: false,
-      },
-      {
-        key: 'premier',
-        badge: 'Most Complete',
-        name: premier?.name ?? 'Legacy Premier',
-        tagline: premier?.tagline ?? 'Full Platform',
-        description: premier?.description ?? '',
-        price: premier?.eur_price ?? 80,
-        features: premier?.features ?? [],
-        cta: 'Choose Legacy Premier →',
-        highlight: true,
-      },
-    ]
-
-    return (
-      <ScreenShell>
-        <div className="w-full max-w-5xl flex flex-col">
-          <button
-            onClick={() => setScreen(2)}
-            className="mb-6 text-xs text-white/35 hover:text-yellow-400/70 transition-colors duration-200 tracking-wide text-left">
-            ← Back
-          </button>
-
-          <BookingLogo />
-          <ProgressBar step={3} />
-
-          <h1 className="text-center text-2xl font-bold text-white/90 mb-2 tracking-wide"
-            style={{ fontFamily: 'var(--font-heading, "Playfair Display", serif)' }}>
-            How would you like to begin?
-          </h1>
-          <p className="text-center text-sm text-white/45 mb-8">
-            Start free and upgrade anytime — or choose your full package now
-          </p>
-
-          <GoldDivider />
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 my-4">
-            {cards.map((card) => {
-              const selected = tier === card.key
-              return (
-                <button
-                  key={card.key}
-                  onClick={() => setTier(card.key)}
-                  className="flex flex-col text-left px-6 py-6 rounded-2xl border transition-all duration-200 relative"
-                  style={{
+                    width: '100%', textAlign: 'left',
+                    padding: '20px 20px',
+                    borderRadius: '14px',
+                    border: `1px solid ${selected ? 'rgba(226,195,107,0.55)' : cardBorder}`,
                     background: selected
-                      ? 'rgba(184,150,12,0.10)'
-                      : card.highlight
-                      ? 'rgba(184,150,12,0.05)'
+                      ? 'rgba(226,195,107,0.07)'
                       : 'rgba(255,255,255,0.03)',
-                    borderColor: selected
-                      ? '#B8960C'
-                      : card.highlight
-                      ? 'rgba(184,150,12,0.35)'
-                      : 'rgba(255,255,255,0.08)',
-                    boxShadow: selected
-                      ? '0 0 28px #B8960C28'
-                      : card.highlight
-                      ? '0 0 16px #B8960C15'
-                      : 'none',
-                  }}>
-
-                  {/* Badge */}
-                  {card.badge && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-semibold"
-                        style={{
-                          background: 'linear-gradient(135deg, #B8960C, #D4AE2A)',
-                          color: '#0D0820',
-                        }}>
-                        {card.badge}
-                      </span>
+                    boxShadow: selected ? '0 0 24px rgba(226,195,107,0.1)' : 'none',
+                    cursor: 'pointer', transition: 'all 0.2s',
+                    display: 'flex', alignItems: 'flex-start', gap: '16px',
+                  }}
+                >
+                  <span style={{
+                    fontSize: '22px', lineHeight: 1, flexShrink: 0,
+                    marginTop: '2px',
+                    filter: selected ? 'drop-shadow(0 0 8px rgba(226,195,107,0.5))' : 'none',
+                  }}>{p.icon}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 700, color: textPrimary }}>{p.title}</span>
+                      <span style={{
+                        fontSize: '9px', fontWeight: 700, letterSpacing: '0.1em',
+                        textTransform: 'uppercase', padding: '3px 8px', borderRadius: '20px',
+                        border: `1px solid ${p.tagBorder}`,
+                        color: p.tagColor,
+                        background: 'rgba(255,255,255,0.03)',
+                      }}>{p.tag}</span>
                     </div>
-                  )}
-
-                  {/* Header */}
-                  <div className="mb-4">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-yellow-400/60 mb-1"
-                      style={{ fontFamily: 'var(--font-accent, "Cormorant SC", serif)' }}>
-                      {card.tagline}
-                    </p>
-                    <p className="text-lg font-bold text-white/90 tracking-wide"
-                      style={{ fontFamily: 'var(--font-heading, "Playfair Display", serif)' }}>
-                      {card.name}
-                    </p>
-                    <p className="text-xs text-white/40 mt-1 leading-relaxed">
-                      {card.description}
-                    </p>
+                    <p style={{ fontSize: '13px', color: textSecondary, lineHeight: 1.6, margin: 0 }}>{p.sub}</p>
                   </div>
-
-                  {/* Price */}
-                  <div className="mb-5 pb-5 border-b border-white/8">
-                    {card.price ? (
-                      <span className="text-3xl font-bold text-yellow-300">
-                        {regionalSymbol}{card.key === 'honour' ? (regionalHonourPrice ?? card.price) : (regionalPremierPrice ?? card.price)}
-                      </span>
-                    ) : (
-                      <div className="flex items-end gap-2">
-                        <span className="text-3xl font-bold text-yellow-300">Free</span>
-                        <span className="text-xs text-white/35 mb-1">to start</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Features */}
-                  <ul className="flex flex-col gap-2 flex-1">
-                    {card.features.map((feat, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-yellow-400/60 mt-0.5 text-xs flex-shrink-0">✦</span>
-                        <span className="text-xs text-white/60 leading-relaxed">{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* Selected indicator */}
                   {selected && (
-                    <div className="mt-5 pt-4 border-t border-yellow-400/20 text-center">
-                      <span className="text-[10px] uppercase tracking-[0.2em] text-yellow-400/80">
-                        Selected
-                      </span>
-                    </div>
+                    <span style={{ fontSize: '16px', color: gold, flexShrink: 0, marginTop: '2px' }}>✓</span>
                   )}
                 </button>
               )
             })}
           </div>
 
-          {/* Running total — only for paid tiers */}
-          {selectedTierData && tier !== 'free' && (
-            <div className="mt-6 px-5 py-4 rounded-xl border border-yellow-400/20 bg-yellow-400/5 flex items-center justify-between">
-              <span className="text-xs text-white/50 tracking-wide">Package total</span>
-              <span className="text-lg font-bold text-yellow-300">
-                {regionalSymbol}{selectedTierData.pricing_key === 'capture_preserve_base' ? (regionalHonourPrice ?? selectedTierData.eur_price) : (regionalPremierPrice ?? selectedTierData.eur_price)}
-              </span>
-            </div>
-          )}
+          <PrimaryBtn
+            onClick={() => {
+              if (!path) return
+              if (path === 'gift') { router.push('/gift'); return }
+              setScreen(1)
+            }}
+            disabled={!path}
+          >
+            Continue →
+          </PrimaryBtn>
 
-          {/* Free tier note */}
-          {tier === 'free' && (
-            <div className="mt-6 px-5 py-4 rounded-xl border border-white/8 bg-white/3 text-center">
-              <p className="text-xs text-white/45 leading-relaxed">
-                Your tribute wall goes live immediately at no cost.
-                <br />
-                <span className="text-yellow-400/70">Upgrade to Legacy Honour or Premier anytime</span> — all your tributes are preserved.
-              </p>
-            </div>
-          )}
-
-          <GoldDivider />
-
-          <div className="flex gap-3 w-full max-w-5xl mx-auto">
-            <Link
-              href="/"
-              className="flex-1 flex items-center justify-center py-4 rounded-xl border text-sm font-medium tracking-wide transition-all duration-200"
-              style={{ borderColor: 'rgba(184,150,12,0.3)', color: 'rgba(255,255,255,0.45)' }}>
-              ← Home
-            </Link>
-            <button
-              onClick={() => setScreen(4)}
-              disabled={!tier}
-              className="flex-[3] flex items-center justify-center py-4 rounded-xl font-semibold tracking-wide transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{
-                background: !tier
-                  ? 'rgba(184,150,12,0.15)'
-                  : 'linear-gradient(135deg, #B8960C 0%, #D4AE2A 50%, #B8960C 100%)',
-                color: !tier ? '#B8960C99' : '#0D0820',
-                boxShadow: !tier ? 'none' : '0 4px 24px #B8960C44',
-              }}>
-              {tier === 'free'
-                ? 'Go Live Free →'
-                : tier
-                ? `Continue with ${tier === 'honour' ? honour?.name : premier?.name} →`
-                : 'Select a plan to continue'}
-            </button>
-          </div>
-
-          <BookingFooter />
+          <Footer />
         </div>
-      </ScreenShell>
+      </Shell>
     )
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // SCREEN 4 — Your capsule details
-  // ─────────────────────────────────────────────────────────────────────────
-
-  if (screen === 4) {
-    const inputClass = 'w-full rounded-xl border bg-white/4 text-white/90 text-sm placeholder:text-white/25 outline-none transition-all duration-200 focus:border-yellow-400/60 focus:bg-yellow-400/5'
-    const inputPad = { padding: '16px 20px' } as const
-    const labelClass = 'text-[10px] uppercase tracking-[0.15em] text-white/40 mb-1.5 block'
-    const canSubmit = !creating && !!honoureeName.trim() && !!organiserEmail.trim() && !!slug.trim()
-
+  /* ─────────────────────────────────────────────────────────
+     SCREEN 1 — EVENT TYPE (dropdown)
+  ───────────────────────────────────────────────────────── */
+  if (screen === 1) {
+    const selectedEvent = EVENT_TYPES.find(e => e.label === eventType)
     return (
-      <ScreenShell>
-        <div className="w-full max-w-xl flex flex-col">
-          <div className="mt-6 mb-8 flex w-full items-center justify-between">
-            <button
-              onClick={() => setScreen(3)}
-              className="text-xs text-white/35 hover:text-yellow-400/70 transition-colors duration-200 tracking-wide">
-              ← Back
-            </button>
-            <Link href="/" className="text-xs text-white/25 hover:text-yellow-400/60 transition-colors duration-200 tracking-wide">
-              ⌂ Home
-            </Link>
+      <Shell>
+        <div style={{ width: '100%', maxWidth: '480px' }}>
+          <BookLogo />
+          <StepBar step={1} total={path === 'build' ? 4 : 3} />
+
+          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+            <h1 style={{
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontSize: 'clamp(20px, 5vw, 26px)',
+              fontWeight: 800, color: textPrimary, marginBottom: '8px',
+            }}>
+              What is the occasion?
+            </h1>
+            <p style={{ fontSize: '13px', color: textSecondary, lineHeight: 1.6 }}>
+              Choose the event you are creating this capsule for
+            </p>
           </div>
 
-          <BookingLogo />
-          <ProgressBar step={4} />
+          <GoldRule />
 
-          <h1 className="text-center text-2xl font-bold text-white/90 mb-2 tracking-wide"
-            style={{ fontFamily: 'var(--font-heading, "Playfair Display", serif)' }}>
-            Your capsule details
-          </h1>
-          <p className="text-center text-sm text-white/45 mb-8">
-            Tell us more about the event
-          </p>
+          {/* Styled select */}
+          <div style={{ position: 'relative', margin: '24px 0 32px' }}>
+            <div style={{
+              position: 'relative',
+              borderRadius: '12px',
+              border: `1px solid ${eventType ? 'rgba(226,195,107,0.5)' : 'rgba(226,195,107,0.2)'}`,
+              background: eventType ? 'rgba(226,195,107,0.06)' : 'rgba(255,255,255,0.04)',
+              transition: 'all 0.2s',
+              boxShadow: eventType ? '0 0 20px rgba(226,195,107,0.1)' : 'none',
+            }}>
+              {/* Selected preview */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '16px 18px',
+                pointerEvents: 'none',
+                position: 'absolute', top: 0, left: 0, right: 0,
+              }}>
+                {selectedEvent
+                  ? <>
+                    <span style={{ fontSize: '20px', lineHeight: 1 }}>{selectedEvent.emoji}</span>
+                    <span style={{ fontSize: '15px', fontWeight: 600, color: textPrimary }}>{selectedEvent.label}</span>
+                  </>
+                  : <span style={{ fontSize: '14px', color: textFaint }}>Select occasion type…</span>
+                }
+                <span style={{ marginLeft: 'auto', color: 'rgba(226,195,107,0.5)', fontSize: '12px' }}>▾</span>
+              </div>
 
-<GoldDivider />
-
-          {/* ── PAYMENT CANCELLED BANNER ────────────────────────────────── */}
-          {/* Shown when user returns from abandoned Stripe session           */}
-          {paymentCancelled && retrySlug && (
-            <div className="mb-4 px-5 py-4 rounded-xl border border-yellow-400/30 bg-yellow-400/6">
-              <p className="text-xs text-yellow-200/80 leading-relaxed mb-3">
-                Your capsule was saved but payment was not completed.
-                Enter your email below and click <span className="font-semibold text-yellow-300">Complete Payment</span> to continue.
-              </p>
-              <button
-                onClick={handleRetryPayment}
-                disabled={creating || !organiserEmail.trim()}
-                className="w-full py-3 rounded-xl font-semibold text-sm tracking-wide transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
+              <select
+                value={eventType}
+                onChange={e => setEventType(e.target.value)}
                 style={{
-                  background: 'linear-gradient(135deg, #B8960C 0%, #D4AE2A 50%, #B8960C 100%)',
-                  color: '#0D0820',
-                  boxShadow: '0 4px 20px #B8960C33',
-                }}>
-                {creating ? 'Redirecting…' : 'Complete Payment →'}
-              </button>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-5 my-2">
-
-            {/* Honouree name */}
-            <div>
-              <label className={labelClass}>{getHonoureeLabel(eventType)}</label>
-              <input
-                className={inputClass}
-                style={{ ...inputPad, borderColor: honoureeName ? 'rgba(184,150,12,0.4)' : 'rgba(255,255,255,0.08)' }}
-                placeholder={getHonoureePlaceholder(eventType)}
-                maxLength={80}
-                value={honoureeName}
-                onChange={e => setHonoureeName(e.target.value)}
-              />
-              <p className="text-[10px] text-white/25 mt-1 text-right">{honoureeName.length}/80</p>
+                  width: '100%', padding: '16px 18px',
+                  background: 'transparent', border: 'none', outline: 'none',
+                  color: 'transparent', fontSize: '15px',
+                  cursor: 'pointer', appearance: 'none',
+                  WebkitAppearance: 'none',
+                  position: 'relative', zIndex: 1,
+                }}
+              >
+                <option value="" disabled>Select occasion type…</option>
+                {EVENT_TYPES.map(e => (
+                  <option key={e.label} value={e.label} style={{ background: '#1a0845', color: '#fff' }}>
+                    {e.emoji} {e.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Event tag */}
-            <div>
-              <label className={labelClass}>Event Tag <span className="text-white/25 normal-case tracking-normal">— optional</span></label>
-              <input
-                className={inputClass}
-                style={{ ...inputPad, borderColor: eventTag ? 'rgba(184,150,12,0.4)' : 'rgba(255,255,255,0.08)' }}
-                placeholder={getEventTagPlaceholder(eventType)}
-                maxLength={80}
-                value={eventTag}
-                onChange={e => setEventTag(e.target.value)}
-              />
-              <p className="text-[10px] text-white/25 mt-1 text-right">{eventTag.length}/80</p>
-            </div>
-
-            {/* Organiser email */}
-            <div>
-              <label className={labelClass}>Your Email</label>
-              <input
-                type="email"
-                className={inputClass}
-                style={{ ...inputPad, borderColor: organiserEmail ? 'rgba(184,150,12,0.4)' : 'rgba(255,255,255,0.08)' }}
-                placeholder="you@example.com"
-                maxLength={120}
-                value={organiserEmail}
-                onChange={e => setOrganiserEmail(e.target.value)}
-              />
-              <p className="text-[10px] text-white/25 mt-1">
-                We'll send your capsule management link here
-              </p>
-            </div>
-
-            {/* Slug */}
-            <div>
-              <label className={labelClass}>Capsule URL</label>
-              <div className="flex items-center gap-0 rounded-xl border overflow-hidden transition-all duration-200"
-                style={{ borderColor: slug ? 'rgba(184,150,12,0.4)' : 'rgba(255,255,255,0.08)' }}>
-                <span className="text-xs text-white/30 bg-white/4 border-r border-white/8 whitespace-nowrap flex-shrink-0"
-                  style={{ padding: '16px 14px' }}>
-                  itslegacycapsule.com/for/
-                </span>
-                <input
-                  className="flex-1 bg-white/4 text-white/90 text-sm outline-none placeholder:text-white/25"
-                  style={{ padding: '16px 16px' }}
-                  placeholder="your-slug"
-                  maxLength={60}
-                  value={slug}
-                  onChange={e => {
-                    setSlugManual(true)
-                    setSlug(toSlug(e.target.value))
-                  }}
-                />
-              </div>
-              <div className="flex justify-between mt-1">
-                <p className="text-[10px] text-white/25">Auto-generated from honouree name · edit to customise</p>
-                <p className="text-[10px] text-white/25">{slug.length}/60</p>
-              </div>
-            </div>
-
-            {/* Live URL preview */}
-            {slug && (
-              <div className="px-4 py-3 rounded-xl border border-yellow-400/20 bg-yellow-400/5">
-                <p className="text-[10px] uppercase tracking-widest text-yellow-400/50 mb-1">Your capsule link</p>
-                <p className="text-xs text-yellow-200/80 break-all">
-                  itslegacycapsule.com/for/<span className="font-semibold">{slug}</span>
+            {/* Description hint per type */}
+            {eventType && (
+              <div style={{
+                marginTop: '12px', padding: '12px 16px', borderRadius: '10px',
+                background: 'rgba(226,195,107,0.05)',
+                border: '1px solid rgba(226,195,107,0.12)',
+              }}>
+                <p style={{ fontSize: '12px', color: 'rgba(226,195,107,0.65)', margin: 0, lineHeight: 1.6 }}>
+                  {getEventTagPlaceholder(eventType).replace('e.g. ', '')} · A beautiful occasion worth preserving.
                 </p>
               </div>
             )}
           </div>
 
-          {/* Summary panel */}
-          {tier === 'free' && (
-            <div className="px-5 py-4 rounded-xl border border-white/8 bg-white/3 mb-6">
-              <p className="text-[10px] uppercase tracking-widest text-white/30 mb-2">Your free capsule</p>
-              <p className="text-xs text-white/55 leading-relaxed">
-                Tribute wall active for 90 days · Up to 50 contributors · Upgrade anytime
-              </p>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <GhostBtn onClick={() => setScreen(0)}>← Back</GhostBtn>
+            <div style={{ flex: 1 }}>
+              <PrimaryBtn onClick={() => { if (eventType) setScreen(2) }} disabled={!eventType}>
+                Continue →
+              </PrimaryBtn>
             </div>
-          )}
-          {selectedTierData && tier !== 'free' && (
-            <>
-              <GoldDivider />
-              <div className="px-5 py-4 rounded-xl border border-white/8 bg-white/3 space-y-3 mb-6">
-                <p className="text-[10px] uppercase tracking-widest text-white/30">Order summary</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-white/55">Package</span>
-                  <span className="text-xs text-white/80 font-medium">{selectedTierData.name}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-white/55">Occasion</span>
-                  <span className="text-xs text-white/80">{eventType}</span>
-                </div>
-                <div className="h-px bg-white/8" />
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-white/55">Total</span>
-                  <span className="text-sm font-bold text-yellow-300">
-                    {regionalSymbol}{selectedTierData.pricing_key === 'capture_preserve_base' ? (regionalHonourPrice ?? selectedTierData.eur_price) : (regionalPremierPrice ?? selectedTierData.eur_price)}
-                  </span>
-                </div>
-<p className="text-[10px] text-white/25 pt-1">
-                  You will be redirected to our secure payment page to complete your order.
-                </p>
-              </div>
-            </>
-          )}
-
-          {error && (
-            <div className="mb-4 px-4 py-3 rounded-xl border border-red-400/30 bg-red-400/8 text-red-300 text-xs">
-              {error}
-            </div>
-          )}
-
-          <div className="w-full max-w-xl mx-auto mt-6 mb-8 flex-shrink-0"
-            style={{ height: '2px', background: 'linear-gradient(90deg, transparent, #B8960C99, transparent)' }} />
-
-          <div className="flex gap-3 w-full max-w-xl mx-auto">
-            <button
-              onClick={() => setScreen(3)}
-              className="flex-1 flex items-center justify-center py-4 rounded-xl border text-sm font-medium tracking-wide transition-all duration-200"
-              style={{ borderColor: 'rgba(184,150,12,0.3)', color: 'rgba(255,255,255,0.45)' }}>
-              ← Back
-            </button>
-            <button
-              onClick={handleCreateCapsule}
-              disabled={!canSubmit}
-              className="flex-[3] flex items-center justify-center px-8 py-4 rounded-xl font-semibold tracking-wide transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{
-                background: !canSubmit ? 'rgba(184,150,12,0.15)' : 'linear-gradient(135deg, #B8960C 0%, #D4AE2A 50%, #B8960C 100%)',
-                color: !canSubmit ? '#B8960C99' : '#0D0820',
-                boxShadow: !canSubmit ? 'none' : '0 4px 24px #B8960C44',
-              }}>
-{creating
-                ? (tier === 'free' ? 'Creating…' : 'Redirecting to payment…')
-                : tier === 'free'
-                ? 'Go Live Free →'
-                : `Proceed to Payment →`}            </button>
           </div>
 
-          <BookingFooter />
+          <Footer />
         </div>
-      </ScreenShell>
+      </Shell>
     )
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // SCREEN 5 — Confirmation (unchanged from original)
-  // ─────────────────────────────────────────────────────────────────────────
+  /* ─────────────────────────────────────────────────────────
+     SCREEN 2 — CAPSULE DETAILS
+     Name · Tag · Email · Slug
+  ───────────────────────────────────────────────────────── */
+  if (screen === 2) {
+    const canContinue = !!honoureeName.trim() && !!organiserEmail.trim() && organiserEmail.includes('@') && !!slug.trim()
+    const totalSteps = path === 'build' ? 4 : 3
 
+    return (
+      <Shell>
+        <div style={{ width: '100%', maxWidth: '480px' }}>
+          <BookLogo />
+          <StepBar step={2} total={totalSteps} />
+
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <h1 style={{
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontSize: 'clamp(20px, 5vw, 26px)',
+              fontWeight: 800, color: textPrimary, marginBottom: '8px',
+            }}>
+              About this capsule
+            </h1>
+            <p style={{ fontSize: '13px', color: textSecondary, lineHeight: 1.6 }}>
+              {getHonoureeLabel(eventType)} · {eventType}
+            </p>
+          </div>
+
+          <GoldRule />
+
+          {/* Payment cancelled retry banner */}
+          {paymentCancelled && retrySlug && (
+            <div style={{
+              padding: '14px 16px', borderRadius: '12px', marginBottom: '20px',
+              border: '1px solid rgba(226,195,107,0.3)',
+              background: 'rgba(226,195,107,0.06)',
+            }}>
+              <p style={{ fontSize: '12px', color: 'rgba(226,195,107,0.8)', lineHeight: 1.65, marginBottom: '10px' }}>
+                Your capsule was saved but payment was not completed. Enter your email and complete payment below.
+              </p>
+              <button
+                onClick={handleRetryPayment}
+                disabled={creating || !organiserEmail.trim()}
+                style={{
+                  width: '100%', padding: '11px', borderRadius: '10px',
+                  background: goldBtn, color: '#1a0845', border: 'none',
+                  fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                  opacity: creating || !organiserEmail.trim() ? 0.6 : 1,
+                }}
+              >{creating ? 'Redirecting…' : 'Complete Payment →'}</button>
+            </div>
+          )}
+
+          <div style={{ margin: '20px 0' }}>
+            <InputField label={getHonoureeLabel(eventType)}>
+              <input
+                style={inputStyle}
+                placeholder={getHonoureePlaceholder(eventType)}
+                maxLength={80}
+                value={honoureeName}
+                onChange={e => setHonoureeName(e.target.value)}
+              />
+            </InputField>
+
+            <InputField
+              label="Event Tag"
+              hint="A short subtitle shown on the tribute wall — optional but recommended"
+            >
+              <input
+                style={inputStyle}
+                placeholder={getEventTagPlaceholder(eventType)}
+                maxLength={80}
+                value={eventTag}
+                onChange={e => setEventTag(e.target.value)}
+              />
+            </InputField>
+
+            <InputField
+              label="Your Email"
+              hint="We'll send a 4-character verification code to confirm your email"
+            >
+              <input
+                type="email"
+                style={inputStyle}
+                placeholder="you@example.com"
+                maxLength={120}
+                value={organiserEmail}
+                onChange={e => setOrganiserEmail(e.target.value)}
+              />
+            </InputField>
+
+            <InputField
+              label="Capsule URL"
+              hint={`Your link: itslegacycapsule.com/for/${slug || 'your-slug'}`}
+              error={error || undefined}
+            >
+              <div style={{
+                display: 'flex', alignItems: 'center',
+                border: '1px solid rgba(226,195,107,0.22)',
+                borderRadius: '10px', overflow: 'hidden',
+                background: 'rgba(255,255,255,0.06)',
+              }}>
+                <span style={{
+                  fontSize: '11px', color: textFaint, whiteSpace: 'nowrap',
+                  padding: '13px 12px', borderRight: '1px solid rgba(255,255,255,0.08)',
+                  background: 'rgba(255,255,255,0.03)', flexShrink: 0,
+                }}>
+                  /for/
+                </span>
+                <input
+                  style={{ ...inputStyle, border: 'none', borderRadius: 0, background: 'transparent', flex: 1 }}
+                  placeholder="your-slug"
+                  maxLength={60}
+                  value={slug}
+                  onChange={e => { setSlugManual(true); setSlug(toSlug(e.target.value)) }}
+                />
+              </div>
+            </InputField>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <GhostBtn onClick={() => setScreen(path === 'build' ? 3 : 1)}>← Back</GhostBtn>
+            <div style={{ flex: 1 }}>
+              <PrimaryBtn
+                onClick={() => {
+                  if (path === 'build' && (!tier)) { setScreen(3); return }
+                  handleCreateAndVerify()
+                }}
+                disabled={!canContinue}
+                loading={creating}
+              >
+                {path === 'build' && !tier
+                  ? 'Choose Components →'
+                  : creating ? 'Creating your capsule…' : 'Send Verification Code →'}
+              </PrimaryBtn>
+            </div>
+          </div>
+
+          <Footer />
+        </div>
+      </Shell>
+    )
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     SCREEN 3 — COMPONENT/PACKAGE SELECTOR (Path 2)
+  ───────────────────────────────────────────────────────── */
+  if (screen === 3) {
+    if (loading) {
+      return (
+        <Shell>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+            <div style={{
+              width: '32px', height: '32px', borderRadius: '50%',
+              border: '2px solid rgba(226,195,107,0.2)', borderTopColor: gold,
+              animation: 'spin 0.8s linear infinite',
+            }} />
+          </div>
+        </Shell>
+      )
+    }
+
+    const packages = [
+      {
+        key: 'free',
+        name: 'Go Live Free',
+        tagline: 'Start Now · No Payment',
+        price: null,
+        highlight: false,
+        badge: null,
+        features: [
+          'Tribute wall live instantly',
+          'Up to 50 contributors worldwide',
+          'Text tributes with moderation',
+          'Your own capsule link',
+          'Active for 90 days from first tribute',
+          'Upgrade anytime — no data lost',
+        ],
+      },
+      {
+        key: 'honour',
+        name: honour?.name ?? 'Legacy Honour',
+        tagline: honour?.tagline ?? 'Capture & Preserve',
+        price: honour ? (regionalHonourPrice ?? honour.eur_price) : null,
+        highlight: false,
+        badge: null,
+        features: honour?.features ?? [],
+      },
+      {
+        key: 'premier',
+        name: premier?.name ?? 'Legacy Premier',
+        tagline: premier?.tagline ?? 'Full Platform',
+        price: premier ? (regionalPremierPrice ?? premier.eur_price) : null,
+        highlight: true,
+        badge: 'Most Complete',
+        features: premier?.features ?? [],
+      },
+    ]
+
+    return (
+      <Shell>
+        <div style={{ width: '100%', maxWidth: '560px' }}>
+          <BookLogo />
+          <StepBar step={3} total={4} />
+
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <h1 style={{
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontSize: 'clamp(20px, 5vw, 26px)',
+              fontWeight: 800, color: textPrimary, marginBottom: '8px',
+            }}>
+              Choose your package
+            </h1>
+            <p style={{ fontSize: '13px', color: textSecondary, lineHeight: 1.6 }}>
+              Start free or configure the full experience
+            </p>
+          </div>
+
+          <GoldRule />
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', margin: '20px 0 28px' }}>
+            {packages.map(pkg => {
+              const selected = tier === pkg.key
+              return (
+                <button
+                  key={pkg.key}
+                  onClick={() => setTier(pkg.key)}
+                  style={{
+                    width: '100%', textAlign: 'left',
+                    padding: '20px', borderRadius: '14px', cursor: 'pointer',
+                    border: `1px solid ${selected ? 'rgba(226,195,107,0.55)' : pkg.highlight ? 'rgba(226,195,107,0.22)' : cardBorder}`,
+                    background: selected ? 'rgba(226,195,107,0.07)' : pkg.highlight ? 'rgba(226,195,107,0.03)' : 'rgba(255,255,255,0.03)',
+                    boxShadow: selected ? '0 0 24px rgba(226,195,107,0.12)' : 'none',
+                    position: 'relative', transition: 'all 0.2s',
+                  }}
+                >
+                  {pkg.badge && (
+                    <div style={{ position: 'absolute', top: '-11px', left: '50%', transform: 'translateX(-50%)' }}>
+                      <span style={{
+                        padding: '3px 12px', borderRadius: '20px', fontSize: '9px',
+                        fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                        background: goldBtn, color: '#1a0845',
+                      }}>{pkg.badge}</span>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                    <div>
+                      <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(226,195,107,0.55)', marginBottom: '4px' }}>{pkg.tagline}</p>
+                      <p style={{ fontSize: '16px', fontWeight: 700, color: textPrimary, fontFamily: "'Playfair Display', serif" }}>{pkg.name}</p>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
+                      {pkg.price
+                        ? <span style={{ fontSize: '22px', fontWeight: 800, color: gold }}>{regionalSymbol}{pkg.price}</span>
+                        : <div>
+                          <span style={{ fontSize: '22px', fontWeight: 800, color: 'rgba(74,222,128,0.8)' }}>Free</span>
+                          <p style={{ fontSize: '10px', color: textFaint, margin: '2px 0 0' }}>to start</p>
+                        </div>
+                      }
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
+                    {pkg.features.map((feat, i) => (
+                      <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
+                        <span style={{ color: 'rgba(226,195,107,0.55)', fontSize: '11px', flexShrink: 0, marginTop: '2px' }}>✦</span>
+                        <span style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.5 }}>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {selected && (
+                    <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
+                      <span style={{ fontSize: '16px', color: gold }}>✓</span>
+                    </div>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Running total */}
+          {tier && tier !== 'free' && selectedTierData && (
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '14px 18px', borderRadius: '12px', marginBottom: '20px',
+              border: '1px solid rgba(226,195,107,0.2)',
+              background: 'rgba(226,195,107,0.05)',
+            }}>
+              <span style={{ fontSize: '12px', color: textFaint }}>Package total</span>
+              <span style={{ fontSize: '20px', fontWeight: 800, color: gold }}>
+                {regionalSymbol}{selectedTierData.pricing_key === 'capture_preserve_base' ? (regionalHonourPrice ?? selectedTierData.eur_price) : (regionalPremierPrice ?? selectedTierData.eur_price)}
+              </span>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <GhostBtn onClick={() => setScreen(2)}>← Back</GhostBtn>
+            <div style={{ flex: 1 }}>
+              <PrimaryBtn onClick={() => { if (tier) setScreen(2) }} disabled={!tier}>
+                {tier === 'free' ? 'Continue Free →' : tier ? `Continue with ${tier === 'honour' ? honour?.name : premier?.name} →` : 'Select a package'}
+              </PrimaryBtn>
+            </div>
+          </div>
+
+          <Footer />
+        </div>
+      </Shell>
+    )
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     SCREEN 4 — VERIFY CODE
+     4-char code sent to email. Premium moment.
+  ───────────────────────────────────────────────────────── */
+  if (screen === 4) {
+    return (
+      <Shell>
+        <div style={{ width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+          <BookLogo />
+
+          {/* Envelope icon — animated gold glow */}
+          <div style={{
+            width: '80px', height: '80px', margin: '16px auto 28px',
+            borderRadius: '50%',
+            border: '1px solid rgba(226,195,107,0.3)',
+            background: 'rgba(226,195,107,0.07)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '32px', lineHeight: 1,
+            boxShadow: '0 0 32px rgba(226,195,107,0.15), 0 0 64px rgba(226,195,107,0.06)',
+            animation: 'breathe 3s ease-in-out infinite',
+          }}>
+            ✉
+          </div>
+
+          <h1 style={{
+            fontFamily: "'Playfair Display', Georgia, serif",
+            fontSize: 'clamp(20px, 5vw, 26px)',
+            fontWeight: 800, color: textPrimary, marginBottom: '10px',
+          }}>
+            Check your inbox
+          </h1>
+
+          <p style={{ fontSize: '14px', color: textSecondary, lineHeight: 1.75, marginBottom: '8px' }}>
+            We sent a 4-character code to
+          </p>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: gold, marginBottom: '28px' }}>
+            {organiserEmail}
+          </p>
+
+          {/* Publication promise */}
+          <div style={{
+            padding: '16px 18px', borderRadius: '12px', marginBottom: '28px', textAlign: 'left',
+            border: '1px solid rgba(226,195,107,0.15)',
+            background: 'rgba(226,195,107,0.04)',
+          }}>
+            <p style={{ fontSize: '12px', color: 'rgba(226,195,107,0.65)', lineHeight: 1.8, margin: 0 }}>
+              ✦ At the close of your event, LegacyCapsule automatically compiles every tribute, 
+              photo, and voice from your wall into a beautifully designed digital publication, 
+              complete with the Capsule Profile you have built. The platform can be triggered to 
+              send it to every person who contributed, wherever they are. No designer. No effort. 
+              Just a permanent, shareable record of a moment that mattered.
+            </p>
+          </div>
+
+          {/* Code input */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{
+              display: 'block', fontSize: '10px', textTransform: 'uppercase',
+              letterSpacing: '0.14em', color: 'rgba(226,195,107,0.55)', marginBottom: '12px',
+            }}>
+              Enter your verification code
+            </label>
+            <input
+              value={verifyCode}
+              onChange={e => setVerifyCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4))}
+              onKeyDown={e => e.key === 'Enter' && verifyCode.length === 4 && handleVerifyCode()}
+              placeholder="A1B2"
+              maxLength={4}
+              style={{
+                ...inputStyle,
+                textAlign: 'center',
+                fontSize: '28px',
+                fontWeight: 800,
+                letterSpacing: '0.5em',
+                padding: '18px 24px',
+                border: verifyError
+                  ? '1px solid rgba(248,113,113,0.5)'
+                  : verifyCode.length === 4
+                  ? '1px solid rgba(226,195,107,0.55)'
+                  : '1px solid rgba(226,195,107,0.22)',
+              }}
+              autoFocus
+              autoComplete="off"
+            />
+            {verifyError && (
+              <p style={{ fontSize: '12px', color: 'rgba(248,113,113,0.8)', marginTop: '8px' }}>{verifyError}</p>
+            )}
+          </div>
+
+          <PrimaryBtn
+            onClick={handleVerifyCode}
+            disabled={verifyCode.length < 4}
+            loading={verifying}
+          >
+            {verifying ? 'Verifying…' : 'Verify & Open Capsule →'}
+          </PrimaryBtn>
+
+          <p style={{ fontSize: '11px', color: textFaint, marginTop: '16px', lineHeight: 1.65 }}>
+            Didn't receive it? Check your spam folder, or{' '}
+            <button
+              onClick={handleCreateAndVerify}
+              style={{ background: 'none', border: 'none', color: 'rgba(226,195,107,0.6)', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline', padding: 0 }}
+            >
+              resend the code
+            </button>
+          </p>
+
+          <Footer />
+        </div>
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg) } }
+          @keyframes breathe { 0%,100%{box-shadow:0 0 32px rgba(226,195,107,0.15),0 0 64px rgba(226,195,107,0.06)} 50%{box-shadow:0 0 48px rgba(226,195,107,0.28),0 0 80px rgba(226,195,107,0.12)} }
+        `}</style>
+      </Shell>
+    )
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     SCREEN 5 — CONFIRMED
+     Capsule is live. Premium landing moment.
+  ───────────────────────────────────────────────────────── */
   return (
-    <ScreenShell>
-      <div className="w-full max-w-xl flex flex-col items-center text-center pt-20 gap-2">
-        <BookingLogo />
+    <Shell>
+      <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
+        <BookLogo />
 
-        <div className="w-20 h-20 rounded-full border border-yellow-400/40 bg-yellow-400/10 flex items-center justify-center mb-8 mt-4"
-          style={{ boxShadow: '0 0 32px #B8960C33' }}>
-          <span className="text-2xl">✦</span>
+        {/* Gold circle mark */}
+        <div style={{
+          width: '88px', height: '88px', margin: '24px auto 32px',
+          borderRadius: '50%',
+          border: '1px solid rgba(226,195,107,0.4)',
+          background: 'radial-gradient(circle, rgba(226,195,107,0.12) 0%, transparent 70%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '28px', lineHeight: 1,
+          boxShadow: '0 0 40px rgba(226,195,107,0.2), 0 0 80px rgba(226,195,107,0.08)',
+        }}>
+          ✦
         </div>
 
-        <h1 className="text-2xl font-bold text-white/90 mb-3 tracking-wide"
-          style={{ fontFamily: 'var(--font-heading, "Playfair Display", serif)' }}>
+        <h1 style={{
+          fontFamily: "'Playfair Display', Georgia, serif",
+          fontSize: 'clamp(22px, 6vw, 30px)',
+          fontWeight: 800, color: textPrimary, marginBottom: '12px',
+          textShadow: '0 0 32px rgba(226,195,107,0.2)',
+        }}>
           Your capsule is live
         </h1>
-        <p className="text-sm text-white/50 leading-relaxed mb-8 max-w-sm">
-          We've created your LegacyCapsule for <span className="text-white/80 font-medium">{honoureeName}</span>.
-          Check your email for your management link.
+
+        <p style={{ fontSize: '14px', color: textSecondary, lineHeight: 1.75, marginBottom: '28px', maxWidth: '340px', margin: '0 auto 28px' }}>
+          We have created your LegacyCapsule for{' '}
+          <span style={{ color: textPrimary, fontWeight: 600 }}>{honoureeName}</span>.
+          Share the link below and the tributes will begin to arrive.
         </p>
 
-        <div className="px-5 py-4 rounded-xl border border-yellow-400/20 bg-yellow-400/5 w-full mb-10 mt-2">
-          <p className="text-[10px] uppercase tracking-widest text-yellow-400/50 mb-1">Your capsule link</p>
-          <p className="text-sm text-yellow-200/80 break-all">
-            itslegacycapsule.com/for/<span className="font-semibold">{slug}</span>
+        {/* Capsule link */}
+        <div style={{
+          padding: '16px 18px', borderRadius: '12px', marginBottom: '24px',
+          border: '1px solid rgba(226,195,107,0.25)',
+          background: 'rgba(226,195,107,0.06)',
+        }}>
+          <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(226,195,107,0.5)', marginBottom: '6px' }}>Your capsule link</p>
+          <p style={{ fontSize: '13px', color: gold, wordBreak: 'break-all', fontWeight: 600 }}>
+            itslegacycapsule.com/for/{capsuleSlug || slug}
           </p>
         </div>
 
-        <Link
-          href={`/for/${slug}`}
-          className="inline-flex items-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm tracking-wide transition-all duration-300"
-          style={{
-            background: 'linear-gradient(135deg, #B8960C 0%, #D4AE2A 50%, #B8960C 100%)',
-            color: '#0D0820',
-            boxShadow: '0 4px 24px #B8960C44',
-          }}>
-          View Your Capsule →
-        </Link>
+        {/* Actions */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+          <Link
+            href={`/manage/${capsuleSlug || slug}`}
+            style={{
+              display: 'block', padding: '14px', borderRadius: '12px', textDecoration: 'none',
+              background: goldBtn, color: '#1a0845', fontSize: '14px', fontWeight: 700,
+              letterSpacing: '0.04em', textAlign: 'center',
+              boxShadow: '0 4px 24px rgba(226,195,107,0.3)',
+            }}
+          >
+            Open Your Dashboard →
+          </Link>
 
-        <BookingFooter />
+          <Link
+            href={`/for/${capsuleSlug || slug}`}
+            target="_blank"
+            style={{
+              display: 'block', padding: '13px', borderRadius: '12px', textDecoration: 'none',
+              border: '1px solid rgba(226,195,107,0.22)',
+              background: 'rgba(226,195,107,0.05)',
+              color: 'rgba(226,195,107,0.75)', fontSize: '13px', fontWeight: 600,
+              textAlign: 'center', letterSpacing: '0.04em',
+            }}
+          >
+            View Tribute Wall ↗
+          </Link>
+        </div>
+
+        <p style={{ fontSize: '11px', color: textFaint, lineHeight: 1.65 }}>
+          A management link has also been sent to {organiserEmail}
+        </p>
+
+        <Footer />
       </div>
-    </ScreenShell>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+    </Shell>
   )
 }
 
-
-
-
-
-
-
-
-
-
-
+/* =========================================================
+   SECTION 10 — SUSPENSE WRAPPER EXPORT
+   Required by Next.js for useSearchParams
+========================================================= */
 export default function BookPageWrapper() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[linear-gradient(160deg,#0D0820_0%,#1A0F3E_50%,#0D0820_100%)] flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-yellow-400/30 border-t-yellow-400 animate-spin" />
+      <div style={{
+        minHeight: '100vh', background: pageBg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{
+          width: '32px', height: '32px', borderRadius: '50%',
+          border: '2px solid rgba(226,195,107,0.2)', borderTopColor: gold,
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     }>
       <BookPage />
     </Suspense>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

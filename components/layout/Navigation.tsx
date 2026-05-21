@@ -370,13 +370,10 @@ function LogoMark() {
 /* ── Data ───────────────────────────────────────────────────── */
 const NAV_LINKS = [
   { href: "/examples",  label: "Examples" },
-  { href: "/pricing",   label: "Pricing"  },
-  { href: "/for-you",   label: "For You"  },
   { href: "/help",      label: "Help"     },
 ]
 
 const QUICK_LINKS = [
-  { href: "/pricing",  label: "Pricing"       },
   { href: "/examples", label: "See Examples"  },
   { href: "/help",     label: "Help"          },
   { href: "/signin",   label: "Sign In"       },

@@ -314,7 +314,7 @@ export default function HomePage() {
   height:    "100vh",
   minHeight: "680px",
   overflow:  "hidden",
-  background: "#080C14",
+  background: "#0f0a1e",
 }}>
 
   {/* Real world map — full background */}
