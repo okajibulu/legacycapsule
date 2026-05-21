@@ -35,12 +35,6 @@ import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import { getTributePageTitle } from '@/lib/eventLabels'
 import { COUNTRIES } from '@/lib/tributeWallHelpers'
-import type {
-  Capsule,
-  Contribution,
-  ProfileSection,
-  FeaturedPhoto,
-} from '@/app/for/[slug]/page'
 
 /* =========================================================
    SECTION 2 — CONSTANTS & CONFIG
@@ -83,6 +77,62 @@ const TributeMap = dynamic(() => import('@/components/TributeMap'), {
   ssr: false,
   loading: () => <div className="w-full h-full" style={{ background: '#0a0218' }} />,
 })
+
+/* =========================================================
+   SECTION 1B — LOCAL TYPES
+========================================================= */
+
+interface Capsule {
+  id: string
+  slug: string
+  honouree_name: string
+  honouree_title: string | null
+  event_type: string
+  event_tag: string | null
+  event_date: string | null
+  page_state: string
+  tier: string | null
+  hero_image_url: string | null
+  organiser_email: string
+  free_tier_expires_at: string | null
+  created_at: string
+  approved_contrib_count: number
+  components: string[]
+}
+
+interface Contribution {
+  id: string
+  contributor_name: string
+  city: string
+  country: string
+  relationship: string | null
+  tribute_text: string
+  thumbnail_url: string | null
+  audio_url: string | null
+  video_url: string | null
+  lat: number | null
+  lng: number | null
+  status: string
+  email: string | null
+  created_at: string
+}
+
+interface ProfileSection {
+  id: string
+  section_type: string
+  custom_title: string | null
+  content: string | null
+  sort_order: number
+  is_active: boolean
+}
+
+interface FeaturedPhoto {
+  id: string
+  image_url: string
+  caption: string | null
+  sort_order: number | null
+  is_hero: boolean | null
+}
 
 /* =========================================================
    SECTION 3 — TYPES
