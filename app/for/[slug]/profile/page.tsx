@@ -4,84 +4,83 @@
  * VALNEX, UNIPESSOAL LDA · RevoWorldTech
  * ============================================================
  *
- * Public subject profile page.
+ * Public subject profile page — rethemed to purple/gold.
  * Route: /for/[slug]/profile
  *
- * Any visitor can reach this page from the tribute wall hero link.
- * Sections only render when they have content — no empty shells.
+ * Architecture preserved intact:
+ * - Server component — no 'use client'
+ * - Account numbers masked server-side before render
+ * - Parallel data fetches
+ * - notFound() guards
  *
- * Security: account numbers are masked server-side before render.
- * The full account number NEVER reaches the client HTML.
- *
- * Server component — no 'use client'.
+ * Visual: Dark purple base, lighter warm card surfaces
+ * for reading sections, gold accent language throughout.
+ * ============================================================
  */
 
-import { notFound }  from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { notFound } from 'next/navigation'
+import { createClient } from '@supabase/supabase-js'
 import {
   getWaysToHonourLabel,
   getGiftAcknowledgeLabel,
   getEventTypeLabel,
   getEventTypeEmoji,
   getProfileSectionLabel,
-} from '@/lib/eventLabels';
-import WaysToHonourCard    from '@/components/honouree/WaysToHonourCard';
+} from '@/lib/eventLabels'
+import WaysToHonourCard from '@/components/honouree/WaysToHonourCard'
 
-
-// ============================================================
-// SECTION 1 — Admin client (server-side — account masking)
-// ============================================================
-
+/* =========================================================
+   SECTION 1 — Admin client + utilities
+========================================================= */
 const adminClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+)
 
-/** Mask account number to last 4 digits — server-side only */
 function maskAccountNumber(full: string | null): string {
-  if (!full || full.length < 4) return '••••';
-  return `••••${full.slice(-4)}`;
+  if (!full || full.length < 4) return '••••'
+  return `••••${full.slice(-4)}`
 }
 
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '';
+  if (!dateStr) return ''
   try {
     return new Date(dateStr).toLocaleDateString('en-GB', {
       day: 'numeric', month: 'long', year: 'numeric',
-    });
-  } catch { return dateStr; }
+    })
+  } catch { return dateStr }
 }
 
+// Design tokens — inline for server component
+const purpleDark = '#0f0a1e'
+const purpleMid = '#1a0845'
+const purpleHero = 'linear-gradient(160deg, #1a0845 0%, #2a0f6a 60%, #160740 100%)'
+const gold = '#E2C36B'
+const goldMuted = 'rgba(226,195,107,0.60)'
+const goldFaint = 'rgba(226,195,107,0.18)'
+// Light warm surface for reading sections — easier on the eye for long text
+const cardSurface = 'rgba(255,253,245,0.06)'
+const cardSurfaceLight = 'rgba(255,253,248,0.92)' // warm near-white for text content
 
-// ============================================================
-// SECTION 2 — Page component
-// ============================================================
-
+/* =========================================================
+   SECTION 2 — Page component
+========================================================= */
 interface PageProps {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string }>
 }
 
 export default async function ProfilePage({ params }: PageProps) {
-  const { slug } = await params;
+  const { slug } = await params
 
-  // ── 2.1  Fetch capsule ────────────────────────────────────
   const { data: capsule, error } = await adminClient
     .from('capsules')
-    .select(`
-      id, slug, honouree_name, event_type, event_tag, event_date,
-      page_state, tier, hero_image_url
-    `)
+    .select('id, slug, honouree_name, event_type, event_tag, event_date, page_state, tier, hero_image_url')
     .eq('slug', slug)
     .is('deleted_at', null)
-    .maybeSingle();
+    .maybeSingle()
 
-  if (error || !capsule) return notFound();
-
-  // Only show profile page if capsule is beyond draft state
-  if (capsule.page_state === 'draft') return notFound();
-
-
-  // ── 2.2  Fetch all profile content in parallel ────────────
+  if (error || !capsule) return notFound()
+  if (capsule.page_state === 'draft') return notFound()
 
   const [profileRes, featuredRes, galleryRes, supportRes] = await Promise.all([
     adminClient
@@ -111,82 +110,136 @@ export default async function ProfilePage({ params }: PageProps) {
       .eq('is_active', true)
       .is('deleted_at', null)
       .order('sort_order'),
-  ]);
+  ])
 
-  const profileSections = profileRes.data ?? [];
-  const featuredPhotos  = featuredRes.data ?? [];
-  const galleryPhotos   = galleryRes.data  ?? [];
+  const profileSections = profileRes.data ?? []
+  const featuredPhotos = featuredRes.data ?? []
+  const galleryPhotos = galleryRes.data ?? []
 
-  // ── Server-side account number masking (SECURITY — never skip) ──
+  // SECURITY — account numbers masked server-side, never reach client
   const supportAccounts = (supportRes.data ?? []).map(acc => ({
     ...acc,
     account_number: maskAccountNumber(acc.account_number),
-  }));
+  }))
 
-  const hasWaysToHonour = supportAccounts.length > 0;
-  const waysLabel       = getWaysToHonourLabel(capsule.event_type, capsule.honouree_name);
-  const eventLabel      = getEventTypeLabel(capsule.event_type);
-  const eventEmoji      = getEventTypeEmoji(capsule.event_type);
+  const hasWaysToHonour = supportAccounts.length > 0
+  const waysLabel = getWaysToHonourLabel(capsule.event_type, capsule.honouree_name)
+  const eventLabel = getEventTypeLabel(capsule.event_type)
+  const eventEmoji = getEventTypeEmoji(capsule.event_type)
 
-
-  // ── 2.3  Render ───────────────────────────────────────────
+  const hasContent = profileSections.length > 0 || featuredPhotos.length > 0 ||
+    galleryPhotos.length > 0 || hasWaysToHonour
 
   return (
-    <div className="min-h-screen bg-[#F5F3EE]">
+    <div style={{ minHeight: '100vh', background: purpleDark, fontFamily: "'DM Sans', sans-serif" }}>
 
-      {/* ── Back navigation ───────────────────────────────── */}
-      <div className="bg-[#2D1B69] px-4 py-3">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
+      {/* ═══════════════════════════════════════════════
+          TOP NAV BAR
+          Minimal — logo left, back link right
+      ═══════════════════════════════════════════════ */}
+      <div style={{
+        background: 'rgba(15,10,30,0.95)',
+        borderBottom: `1px solid ${goldFaint}`,
+        padding: '12px 16px',
+        backdropFilter: 'blur(12px)',
+        position: 'sticky', top: 0, zIndex: 40,
+      }}>
+        <div style={{
+          maxWidth: '720px', margin: '0 auto',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          {/* Logo */}
+          <a href="/" style={{ textDecoration: 'none' }}>
+            <span style={{
+              fontSize: '11px', fontWeight: 800, letterSpacing: '0.16em',
+              background: 'linear-gradient(135deg, #E2C36B, #C9A84E)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            }}>LEGACY</span>
+            <span style={{
+              fontSize: '11px', fontWeight: 800, letterSpacing: '0.16em',
+              color: 'rgba(255,255,255,0.28)', marginLeft: '0.1em',
+            }}>CAPSULE</span>
+          </a>
+
+          {/* Back to tribute wall */}
           <a
             href={`/for/${slug}`}
-            className="
-              flex items-center gap-2 text-sm text-yellow-400/70
-              hover:text-yellow-400 transition-colors
-            "
+            style={{
+              fontSize: '12px', color: goldMuted, textDecoration: 'none',
+              letterSpacing: '0.04em', transition: 'color 0.2s',
+            }}
           >
-            <span aria-hidden="true">←</span>
-            Back to tribute wall
+            ← Tribute Wall
           </a>
-          <div className="flex items-center gap-3">
-            <a
-              href={`/for/${slug}/submit`}
-              className="
-                text-xs px-3 py-1.5 rounded-full
-                bg-yellow-400 text-purple-950 font-bold
-                hover:bg-yellow-300 transition-colors
-              "
-            >
-              Submit tribute
-            </a>
-          </div>
         </div>
       </div>
 
+      {/* ═══════════════════════════════════════════════
+          HERO — Photo backdrop + identity
+      ═══════════════════════════════════════════════ */}
+      <div style={{
+        position: 'relative', overflow: 'hidden',
+        minHeight: '280px',
+      }}>
+        {/* Background — photo or gradient */}
+        {capsule.hero_image_url ? (
+          <div style={{
+            position: 'absolute', inset: 0,
+            backgroundImage: `url(${capsule.hero_image_url})`,
+            backgroundSize: 'cover', backgroundPosition: 'center',
+          }} />
+        ) : (
+          <div style={{ position: 'absolute', inset: 0, background: purpleHero }} />
+        )}
 
-      {/* ── Hero ──────────────────────────────────────────── */}
-      <div className="bg-[#2D1B69] pb-12 pt-10">
-        <div className="max-w-3xl mx-auto px-4 text-center">
-          <p className="text-2xl mb-3" aria-hidden="true">{eventEmoji}</p>
-          <p className="
-            text-[10px] text-yellow-400/60 uppercase tracking-[0.25em] mb-3
-          ">
-            {eventLabel}
-          </p>
-          <h1 className="
-            text-4xl md:text-5xl font-bold text-white
-            leading-tight mb-3
-          "
-            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-          >
+        {/* Overlays */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(to bottom, rgba(15,10,30,0.5) 0%, rgba(15,10,30,0.3) 40%, rgba(15,10,30,0.85) 100%)',
+        }} />
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'radial-gradient(ellipse at 50% 0%, rgba(226,195,107,0.08) 0%, transparent 60%)',
+        }} />
+
+        {/* Gold top rule */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
+          background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.6), transparent)',
+        }} />
+
+        {/* Content */}
+        <div style={{
+          position: 'relative', zIndex: 10,
+          maxWidth: '720px', margin: '0 auto',
+          padding: '48px 20px 40px',
+          textAlign: 'center',
+        }}>
+          <p style={{ fontSize: '28px', marginBottom: '12px', lineHeight: 1 }}>{eventEmoji}</p>
+          <p style={{
+            fontSize: '10px', textTransform: 'uppercase',
+            letterSpacing: '0.24em', color: goldMuted,
+            marginBottom: '14px',
+          }}>{eventLabel}</p>
+          <h1 style={{
+            fontFamily: "'Playfair Display', Georgia, serif",
+            fontSize: 'clamp(26px, 6vw, 42px)',
+            fontWeight: 800, color: '#ffffff',
+            lineHeight: 1.15, marginBottom: '10px',
+            textShadow: '0 2px 20px rgba(0,0,0,0.8)',
+          }}>
             {capsule.honouree_name}
           </h1>
           {capsule.event_tag && (
-            <p className="text-yellow-400 text-base mb-2">
+            <p style={{
+              fontSize: '15px', color: gold,
+              marginBottom: '8px', fontWeight: 500,
+            }}>
               {capsule.event_tag}
             </p>
           )}
           {capsule.event_date && (
-            <p className="text-white/40 text-sm">
+            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.40)' }}>
               {formatDate(capsule.event_date)}
             </p>
           )}
@@ -194,103 +247,193 @@ export default async function ProfilePage({ params }: PageProps) {
       </div>
 
       {/* Gold rule */}
-      <div className="h-[3px] bg-gradient-to-r from-transparent via-[#B8960C] to-transparent" />
+      <div style={{
+        height: '2px',
+        background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.5), transparent)',
+      }} />
 
+      {/* ═══════════════════════════════════════════════
+          SUBMIT TRIBUTE CTA — immediately after hero
+      ═══════════════════════════════════════════════ */}
+      <div style={{
+        background: 'rgba(226,195,107,0.05)',
+        borderBottom: `1px solid ${goldFaint}`,
+        padding: '14px 20px',
+        textAlign: 'center',
+      }}>
+        <a
+          href={`/for/${slug}`}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            padding: '10px 24px', borderRadius: '24px',
+            background: 'linear-gradient(135deg, #E2C36B, #C9A84E)',
+            color: '#1a0845', fontSize: '13px', fontWeight: 700,
+            textDecoration: 'none', letterSpacing: '0.04em',
+            boxShadow: '0 4px 16px rgba(226,195,107,0.25)',
+          }}
+        >
+          ✦ Leave a tribute
+        </a>
+      </div>
 
-      {/* ── Main content ─────────────────────────────────── */}
-      <main className="max-w-3xl mx-auto px-4 py-10 space-y-12">
+      {/* ═══════════════════════════════════════════════
+          MAIN CONTENT
+          Warm card surface for readability of long text
+      ═══════════════════════════════════════════════ */}
+      <main style={{
+        maxWidth: '720px', margin: '0 auto',
+        padding: '40px 16px 60px',
+      }}>
 
-        {/* ── Profile sections (About, Career Legacy, etc.) ─ */}
-        {profileSections.map(section => (
-          <section
-            key={section.id}
-            aria-label={getProfileSectionLabel(section.section_type, section.custom_title)}
-          >
-            <h2 className="
-              text-xs font-bold uppercase tracking-[0.2em]
-              text-[#B8960C] mb-4
-            ">
-              {getProfileSectionLabel(section.section_type, section.custom_title)}
-            </h2>
-            <div className="
-              w-8 h-[1.5px] bg-[#B8960C]/40 mb-5
-            " aria-hidden="true" />
-            <p className="
-              text-[#1C1C1E] text-base leading-relaxed whitespace-pre-wrap
-            "
-              style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-            >
-              {section.content}
+        {!hasContent && (
+          <div style={{
+            textAlign: 'center', padding: '48px 24px',
+            borderRadius: '16px',
+            border: `1px solid ${goldFaint}`,
+            background: cardSurface,
+          }}>
+            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', lineHeight: 1.75 }}>
+              The organiser is still building this profile.<br />
+              Check back soon.
             </p>
-          </section>
+          </div>
+        )}
+
+        {/* ── Profile text sections ── */}
+        {profileSections.map((section, index) => (
+          <div
+            key={section.id}
+            style={{ marginBottom: '32px' }}
+          >
+            {/* Section heading */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{
+                flex: 1, height: '1px',
+                background: 'linear-gradient(to right, rgba(226,195,107,0.3), transparent)',
+              }} />
+              <h2 style={{
+                fontSize: '10px', fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: '0.2em',
+                color: goldMuted, margin: 0, whiteSpace: 'nowrap',
+              }}>
+                {getProfileSectionLabel(section.section_type, section.custom_title)}
+              </h2>
+              <div style={{
+                flex: 1, height: '1px',
+                background: 'linear-gradient(to left, rgba(226,195,107,0.3), transparent)',
+              }} />
+            </div>
+
+            {/* Content card — warm light surface for reading */}
+            <div style={{
+              background: cardSurfaceLight,
+              borderRadius: '14px',
+              padding: '24px 26px',
+              border: `1px solid rgba(226,195,107,0.12)`,
+              boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+            }}>
+              <p style={{
+                fontFamily: "'Playfair Display', Georgia, serif",
+                fontSize: '15px',
+                color: '#1C1014',
+                lineHeight: 1.85,
+                whiteSpace: 'pre-wrap',
+                margin: 0,
+              }}>
+                {section.content}
+              </p>
+            </div>
+          </div>
         ))}
 
-
-        {/* ── Featured Photos ────────────────────────────── */}
+        {/* ── Featured Photos ── */}
         {featuredPhotos.length > 0 && (
-          <section aria-label="Featured photos">
-            <h2 className="
-              text-xs font-bold uppercase tracking-[0.2em] text-[#B8960C] mb-4
-            ">
-              Featured Photos
-            </h2>
-            <div className="w-8 h-[1.5px] bg-[#B8960C]/40 mb-5" aria-hidden="true" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, rgba(226,195,107,0.3), transparent)' }} />
+              <h2 style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: goldMuted, margin: 0 }}>
+                Featured Photos
+              </h2>
+              <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to left, rgba(226,195,107,0.3), transparent)' }} />
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: '12px',
+            }}>
               {featuredPhotos.map(photo => (
-                <div key={photo.id} className="rounded-xl overflow-hidden shadow-md">
+                <div key={photo.id} style={{
+                  borderRadius: '12px', overflow: 'hidden',
+                  border: `1px solid ${goldFaint}`,
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
+                }}>
                   <img
                     src={photo.image_url}
                     alt={photo.caption ?? `Photo of ${capsule.honouree_name}`}
-                    className="w-full object-cover aspect-[4/3]"
+                    style={{ width: '100%', objectFit: 'cover', aspectRatio: '4/3', display: 'block' }}
                     loading="lazy"
                   />
                   {photo.caption && (
-                    <p className="text-xs text-[#5F5E5A] p-3 bg-white">
-                      {photo.caption}
-                    </p>
+                    <div style={{
+                      padding: '10px 14px',
+                      background: 'rgba(255,253,248,0.95)',
+                    }}>
+                      <p style={{ fontSize: '12px', color: '#5F5E5A', margin: 0 }}>{photo.caption}</p>
+                    </div>
                   )}
                 </div>
               ))}
             </div>
-          </section>
+          </div>
         )}
 
-
-        {/* ── Gallery ───────────────────────────────────── */}
+        {/* ── Gallery grid ── */}
         {galleryPhotos.length > 0 && (
-          <section aria-label="Gallery">
-            <h2 className="
-              text-xs font-bold uppercase tracking-[0.2em] text-[#B8960C] mb-4
-            ">
-              Gallery
-            </h2>
-            <div className="w-8 h-[1.5px] bg-[#B8960C]/40 mb-5" aria-hidden="true" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, rgba(226,195,107,0.3), transparent)' }} />
+              <h2 style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: goldMuted, margin: 0 }}>
+                Gallery
+              </h2>
+              <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to left, rgba(226,195,107,0.3), transparent)' }} />
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '8px',
+            }}>
               {galleryPhotos.map(photo => (
-                <div key={photo.id} className="rounded-lg overflow-hidden">
+                <div key={photo.id} style={{
+                  borderRadius: '10px', overflow: 'hidden',
+                  border: `1px solid ${goldFaint}`,
+                  aspectRatio: '1',
+                }}>
                   <img
                     src={photo.image_url}
                     alt={photo.caption ?? ''}
-                    className="w-full object-cover aspect-square"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     loading="lazy"
                   />
                 </div>
               ))}
             </div>
-          </section>
+          </div>
         )}
 
-
-        {/* ── Ways to Honour ────────────────────────────── */}
+        {/* ── Ways to Honour ── */}
         {hasWaysToHonour && (
-          <section aria-label={waysLabel}>
-            <h2 className="
-              text-xs font-bold uppercase tracking-[0.2em] text-[#B8960C] mb-4
-            ">
-              {waysLabel}
-            </h2>
-            <div className="w-8 h-[1.5px] bg-[#B8960C]/40 mb-5" aria-hidden="true" />
-            <div className="space-y-4">
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, rgba(226,195,107,0.3), transparent)' }} />
+              <h2 style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: goldMuted, margin: 0, textAlign: 'center' }}>
+                {waysLabel}
+              </h2>
+              <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to left, rgba(226,195,107,0.3), transparent)' }} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {supportAccounts.map(account => (
                 <WaysToHonourCard
                   key={account.id}
@@ -300,83 +443,100 @@ export default async function ProfilePage({ params }: PageProps) {
                 />
               ))}
             </div>
-          </section>
+          </div>
         )}
 
-
-        {/* ── Navigation to tribute wall ────────────────── */}
-        <div className="pt-4 border-t border-[#B8960C]/20 flex flex-wrap gap-3">
+        {/* ── Bottom navigation ── */}
+        <div style={{
+          paddingTop: '24px',
+          borderTop: `1px solid ${goldFaint}`,
+          display: 'flex', flexWrap: 'wrap', gap: '10px',
+          justifyContent: 'center',
+          marginTop: '16px',
+        }}>
           <a
             href={`/for/${slug}`}
-            className="
-              text-sm px-5 py-2.5 rounded-full
-              border border-[#2D1B69] text-[#2D1B69]
-              hover:bg-[#2D1B69] hover:text-white
-              transition-colors font-medium
-            "
+            style={{
+              padding: '10px 22px', borderRadius: '24px', textDecoration: 'none',
+              border: `1px solid rgba(226,195,107,0.28)`,
+              color: goldMuted, fontSize: '13px', fontWeight: 600,
+              letterSpacing: '0.04em', background: 'rgba(226,195,107,0.05)',
+            }}
           >
-            View tribute wall
+            ← Tribute Wall
           </a>
           <a
-            href={`/for/${slug}/submit`}
-            className="
-              text-sm px-5 py-2.5 rounded-full
-              bg-[#2D1B69] text-white font-medium
-              hover:bg-[#3d2580] transition-colors
-            "
+            href={`/for/${slug}`}
+            style={{
+              padding: '10px 22px', borderRadius: '24px', textDecoration: 'none',
+              background: 'linear-gradient(135deg, #E2C36B, #C9A84E)',
+              color: '#1a0845', fontSize: '13px', fontWeight: 700,
+              letterSpacing: '0.04em',
+            }}
           >
-            Submit a tribute
+            Leave a Tribute ✦
           </a>
         </div>
 
       </main>
 
-
-      {/* ── Footer ────────────────────────────────────────── */}
-      <footer className="bg-[#2D1B69] py-8 mt-12">
-        <div className="max-w-3xl mx-auto px-4 text-center">
-          <p className="text-yellow-400/50 text-[10px] uppercase tracking-[0.2em] mb-2">
-            LegacyCapsule
-          </p>
-          <p className="text-white/30 text-xs">
-            Every event. Preserved.
-          </p>
-          <p className="mt-3 text-xs">
-            <a
-              href="/book"
-              className="text-white/20 hover:text-white/40 transition-colors"
-            >
-              Planning your own event? Start here →
-            </a>
-          </p>
-        </div>
+      {/* ═══════════════════════════════════════════════
+          FOOTER
+      ═══════════════════════════════════════════════ */}
+      <footer style={{
+        background: 'rgba(255,255,255,0.02)',
+        borderTop: `1px solid ${goldFaint}`,
+        padding: '32px 20px',
+        textAlign: 'center',
+      }}>
+        <span style={{
+          fontSize: '11px', fontWeight: 800, letterSpacing: '0.16em',
+          background: 'linear-gradient(135deg, #E2C36B, #C9A84E)',
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+        }}>LEGACY</span>
+        <span style={{
+          fontSize: '11px', fontWeight: 800, letterSpacing: '0.16em',
+          color: 'rgba(255,255,255,0.2)', marginLeft: '0.1em',
+        }}>CAPSULE</span>
+        <p style={{
+          fontSize: '10px', color: 'rgba(255,255,255,0.15)',
+          marginTop: '6px', letterSpacing: '0.1em', textTransform: 'uppercase',
+        }}>
+          Events end. Legacies don't.
+        </p>
+        <p style={{ marginTop: '10px' }}>
+          <a
+            href="/book"
+            style={{ fontSize: '12px', color: 'rgba(255,255,255,0.18)', textDecoration: 'none', letterSpacing: '0.04em' }}
+          >
+            Planning your own event? Start here →
+          </a>
+        </p>
       </footer>
 
     </div>
-  );
+  )
 }
 
-
-// ============================================================
-// SECTION 3 — Metadata
-// ============================================================
-
+/* =========================================================
+   SECTION 3 — Metadata
+========================================================= */
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const adminClient = createClient(
+  const client = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-  const { data } = await adminClient
+  )
+  const { data } = await client
     .from('capsules')
     .select('honouree_name, event_tag, event_type')
-   .eq('slug', slug)
-    .maybeSingle();
+    .eq('slug', slug)
+    .maybeSingle()
 
-  if (!data) return { title: 'Profile | LegacyCapsule' };
+  if (!data) return { title: 'Profile | LegacyCapsule' }
 
   return {
-    title:       `${data.honouree_name} — ${data.event_tag ?? getEventTypeLabel(data.event_type)} | LegacyCapsule`,
+    title: `${data.honouree_name} — ${data.event_tag ?? getEventTypeLabel(data.event_type)} | LegacyCapsule`,
     description: `${data.event_tag ?? getEventTypeLabel(data.event_type)} — a LegacyCapsule tribute collection.`,
-  };
+  }
 }
