@@ -49,15 +49,14 @@ export default function TributeMap({ pins, locked = true }: TributeMapProps) {
       />
       {pins.map((pin, i) => (
         <CircleMarker
-        className="drop-shadow-[0_0_6px_rgba(243,211,107,0.45)]"
-          key={i}
+                 key={i}
           center={[pin.lat, pin.lng]}
-          radius={locked ? 2.5 : 4}
+          radius={locked ? 1.2 : 2}
           pathOptions={{
-  fillColor: '#F3D36B',
-  fillOpacity: 0.68,
+  fillColor: '#FFE27A',
+  fillOpacity: 0.78,
   color: '#F6E7A1',
-  weight: 0.8,
+  weight: 0,
 }}
         >
           <Tooltip>

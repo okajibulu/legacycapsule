@@ -966,9 +966,11 @@ export default function TributeWallClient({
               style={{ background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.4), transparent)' }} />
 
             {/* Map — pointer-events-none so click passes to outer div */}
-            <div className="w-full h-full overflow-hidden pointer-events-none">
-              <TributeMap pins={pins} locked={true} />
-            </div>
+{!mapOpen && (
+  <div className="w-full h-full overflow-hidden pointer-events-none">
+    <TributeMap pins={pins} locked={true} />
+  </div>
+)}
 
             {/* Scanlines overlay — royal satellite feel */}
             <div className="map-scanlines absolute inset-0 pointer-events-none z-10" style={{ opacity: 0.6 }} />
