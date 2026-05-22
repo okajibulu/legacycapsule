@@ -1,3 +1,10 @@
+
+
+
+
 {
-    "python-envs.defaultEnvManager": "ms-python.python:system"
+     "css.lint.unknownAtRules": "ignore",
+ "python-envs.defaultEnvManager": "ms-python.python:system"
+    
 }
+

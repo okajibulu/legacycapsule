@@ -5,6 +5,28 @@
 
 /* ── Google Fonts ── */
 
+/* =========================================================
+   LC TRIBUTE WALL SCROLLBAR
+========================================================= */
+
+.lc-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lc-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lc-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(212,174,42,0.25);
+  border-radius: 999px;
+}
+
+.lc-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(212,174,42,0.45);
+}
+
+
 /* ── Tailwind + Shadcn ── */
 @import "tailwindcss";
 @import "tw-animate-css";

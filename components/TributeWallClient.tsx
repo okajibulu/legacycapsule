@@ -115,15 +115,17 @@ const ORNAMENTS: Record<string, string> = {
 }
 
 const inputBase = [
-  'w-full text-sm px-3 py-2.5 rounded-lg',
-  'text-white placeholder:text-yellow-100/55',
-  'bg-white/10 backdrop-blur-sm',
-  'border border-yellow-400/45',
-  'shadow-[0_0_8px_rgba(234,179,8,0.12),inset_0_1px_0_rgba(255,255,255,0.08)]',
-  'hover:border-yellow-300/65 hover:bg-white/14',
-  'focus:outline-none focus:border-yellow-300/85',
-  'focus:bg-white/18',
-  'focus:shadow-[0_0_0_2px_rgba(234,179,8,0.18),0_0_16px_rgba(234,179,8,0.45)]',
+  'w-full text-sm px-4 py-3.5 rounded-2xl',
+  'text-white placeholder:text-yellow-100/45',
+  'bg-white/[0.07] backdrop-blur-xl',
+  'border border-white/[0.08]',
+  'shadow-[0_0_12px_rgba(0,0,0,0.18)]',
+  'hover:bg-white/[0.09]',
+  'hover:border-yellow-300/20',
+  'focus:outline-none',
+  'focus:bg-white/[0.11]',
+  'focus:border-yellow-300/35',
+  'focus:shadow-[0_0_0_1px_rgba(226,195,107,0.12),0_0_20px_rgba(226,195,107,0.12)]',
   'transition-all duration-200',
 ].join(' ')
 
@@ -201,18 +203,29 @@ function TributeCard({
 
   return (
     <div style={{
-      borderRadius: '10px',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
-      backgroundColor: isPending ? 'rgba(234,179,8,0.06)' : 'rgba(255,255,255,0.07)',
-      border: '1px solid ' + (isPending
-        ? 'rgba(234,179,8,0.35)'
-        : isOwn ? 'rgba(180,140,255,0.28)' : 'rgba(255,255,255,0.11)'),
-      boxShadow: isPending ? '0 2px 12px rgba(234,179,8,0.07)' : '0 2px 8px rgba(0,0,0,0.25)',
-      transition: 'all 0.2s',
-    }}>
-      <div className="px-4 py-3">
-        <div className="flex items-baseline gap-2 mb-1.5">
+  borderRadius: '18px',
+  backdropFilter: 'blur(18px)',
+  WebkitBackdropFilter: 'blur(18px)',
+  backgroundColor: isPending
+    ? 'rgba(234,179,8,0.06)'
+    : 'rgba(255,255,255,0.055)',
+
+  border: '1px solid ' + (
+    isPending
+      ? 'rgba(234,179,8,0.28)'
+      : isOwn
+        ? 'rgba(180,140,255,0.20)'
+        : 'rgba(255,255,255,0.07)'
+  ),
+
+  boxShadow: isPending
+    ? '0 6px 22px rgba(234,179,8,0.08)'
+    : '0 6px 22px rgba(0,0,0,0.24)',
+
+  transition: 'all 0.24s ease',
+}}>
+      <div className="px-5 py-4">
+        <div className="flex items-baseline gap-2 mb-2.5">
           <span className="text-xs font-semibold text-yellow-200 truncate max-w-[150px] flex-shrink-0">
             {displayName}
             {isOwn && (
@@ -316,7 +329,7 @@ function PremiumModal({ feature, onClose }: { feature: 'video' | 'audio' | null;
           Contact us to activate this for your capsule.
         </p>
         <a href="mailto:hello@itslegacycapsule.com"
-          className="inline-block text-xs px-5 py-2 rounded-full font-semibold"
+          className="inline-block text-xs px-5 py-3.5 rounded-full font-semibold"
           style={{ background: 'linear-gradient(135deg, #E2C36B, #C9A84E)', color: '#1a0845' }}>
           Get in touch
         </a>
@@ -340,7 +353,7 @@ function MapModal({ pins, honourName, uniqueCountries, onClose }: {
   return (
     <div className="fixed inset-0 z-50 flex flex-col"
       style={{ background: 'rgba(8,2,26,0.96)', backdropFilter: 'blur(4px)' }}>
-      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3"
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3.5"
         style={{ borderBottom: '1px solid rgba(226,195,107,0.2)' }}>
         <div>
           <p className="text-xs font-semibold text-yellow-300 tracking-wide">World Tribute Map</p>
@@ -356,7 +369,7 @@ function MapModal({ pins, honourName, uniqueCountries, onClose }: {
       <div className="flex-1 relative">
         <TributeMap pins={pins} locked={false} />
       </div>
-      <div className="flex-shrink-0 text-center py-3 px-4"
+      <div className="flex-shrink-0 text-center py-3.5 px-4"
         style={{ borderTop: '1px solid rgba(226,195,107,0.15)' }}>
         <p className="text-[10px] text-yellow-400/50 tracking-wide">
           {uniqueCountries.length > 0
@@ -681,11 +694,17 @@ export default function TributeWallClient({
         />
       )}
 
-      <div className="min-h-screen w-full flex justify-center" style={{ background: pageBg }}>
-        <div className="w-full max-w-lg flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+<div
+  className="h-screen overflow-hidden w-full flex justify-center"
+  style={{ background: pageBg }}
+>
+  <div
+    className="w-full max-w-lg flex flex-col h-full"
+    style={{ fontFamily: "'DM Sans', sans-serif" }}
+  >
 
           {/* ═══════════════════════════════════════════════
-              SECTION 14A — TOP BAR
+              SECTION 15 — TOP BAR
               Centred two-tone LEGACY CAPSULE text — no SVG
           ═══════════════════════════════════════════════ */}
           <div className="flex-shrink-0 flex items-center justify-center px-4 pt-4 pb-1.5">
@@ -709,7 +728,7 @@ export default function TributeWallClient({
           </div>
 
           {/* ═══════════════════════════════════════════════
-              SECTION 14B — HERO PANEL
+              FROZEN EXPERIENCE
           ═══════════════════════════════════════════════ */}
           <div
             className="flex-shrink-0 relative overflow-hidden mx-3 rounded-2xl"
@@ -804,7 +823,7 @@ export default function TributeWallClient({
                     {errors.city && <p className="text-[9px] text-red-400/85 mt-0.5 pl-1">{errors.city}</p>}
                   </div>
                   <div className="flex-1 min-w-0 relative" ref={countryRef}>
-                    <input className={inputBase} placeholder="Country *"
+                    <input className={`${inputBase} appearance-none pr-10`} placeholder="Country *"
                       value={countryQuery || fCountry}
                       onChange={e => { setCountryQuery(e.target.value); setFCountry(''); setShowCountryList(true) }}
                       onFocus={() => setShowCountryList(true)} maxLength={50} />
@@ -835,9 +854,9 @@ export default function TributeWallClient({
                 <div className="flex gap-2 items-start">
                   <div className="flex-1 min-w-0 relative">
                     <textarea
-                      className={inputBase + ' resize-none leading-snug block'}
+                     className={`${inputBase} min-h-[110px] resize-none leading-7`}
                       style={{ minHeight: '64px', maxHeight: '84px' }}
-                      placeholder={`Leave a tribute for ${honourName}…`}
+                      placeholder={`Share a memory, reflection, or tribute for ${honourName}…`}
                       value={fMsg} onChange={e => setFMsg(e.target.value)}
                       maxLength={MAX_CHARS} rows={2}
                     />
@@ -847,14 +866,20 @@ export default function TributeWallClient({
                     </span>
                     {errors.msg && <p className="text-[9px] text-red-400/85 mt-0.5 pl-1">{errors.msg}</p>}
                   </div>
-                  <button onClick={handleSubmit} disabled={submitting}
-                    className="flex-shrink-0 self-start px-4 py-2.5 rounded-lg font-bold text-sm transition-all duration-150 active:scale-[0.97] disabled:opacity-60"
+                  <button
+                    onClick={handleSubmit}
+                    disabled={submitting}
+                    className="flex-shrink-0 self-start px-5 py-3.5 rounded-2xl font-semibold text-[14px] tracking-[0.04em] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40"
                     style={{
-                      background: 'linear-gradient(145deg, #E2C36B, #C9A84E)',
-                      color: '#1a0845',
-                      border: '1px solid rgba(226,195,107,0.5)',
-                      boxShadow: '0 0 14px rgba(226,195,107,0.35), inset 0 1px 0 rgba(255,255,255,0.3)',
-                    }}>
+                      background:
+                        'linear-gradient(180deg, #f3d36b 0%, #d4a93a 100%)',
+                      color: '#1a0826',
+                      border:
+                        '1px solid rgba(255,255,255,0.18)',
+                      boxShadow:
+                        '0 8px 22px rgba(212,169,58,0.30), inset 0 1px 0 rgba(255,255,255,0.26)',
+                    }}
+                  >
                     {submitting ? '…' : 'Submit'}
                   </button>
                 </div>
@@ -864,7 +889,7 @@ export default function TributeWallClient({
                   <button
                     onClick={() => setPremiumModal('video')}
                     title="Add a video tribute (premium feature)"
-                    className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg transition-all duration-150 hover:bg-white/8"
+                    className="flex items-center gap-1.5 text-sm px-3 py-3.5 rounded-lg transition-all duration-150 hover:bg-white/8"
                     style={{ border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.60)', background: 'rgba(255,255,255,0.05)' }}
                   >
                     <span style={{ fontSize: '16px' }}>🎬</span>
@@ -874,7 +899,7 @@ export default function TributeWallClient({
                   <button
                     onClick={() => setPremiumModal('audio')}
                     title="Add an audio tribute (premium feature)"
-                    className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg transition-all duration-150 hover:bg-white/8"
+                    className="flex items-center gap-1.5 text-sm px-3 py-3.5 rounded-lg transition-all duration-150 hover:bg-white/8"
                     style={{ border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.60)', background: 'rgba(255,255,255,0.05)' }}
                   >
                     <span style={{ fontSize: '16px' }}>🎙️</span>
@@ -886,7 +911,7 @@ export default function TributeWallClient({
                   <button
                     onClick={handleCopy}
                     title="Copy the link to this tribute wall"
-                    className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg transition-all duration-150 hover:bg-yellow-400/8"
+                    className="flex items-center gap-1.5 text-sm px-3 py-3.5 rounded-lg transition-all duration-150 hover:bg-yellow-400/8"
                     style={{
                       border: '1px solid rgba(226,195,107,0.32)',
                       color: copied ? 'rgba(226,195,107,0.95)' : 'rgba(226,195,107,0.68)',
@@ -901,7 +926,7 @@ export default function TributeWallClient({
                     href={`https://wa.me/?text=${encodeURIComponent('Leave a tribute for ' + honourName + ': ' + capsuleUrl)}`}
                     target="_blank" rel="noopener noreferrer"
                     title="Share this tribute wall on WhatsApp"
-                    className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg transition-all duration-150 hover:bg-green-400/8"
+                    className="flex items-center gap-1.5 text-sm px-3 py-3.5 rounded-lg transition-all duration-150 hover:bg-green-400/8"
                     style={{ border: '1px solid rgba(74,222,128,0.28)', color: 'rgba(74,222,128,0.72)', background: 'rgba(255,255,255,0.05)' }}
                   >
                     <span style={{ fontSize: '16px' }}>💬</span>
@@ -910,7 +935,7 @@ export default function TributeWallClient({
                 </div>
 
                 {submitSuccess && (
-                  <div className="rounded-xl px-3 py-2 text-xs text-center tracking-wide"
+                  <div className="rounded-xl px-3 py-3 text-xs text-center tracking-wide"
                     style={{ border: '1px solid rgba(226,195,107,0.35)', background: 'rgba(226,195,107,0.08)', color: 'rgba(226,195,107,0.92)' }}>
                     ✦ Your tribute has been received — thank you.
                   </div>
@@ -922,7 +947,7 @@ export default function TributeWallClient({
           </div>
 
           {/* ═══════════════════════════════════════════════
-              SECTION 14C — MAP BAND
+              SECTION 17 — MAP BAND
               Royal: deep bg + gold pulse glow + scanlines
               Permanent notice + click to expand
           ═══════════════════════════════════════════════ */}
@@ -978,7 +1003,7 @@ export default function TributeWallClient({
           </div>
 
           {/* ═══════════════════════════════════════════════
-              SECTION 14D — TRIBUTE WALL HEADER
+              SECTION 18 — TRIBUTE WALL HEADER
           ═══════════════════════════════════════════════ */}
           <div className="flex-shrink-0 px-4 pt-3 pb-2">
             <h2 className="text-center font-bold tracking-[0.2em] uppercase text-sm text-yellow-300"
@@ -997,13 +1022,24 @@ export default function TributeWallClient({
           {/* ═══════════════════════════════════════════════
               SECTION 14E — TRIBUTE CONTAINER
           ═══════════════════════════════════════════════ */}
-          <div className="mx-3 mb-5 rounded-2xl overflow-hidden flex-shrink-0"
-            style={{ minHeight: '120px', maxHeight: '400px', height: 'auto', border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(0,0,0,0.18)' }}>
-            <div className="overflow-y-auto px-2.5 py-2.5 space-y-2.5"
-              style={{ maxHeight: '400px', scrollbarWidth: 'thin', scrollbarColor: 'rgba(226,195,107,0.18) transparent' }}>
+<div
+  className="mx-3 mb-5 rounded-2xl overflow-hidden flex-1 min-h-0"
+  style={{
+    minHeight: '120px',
+    border: '1px solid rgba(255,255,255,0.06)',
+    background: 'rgba(12,6,24,0.34)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+  }}
+>
+
+
+            <div
+  className="overflow-y-auto px-4 py-4 space-y-4 flex-1 min-h-0 lc-scrollbar"
+              style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(226,195,107,0.18) transparent' }}>
               {visible.length === 0 && (
                 <div className="flex items-center justify-center h-full">
-                  <p className="text-center text-white/30 text-sm tracking-wide">Be the first to leave a tribute.</p>
+                  <p className="text-center text-white/40 text-sm tracking-[0.18em] uppercase">Be the first to preserve a tribute.</p>
                 </div>
               )}
               {visible.map(c => (
@@ -1063,15 +1099,17 @@ export default function TributeWallClient({
               </div>
 
               {/* Name — large, where ABOUT was */}
-              <h2
-                className="font-extrabold text-yellow-300 text-center"
-                style={{
-                  fontFamily: "'Playfair Display', Georgia, serif",
-                  fontSize: 'clamp(22px, 6vw, 32px)',
-                  textShadow: '0 0 32px rgba(226,195,107,0.3)',
-                  lineHeight: 1.2,
-                }}
-              >{honourName}</h2>
+<h2
+  className="font-extrabold text-[#f3d36b] text-center"
+  style={{
+    fontFamily: "'Playfair Display', Georgia, serif",
+    fontSize: 'clamp(24px, 6vw, 34px)',
+    textShadow:
+      '0 0 18px rgba(226,195,107,0.18), 0 0 42px rgba(226,195,107,0.12)',
+    lineHeight: 1.15,
+    letterSpacing: '0.01em',
+  }}
+>{honourName}</h2>
 
               {/* Event tag as subtitle */}
               {capsule.event_tag && (
