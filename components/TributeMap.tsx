@@ -51,7 +51,7 @@ export default function TributeMap({ pins, locked = true }: TributeMapProps) {
         <CircleMarker
                  key={i}
           center={[pin.lat, pin.lng]}
-          radius={locked ? 1.2 : 2}
+          radius={locked ? 1 : 1.8}
           pathOptions={{
   fillColor: '#FFE27A',
   fillOpacity: 0.78,
