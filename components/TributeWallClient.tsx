@@ -1025,13 +1025,13 @@ export default function TributeWallClient({
               SECTION 14E — TRIBUTE CONTAINER
           ═══════════════════════════════════════════════ */}
 <div
-  className="mx-3 mb-5 rounded-2xl overflow-hidden flex-1 min-h-0"
+  className="mx-3 mb-5 rounded-2xl overflow-hidden flex-shrink-0"
   style={{
-    minHeight: '220px', maxHeight: '520px',
-    border: '1px solid rgba(255,255,255,0.06)',
-    background: 'rgba(12,6,24,0.34)',
-    backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
+    minHeight: '120px',
+    maxHeight: '400px',
+    height: 'auto',
+    border: '1px solid rgba(255,255,255,0.07)',
+    background: 'rgba(0,0,0,0.18)'
   }}
 >
 
