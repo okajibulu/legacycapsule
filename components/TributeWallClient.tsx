@@ -224,7 +224,7 @@ function TributeCard({
 
   transition: 'all 0.24s ease',
 }}>
-      <div className="px-7 py-4">
+      <div className="px-6 py-3.5">
         <div className="flex items-baseline gap-2.5 mb-3">
           <span className="text-xs font-semibold text-yellow-200 truncate max-w-[150px] flex-shrink-0">
             {displayName}
@@ -235,7 +235,7 @@ function TributeCard({
           <span className="text-[10px] text-white/50 truncate flex-1">
             {[c.city, c.country].filter(Boolean).join(' · ')}
           </span>
-          <span className="text-[10px] text-white/30 opacity-70 whitespace-nowrap flex-shrink-0">
+          <span className="text-[10px] text-white/35 opacity-70 whitespace-nowrap flex-shrink-0">
             {new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
           </span>
         </div>
@@ -353,15 +353,15 @@ function MapModal({ pins, honourName, uniqueCountries, onClose }: {
   onClose: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col"
+    <div className="fixed inset-4 md:inset-6 z-50 flex flex-col rounded-3xl overflow-hidden"
       style={{ background: 'rgba(8,2,26,0.96)', backdropFilter: 'blur(4px)' }}>
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-3.5"
         style={{ borderBottom: '1px solid rgba(226,195,107,0.2)' }}>
         <div>
-          <p className="text-xs font-semibold text-yellow-300 tracking-wide">World Tribute Map</p>
+          <p className="text-xs font-semibold text-yellow-300 tracking-wide">Global Reach</p>
           <p className="text-[10px] text-white/40 mt-0.5">
             {uniqueCountries.length > 0
-              ? `${uniqueCountries.length} ${uniqueCountries.length === 1 ? 'country' : 'countries'} represented · drag to explore`
+              ? `${uniqueCountries.length} ${uniqueCountries.length === 1 ? 'country' : 'countries'} represented · Tap to explore global tributes`
               : 'No pins yet — approve tributes to see them appear'}
           </p>
         </div>
@@ -948,63 +948,7 @@ export default function TributeWallClient({
             </div>
           </div>
 
-          {/* ═══════════════════════════════════════════════
-              SECTION 17 — MAP BAND
-              Royal: deep bg + gold pulse glow + scanlines
-              Permanent notice + click to expand
-          ═══════════════════════════════════════════════ */}
-          <div
-            className="flex-shrink-0 mt-2 relative cursor-pointer"
-            style={{ height: '130px' }}
-            onClick={() => setMapOpen(true)}
-            title="Click to open the world tribute map"
-          >
-            {/* Gold top/bottom rules */}
-            <div className="absolute top-0 left-0 right-0 h-px z-10"
-              style={{ background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.4), transparent)' }} />
-            <div className="absolute bottom-0 left-0 right-0 h-px z-10"
-              style={{ background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.4), transparent)' }} />
 
-            {/* Map — pointer-events-none so click passes to outer div */}
-{!mapOpen && (
-  <div className="w-full h-full overflow-hidden pointer-events-none">
-    <TributeMap pins={pins} locked={true} />
-  </div>
-)}
-
-            {/* Scanlines overlay — royal satellite feel */}
-            <div className="map-scanlines absolute inset-0 pointer-events-none z-10" style={{ opacity: 0.6 }} />
-
-            {/* Gold pulse glow — radial, breathes */}
-            <div className="map-pulse absolute inset-0 pointer-events-none z-10" style={{
-              background: 'radial-gradient(ellipse at 50% 50%, rgba(226,195,107,0.18) 0%, transparent 70%)',
-            }} />
-
-            {/* Permanent notice — always visible, not just on hover */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
-              <div
-                className="flex items-center gap-2 px-4 py-1.5 rounded-full"
-                style={{
-                  background: 'rgba(8,2,22,0.72)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(226,195,107,0.35)',
-                }}
-              >
-                <span style={{ fontSize: '14px' }}>🌍</span>
-                <span style={{ fontSize: '11px', color: 'rgba(226,195,107,0.85)', letterSpacing: '0.08em', fontWeight: 600 }}>
-                  World Tribute Map
-                </span>
-                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.04em' }}>
-                  · tap to explore
-                </span>
-              </div>
-              {uniqueCountries.length > 0 && (
-                <p style={{ fontSize: '9px', color: 'rgba(226,195,107,0.45)', marginTop: '6px', letterSpacing: '0.06em' }}>
-                  {uniqueCountries.length} {uniqueCountries.length === 1 ? 'country' : 'countries'} represented
-                </p>
-              )}
-            </div>
-          </div>
 
           {/* ═══════════════════════════════════════════════
               SECTION 18 — TRIBUTE WALL HEADER
@@ -1058,6 +1002,65 @@ export default function TributeWallClient({
               <div ref={bottomRef} />
             </div>
           </div>
+
+          {/* ═══════════════════════════════════════════════
+              SECTION 17 — MAP BAND
+              Royal: deep bg + gold pulse glow + scanlines
+              Permanent notice + click to expand
+          ═══════════════════════════════════════════════ */}
+          <div
+            className="flex-shrink-0 mt-2 relative cursor-pointer"
+            style={{ height: '95px' }}
+            onClick={() => setMapOpen(true)}
+            title="Click to view the Global Reach"
+          >
+            {/* Gold top/bottom rules */}
+            <div className="absolute top-0 left-0 right-0 h-px z-10"
+              style={{ background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.4), transparent)' }} />
+            <div className="absolute bottom-0 left-0 right-0 h-px z-10"
+              style={{ background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.4), transparent)' }} />
+
+            {/* Map — pointer-events-none so click passes to outer div */}
+{!mapOpen && (
+  <div className="w-full h-full overflow-hidden pointer-events-none">
+    <TributeMap pins={pins} locked={true} />
+  </div>
+)}
+
+            {/* Scanlines overlay — royal satellite feel */}
+            <div className="map-scanlines absolute inset-0 pointer-events-none z-10" style={{ opacity: 0.6 }} />
+
+            {/* Gold pulse glow — radial, breathes */}
+            <div className="map-pulse absolute inset-0 pointer-events-none z-10" style={{
+              background: 'radial-gradient(ellipse at 50% 50%, rgba(226,195,107,0.18) 0%, transparent 70%)',
+            }} />
+
+            {/* Permanent notice — always visible, not just on hover */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
+              <div
+                className="flex items-center gap-2 px-4 py-1.5 rounded-full"
+                style={{
+                  background: 'rgba(8,2,22,0.72)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(226,195,107,0.35)',
+                }}
+              >
+                <span style={{ fontSize: '14px' }}>🌍</span>
+                <span style={{ fontSize: '11px', color: 'rgba(226,195,107,0.85)', letterSpacing: '0.08em', fontWeight: 600 }}>
+                  Global Reach
+                </span>
+                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.04em' }}>
+                  · tap to explore
+                </span>
+              </div>
+              {uniqueCountries.length > 0 && (
+                <p style={{ fontSize: '9px', color: 'rgba(226,195,107,0.45)', marginTop: '6px', letterSpacing: '0.06em' }}>
+                  {uniqueCountries.length} {uniqueCountries.length === 1 ? 'country' : 'countries'} represented
+                </p>
+              )}
+            </div>
+          </div>
+
 
           {/* ═══════════════════════════════════════════════
               SECTION 14F — PROFILE CANVAS
@@ -1166,30 +1169,84 @@ export default function TributeWallClient({
                   {featuredPhotos.map(photo => (
                     <div key={photo.id} className="rounded-xl overflow-hidden" style={{ aspectRatio: '1' }}>
                       <img src={photo.image_url} alt={photo.caption ?? ''} className="w-full h-full object-cover" style={{ filter: 'brightness(0.9)' }} />
-                    </div>
-                  ))}
-                </div>
-              </div>
+                    </div> ))}
+                </div>  </div>
             )}
 
-            {/* Footer */}
-            <div className="text-center pt-6 pb-2">
-              <div className="h-px mb-5" style={{ background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.15), transparent)' }} />
-              <Link href="/" style={{ textDecoration: 'none' }}>
-                <span style={{
-                  fontSize: '11px', fontWeight: 800, letterSpacing: '0.18em',
-                  background: 'linear-gradient(135deg, #E2C36B, #C9A84E)',
-                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                }}>LEGACY</span>
-                <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.22)', marginLeft: '0.18em' }}>CAPSULE</span>
-              </Link>
-              <p className="text-[9px] text-white/15 mt-1.5 tracking-widest uppercase">Events end. Legacies don't.</p>
+{/* Legacy Closing Section */}
+<div className="mx-3 mt-8 mb-10 rounded-2xl overflow-hidden border border-white/8">
+  <div
+    className="px-6 py-7 text-center"
+    style={{
+      background:
+        'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+    }}
+  >
+    <div
+      className="mx-auto mb-4 h-px w-24"
+      style={{
+        background:
+          'linear-gradient(to right, transparent, rgba(226,195,107,0.55), transparent)',
+      }}
+    />
+
+    <p className="text-[11px] uppercase tracking-[0.28em] text-yellow-400/65 mb-3">
+      Legacy
+    </p>
+
+    <p className="text-sm leading-relaxed text-white/72 max-w-lg mx-auto">
+      A life remembered through voices, memories, presence and shared moments
+      from around the world.
+    </p>
+
+    <div
+      className="mx-auto mt-5 h-px w-24"
+      style={{
+        background:
+          'linear-gradient(to right, transparent, rgba(226,195,107,0.35), transparent)',
+      }}
+    />
+
+    <div className="mt-5">
+      <Link href="/" style={{ textDecoration: 'none' }}>
+        <span
+          style={{
+            fontSize: '11px',
+            fontWeight: 800,
+            letterSpacing: '0.18em',
+            background:
+              'linear-gradient(135deg, #E2C36B, #C9A84E)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
+          LEGACY
+        </span>
+
+        <span
+          style={{
+            fontSize: '11px',
+            fontWeight: 800,
+            letterSpacing: '0.18em',
+            color: 'rgba(255,255,255,0.28)',
+            marginLeft: '0.18em',
+          }}
+        >
+          CAPSULE
+        </span>
+      </Link>
+    </div>
+
+    <p className="text-[9px] text-white/16 mt-3 tracking-widest uppercase">
+      Events end. Legacies continue.
+    </p>
+  </div>
+</div>        
+           
             </div>
-
-          </div>
-
-        </div>
-      </div>
+        </div> </div>
     </>
   )
 }
