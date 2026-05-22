@@ -1014,7 +1014,7 @@ export default function TributeWallClient({
             </h2>
             <p className="text-center text-xs text-white/50 mt-0.5">
               {approvedCount > 0
-                ? `${approvedCount} ${approvedCount === 1 ? 'person has' : 'people have'} honoured ${honourName}`
+                ? `${approvedCount} ${approvedCount === 1 ? 'person has' : 'people have'} preserved tribute for ${honourName}`
                 : `Be the first to honour ${honourName}`}
             </p>
             <div className="h-px mt-2"
