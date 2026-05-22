@@ -732,7 +732,7 @@ export default function TributeWallClient({
           ═══════════════════════════════════════════════ */}
           <div
             className="flex-shrink-0 relative overflow-hidden mx-3 rounded-2xl"
-            style={{ minHeight: '280px' }}
+            style={{ minHeight: '340px' }}
           >
             <div className="absolute inset-0 bg-cover bg-center bg-no-repeat"
               style={{ backgroundImage: `url(${resolvedHero})` }} />
@@ -793,7 +793,7 @@ export default function TributeWallClient({
               <div className="space-y-2.5">
 
                 {/* Row 1 — Name · Email · Photo */}
-                <div className="flex gap-2 items-start">
+                <div className="flex gap-3 items-start mt-2">
                   <div className="flex-1 min-w-0">
                     <input className={inputBase} placeholder="Your name *"
                       value={fName} onChange={e => setFName(e.target.value)} maxLength={50} />
@@ -816,7 +816,7 @@ export default function TributeWallClient({
                 </div>
 
                 {/* Row 2 — City · Country · Relationship */}
-                <div className="flex gap-2">
+                <div className="flex gap-3 mt-2">
                   <div className="flex-1 min-w-0">
                     <input className={inputBase} placeholder="City *"
                       value={fCity} onChange={e => setFCity(e.target.value)} maxLength={50} />
@@ -830,7 +830,7 @@ export default function TributeWallClient({
                     {errors.country && <p className="text-[9px] text-red-400/85 mt-0.5 pl-1">{errors.country}</p>}
                     {showCountryList && (
                       <div className="absolute z-30 mt-1 w-full max-h-36 overflow-y-auto rounded-xl"
-                        style={{ background: 'rgba(18,6,48,0.97)', backdropFilter: 'blur(16px)', border: '1px solid rgba(226,195,107,0.22)', boxShadow: '0 12px 32px rgba(0,0,0,0.75)' }}>
+                        style={{ maxHeight: '160px', background: 'rgba(18,6,48,0.97)', backdropFilter: 'blur(16px)', border: '1px solid rgba(226,195,107,0.22)', boxShadow: '0 12px 32px rgba(0,0,0,0.75)' }}>
                         {COUNTRIES
                           .filter(c => c.toLowerCase().includes((countryQuery || '').toLowerCase()))
                           .slice(0, 20)
@@ -851,11 +851,11 @@ export default function TributeWallClient({
                 </div>
 
                 {/* Row 3 — Tribute + Submit */}
-                <div className="flex gap-2 items-start">
+                <div className="flex gap-3 items-end mt-2">
                   <div className="flex-1 min-w-0 relative">
                     <textarea
                      className={`${inputBase} min-h-[110px] resize-none leading-7`}
-                      style={{ minHeight: '64px', maxHeight: '84px' }}
+                      style={{ maxHeight: '84px' }}
                       placeholder={`Share a memory, reflection, or tribute for ${honourName}…`}
                       value={fMsg} onChange={e => setFMsg(e.target.value)}
                       maxLength={MAX_CHARS} rows={2}
@@ -869,7 +869,7 @@ export default function TributeWallClient({
                   <button
                     onClick={handleSubmit}
                     disabled={submitting}
-                    className="flex-shrink-0 self-start px-5 py-3.5 rounded-2xl font-semibold text-[14px] tracking-[0.04em] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40"
+                    className="flex-shrink-0 self-start mt-1 px-5 py-3.5 rounded-2xl font-semibold text-[14px] tracking-[0.04em] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40"
                     style={{
                       background:
                         'linear-gradient(180deg, #f3d36b 0%, #d4a93a 100%)',
