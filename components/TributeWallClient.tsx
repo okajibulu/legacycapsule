@@ -224,8 +224,8 @@ function TributeCard({
 
   transition: 'all 0.24s ease',
 }}>
-      <div className="px-5 py-4">
-        <div className="flex items-baseline gap-2 mb-2.5">
+      <div className="px-7 py-4">
+        <div className="flex items-baseline gap-2.5 mb-3">
           <span className="text-xs font-semibold text-yellow-200 truncate max-w-[150px] flex-shrink-0">
             {displayName}
             {isOwn && (
@@ -235,7 +235,7 @@ function TributeCard({
           <span className="text-[10px] text-white/50 truncate flex-1">
             {[c.city, c.country].filter(Boolean).join(' · ')}
           </span>
-          <span className="text-[10px] text-white/30 whitespace-nowrap flex-shrink-0">
+          <span className="text-[10px] text-white/30 opacity-70 whitespace-nowrap flex-shrink-0">
             {new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
           </span>
         </div>
@@ -261,7 +261,9 @@ function TributeCard({
           </div>
         ) : (
           <>
-            <p className="text-sm text-white/88 leading-relaxed">{text}</p>
+           <p className="text-[15px] text-white/90 leading-7 tracking-[0.01em] pl-1">
+  {text}
+</p>
             {isLong && (
               <button onClick={() => setExpanded(e => !e)}
                 className="text-[11px] text-yellow-400/70 mt-0.5 hover:text-yellow-300 transition-colors">
