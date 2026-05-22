@@ -261,7 +261,7 @@ function TributeCard({
           </div>
         ) : (
           <>
-           <p className="text-[15px] text-white/90 leading-7 tracking-[0.01em] pl-1">
+           <p className="text-[14px] text-white/90 leading-7 tracking-[0.01em] pl-1">
   {text}
 </p>
             {isLong && (
@@ -697,7 +697,7 @@ export default function TributeWallClient({
       )}
 
 <div
-  className="h-screen overflow-hidden w-full flex justify-center"
+  className=" overflow-hidden w-full flex justify-center"
   style={{ background: pageBg }}
 >
   <div
@@ -733,7 +733,7 @@ export default function TributeWallClient({
               FROZEN EXPERIENCE
           ═══════════════════════════════════════════════ */}
           <div
-            className="flex-shrink-0 relative overflow-hidden mx-3 rounded-2xl"
+            className="flex-shrink-0 relative overflow-visible mx-3 rounded-2xl"
             style={{ minHeight: '340px' }}
           >
             <div className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -1027,7 +1027,7 @@ export default function TributeWallClient({
 <div
   className="mx-3 mb-5 rounded-2xl overflow-hidden flex-1 min-h-0"
   style={{
-    minHeight: '120px',
+    minHeight: '220px', maxHeight: '520px',
     border: '1px solid rgba(255,255,255,0.06)',
     background: 'rgba(12,6,24,0.34)',
     backdropFilter: 'blur(12px)',
@@ -1037,7 +1037,7 @@ export default function TributeWallClient({
 
 
             <div
-  className="overflow-y-auto px-4 py-4 space-y-4 flex-1 min-h-0 lc-scrollbar"
+  className="overflow-y-auto px-4 py-3 space-y-3 flex-1 min-h-0 lc-scrollbar"
               style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(226,195,107,0.18) transparent' }}>
               {visible.length === 0 && (
                 <div className="flex items-center justify-center h-full">
