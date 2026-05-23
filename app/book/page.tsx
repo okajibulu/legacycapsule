@@ -117,7 +117,24 @@ function getHonoureePlaceholder(eventType: string): string {
   }
 }
 
-function getEventTagPlaceholder(eventType: string): string {
+function getEventDescription(eventType: string): string {
+  switch (eventType) {
+    case 'Retirement':           return 'Honour a career well lived and a future well earned.'
+    case 'Memorial & Funeral':   return 'Gather every voice and preserve a life that mattered.'
+    case 'Wedding':              return 'Capture tributes from loved ones across the world on your special day.'
+    case 'Milestone Birthday':   return 'Mark the milestone with voices from everyone who matters.'
+    case 'Anniversary':          return 'Celebrate the journey together — every year a story worth telling.'
+    case 'Graduation':           return 'Honour the achievement and the years of effort behind it.'
+    case 'Ordination':           return 'A sacred moment, preserved with tributes from the congregation.'
+    case 'Chieftaincy':          return 'A historic occasion deserving a permanent and dignified record.'
+    case 'Award Ceremony':       return 'Capture the recognition and the people who made it possible.'
+    case 'Thanksgiving Service': return 'Gratitude gathered from every corner — a moment of collective grace.'
+    case 'Conference':           return 'Preserve the voices, ideas, and connections from your gathering.'
+    default:                     return 'Every significant moment deserves a permanent record.'
+  }
+}
+
+
   switch (eventType) {
     case 'Retirement': return 'e.g. 35 Years of Dedication'
     case 'Memorial & Funeral': return 'e.g. Forever in Our Hearts'
@@ -392,8 +409,8 @@ function BookPage() {
           event_type: eventType,
           organiser_email: organiserEmail.trim().toLowerCase(),
           slug: slug.trim(),
-          tier: path === 'free' ? 'free' : tier || 'free',
-          pricing_key: path === 'free' ? '' : (tier === 'honour' ? 'capture_preserve_base' : 'full_platform_base'),
+          tier: 'free',
+          pricing_key: '',
           visitor_type: path === 'gift' ? 'gift' : 'personal',
           page_state: 'tribute_collection',
           theme: 'classic',
@@ -449,29 +466,7 @@ function BookPage() {
         setVerifying(false); return
       }
 
-      // For paid paths — route to Stripe
-      if (path === 'build' && tier && tier !== 'free') {
-        const pricingKey = tier === 'honour' ? 'capture_preserve_base' : 'full_platform_base'
-        const checkoutRes = await fetch('/api/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            capsule_id: capsuleId,
-            capsule_slug: capsuleSlug,
-            tier,
-            pricing_keys: [pricingKey],
-            honouree_name: honoureeName.trim(),
-            organiser_email: organiserEmail.trim().toLowerCase(),
-          }),
-        })
-        const checkoutData = await checkoutRes.json()
-        if (checkoutData.checkout_url) {
-          window.location.href = checkoutData.checkout_url
-          return
-        }
-      }
-
-      // Free path — go to confirmation
+      // Verified — go to confirmation
       setScreen(5)
     } catch {
       setVerifyError('Verification failed. Please try again.')
@@ -633,7 +628,7 @@ function BookPage() {
       <Shell>
         <div style={{ width: '100%', maxWidth: '480px' }}>
           <BookLogo />
-          <StepBar step={1} total={path === 'build' ? 4 : 3} />
+          <StepBar step={1} total={3} />
 
           <div style={{ textAlign: 'center', marginBottom: '28px' }}>
             <h1 style={{
@@ -706,7 +701,7 @@ function BookPage() {
                 border: '1px solid rgba(226,195,107,0.12)',
               }}>
                 <p style={{ fontSize: '12px', color: 'rgba(226,195,107,0.65)', margin: 0, lineHeight: 1.6 }}>
-                  {getEventTagPlaceholder(eventType).replace('e.g. ', '')} · A beautiful occasion worth preserving.
+                  {getEventDescription(eventType)}
                 </p>
               </div>
             )}
@@ -733,13 +728,12 @@ function BookPage() {
   ───────────────────────────────────────────────────────── */
   if (screen === 2) {
     const canContinue = !!honoureeName.trim() && !!organiserEmail.trim() && organiserEmail.includes('@') && !!slug.trim()
-    const totalSteps = path === 'build' ? 4 : 3
 
     return (
       <Shell>
         <div style={{ width: '100%', maxWidth: '480px' }}>
           <BookLogo />
-          <StepBar step={2} total={totalSteps} />
+          <StepBar step={2} total={3} />
 
           <div style={{ textAlign: 'center', marginBottom: '20px' }}>
             <h1 style={{
@@ -847,186 +841,14 @@ function BookPage() {
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>
-            <GhostBtn onClick={() => setScreen(path === 'build' ? 3 : 1)}>← Back</GhostBtn>
+            <GhostBtn onClick={() => setScreen(1)}>← Back</GhostBtn>
             <div style={{ flex: 1 }}>
               <PrimaryBtn
-                onClick={() => {
-                  if (path === 'build' && (!tier)) { setScreen(3); return }
-                  handleCreateAndVerify()
-                }}
+                onClick={() => handleCreateAndVerify()}
                 disabled={!canContinue}
                 loading={creating}
               >
-                {path === 'build' && !tier
-                  ? 'Choose Components →'
-                  : creating ? 'Creating your capsule…' : 'Send Verification Code →'}
-              </PrimaryBtn>
-            </div>
-          </div>
-
-          <Footer />
-        </div>
-      </Shell>
-    )
-  }
-
-  /* ─────────────────────────────────────────────────────────
-     SCREEN 3 — COMPONENT/PACKAGE SELECTOR (Path 2)
-  ───────────────────────────────────────────────────────── */
-  if (screen === 3) {
-    if (loading) {
-      return (
-        <Shell>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-            <div style={{
-              width: '32px', height: '32px', borderRadius: '50%',
-              border: '2px solid rgba(226,195,107,0.2)', borderTopColor: gold,
-              animation: 'spin 0.8s linear infinite',
-            }} />
-          </div>
-        </Shell>
-      )
-    }
-
-    const packages = [
-      {
-        key: 'free',
-        name: 'Go Live Free',
-        tagline: 'Start Now · No Payment',
-        price: null,
-        highlight: false,
-        badge: null,
-        features: [
-          'Tribute wall live instantly',
-          'Up to 50 contributors worldwide',
-          'Text tributes with moderation',
-          'Your own capsule link',
-          'Active for 90 days from first tribute',
-          'Upgrade anytime — no data lost',
-        ],
-      },
-      {
-        key: 'honour',
-        name: honour?.name ?? 'Legacy Honour',
-        tagline: honour?.tagline ?? 'Capture & Preserve',
-        price: honour ? (regionalHonourPrice ?? honour.eur_price) : null,
-        highlight: false,
-        badge: null,
-        features: honour?.features ?? [],
-      },
-      {
-        key: 'premier',
-        name: premier?.name ?? 'Legacy Premier',
-        tagline: premier?.tagline ?? 'Full Platform',
-        price: premier ? (regionalPremierPrice ?? premier.eur_price) : null,
-        highlight: true,
-        badge: 'Most Complete',
-        features: premier?.features ?? [],
-      },
-    ]
-
-    return (
-      <Shell>
-        <div style={{ width: '100%', maxWidth: '560px' }}>
-          <BookLogo />
-          <StepBar step={3} total={4} />
-
-          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-            <h1 style={{
-              fontFamily: "'Playfair Display', Georgia, serif",
-              fontSize: 'clamp(20px, 5vw, 26px)',
-              fontWeight: 800, color: textPrimary, marginBottom: '8px',
-            }}>
-              Choose your package
-            </h1>
-            <p style={{ fontSize: '13px', color: textSecondary, lineHeight: 1.6 }}>
-              Start free or configure the full experience
-            </p>
-          </div>
-
-          <GoldRule />
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', margin: '20px 0 28px' }}>
-            {packages.map(pkg => {
-              const selected = tier === pkg.key
-              return (
-                <button
-                  key={pkg.key}
-                  onClick={() => setTier(pkg.key)}
-                  style={{
-                    width: '100%', textAlign: 'left',
-                    padding: '20px', borderRadius: '14px', cursor: 'pointer',
-                    border: `1px solid ${selected ? 'rgba(226,195,107,0.55)' : pkg.highlight ? 'rgba(226,195,107,0.22)' : cardBorder}`,
-                    background: selected ? 'rgba(226,195,107,0.07)' : pkg.highlight ? 'rgba(226,195,107,0.03)' : 'rgba(255,255,255,0.03)',
-                    boxShadow: selected ? '0 0 24px rgba(226,195,107,0.12)' : 'none',
-                    position: 'relative', transition: 'all 0.2s',
-                  }}
-                >
-                  {pkg.badge && (
-                    <div style={{ position: 'absolute', top: '-11px', left: '50%', transform: 'translateX(-50%)' }}>
-                      <span style={{
-                        padding: '3px 12px', borderRadius: '20px', fontSize: '9px',
-                        fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                        background: goldBtn, color: '#1a0845',
-                      }}>{pkg.badge}</span>
-                    </div>
-                  )}
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                    <div>
-                      <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(226,195,107,0.55)', marginBottom: '4px' }}>{pkg.tagline}</p>
-                      <p style={{ fontSize: '16px', fontWeight: 700, color: textPrimary, fontFamily: "'Playfair Display', serif" }}>{pkg.name}</p>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
-                      {pkg.price
-                        ? <span style={{ fontSize: '22px', fontWeight: 800, color: gold }}>{regionalSymbol}{pkg.price}</span>
-                        : <div>
-                          <span style={{ fontSize: '22px', fontWeight: 800, color: 'rgba(74,222,128,0.8)' }}>Free</span>
-                          <p style={{ fontSize: '10px', color: textFaint, margin: '2px 0 0' }}>to start</p>
-                        </div>
-                      }
-                    </div>
-                  </div>
-
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
-                    {pkg.features.map((feat, i) => (
-                      <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
-                        <span style={{ color: 'rgba(226,195,107,0.55)', fontSize: '11px', flexShrink: 0, marginTop: '2px' }}>✦</span>
-                        <span style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.5 }}>{feat}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {selected && (
-                    <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
-                      <span style={{ fontSize: '16px', color: gold }}>✓</span>
-                    </div>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Running total */}
-          {tier && tier !== 'free' && selectedTierData && (
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '14px 18px', borderRadius: '12px', marginBottom: '20px',
-              border: '1px solid rgba(226,195,107,0.2)',
-              background: 'rgba(226,195,107,0.05)',
-            }}>
-              <span style={{ fontSize: '12px', color: textFaint }}>Package total</span>
-              <span style={{ fontSize: '20px', fontWeight: 800, color: gold }}>
-                {regionalSymbol}{selectedTierData.pricing_key === 'capture_preserve_base' ? (regionalHonourPrice ?? selectedTierData.eur_price) : (regionalPremierPrice ?? selectedTierData.eur_price)}
-              </span>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <GhostBtn onClick={() => setScreen(2)}>← Back</GhostBtn>
-            <div style={{ flex: 1 }}>
-              <PrimaryBtn onClick={() => { if (tier) setScreen(2) }} disabled={!tier}>
-                {tier === 'free' ? 'Continue Free →' : tier ? `Continue with ${tier === 'honour' ? honour?.name : premier?.name} →` : 'Select a package'}
+                {creating ? 'Creating your capsule…' : 'Send Verification Code →'}
               </PrimaryBtn>
             </div>
           </div>
