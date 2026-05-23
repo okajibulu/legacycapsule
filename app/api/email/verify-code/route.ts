@@ -219,6 +219,140 @@ export async function PUT(request: NextRequest) {
       .update({ verified_at: new Date().toISOString() })
       .eq('id', capsuleId)
 
+/* =========================================================
+   Addition to app/api/email/verify-code/route.ts — PUT handler
+   
+   After successful code verification, send a welcome email
+   with the manage link and tribute wall link.
+   
+   ADD THIS BLOCK inside the PUT handler, after marking 
+   the capsule as verified and before the final return.
+   
+   Context: paste this after line:
+   await supabase.from('capsules').update({ verified_at: ... })
+   and before:
+   return NextResponse.json({ valid: true })
+========================================================= */
+
+// ── WELCOME EMAIL BLOCK ─────────────────────────────────
+// Fetch capsule details for the welcome email
+const { data: capsule } = await supabase
+  .from('capsules')
+  .select('slug, honouree_name, organiser_email')
+  .eq('id', capsuleId)
+  .single()
+
+if (capsule?.organiser_email) {
+  const capsuleUrl = `https://www.itslegacycapsule.com/for/${capsule.slug}`
+  const manageUrl = `https://www.itslegacycapsule.com/manage/${capsule.slug}`
+  const signinUrl = `https://www.itslegacycapsule.com/signin`
+
+  await resend.emails.send({
+    from: `LegacyCapsule <noreply@itslegacycapsule.com>`,
+    to: capsule.organiser_email,
+    subject: `Your capsule for ${capsule.honouree_name} is live`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
+      <body style="margin:0;padding:0;background:#0f0a1e;font-family:'DM Sans',Arial,sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0a1e;padding:40px 20px;">
+          <tr><td align="center">
+            <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+
+              <!-- Logo -->
+              <tr><td style="padding-bottom:28px;text-align:center;">
+                <span style="font-size:12px;font-weight:800;letter-spacing:0.16em;color:#E2C36B;">LEGACY</span>
+                <span style="font-size:12px;font-weight:800;letter-spacing:0.16em;color:rgba(255,255,255,0.28);">CAPSULE</span>
+              </td></tr>
+
+              <!-- Card -->
+              <tr><td style="background:rgba(255,255,255,0.04);border:1px solid rgba(226,195,107,0.15);border-radius:18px;overflow:hidden;">
+                <div style="height:2px;background:linear-gradient(to right,transparent,rgba(226,195,107,0.6),transparent);"></div>
+
+                <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 28px;">
+
+                  <!-- Heading -->
+                  <tr><td style="text-align:center;padding-bottom:24px;">
+                    <p style="margin:0 0 12px;font-size:28px;line-height:1;">✦</p>
+                    <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;font-family:Georgia,serif;line-height:1.3;">
+                      Your capsule is live
+                    </h1>
+                    <p style="margin:10px 0 0;font-size:14px;color:rgba(255,255,255,0.55);line-height:1.65;">
+                      Tribute collection is now open for<br/>
+                      <strong style="color:rgba(255,255,255,0.88);">${capsule.honouree_name}</strong>
+                    </p>
+                  </td></tr>
+
+                  <!-- Divider -->
+                  <tr><td style="padding-bottom:24px;">
+                    <div style="height:1px;background:linear-gradient(to right,transparent,rgba(226,195,107,0.2),transparent);"></div>
+                  </td></tr>
+
+                  <!-- Tribute wall link -->
+                  <tr><td style="padding-bottom:16px;">
+                    <p style="margin:0 0 8px;font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(226,195,107,0.5);">
+                      Your Tribute Wall
+                    </p>
+                    <p style="margin:0 0 12px;font-size:13px;color:rgba(255,255,255,0.45);">
+                      Share this link with family, friends, and colleagues to start collecting tributes.
+                    </p>
+                    <a href="${capsuleUrl}" style="display:block;padding:12px 16px;border-radius:10px;background:rgba(226,195,107,0.07);border:1px solid rgba(226,195,107,0.2);color:#E2C36B;font-size:13px;font-weight:600;text-decoration:none;word-break:break-all;">
+                      ${capsuleUrl}
+                    </a>
+                  </td></tr>
+
+                  <!-- Divider -->
+                  <tr><td style="padding-bottom:16px;">
+                    <div style="height:1px;background:linear-gradient(to right,transparent,rgba(255,255,255,0.06),transparent);"></div>
+                  </td></tr>
+
+                  <!-- Manage link -->
+                  <tr><td style="padding-bottom:24px;">
+                    <p style="margin:0 0 8px;font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(226,195,107,0.5);">
+                      Your Dashboard
+                    </p>
+                    <p style="margin:0 0 12px;font-size:13px;color:rgba(255,255,255,0.45);">
+                      Approve tributes, upload photos, and manage your capsule from here.
+                      Bookmark this link.
+                    </p>
+                    <a href="${manageUrl}" style="display:inline-block;padding:12px 24px;border-radius:10px;background:linear-gradient(135deg,#E2C36B,#C9A84E);color:#1a0845;font-size:13px;font-weight:700;text-decoration:none;letter-spacing:0.04em;">
+                      Open Dashboard →
+                    </a>
+                  </td></tr>
+
+                  <!-- Sign in note -->
+                  <tr><td>
+                    <div style="padding:14px 16px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+                      <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.35);line-height:1.7;">
+                        You can also sign in to your dashboard anytime at
+                        <a href="${signinUrl}" style="color:rgba(226,195,107,0.6);text-decoration:none;"> itslegacycapsule.com/signin</a>
+                        using this email address.
+                      </p>
+                    </div>
+                  </td></tr>
+
+                </table>
+              </td></tr>
+
+              <!-- Footer -->
+              <tr><td style="padding-top:28px;text-align:center;">
+                <p style="margin:0;font-size:10px;color:rgba(255,255,255,0.12);letter-spacing:0.1em;text-transform:uppercase;">
+                  LEGACYCAPSULE · EVENTS END. LEGACIES CONTINUE.
+                </p>
+              </td></tr>
+
+            </table>
+          </td></tr>
+        </table>
+      </body>
+      </html>
+    `,
+  })
+}
+// ── END WELCOME EMAIL BLOCK ─────────────────────────────
+
+
     return NextResponse.json({ valid: true })
 
   } catch (error) {

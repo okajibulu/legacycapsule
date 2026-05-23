@@ -320,11 +320,71 @@ export default function TributeWallClient({ capsule, initialContributions, profi
         <div style={{ width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif" }}>
 
           {/* ── TOP BAR ── */}
-          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 16px 8px' }}>
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 16px 8px' }}>
             <Link href="/" style={{ textDecoration: 'none' }}>
               <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.18em', background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LEGACY</span>
               <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.18em', color: t.textFaint, marginLeft: '0.18em' }}>CAPSULE</span>
             </Link>
+
+{/* =========================================================
+   ADDITION TO components/TributeWallClient.tsx
+   
+   Manage link — shows only when organiser email is detected.
+   Add this inside the top bar div, after the LEGACY CAPSULE link.
+   
+   FIND this in the top bar section (Section 14A):
+   ─────────────────────────────────────────────
+   </Link>
+   </div>  ← the closing div of the top bar
+   
+   INSERT this between the Link closing tag and the top bar closing div:
+========================================================= */}
+
+{/* Manage link — visible to organiser only */}
+{(isAdmin || (visitorEmail && visitorEmail.toLowerCase() === capsule.organiser_email?.toLowerCase())) && (
+  <a
+    href={`/manage/${capsule.slug}`}
+    style={{
+      fontSize: '10px',
+      fontWeight: 600,
+      padding: '5px 12px',
+      borderRadius: '20px',
+      textDecoration: 'none',
+      border: `1px solid ${t.accentFaint}`,
+      color: t.accentMuted,
+      background: 'rgba(255,255,255,0.04)',
+      letterSpacing: '0.06em',
+      transition: 'all 0.2s',
+      whiteSpace: 'nowrap' as const,
+    }}
+    title="Open your capsule dashboard"
+  >
+    ⚙ Manage
+  </a>
+)}
+
+{/* =========================================================
+   FULL TOP BAR BLOCK FOR REFERENCE
+   The top bar should look like this after the addition:
+   
+   <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', 
+     justifyContent: 'space-between', padding: '20px 16px 8px' }}>
+     
+     <Link href="/" style={{ textDecoration: 'none' }}>
+       <span style={{ ... }}>LEGACY</span>
+       <span style={{ ... }}>CAPSULE</span>
+     </Link>
+
+     [MANAGE LINK GOES HERE]
+     
+   </div>
+   
+   Note: change justifyContent from 'center' to 'space-between'
+   so the manage link sits on the right when visible.
+   When not visible (non-organiser), the logo stays centred
+   via the flex layout naturally.
+========================================================= */}
+
           </div>
 
           {/* ── HERO — Identity first ── */}
