@@ -217,9 +217,87 @@ export async function PUT(request: NextRequest) {
     await supabase
       .from('capsules')
       .update({ verified_at: new Date().toISOString() })
-      .eq('id', capsuleId)
 
-/* =========================================================
+{/* =========================================================
+   ADDITION TO app/api/email/verify-code/route.ts
+   PUT handler — add AFTER marking capsule as verified,
+   BEFORE the welcome email block.
+
+   This silently creates a Supabase Auth account for the
+   organiser at the moment their email is verified during
+   booking. No password. Magic link activates it on first
+   signin. Profile and capsule_access rows created here too.
+
+   PASTE THIS after:
+   await supabase.from('capsules').update({ verified_at: ... })
+
+   AND before the welcome email block / return statement.
+========================================================= */}
+
+// ── SILENT ACCOUNT CREATION BLOCK ──────────────────────
+try {
+  // Fetch capsule details needed for profile + access
+  const { data: capsuleForAuth } = await supabase
+    .from('capsules')
+    .select('id, slug, organiser_email')
+    .eq('id', capsuleId)
+    .single()
+
+  if (capsuleForAuth?.organiser_email) {
+    const orgEmail = capsuleForAuth.organiser_email.toLowerCase()
+
+    // Create or retrieve Supabase Auth user
+    // Uses admin API — does not send any email
+    const { data: authUser, error: authError } = await supabase.auth.admin
+      .createUser({
+        email: orgEmail,
+        email_confirm: true, // mark as confirmed — they already verified via our 4-char code
+      })
+
+    // Get the user id — either newly created or already exists
+    let userId: string | null = null
+
+    if (authError && authError.message.includes('already been registered')) {
+      // User already exists — look up by email
+      const { data: existingUsers } = await supabase.auth.admin.listUsers()
+      const existing = existingUsers?.users?.find(u => u.email === orgEmail)
+      if (existing) userId = existing.id
+    } else if (authUser?.user) {
+      userId = authUser.user.id
+    }
+
+    if (userId) {
+      // Upsert profile row
+      await supabase.from('profiles').upsert(
+        {
+          id: userId,
+          email: orgEmail,
+          role: 'organiser',
+        },
+        { onConflict: 'id' }
+      )
+
+      // Create capsule_access row — owner role
+      await supabase.from('capsule_access').upsert(
+        {
+          capsule_id: capsuleForAuth.id,
+          user_id: userId,
+          role: 'owner',
+          permissions: '["all"]',
+        },
+        { onConflict: 'capsule_id,user_id' }
+      )
+    }
+  }
+} catch (accountError) {
+  // Non-fatal — log but don't block the verification response
+  console.error('Silent account creation error:', accountError)
+}
+// ── END SILENT ACCOUNT CREATION BLOCK ──────────────────
+
+
+
+{/* =========================================================
    Addition to app/api/email/verify-code/route.ts — PUT handler
    
    After successful code verification, send a welcome email
@@ -232,7 +310,7 @@ export async function PUT(request: NextRequest) {
    await supabase.from('capsules').update({ verified_at: ... })
    and before:
    return NextResponse.json({ valid: true })
-========================================================= */
+========================================================= */}
 
 // ── WELCOME EMAIL BLOCK ─────────────────────────────────
 // Fetch capsule details for the welcome email
