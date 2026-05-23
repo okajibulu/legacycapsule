@@ -135,22 +135,6 @@ function getEventDescription(eventType: string): string {
 }
 
 
-  switch (eventType) {
-    case 'Retirement': return 'e.g. 35 Years of Dedication'
-    case 'Memorial & Funeral': return 'e.g. Forever in Our Hearts'
-    case 'Wedding': return 'e.g. United in Love'
-    case 'Milestone Birthday': return 'e.g. 80 Glorious Years'
-    case 'Anniversary': return 'e.g. Fifty Years of Us'
-    case 'Graduation': return 'e.g. The Future Begins'
-    case 'Ordination': return 'e.g. Called to Serve'
-    case 'Chieftaincy': return 'e.g. A New Season of Leadership'
-    case 'Award Ceremony': return 'e.g. Celebrating Excellence'
-    case 'Thanksgiving Service': return 'e.g. Gratitude and Grace'
-    case 'Conference': return 'e.g. Ideas That Move the World'
-    default: return 'e.g. A Moment Worth Preserving'
-  }
-}
-
 /* =========================================================
    SECTION 4 — SHARED PRIMITIVES
 ========================================================= */
@@ -790,7 +774,7 @@ function BookPage() {
             >
               <input
                 style={inputStyle}
-                placeholder={getEventTagPlaceholder(eventType)}
+                placeholder={getEventDescription(eventType)}
                 maxLength={80}
                 value={eventTag}
                 onChange={e => setEventTag(e.target.value)}
