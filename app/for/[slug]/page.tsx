@@ -83,7 +83,7 @@ export default async function TributePage({
     supabase
       .from('contributions')
       .select(
-        'id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, audio_url, video_url, lat, lng, status, email, created_at'
+        'id, contributor_name, city, country, ip_country, relationship, tribute_text, thumbnail_url, audio_url, video_url, lat, lng, status, email, created_at'
       )
       .eq('capsule_id', capsule.id)
       .in('status', ['approved', 'pending_review', 'pending'])

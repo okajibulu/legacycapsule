@@ -72,8 +72,8 @@ const TributeMap = dynamic(() => import('@/components/TributeMap'), {
 async function compressPhoto(file: File): Promise<File> {
   try { const ic = (await import('browser-image-compression')).default; return await ic(file, { maxSizeMB: 1, maxWidthOrHeight: 1200, useWebWorker: true }) } catch { return file }
 }
-async function getIPCoords(): Promise<{ lat: number; lng: number } | null> {
-  try { const r = await fetch('/api/ip-geocode'); if (!r.ok) return null; const d = await r.json(); return d.lat && d.lng ? { lat: d.lat, lng: d.lng } : null } catch { return null }
+async function getIPCoords(): Promise<{ lat: number; lng: number; country: string | null } | null> {
+  try { const r = await fetch('/api/ip-geocode'); if (!r.ok) return null; const d = await r.json(); return d.lat && d.lng ? { lat: d.lat, lng: d.lng, country: d.country ?? null } : null } catch { return null }
 }
 
 /* =========================================================
@@ -103,17 +103,25 @@ function TributeCard({ c, isAdmin, isOwn, onApprove, onDelete, onEdit, t }: {
       borderLeft: `3px solid ${isPending ? t.cardAccentPending : t.cardAccentApproved}`,
     }}>
       <div style={{ padding: '14px 20px 14px 18px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '8px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: t.textHeading, maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
-            {displayName}
-            {isOwn && <span style={{ marginLeft: '6px', fontSize: '9px', fontWeight: 400, color: t.accentMuted, textTransform: 'uppercase', letterSpacing: '0.15em' }}>you</span>}
-          </span>
-          <span style={{ fontSize: '10px', color: t.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-            {[c.city, c.country].filter(Boolean).join(' · ')}
-          </span>
-          <span style={{ fontSize: '10px', color: t.textFaint, whiteSpace: 'nowrap', flexShrink: 0 }}>
-            {new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+          {/* Contributor thumbnail if uploaded */}
+          {c.thumbnail_url && (
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: `1px solid ${t.accentFaint}` }}>
+              <img src={c.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: t.textHeading, maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              {displayName}
+              {isOwn && <span style={{ marginLeft: '6px', fontSize: '9px', fontWeight: 400, color: t.accentMuted, textTransform: 'uppercase', letterSpacing: '0.15em' }}>you</span>}
+            </span>
+            <span style={{ fontSize: '10px', color: t.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+              {[c.city, c.country].filter(Boolean).join(' · ')}
+            </span>
+            <span style={{ fontSize: '10px', color: t.textFaint, whiteSpace: 'nowrap', flexShrink: 0 }}>
+              {new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+            </span>
+          </div>
         </div>
 
         {editing ? (
@@ -246,7 +254,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   const visible = all.filter(c => { if (c.status === 'approved') return true; if (isAdmin) return true; if (visitorEmail && c.email?.toLowerCase() === visitorEmail.toLowerCase()) return true; return false })
   const approvedCount = all.filter(c => c.status === 'approved').length
   const pins: Pin[] = all.filter(c => c.status === 'approved' && c.lat && c.lng).map(c => ({ lat: c.lat as number, lng: c.lng as number, name: c.contributor_name, country: c.country }))
-  const uniqueCountries = [...new Set(pins.map(p => p.country).filter(Boolean))]
+  const uniqueCountries = [...new Set(all.filter(c => c.status === 'approved' && (c as any).ip_country).map(c => (c as any).ip_country as string))]
   const capsuleUrl = typeof window !== 'undefined' ? window.location.origin + '/for/' + capsule.slug : 'https://itslegacycapsule.com/for/' + capsule.slug
   const resolvedHero = heroImage ?? featuredPhotos.find(p => p.is_hero)?.image_url ?? '/honouree.jpg'
   // Cities list for map label
@@ -255,7 +263,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   /* ── EFFECTS ── */
   useEffect(() => { const saved = localStorage.getItem(LS_EMAIL); if (saved) { setVisitorEmail(saved); setFEmail(saved) } }, [])
   useEffect(() => { if (fEmail.includes('@')) { localStorage.setItem(LS_EMAIL, fEmail); setVisitorEmail(fEmail) } }, [fEmail])
-  const poll = useCallback(async () => { const { data } = await supabaseClient.from('contributions').select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, audio_url, video_url, lat, lng, status, email, created_at').eq('capsule_id', capsule.id).is('deleted_at', null).order('created_at', { ascending: false }); if (data) setAll(data as Contribution[]) }, [capsule.id])
+  const poll = useCallback(async () => { const { data } = await supabaseClient.from('contributions').select('id, contributor_name, city, country, ip_country, relationship, tribute_text, thumbnail_url, audio_url, video_url, lat, lng, status, email, created_at').eq('capsule_id', capsule.id).is('deleted_at', null).order('created_at', { ascending: false }); if (data) setAll(data as Contribution[]) }, [capsule.id])
   useEffect(() => { const iv = setInterval(poll, 60_000); return () => clearInterval(iv) }, [poll])
   useEffect(() => { const handler = (e: MouseEvent) => { if (countryRef.current && !countryRef.current.contains(e.target as Node)) setShowCountryList(false) }; document.addEventListener('mousedown', handler); return () => document.removeEventListener('mousedown', handler) }, [])
   useEffect(() => { document.body.style.overflow = mapOpen ? 'hidden' : ''; return () => { document.body.style.overflow = '' } }, [mapOpen])
@@ -274,7 +282,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
       let photoUrl: string | null = null
       if (fPhoto) { const ext = fPhoto.name.split('.').pop() ?? 'jpg'; const path = capsule.id + '/' + Date.now() + '.' + ext; const { error: ue } = await supabaseClient.storage.from(BUCKET).upload(path, fPhoto, { upsert: false }); if (!ue) photoUrl = supabaseClient.storage.from(BUCKET).getPublicUrl(path).data.publicUrl }
       const coords = await getIPCoords()
-      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, contributor_name: fName.trim(), city: fCity.trim(), country: fCountry, relationship: fRel.trim() || null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: photoUrl, lat: coords?.lat ?? null, lng: coords?.lng ?? null, status: 'pending_review' }).select('id').single()
+      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, contributor_name: fName.trim(), city: fCity.trim(), country: fCountry, relationship: fRel.trim() || null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: photoUrl, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review' }).select('id').single()
       if (ie) { setSubmitErr(ie.message); setSubmitting(false); return }
       if (nc) { fetch('/api/email/submission-confirmation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contributionId: nc.id, capsuleSlug: capsule.slug, contributorName: fName.trim(), contributorEmail: fEmail.trim(), subjectName: honourName, eventType: capsule.event_type, tributeText: fMsg.trim() }) }).catch(() => {}) }
       localStorage.setItem(LS_EMAIL, fEmail); setVisitorEmail(fEmail)
@@ -327,7 +335,8 @@ export default function TributeWallClient({ capsule, initialContributions, profi
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(to right, transparent, ${t.accentMuted}, transparent)` }} />
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(to right, transparent, ${t.accentFaint}, transparent)` }} />
 
-            {isAdmin && (
+            {/* Hero photo upload — visible to organiser */}
+            {(isAdmin || (visitorEmail && visitorEmail.toLowerCase() === capsule.organiser_email?.toLowerCase())) && (
               <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 20 }}>
                 <button onClick={() => heroPhotoRef.current?.click()} disabled={uploadingHero}
                   style={{ fontSize: '10px', padding: '5px 12px', borderRadius: '20px', background: 'rgba(10,2,26,0.8)', border: `1px solid ${t.accentFaint}`, color: t.accentMuted, backdropFilter: 'blur(8px)', cursor: 'pointer' }}>
