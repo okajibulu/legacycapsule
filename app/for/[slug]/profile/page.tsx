@@ -48,19 +48,28 @@ export default async function ProfilePage({ params }: PageProps) {
   if (error || !capsule) return notFound()
   if (capsule.page_state === 'draft') return notFound()
 
-  const [profileRes, featuredRes, galleryRes, supportRes, milestonesRes] = await Promise.all([
+  const [profileRes, featuredRes, galleryRes, supportRes] = await Promise.all([
     adminClient.from('capsule_profile_sections').select('id, section_type, custom_title, content, sort_order, is_active').eq('capsule_id', capsule.id).eq('is_active', true).not('content', 'is', null).order('sort_order'),
     adminClient.from('capsule_featured_photos').select('id, image_url, caption, sort_order').eq('capsule_id', capsule.id).order('sort_order'),
     adminClient.from('capsule_gallery').select('id, image_url, caption, sort_order').eq('capsule_id', capsule.id).order('sort_order'),
     adminClient.from('capsule_support_accounts').select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, sort_order').eq('capsule_id', capsule.id).eq('is_active', true).is('deleted_at', null).order('sort_order'),
-    adminClient.from('capsule_milestones').select('id, title, date, description, sort_order').eq('capsule_id', capsule.id).order('sort_order').limit(20),
   ])
 
+  // Milestones — table may not exist, fetch separately
+  let milestones: any[] = []
+  try {
+    const { data: mData } = await adminClient
+      .from('capsule_milestones')
+      .select('id, title, date, description, sort_order')
+      .eq('capsule_id', capsule.id)
+      .order('sort_order')
+      .limit(20)
+    milestones = mData ?? []
+  } catch { milestones = [] }
   const profileSections = profileRes.data ?? []
   const featuredPhotos = featuredRes.data ?? []
   const galleryPhotos = galleryRes.data ?? []
-  const milestones = (milestonesRes as any).data ?? []
-  const supportAccounts = (supportRes.data ?? []).map(acc => ({ ...acc, account_number: maskAccountNumber(acc.account_number) }))
+  const supportAccounts = (supportRes.data ?? []).map((acc: any) => ({ ...acc, account_number: maskAccountNumber(acc.account_number) }))
   const hasWaysToHonour = supportAccounts.length > 0
 
   // Resolve theme
@@ -155,7 +164,7 @@ export default async function ProfilePage({ params }: PageProps) {
       <main style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 16px 60px' }}>
 
         {/* Profile text sections */}
-        {profileSections.map(section => (
+        {profileSections.map((section: any) => (
           <div key={section.id} style={{ marginBottom: '32px' }}>
             <div style={sectionHeadingStyle}>
               <div style={ruleStyle} />
@@ -207,7 +216,7 @@ export default async function ProfilePage({ params }: PageProps) {
               <div style={ruleRightStyle} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
-              {featuredPhotos.map(photo => (
+              {featuredPhotos.map((photo: any) => (
                 <div key={photo.id} style={{ borderRadius: '12px', overflow: 'hidden', border: `1px solid ${t.accentFaint}`, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
                   <img src={photo.image_url} alt={photo.caption ?? `Photo of ${capsule.honouree_name}`} style={{ width: '100%', objectFit: 'cover', aspectRatio: '4/3', display: 'block' }} loading="lazy" />
                   {photo.caption && <div style={{ padding: '10px 14px', background: 'rgba(255,253,248,0.95)' }}><p style={{ fontSize: '12px', color: '#5F5E5A', margin: 0 }}>{photo.caption}</p></div>}
@@ -226,7 +235,7 @@ export default async function ProfilePage({ params }: PageProps) {
               <div style={ruleRightStyle} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-              {galleryPhotos.map(photo => (
+              {galleryPhotos.map((photo: any) => (
                 <div key={photo.id} style={{ borderRadius: '10px', overflow: 'hidden', border: `1px solid ${t.accentFaint}`, aspectRatio: '1' }}>
                   <img src={photo.image_url} alt={photo.caption ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
                 </div>

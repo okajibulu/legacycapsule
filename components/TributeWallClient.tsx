@@ -15,13 +15,16 @@
 ========================================================= */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import { getTributePageTitle } from '@/lib/eventLabels'
 import { COUNTRIES } from '@/lib/tributeWallHelpers'
 import { getThemeConfig } from '@/lib/themeConfig'
 import type { ThemeKey, ThemeConfig } from '@/lib/themeConfig'
+import dynamic from 'next/dynamic'
+
+const AudioTribute = dynamic(() => import('@/components/AudioTribute'), { ssr: false })
+const VideoTribute = dynamic(() => import('@/components/VideoTribute'), { ssr: false })
 
 /* ── LOCAL TYPES ── */
 interface Capsule {
@@ -139,6 +142,40 @@ function TributeCard({ c, isAdmin, isOwn, onApprove, onDelete, onEdit, t }: {
           <>
             <p style={{ fontSize: '14px', color: t.textBody, lineHeight: 1.85, letterSpacing: '0.01em' }}>{text}</p>
             {isLong && <button onClick={() => setExpanded(e => !e)} style={{ fontSize: '11px', color: t.accentMuted, marginTop: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>{expanded ? 'Show less' : 'Read more'}</button>}
+
+            {/* Audio playback */}
+            {c.audio_url && (
+              <div style={{ marginTop: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '11px' }}>🎙️</span>
+                  <span style={{ fontSize: '10px', color: t.accentMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Voice Tribute</span>
+                </div>
+                <audio controls src={c.audio_url} style={{ width: '100%', height: '32px', borderRadius: '8px' }} />
+              </div>
+            )}
+
+            {/* Video playback */}
+            {c.video_url && (
+              <div style={{ marginTop: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '11px' }}>🎬</span>
+                  <span style={{ fontSize: '10px', color: t.accentMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Video Tribute</span>
+                </div>
+                {expanded ? (
+                  <video controls src={c.video_url} style={{ width: '100%', borderRadius: '10px', maxHeight: '200px', background: '#000' }} />
+                ) : (
+                  <button onClick={() => setExpanded(true)} style={{ width: '100%', padding: '0', border: 'none', background: 'none', cursor: 'pointer', borderRadius: '10px', overflow: 'hidden', position: 'relative' }}>
+                    {c.thumbnail_url
+                      ? <img src={c.thumbnail_url} alt="Video thumbnail" style={{ width: '100%', height: '120px', objectFit: 'cover', display: 'block' }} />
+                      : <div style={{ width: '100%', height: '80px', background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>▶</div>
+                    }
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.3)' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>▶</div>
+                    </div>
+                  </button>
+                )}
+              </div>
+            )}
           </>
         )}
 
@@ -229,9 +266,13 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   /* ── STATE ── */
   const [all, setAll] = useState<Contribution[]>(initialContributions)
   const [visitorEmail, setVisitorEmail] = useState('')
-  const [premiumModal, setPremiumModal] = useState<'video' | 'audio' | null>(null)
   const [mapOpen, setMapOpen] = useState(false)
   const [composerOpen, setComposerOpen] = useState(false)
+  const [showAudioRecorder, setShowAudioRecorder] = useState(false)
+  const [showVideoUploader, setShowVideoUploader] = useState(false)
+  const [fAudioUrl, setFAudioUrl] = useState<string | null>(null)
+  const [fVideoUrl, setFVideoUrl] = useState<string | null>(null)
+  const [fVideoThumb, setFVideoThumb] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [heroImage, setHeroImage] = useState<string | null>(capsule.hero_image_url ?? null)
   const [uploadingHero, setUploadingHero] = useState(false)
@@ -262,6 +303,16 @@ export default function TributeWallClient({ capsule, initialContributions, profi
 
   /* ── EFFECTS ── */
   useEffect(() => { const saved = localStorage.getItem(LS_EMAIL); if (saved) { setVisitorEmail(saved); setFEmail(saved) } }, [])
+
+  // Store this capsule as last visited — for nav back link
+  useEffect(() => {
+    try {
+      localStorage.setItem('lc_last_capsule', JSON.stringify({
+        slug: capsule.slug,
+        name: capsule.honouree_name,
+      }))
+    } catch {}
+  }, [capsule.slug, capsule.honouree_name])
   useEffect(() => { if (fEmail.includes('@')) { localStorage.setItem(LS_EMAIL, fEmail); setVisitorEmail(fEmail) } }, [fEmail])
   const poll = useCallback(async () => { const { data } = await supabaseClient.from('contributions').select('id, contributor_name, city, country, ip_country, relationship, tribute_text, thumbnail_url, audio_url, video_url, lat, lng, status, email, created_at').eq('capsule_id', capsule.id).is('deleted_at', null).order('created_at', { ascending: false }); if (data) setAll(data as Contribution[]) }, [capsule.id])
   useEffect(() => { const iv = setInterval(poll, 60_000); return () => clearInterval(iv) }, [poll])
@@ -282,11 +333,13 @@ export default function TributeWallClient({ capsule, initialContributions, profi
       let photoUrl: string | null = null
       if (fPhoto) { const ext = fPhoto.name.split('.').pop() ?? 'jpg'; const path = capsule.id + '/' + Date.now() + '.' + ext; const { error: ue } = await supabaseClient.storage.from(BUCKET).upload(path, fPhoto, { upsert: false }); if (!ue) photoUrl = supabaseClient.storage.from(BUCKET).getPublicUrl(path).data.publicUrl }
       const coords = await getIPCoords()
-      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, contributor_name: fName.trim(), city: fCity.trim(), country: fCountry, relationship: fRel.trim() || null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: photoUrl, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review' }).select('id').single()
+      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, contributor_name: fName.trim(), city: fCity.trim(), country: fCountry, relationship: fRel.trim() || null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review' }).select('id').single()
       if (ie) { setSubmitErr(ie.message); setSubmitting(false); return }
       if (nc) { fetch('/api/email/submission-confirmation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contributionId: nc.id, capsuleSlug: capsule.slug, contributorName: fName.trim(), contributorEmail: fEmail.trim(), subjectName: honourName, eventType: capsule.event_type, tributeText: fMsg.trim() }) }).catch(() => {}) }
       localStorage.setItem(LS_EMAIL, fEmail); setVisitorEmail(fEmail)
       setFName(''); setFCity(''); setFCountry(''); setFMsg(''); setFRel(''); setFPhoto(null); setFPhotoPreview(null); setCountryQuery(''); setErrors({})
+      setFAudioUrl(null); setFVideoUrl(null); setFVideoThumb(null)
+      setShowAudioRecorder(false); setShowVideoUploader(false)
       setSubmitSuccess(true); setComposerOpen(false); setTimeout(() => setSubmitSuccess(false), 3500); poll()
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 200)
     } catch { setSubmitErr('Something went wrong. Please try again.') }
@@ -313,78 +366,17 @@ export default function TributeWallClient({ capsule, initialContributions, profi
         .composer-enter{animation:composerSlide 0.35s ease-out forwards}
       `}</style>
 
-      <PremiumModal feature={premiumModal} onClose={() => setPremiumModal(null)} t={t} />
       {mapOpen && <MapModal pins={pins} honourName={honourName} uniqueCountries={uniqueCountries} onClose={() => setMapOpen(false)} t={t} />}
 
       <div style={{ minHeight: '100vh', width: '100%', display: 'flex', justifyContent: 'center', background: t.pageBg }}>
         <div style={{ width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif" }}>
 
           {/* ── TOP BAR ── */}
-          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 16px 8px' }}>
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 16px 8px' }}>
             <Link href="/" style={{ textDecoration: 'none' }}>
               <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.18em', background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LEGACY</span>
               <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.18em', color: t.textFaint, marginLeft: '0.18em' }}>CAPSULE</span>
             </Link>
-
-{/* =========================================================
-   ADDITION TO components/TributeWallClient.tsx
-   
-   Manage link — shows only when organiser email is detected.
-   Add this inside the top bar div, after the LEGACY CAPSULE link.
-   
-   FIND this in the top bar section (Section 14A):
-   ─────────────────────────────────────────────
-   </Link>
-   </div>  ← the closing div of the top bar
-   
-   INSERT this between the Link closing tag and the top bar closing div:
-========================================================= */}
-
-{/* Manage link — visible to organiser only */}
-{(isAdmin || (visitorEmail && visitorEmail.toLowerCase() === capsule.organiser_email?.toLowerCase())) && (
-  <a
-    href={`/manage/${capsule.slug}`}
-    style={{
-      fontSize: '10px',
-      fontWeight: 600,
-      padding: '5px 12px',
-      borderRadius: '20px',
-      textDecoration: 'none',
-      border: `1px solid ${t.accentFaint}`,
-      color: t.accentMuted,
-      background: 'rgba(255,255,255,0.04)',
-      letterSpacing: '0.06em',
-      transition: 'all 0.2s',
-      whiteSpace: 'nowrap' as const,
-    }}
-    title="Open your capsule dashboard"
-  >
-    ⚙ Manage
-  </a>
-)}
-
-{/* =========================================================
-   FULL TOP BAR BLOCK FOR REFERENCE
-   The top bar should look like this after the addition:
-   
-   <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', 
-     justifyContent: 'space-between', padding: '20px 16px 8px' }}>
-     
-     <Link href="/" style={{ textDecoration: 'none' }}>
-       <span style={{ ... }}>LEGACY</span>
-       <span style={{ ... }}>CAPSULE</span>
-     </Link>
-
-     [MANAGE LINK GOES HERE]
-     
-   </div>
-   
-   Note: change justifyContent from 'center' to 'space-between'
-   so the manage link sits on the right when visible.
-   When not visible (non-organiser), the logo stays centred
-   via the flex layout naturally.
-========================================================= */}
-
           </div>
 
           {/* ── HERO — Identity first ── */}
@@ -477,12 +469,30 @@ export default function TributeWallClient({ capsule, initialContributions, profi
 
                   {/* Action strip */}
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <button onClick={() => setPremiumModal('video')} title="Video tribute (premium)" style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '8px 12px', borderRadius: '10px', border: `1px solid ${t.cardBorder}`, background: t.inputBg, color: t.textMuted, cursor: 'pointer' }}><span style={{ fontSize: '14px' }}>🎬</span>Video</button>
-                    <button onClick={() => setPremiumModal('audio')} title="Audio tribute (premium)" style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '8px 12px', borderRadius: '10px', border: `1px solid ${t.cardBorder}`, background: t.inputBg, color: t.textMuted, cursor: 'pointer' }}><span style={{ fontSize: '14px' }}>🎙️</span>Audio</button>
+                    <button onClick={() => { setShowVideoUploader(false); setShowAudioRecorder(v => !v) }} title="Record a voice tribute" style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '8px 12px', borderRadius: '10px', border: `1px solid ${showAudioRecorder ? t.accentFaint : t.cardBorder}`, background: showAudioRecorder ? t.accentFaint : t.inputBg, color: showAudioRecorder ? t.accentPrimary : t.textMuted, cursor: 'pointer' }}><span style={{ fontSize: '14px' }}>🎙️</span>Audio</button>
+                    <button onClick={() => { setShowAudioRecorder(false); setShowVideoUploader(v => !v) }} title="Upload a video tribute" style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '8px 12px', borderRadius: '10px', border: `1px solid ${showVideoUploader ? t.accentFaint : t.cardBorder}`, background: showVideoUploader ? t.accentFaint : t.inputBg, color: showVideoUploader ? t.accentPrimary : t.textMuted, cursor: 'pointer' }}><span style={{ fontSize: '14px' }}>🎬</span>Video</button>
                     <div style={{ flex: 1 }} />
                     <button onClick={handleCopy} title="Copy link" style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '8px 12px', borderRadius: '10px', border: `1px solid ${t.accentFaint}`, background: copied ? t.accentFaint : t.inputBg, color: copied ? t.accentPrimary : t.accentMuted, cursor: 'pointer' }}><span style={{ fontSize: '14px' }}>{copied ? '✓' : '🔗'}</span>{copied ? 'Copied' : 'Copy'}</button>
                     <Link href={`https://wa.me/?text=${encodeURIComponent('Leave a tribute for ' + honourName + ': ' + capsuleUrl)}`} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp" style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '8px 12px', borderRadius: '10px', border: '1px solid rgba(74,222,128,0.22)', background: t.inputBg, color: 'rgba(74,222,128,0.7)', textDecoration: 'none' }}><span style={{ fontSize: '14px' }}>💬</span>Share</Link>
                   </div>
+
+                  {/* Audio recorder — expands when toggled */}
+                  {showAudioRecorder && (
+                    <AudioTribute
+                      capsuleId={capsule.id}
+                      t={t}
+                      onRecorded={(url) => setFAudioUrl(url)}
+                    />
+                  )}
+
+                  {/* Video uploader — expands when toggled */}
+                  {showVideoUploader && (
+                    <VideoTribute
+                      capsuleId={capsule.id}
+                      t={t}
+                      onUploaded={(vUrl, tUrl) => { setFVideoUrl(vUrl); setFVideoThumb(tUrl) }}
+                    />
+                  )}
 
                   {submitSuccess && <div style={{ borderRadius: '12px', padding: '12px 16px', fontSize: '12px', textAlign: 'center', letterSpacing: '0.04em', border: `1px solid ${t.accentFaint}`, background: t.cardBg, color: t.accentPrimary }}>✦ Your tribute has been received — thank you.</div>}
                   {submitErr && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.85)', textAlign: 'center' }}>{submitErr}</p>}
