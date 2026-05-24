@@ -1,46 +1,101 @@
-"use client"
+'use client'
 
-import Link from "next/link"
+/* =========================================================
+   app/admin/page.tsx — LCAdmin Login
+========================================================= */
 
-export default function AdminPage() {
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+
+const gold = '#E2C36B'
+const goldFaint = 'rgba(226,195,107,0.12)'
+
+export default function AdminLoginPage() {
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const router = useRouter()
+
+  const handleLogin = async () => {
+    if (!password.trim()) return
+    setLoading(true); setError('')
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
+      if (res.ok) {
+        router.push('/admin/dashboard')
+      } else {
+        setError('Incorrect password')
+      }
+    } catch {
+      setError('Something went wrong')
+    }
+    setLoading(false)
+  }
+
   return (
-    <main className="min-h-screen bg-[#0a0010] flex items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6">
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(160deg, #0a0618 0%, #14083a 50%, #0a0618 100%)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: "'DM Sans', sans-serif", padding: '24px',
+    }}>
+      <div style={{
+        width: '100%', maxWidth: '340px',
+        background: 'rgba(255,255,255,0.03)',
+        border: `1px solid ${goldFaint}`,
+        borderRadius: '20px', padding: '36px 28px',
+        textAlign: 'center',
+      }}>
+        <div style={{ height: '1px', marginBottom: '28px', background: `linear-gradient(to right, transparent, rgba(226,195,107,0.4), transparent)` }} />
 
-        <div className="text-center space-y-1">
-          <h1 className="text-xl font-bold text-yellow-100 tracking-widest uppercase">
-            LCAdmin
-          </h1>
-          <p className="text-xs text-white/40">LegacyCapsule Administration</p>
+        <div style={{ marginBottom: '24px' }}>
+          <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '0.14em', color: gold }}>LC</span>
+          <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '0.14em', color: 'rgba(255,255,255,0.25)' }}>ADMIN</span>
+          <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginTop: '4px', letterSpacing: '0.08em' }}>LegacyCapsule Administration</p>
         </div>
 
-        <div className="space-y-2">
-          {[
-            { label: "Pricing Configuration", href: "/admin/pricing",
-              desc: "Edit all product prices" },
-            { label: "Feature Flags",          href: "/admin/flags",
-              desc: "Toggle platform features" },
-            { label: "Tribute Moderation",     href: "/for/dr-adeyemi-okonkwo-retirement",
-              desc: "Enter admin email on tribute page to moderate" },
-          ].map(item => (
-            <Link key={item.href} href={item.href}
-              className="block px-4 py-3 rounded-xl border border-white/8
-                bg-white/4 hover:border-yellow-400/20 hover:bg-yellow-400/4
-                transition-all duration-150">
-              <p className="text-sm font-medium text-yellow-100">{item.label}</p>
-              <p className="text-xs text-white/35 mt-0.5">{item.desc}</p>
-            </Link>
-          ))}
-        </div>
+        <input
+          type="password"
+          placeholder="Admin password"
+          value={password}
+          onChange={e => { setPassword(e.target.value); setError('') }}
+          onKeyDown={e => e.key === 'Enter' && handleLogin()}
+          autoFocus
+          style={{
+            width: '100%', padding: '12px 16px', borderRadius: '10px',
+            background: 'rgba(255,255,255,0.06)',
+            border: `1px solid rgba(226,195,107,0.2)`,
+            color: 'rgba(255,255,255,0.92)', fontSize: '14px',
+            outline: 'none', fontFamily: "'DM Sans', sans-serif",
+            boxSizing: 'border-box' as const, textAlign: 'center' as const,
+            marginBottom: '12px',
+          }}
+        />
 
-        <div className="pt-4 border-t border-white/8 text-center">
-          <p className="text-[10px] text-white/20 tracking-widest uppercase">
-            VALNEX, UNIPESSOAL LDA · RevoWorldTech
-          </p>
-        </div>
+        {error && <p style={{ fontSize: '12px', color: 'rgba(248,113,113,0.8)', marginBottom: '10px' }}>{error}</p>}
 
+        <button
+          onClick={handleLogin}
+          disabled={!password.trim() || loading}
+          style={{
+            width: '100%', padding: '12px', borderRadius: '10px',
+            background: !password.trim() || loading ? 'rgba(226,195,107,0.1)' : `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`,
+            color: !password.trim() || loading ? 'rgba(226,195,107,0.35)' : '#1a0845',
+            fontSize: '14px', fontWeight: 700, border: 'none',
+            cursor: !password.trim() || loading ? 'not-allowed' : 'pointer',
+            letterSpacing: '0.04em', transition: 'all 0.2s',
+          }}
+        >{loading ? 'Verifying…' : 'Enter'}</button>
+
+        <div style={{ height: '1px', margin: '24px 0', background: `linear-gradient(to right, transparent, ${goldFaint}, transparent)` }} />
+        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.12)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          VALNEX, UNIPESSOAL LDA · RevoWorldTech
+        </p>
       </div>
-    </main>
+    </div>
   )
 }
-

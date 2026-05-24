@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server'
-import { clearAdminSession } from '@/lib/admin/auth'
+/* =========================================================
+   app/api/admin/logout/route.ts
+========================================================= */
+import { NextRequest, NextResponse } from 'next/server'
+import { clearSession } from '@/lib/admin/auth'
 
-export async function POST() {
-  clearAdminSession()
-  return NextResponse.redirect(
-    new URL('/admin/login', process.env.NEXT_PUBLIC_APP_URL!)
-  )
+export async function POST(request: NextRequest) {
+  await clearSession()
+  return NextResponse.redirect(new URL('/admin', request.url))
 }

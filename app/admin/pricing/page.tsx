@@ -1,277 +1,97 @@
-"use client"
+'use client'
+/* =========================================================
+   app/admin/pricing/page.tsx — Component Pricing Editor
+   EUR + NGN editable. Audit logged. Reason required.
+========================================================= */
+import { useState, useEffect } from 'react'
 
-import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
+const gold = '#E2C36B'
+const textPrimary = 'rgba(255,255,255,0.92)'
+const textFaint = 'rgba(255,255,255,0.30)'
+const cardBg = 'rgba(255,255,255,0.03)'
+const inp: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(226,195,107,0.2)', color: textPrimary, fontSize: '13px', outline: 'none', fontFamily: "'DM Sans', sans-serif", boxSizing: 'border-box' as const }
 
-interface PricingRow {
-  key:          string
-  label:        string
-  eur_price:    number
-  ngn_price:    number
-  safe_min_eur: number
-  safe_max_eur: number
-}
+interface PricingRow { key: string; label: string; eur_price: number; ngn_price: number; safe_min_eur: number; safe_max_eur: number }
 
 export default function PricingPage() {
-  const [rows,    setRows]    = useState<PricingRow[]>([])
+  const [rows, setRows] = useState<PricingRow[]>([])
   const [editing, setEditing] = useState<string | null>(null)
-  const [eurVal,  setEurVal]  = useState("")
-  const [ngnVal,  setNgnVal]  = useState("")
-  const [reason,  setReason]  = useState("")
-  const [saving,  setSaving]  = useState(false)
-  const [msg,     setMsg]     = useState("")
-  const [authed,  setAuthed]  = useState(false)
-  const [password, setPassword] = useState("")
+  const [eurVal, setEurVal] = useState('')
+  const [ngnVal, setNgnVal] = useState('')
+  const [reason, setReason] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState('')
+  const [authed, setAuthed] = useState(false)
+  const [pw, setPw] = useState('')
 
-  // ── AUTH ─────────────────────────────────────────────────
-  useEffect(() => {
-    const saved = localStorage.getItem("lcadmin_authed")
-    if (saved === "yes") setAuthed(true)
-  }, [])
+  useEffect(() => { if (authed) fetch('/api/admin/pricing').then(r => r.json()).then(d => setRows(d.rows ?? [])) }, [authed])
 
-  const handleLogin = () => {
-    if (password === (process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? "admin123")) {
-      localStorage.setItem("lcadmin_authed", "yes")
-      setAuthed(true)
-    } else {
-      setMsg("Incorrect password")
-    }
-  }
-
-  // ── LOAD PRICES ──────────────────────────────────────────
-  useEffect(() => {
-    if (!authed) return
-    supabase.from("lc_pricing").select("*").order("label")
-      .then(({ data }) => { if (data) setRows(data) })
-  }, [authed])
-
-  const startEdit = (row: PricingRow) => {
-    setEditing(row.key)
-    setEurVal(String(row.eur_price))
-    setNgnVal(String(row.ngn_price))
-    setReason("")
-  }
-
-  const cancelEdit = () => {
-    setEditing(null)
-    setEurVal("")
-    setNgnVal("")
-    setReason("")
-  }
-
-  const savePrice = async (row: PricingRow) => {
-    if (!reason.trim()) {
-      setMsg("Reason is required")
-      return
-    }
-    const eur = parseFloat(eurVal)
-    const ngn = parseFloat(ngnVal)
-    if (isNaN(eur) || isNaN(ngn)) {
-      setMsg("Enter valid numbers")
-      return
-    }
+  const save = async (row: PricingRow) => {
+    if (!reason.trim()) { setMsg('Reason required'); return }
+    const eur = parseFloat(eurVal); const ngn = parseFloat(ngnVal)
+    if (isNaN(eur) || isNaN(ngn)) { setMsg('Invalid numbers'); return }
     if (eur < row.safe_min_eur || eur > row.safe_max_eur) {
-      const proceed = confirm(
-        `€${eur} is outside safe range €${row.safe_min_eur}–€${row.safe_max_eur}. Proceed anyway?`
-      )
-      if (!proceed) return
+      if (!confirm(`€${eur} is outside safe range €${row.safe_min_eur}–€${row.safe_max_eur}. Continue?`)) return
     }
     setSaving(true)
-
-    // Write audit log
-    await supabase.from("admin_audit_log").insert({
-      module:     "LCAdmin",
-      action:     "price_updated",
-      record_id:  row.key,
-      prev_state: { eur_price: row.eur_price, ngn_price: row.ngn_price },
-      next_state: { eur_price: eur, ngn_price: ngn },
-      reason,
-    })
-
-    // Update price
-    await supabase.from("lc_pricing")
-      .update({
-        eur_price:  eur,
-        ngn_price:  ngn,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("key", row.key)
-
-    // Reload
-    const { data } = await supabase
-      .from("lc_pricing").select("*").order("label")
-    if (data) setRows(data)
-
-    setSaving(false)
-    setEditing(null)
-    setMsg(`✓ ${row.label} updated`)
-    setTimeout(() => setMsg(""), 3000)
+    await fetch('/api/admin/pricing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: row.key, eur_price: eur, ngn_price: ngn, reason }) })
+    const d = await fetch('/api/admin/pricing').then(r => r.json())
+    setRows(d.rows ?? []); setSaving(false); setEditing(null)
+    setMsg(`✓ ${row.label} updated`); setTimeout(() => setMsg(''), 3000)
   }
 
-  // ── LOGIN SCREEN ─────────────────────────────────────────
   if (!authed) return (
-    <main className="min-h-screen flex items-center justify-center bg-[#0a0010]">
-      <div className="w-full max-w-sm space-y-4 p-8 rounded-2xl
-        border border-yellow-400/20 bg-white/5">
-        <h1 className="text-xl font-bold text-yellow-100 text-center tracking-widest uppercase">
-          LCAdmin
-        </h1>
-        <p className="text-xs text-white/40 text-center">Pricing Configuration</p>
-<input type="number" value={eurVal}
-  onChange={e => setEurVal(e.target.value)}
-  style={{
-    width: "100%",
-    padding: "6px 12px",
-    borderRadius: "8px",
-    border: "1px solid rgba(234,179,8,0.3)",
-    background: "rgba(255,255,255,0.08)",
-    color: "white",
-    fontSize: "14px",
-    outline: "none",
-    WebkitTextFillColor: "white",
-    WebkitBoxShadow: "0 0 0px 1000px rgba(26,13,46,0.95) inset",
-  }}
-/>
-        {msg && <p className="text-xs text-red-400 text-center">{msg}</p>}
-        <button onClick={handleLogin}
-          className="w-full py-2 rounded-lg bg-gradient-to-b from-yellow-400 to-yellow-500
-            text-purple-950 font-bold text-sm hover:from-yellow-300 transition-all">
-          Enter
-        </button>
+    <div>
+      <h1 style={{ fontSize: '20px', fontWeight: 700, color: textPrimary, marginBottom: '20px' }}>Pricing Configuration</h1>
+      <div style={{ maxWidth: '320px', padding: '24px', borderRadius: '12px', background: cardBg, border: '1px solid rgba(226,195,107,0.12)' }}>
+        <p style={{ fontSize: '13px', color: textFaint, marginBottom: '14px' }}>Enter admin password to edit prices</p>
+        <input type="password" placeholder="Password" value={pw} onChange={e => setPw(e.target.value)} onKeyDown={e => e.key === 'Enter' && fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) }).then(r => { if (r.ok) setAuthed(true) })} style={{ ...inp, marginBottom: '10px' }} />
+        <button onClick={() => fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) }).then(r => { if (r.ok) setAuthed(true) })} style={{ width: '100%', padding: '10px', borderRadius: '8px', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '13px', fontWeight: 700, border: 'none', cursor: 'pointer' }}>Unlock Pricing</button>
       </div>
-    </main>
+    </div>
   )
 
-  // ── PRICING SCREEN ───────────────────────────────────────
   return (
-    <main className="min-h-screen bg-[#0a0010] px-4 py-6 max-w-3xl mx-auto space-y-6">
-
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-bold text-yellow-100 tracking-wide">
-            Pricing Configuration
-          </h1>
-          <p className="text-xs text-white/40 mt-0.5">
-            All changes logged. Reason required. Safe ranges shown.
-          </p>
-        </div>
-        <a href="/admin/flags"
-          className="text-xs text-white/30 hover:text-yellow-300 transition-colors">
-          Feature Flags →
-        </a>
+    <div>
+      <div style={{ marginBottom: '20px' }}>
+        <h1 style={{ fontSize: '20px', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>Pricing Configuration</h1>
+        <p style={{ fontSize: '12px', color: textFaint }}>All changes are audit logged. Reason required.</p>
       </div>
-
-      {msg && (
-        <div className="px-4 py-2 rounded-lg border border-yellow-400/30
-          bg-yellow-400/8 text-yellow-200 text-sm text-center">
-          {msg}
-        </div>
-      )}
-
-      <div className="space-y-2">
-        {rows.map((row) => (
-          <div key={row.key}
-            className="rounded-xl border border-white/8 bg-white/4 px-4 py-3 space-y-2">
-
-            {/* ROW HEADER */}
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-white/90">{row.label}</p>
-                <p className="text-[10px] text-white/30 mt-0.5">
-                  Safe range: €{row.safe_min_eur} – €{row.safe_max_eur}
-                </p>
+      {msg && <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(226,195,107,0.07)', border: '1px solid rgba(226,195,107,0.2)', color: gold, fontSize: '12px', marginBottom: '14px' }}>{msg}</div>}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        {rows.map(row => (
+          <div key={row.key} style={{ padding: '12px 16px', borderRadius: '10px', background: cardBg, border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between' }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '13px', fontWeight: 500, color: textPrimary }}>{row.label}</p>
+                <p style={{ fontSize: '10px', color: textFaint }}>Safe range: €{row.safe_min_eur}–€{row.safe_max_eur}</p>
               </div>
               {editing !== row.key && (
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-yellow-300">€{row.eur_price}</p>
-                    <p className="text-[10px] text-white/40">
-                      ₦{row.ngn_price.toLocaleString()}
-                    </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: gold }}>€{row.eur_price}</p>
+                    <p style={{ fontSize: '10px', color: textFaint }}>₦{row.ngn_price.toLocaleString()}</p>
                   </div>
-                  <button onClick={() => startEdit(row)}
-                    className="text-xs px-3 py-1.5 rounded-lg border border-yellow-400/25
-                      text-yellow-300/70 hover:border-yellow-400/50 hover:text-yellow-200
-                      transition-all duration-150">
-                    Edit
-                  </button>
+                  <button onClick={() => { setEditing(row.key); setEurVal(String(row.eur_price)); setNgnVal(String(row.ngn_price)); setReason('') }} style={{ fontSize: '11px', padding: '5px 12px', borderRadius: '6px', border: '1px solid rgba(226,195,107,0.2)', background: 'transparent', color: 'rgba(226,195,107,0.7)', cursor: 'pointer' }}>Edit</button>
                 </div>
               )}
             </div>
-
-            {/* EDIT FORM */}
             {editing === row.key && (
-              <div className="space-y-2 pt-2 border-t border-white/8">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] text-white/40 uppercase tracking-widest">
-                      EUR Price
-                    </label>
-                    <input type="number" value={eurVal}
-                      onChange={e => setEurVal(e.target.value)}
-                      className="mt-1 w-full px-3 py-1.5 rounded-lg bg-white/8
-                        border border-yellow-400/30 text-white text-sm
-                        focus:outline-none focus:border-yellow-300 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-white/40 uppercase tracking-widest">
-                      NGN Price
-                    </label>
-                    <input type="number" value={ngnVal}
-                      onChange={e => setNgnVal(e.target.value)}
-                      className="mt-1 w-full px-3 py-1.5 rounded-lg bg-white/8
-                        border border-yellow-400/30 text-white text-sm
-                        focus:outline-none focus:border-yellow-300 transition-all"
-                    />
-                  </div>
+              <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                  <div><label style={{ fontSize: '10px', color: textFaint, display: 'block', marginBottom: '4px' }}>EUR (€)</label><input type="number" value={eurVal} onChange={e => setEurVal(e.target.value)} style={inp} /></div>
+                  <div><label style={{ fontSize: '10px', color: textFaint, display: 'block', marginBottom: '4px' }}>NGN (₦)</label><input type="number" value={ngnVal} onChange={e => setNgnVal(e.target.value)} style={inp} /></div>
                 </div>
-                <div>
-                  <label className="text-[10px] text-white/40 uppercase tracking-widest">
-                    Reason for change (required)
-                  </label>
-                  <input type="text" value={reason}
-                    onChange={e => setReason(e.target.value)}
-                    placeholder="e.g. Q3 2026 pricing review"
-                    className="mt-1 w-full px-3 py-1.5 rounded-lg bg-white/8
-                      border border-white/15 text-white text-sm
-                      placeholder:text-white/25 focus:outline-none
-                      focus:border-yellow-300 transition-all"
-                  />
-                </div>
-                <div className="flex gap-2 pt-2 pb-1">
-                  <button onClick={() => savePrice(row)} disabled={saving}
-                    className="px-4 py-1.5 rounded-lg bg-gradient-to-b
-                      from-yellow-400 to-yellow-500 text-purple-950 font-bold
-                      text-sm disabled:opacity-50 hover:from-yellow-300
-                      hover:to-yellow-400 transition-all">
-                    {saving ? "Saving…" : "Save"}
-                  </button>
-                 <button onClick={cancelEdit}
-  className="px-4 py-1.5 rounded-lg border border-red-400/30
-    text-red-300/70 text-sm hover:text-red-300 hover:border-red-400/60
-    transition-all">
-  Cancel
-</button>
+                <input placeholder="Reason for change (required)" value={reason} onChange={e => setReason(e.target.value)} style={{ ...inp, marginBottom: '8px' }} />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => save(row)} disabled={saving} style={{ padding: '8px 18px', borderRadius: '8px', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '12px', fontWeight: 700, border: 'none', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : 'Save'}</button>
+                  <button onClick={() => setEditing(null)} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: textFaint, fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
                 </div>
               </div>
             )}
           </div>
         ))}
       </div>
-
-      {/* SIGN OUT */}
-      <div className="pt-4 border-t border-white/8">
-        <button
-          onClick={() => {
-            localStorage.removeItem("lcadmin_authed")
-            setAuthed(false)
-          }}
-          className="text-xs text-white/30 hover:text-red-400/70 transition-colors">
-          Sign out
-        </button>
-      </div>
-
-    </main>
+    </div>
   )
 }

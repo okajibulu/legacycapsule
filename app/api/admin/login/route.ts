@@ -1,13 +1,14 @@
+/* =========================================================
+   app/api/admin/login/route.ts
+========================================================= */
 import { NextRequest, NextResponse } from 'next/server'
-import { setAdminSession } from '@/lib/admin/auth'
+import { validatePassword, createSession } from '@/lib/admin/auth'
 
-export async function POST(req: NextRequest) {
-  const { password } = await req.json()
-
-  if (password !== process.env.LCADMIN_PASSWORD) {
+export async function POST(request: NextRequest) {
+  const { password } = await request.json()
+  if (!validatePassword(password)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-
-  setAdminSession()
+  await createSession()
   return NextResponse.json({ ok: true })
 }

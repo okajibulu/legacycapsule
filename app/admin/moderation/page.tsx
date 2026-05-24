@@ -1,127 +1,83 @@
 'use client'
+/* =========================================================
+   app/admin/moderation/page.tsx — Platform Moderation Queue
+   Client component for inline approve/remove actions
+========================================================= */
+'use client'
 import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
 
-const client = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const gold = '#E2C36B'
+const textPrimary = 'rgba(255,255,255,0.92)'
+const textFaint = 'rgba(255,255,255,0.30)'
+const cardBg = 'rgba(255,255,255,0.03)'
+
+interface Contribution {
+  id: string; capsule_id: string; contributor_name: string
+  city: string; country: string; tribute_text: string
+  email: string | null; status: string; created_at: string
+  thumbnail_url: string | null
+}
 
 export default function ModerationPage() {
-  const [items, setItems] = useState<any[]>([])
-  const [acting, setActing] = useState<string | null>(null)
-  const [msg, setMsg] = useState('')
+  const [items, setItems] = useState<Contribution[]>([])
+  const [loading, setLoading] = useState(true)
 
   const load = async () => {
-    const { data } = await client
-      .from('contributions')
-      .select('id, capsule_id, contributor_name, tribute_text, created_at, city, country')
-      .eq('status', 'pending_review')
-      .order('created_at', { ascending: true })
-    if (data) setItems(data)
+    setLoading(true)
+    const res = await fetch('/api/admin/moderation')
+    const data = await res.json()
+    setItems(data.items ?? [])
+    setLoading(false)
   }
 
-  useEffect(() => {
-    load()
-  }, [])
+  useEffect(() => { load() }, [])
 
-  const flash = (text: string) => {
-    setMsg(text)
-    setTimeout(() => setMsg(''), 3000)
+  const approve = async (id: string) => {
+    await fetch('/api/admin/moderation/approve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    setItems(prev => prev.filter(i => i.id !== id))
   }
 
-  const act = async (id: string, action: 'approve' | 'remove', reason: string) => {
-    setActing(id)
-    await fetch(`/api/admin/moderation/${action}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, reason }),
-    })
-    flash(action === 'approve' ? 'Contribution approved' : 'Contribution removed')
-    await load()
-    setActing(null)
+  const remove = async (id: string) => {
+    await fetch('/api/admin/moderation/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, reason: 'Admin removal' }) })
+    setItems(prev => prev.filter(i => i.id !== id))
   }
 
   return (
-    <div className="space-y-6 max-w-3xl">
-
-      <div>
-        <h1 className="text-xl font-bold text-yellow-100 tracking-wide">
-          Content Moderation
-        </h1>
-        <p className="text-xs text-white/40 mt-0.5">
-          Platform-level escalations only.
-          {items.length > 0
-            ? ` ${items.length} pending.`
-            : ' Queue is clear.'}
-        </p>
+    <div>
+      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <div>
+          <h1 style={{ fontSize: '20px', fontWeight: 700, color: textPrimary, marginBottom: '4px' }}>Moderation</h1>
+          <p style={{ fontSize: '12px', color: textFaint }}>{items.length} pending platform-wide</p>
+        </div>
+        <button onClick={load} style={{ fontSize: '12px', color: gold, background: 'none', border: 'none', cursor: 'pointer' }}>Refresh</button>
       </div>
 
-      {msg && (
-        <div className="px-4 py-2 rounded-lg border border-yellow-400/30 bg-yellow-400/8 text-yellow-200 text-sm">
-          {msg}
+      {loading ? (
+        <p style={{ color: textFaint, fontSize: '13px', textAlign: 'center', padding: '48px' }}>Loading…</p>
+      ) : items.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '48px', borderRadius: '12px', background: cardBg, border: '1px solid rgba(74,222,128,0.15)' }}>
+          <p style={{ fontSize: '24px', marginBottom: '12px' }}>✦</p>
+          <p style={{ fontSize: '14px', color: 'rgba(74,222,128,0.8)', fontWeight: 600 }}>Queue is clear</p>
+          <p style={{ fontSize: '12px', color: textFaint, marginTop: '4px' }}>No pending tributes</p>
         </div>
-      )}
-
-      {items.length === 0 && (
-        <div className="rounded-xl border border-white/8 bg-white/4 p-12 text-center">
-          <p className="text-white/25 text-sm">No escalated content — queue is clear.</p>
-          <p className="text-white/15 text-xs mt-1">
-            Per-capsule moderation is handled by organisers at /manage/[slug]
-          </p>
-        </div>
-      )}
-
-      <div className="space-y-3">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="rounded-xl border border-white/8 bg-white/4 p-4 space-y-3"
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-white/90">
-                  {item.contributor_name}
-                </p>
-                <p className="text-[10px] text-white/30 mt-0.5">
-                  {item.city}{item.country ? ` · ${item.country}` : ''}
-                  {' · '}
-                  {new Date(item.created_at).toLocaleDateString('en-GB')}
-                </p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {items.map(item => (
+            <div key={item.id} style={{ padding: '14px 16px', borderRadius: '12px', background: cardBg, border: '1px solid rgba(226,195,107,0.1)' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '6px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: gold }}>{item.contributor_name}</span>
+                <span style={{ fontSize: '10px', color: textFaint }}>{[item.city, item.country].filter(Boolean).join(' · ')}</span>
+                <span style={{ fontSize: '10px', color: textFaint, marginLeft: 'auto', whiteSpace: 'nowrap' as const }}>{new Date(item.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
               </div>
-              <p className="text-[10px] text-white/20 font-mono truncate max-w-[120px]">
-                capsule: {item.capsule_id?.slice(0, 8)}...
-              </p>
+              <p style={{ fontSize: '13px', color: textPrimary, lineHeight: 1.7, marginBottom: '12px', fontStyle: 'italic' }}>"{item.tribute_text}"</p>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => approve(item.id)} style={{ flex: 1, padding: '8px', borderRadius: '8px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', color: 'rgba(134,239,172,0.9)', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>✓ Approve</button>
+                <button onClick={() => remove(item.id)} style={{ flex: 1, padding: '8px', borderRadius: '8px', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)', color: 'rgba(248,113,113,0.8)', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Remove</button>
+              </div>
             </div>
-
-            <p className="text-sm text-white/65 leading-relaxed">
-              {item.tribute_text}
-            </p>
-
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => act(item.id, 'approve', 'Admin moderation approval')}
-                disabled={acting === item.id}
-                className="text-xs px-3 py-1.5 rounded-lg bg-green-500/15 border
-                  border-green-400/25 text-green-300 hover:bg-green-500/25
-                  disabled:opacity-50 transition-all"
-              >
-                Approve
-              </button>
-              <button
-                onClick={() => act(item.id, 'remove', 'Admin moderation removal')}
-                disabled={acting === item.id}
-                className="text-xs px-3 py-1.5 rounded-lg bg-red-500/15 border
-                  border-red-400/25 text-red-300 hover:bg-red-500/25
-                  disabled:opacity-50 transition-all"
-              >
-                Remove
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
+          ))}
+        </div>
+      )}
     </div>
   )
 }
