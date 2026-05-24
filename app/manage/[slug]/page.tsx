@@ -534,7 +534,22 @@ export default function ManagePage() {
   const [heroImage, setHeroImage] = useState<string | null>(null)
   const heroPhotoRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { const saved = localStorage.getItem(LS_EMAIL); if (saved) setVisitorEmail(saved) }, [])
+  useEffect(() => {
+    // Read email from URL param first (set by signin flow), then localStorage
+    const urlParams = new URLSearchParams(window.location.search)
+    const authEmail = urlParams.get('auth')
+    if (authEmail) {
+      const decoded = decodeURIComponent(authEmail)
+      localStorage.setItem(LS_EMAIL, decoded)
+      setVisitorEmail(decoded)
+      // Clean the URL param without page reload
+      const cleanUrl = window.location.pathname
+      window.history.replaceState({}, '', cleanUrl)
+    } else {
+      const saved = localStorage.getItem(LS_EMAIL)
+      if (saved) setVisitorEmail(saved)
+    }
+  }, [])
 
   const fetchAll = useCallback(async () => {
     if (!slug) return

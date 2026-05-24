@@ -96,10 +96,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Determine redirect
+    // Determine redirect — include email as param for reliable auth handoff
     let redirect = '/dashboard'
-    if (capsules && capsules.length === 1) redirect = `/manage/${capsules[0].slug}`
-    else if (!capsules || capsules.length === 0) redirect = '/book?signin=true'
+    if (capsules && capsules.length === 1) {
+      redirect = `/manage/${capsules[0].slug}?auth=${encodeURIComponent(normalised)}`
+    } else if (!capsules || capsules.length === 0) {
+      redirect = '/book?signin=true'
+    } else {
+      redirect = `/dashboard?auth=${encodeURIComponent(normalised)}`
+    }
 
     return NextResponse.json({ valid: true, redirect })
 

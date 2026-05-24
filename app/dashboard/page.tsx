@@ -30,20 +30,30 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function load() {
+      // Read email from URL param (signin handoff) or localStorage
+      const urlParams = new URLSearchParams(window.location.search)
+      const authEmail = urlParams.get('auth')
+      if (authEmail) {
+        const decoded = decodeURIComponent(authEmail)
+        localStorage.setItem('lc_visitor_email', decoded)
+        window.history.replaceState({}, '', '/dashboard')
+      }
+
       const supabase = getAuthClient()
       const { data: { user } } = await supabase.auth.getUser()
+      const emailToUse = authEmail ? decodeURIComponent(authEmail) : user?.email
 
-      if (!user?.email) {
+      if (!emailToUse) {
         window.location.href = '/signin'
         return
       }
 
-      setUserEmail(user.email)
+      setUserEmail(emailToUse)
 
       const { data } = await supabase
         .from('capsules')
         .select('id, slug, honouree_name, event_type, event_tag, approved_contrib_count')
-        .eq('organiser_email', user.email.toLowerCase())
+        .eq('organiser_email', emailToUse.toLowerCase())
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
 
