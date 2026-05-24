@@ -49,22 +49,25 @@ export async function POST(request: NextRequest) {
       .update({ verified_at: new Date().toISOString() })
       .eq('id', data.id)
 
-    // Ensure Supabase Auth account exists
+    // Ensure Supabase Auth account exists — use createUser with upsert approach
     let userId: string | null = null
     try {
-      const { data: existingUsers } = await supabase.auth.admin.listUsers()
-      const existing = existingUsers?.users?.find(u => u.email === normalised)
-      if (existing) {
-        userId = existing.id
-      } else {
-        // Create account
-        const { data: newUser } = await supabase.auth.admin.createUser({
-          email: normalised, email_confirm: true,
-        })
-        if (newUser?.user) userId = newUser.user.id
+      // Try to create — if already exists, error message contains existing user info
+      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+        email: normalised,
+        email_confirm: true,
+      })
+      if (newUser?.user) {
+        userId = newUser.user.id
+      } else if (createError?.message?.includes('already been registered')) {
+        // User exists — fetch by email directly
+        const { data: { users } } = await supabase.auth.admin.listUsers()
+        const existing = users?.find((u: any) => u.email === normalised)
+        if (existing) userId = existing.id
       }
     } catch (authErr) {
-      console.error('Auth user lookup error:', authErr)
+      console.error('Auth user error:', authErr)
+      // Non-fatal — continue with redirect even if profile creation fails
     }
 
     // Upsert profile
