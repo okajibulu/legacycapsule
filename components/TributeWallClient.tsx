@@ -304,8 +304,9 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   const pins: Pin[] = all.filter(c => c.status === 'approved' && c.lat && c.lng).map(c => ({ lat: c.lat as number, lng: c.lng as number, name: c.contributor_name, country: c.country }))
   const uniqueCountries = [...new Set(all.filter(c => c.status === 'approved' && (c as any).ip_country).map(c => (c as any).ip_country as string))]
   const capsuleUrl = typeof window !== 'undefined' ? window.location.origin + '/for/' + capsule.slug : 'https://itslegacycapsule.com/for/' + capsule.slug
-  const resolvedHero = heroImage ?? featuredPhotos.find(p => p.is_hero)?.image_url ?? '/honouree.jpg'
-  // Cities list for map label
+ const resolvedHero = heroImage ?? featuredPhotos.find(p => p.is_hero)?.image_url ?? null
+ 
+ // Cities list for map label
   const cityNames = [...new Set(pins.map(p => p.name ? p.country : '').filter(Boolean))].slice(0, 3)
 
   /* ── EFFECTS ── */
@@ -407,7 +408,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
               : { margin: '0 12px', borderRadius: '20px' }
             return (
           <div style={{ flexShrink: 0, position: 'relative', overflow: 'hidden', minHeight: minH, ...bleedStyle }}>
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${resolvedHero})`, backgroundSize: heroFit === 'width' ? '100% auto' : heroFit === 'height' ? 'auto 100%' : `${heroZoom}%`, backgroundPosition: heroPosition, backgroundRepeat: 'no-repeat', backgroundColor: '#000' }} />
+            <div style={{ position: 'absolute', inset: 0, backgroundImage: resolvedHero ? `url(${resolvedHero})` : 'none', backgroundSize: heroFit === 'width' ? '100% auto' : heroFit === 'height' ? 'auto 100%' : `${heroZoom}%`, backgroundPosition: heroPosition, backgroundRepeat: 'no-repeat', backgroundColor: '#000' }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.75) 100%)' }} />
             <div style={{ position: 'absolute', inset: 0, background: t.heroGlow }} />
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(to right, transparent, ${t.accentMuted}, transparent)` }} />
@@ -423,6 +424,29 @@ export default function TributeWallClient({ capsule, initialContributions, profi
                 <input ref={heroPhotoRef} type="file" accept="image/*" onChange={handleHeroUpload} style={{ display: 'none' }} />
               </div>
             )}
+
+{!resolvedHero && (
+  <div style={{
+    position: 'absolute', inset: 0,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: 'linear-gradient(160deg, #0f0a1e 0%, #1a0845 100%)',
+    flexDirection: 'column', gap: '8px',
+  }}>
+    <div style={{
+      width: '64px', height: '64px', borderRadius: '50%',
+      border: '1px solid rgba(226,195,107,0.3)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(226,195,107,0.06)',
+    }}>
+      <span style={{
+        fontSize: '11px', fontWeight: 800, letterSpacing: '0.16em',
+        background: 'linear-gradient(135deg, #E2C36B, rgba(226,195,107,0.6))',
+        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+      }}>LC</span>
+    </div>
+    <p style={{ fontSize: '9px', color: 'rgba(226,195,107,0.3)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>Add a photo</p>
+  </div>
+)}
 
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, padding: '0 20px 20px', textAlign: 'center' }}>
               <div style={{ fontSize: '28px', marginBottom: '8px', lineHeight: 1 }}>{ornament}</div>
