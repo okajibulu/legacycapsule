@@ -15,16 +15,17 @@
 ========================================================= */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import { getTributePageTitle } from '@/lib/eventLabels'
 import { COUNTRIES } from '@/lib/tributeWallHelpers'
 import { getThemeConfig } from '@/lib/themeConfig'
 import type { ThemeKey, ThemeConfig } from '@/lib/themeConfig'
-import dynamic from 'next/dynamic'
 
 const AudioTribute = dynamic(() => import('@/components/AudioTribute'), { ssr: false })
 const VideoTribute = dynamic(() => import('@/components/VideoTribute'), { ssr: false })
+const HeroPositionPicker = dynamic(() => import('@/components/HeroPositionPicker'), { ssr: false })
 
 /* ── LOCAL TYPES ── */
 interface Capsule {
@@ -275,6 +276,8 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   const [fVideoThumb, setFVideoThumb] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [heroImage, setHeroImage] = useState<string | null>(capsule.hero_image_url ?? null)
+  const [heroPosition, setHeroPosition] = useState<string>((capsule as any).hero_image_position ?? 'center')
+  const [showPositionPicker, setShowPositionPicker] = useState(false)
   const [uploadingHero, setUploadingHero] = useState(false)
   const heroPhotoRef = useRef<HTMLInputElement>(null)
   const [fName, setFName] = useState(''); const [fEmail, setFEmail] = useState('')
@@ -324,7 +327,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   const handleDelete = async (id: string) => { await supabaseClient.from('contributions').delete().eq('id', id); poll() }
   const handleEdit = async (id: string, text: string) => { await supabaseClient.from('contributions').update({ tribute_text: text }).eq('id', id); poll() }
   const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (!f) return; const compressed = await compressPhoto(f); setFPhoto(compressed); const reader = new FileReader(); reader.onload = ev => setFPhotoPreview(ev.target?.result as string); reader.readAsDataURL(compressed) }
-  const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (!f || !isAdmin) return; setUploadingHero(true); try { const compressed = await compressPhoto(f); const ext = compressed.name.split('.').pop() ?? 'jpg'; const path = `hero/${capsule.id}.${ext}`; const { error: ue } = await supabaseClient.storage.from(BUCKET).upload(path, compressed, { upsert: true }); if (!ue) { const url = supabaseClient.storage.from(BUCKET).getPublicUrl(path).data.publicUrl; await supabaseClient.from('capsules').update({ hero_image_url: url }).eq('id', capsule.id); setHeroImage(url) } } catch (err) { console.error(err) } setUploadingHero(false) }
+  const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (!f || !isAdmin) return; setUploadingHero(true); try { const compressed = await compressPhoto(f); const ext = compressed.name.split('.').pop() ?? 'jpg'; const path = `hero/${capsule.id}.${ext}`; const { error: ue } = await supabaseClient.storage.from(BUCKET).upload(path, compressed, { upsert: true }); if (!ue) { const url = supabaseClient.storage.from(BUCKET).getPublicUrl(path).data.publicUrl; await supabaseClient.from('capsules').update({ hero_image_url: url }).eq('id', capsule.id); setHeroImage(url); setShowPositionPicker(true) } } catch (err) { console.error(err) } setUploadingHero(false) }
   const handleCopy = async () => { await navigator.clipboard.writeText(capsuleUrl); setCopied(true); setTimeout(() => setCopied(false), 2000) }
   const validate = () => { const e: Record<string, string> = {}; if (!fName.trim()) e.name = 'Name required'; if (!fEmail.trim() || !fEmail.includes('@')) e.email = 'Valid email required'; if (!fCity.trim()) e.city = 'City required'; if (!fCountry) e.country = 'Country required'; if (fMsg.trim().length < MIN_CHARS) e.msg = `${MIN_CHARS}+ characters`; if (fMsg.trim().length > MAX_CHARS) e.msg = `Over ${MAX_CHARS} limit`; setErrors(e); return !Object.keys(e).length }
   const handleSubmit = async () => {
@@ -381,7 +384,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
 
           {/* ── HERO — Identity first ── */}
           <div style={{ flexShrink: 0, position: 'relative', overflow: 'hidden', margin: '0 12px', borderRadius: '20px', minHeight: '220px' }}>
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${resolvedHero})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${resolvedHero})`, backgroundSize: 'cover', backgroundPosition: heroPosition }} />
             <div style={{ position: 'absolute', inset: 0, background: t.heroOverlay }} />
             <div style={{ position: 'absolute', inset: 0, background: t.heroGlow }} />
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(to right, transparent, ${t.accentMuted}, transparent)` }} />
@@ -405,6 +408,19 @@ export default function TributeWallClient({ capsule, initialContributions, profi
               {capsule.event_date && <p style={{ fontSize: '10px', color: t.textFaint, marginTop: '6px' }}>{new Date(capsule.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>}
             </div>
           </div>
+
+          {/* Hero position picker — shows after upload */}
+          {showPositionPicker && heroImage && (isAdmin || (visitorEmail && visitorEmail.toLowerCase() === capsule.organiser_email?.toLowerCase())) && (
+            <div style={{ margin: '8px 12px 0' }}>
+              <HeroPositionPicker
+                capsuleId={capsule.id}
+                imageUrl={heroImage}
+                currentPosition={heroPosition}
+                onPositionChange={(pos) => { setHeroPosition(pos); setShowPositionPicker(false) }}
+                t={t}
+              />
+            </div>
+          )}
 
           {/* ── COLLAPSIBLE COMPOSER ── */}
           <div style={{ flexShrink: 0, margin: '10px 12px 0' }}>

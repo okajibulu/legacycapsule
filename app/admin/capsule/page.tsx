@@ -46,7 +46,7 @@ export default async function CapsulesPage() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {capsules.map(c => (
-          <Link key={c.id} href={`/admin/capsules/${c.id}`} style={{
+          <Link key={c.id} href={`/admin/capsule/${c.id}`} style={{
             display: 'flex', alignItems: 'center', gap: '12px',
             padding: '12px 14px', borderRadius: '10px',
             background: cardBg, border: `1px solid ${cardBorder}`,
