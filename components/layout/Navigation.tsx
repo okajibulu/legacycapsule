@@ -80,8 +80,8 @@ export default function Navigation({ variant = "transparent" }: NavProps) {
         }}>
           {/* Logo */}
           <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", flexShrink: 0 }}>
-            <span style={{ fontSize: "13px", fontWeight: 800, letterSpacing: "0.18em", background: "linear-gradient(135deg, #E2C36B, #C9A84E)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>LEGACY</span>
-            <span style={{ fontSize: "13px", fontWeight: 800, letterSpacing: "0.18em", color: "rgba(255,255,255,0.35)", marginLeft: "0.12em" }}>CAPSULE</span>
+            <span style={{ fontSize: "15px", fontWeight: 800, letterSpacing: "0.16em", background: "linear-gradient(135deg, #E2C36B, #C9A84E)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>LEGACY</span>
+            <span style={{ fontSize: "15px", fontWeight: 800, letterSpacing: "0.16em", color: "rgba(255,255,255,0.35)", marginLeft: "0.12em" }}>CAPSULE</span>
           </Link>
 
           {/* Desktop nav */}

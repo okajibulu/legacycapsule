@@ -3,6 +3,8 @@ import { Toaster } from "@/components/ui/sonner"
 import NavigationWrapper from "@/components/layout/NavigationWrapper"
 import FooterWrapper from "@/components/layout/FooterWrapper"
 import "./globals.css"
+import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -26,12 +28,19 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600&family=Cormorant+SC:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&display=swap"
           rel="stylesheet"
         />
+        <script
+    defer
+    data-domain="itslegacycapsule.com"
+    src="https://plausible.io/js/script.js"
+  />
       </head>
       <body suppressHydrationWarning>
         <NavigationWrapper />
         {children}
         <FooterWrapper />
         <Toaster />
+        <Analytics/>
+        <SpeedInsights />
       </body>
     </html>
   )

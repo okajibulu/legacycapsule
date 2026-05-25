@@ -123,7 +123,7 @@ function TributeCard({ c, isAdmin, isOwn, onApprove, onDelete, onEdit, t }: {
               {[c.city, c.country].filter(Boolean).join(' · ')}
             </span>
             <span style={{ fontSize: '10px', color: t.textFaint, whiteSpace: 'nowrap', flexShrink: 0 }}>
-              {new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+              {new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
             </span>
           </div>
         </div>
@@ -424,11 +424,11 @@ export default function TributeWallClient({ capsule, initialContributions, profi
               </div>
             )}
 
-            <div style={{ position: 'relative', zIndex: 10, padding: '0 20px 20px', textAlign: 'center', position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, padding: '0 20px 20px', textAlign: 'center' }}>
               <div style={{ fontSize: '28px', marginBottom: '8px', lineHeight: 1 }}>{ornament}</div>
               <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(22px, 6vw, 32px)', fontWeight: 800, color: t.textHeading, lineHeight: 1.15, textShadow: '0 2px 20px rgba(0,0,0,0.9)', marginBottom: '6px' }}>{pageTitle}</h1>
               {capsule.event_tag && <p style={{ fontSize: '11px', color: t.accentMuted, letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: '6px' }}>{capsule.event_tag}</p>}
-              {capsule.event_date && <p style={{ fontSize: '10px', color: t.textFaint, marginTop: '6px' }}>{new Date(capsule.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>}
+       {capsule.event_date && <p style={{ fontSize: '10px', color: t.textFaint, marginTop: '6px' }}>{(() => { const d = new Date(capsule.event_date!); return `${String(d.getDate()).padStart(2,'0')}.${d.toLocaleString('en-GB',{month:'short'})}.${d.getFullYear()}` })()}</p>}
             </div>
           </div>
           )
@@ -525,12 +525,11 @@ export default function TributeWallClient({ capsule, initialContributions, profi
                   </div>
 
                   {/* Action strip */}
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <button onClick={() => { setShowVideoUploader(false); setShowAudioRecorder(v => !v) }} title="Record a voice tribute" style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '8px 12px', borderRadius: '10px', border: `1px solid ${showAudioRecorder ? t.accentFaint : t.cardBorder}`, background: showAudioRecorder ? t.accentFaint : t.inputBg, color: showAudioRecorder ? t.accentPrimary : t.textMuted, cursor: 'pointer' }}><span style={{ fontSize: '14px' }}>🎙️</span>Audio</button>
-                    <button onClick={() => { setShowAudioRecorder(false); setShowVideoUploader(v => !v) }} title="Upload a video tribute" style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '8px 12px', borderRadius: '10px', border: `1px solid ${showVideoUploader ? t.accentFaint : t.cardBorder}`, background: showVideoUploader ? t.accentFaint : t.inputBg, color: showVideoUploader ? t.accentPrimary : t.textMuted, cursor: 'pointer' }}><span style={{ fontSize: '14px' }}>🎬</span>Video</button>
-                    <div style={{ flex: 1 }} />
-                    <button onClick={handleCopy} title="Copy link" style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '8px 12px', borderRadius: '10px', border: `1px solid ${t.accentFaint}`, background: copied ? t.accentFaint : t.inputBg, color: copied ? t.accentPrimary : t.accentMuted, cursor: 'pointer' }}><span style={{ fontSize: '14px' }}>{copied ? '✓' : '🔗'}</span>{copied ? 'Copied' : 'Copy'}</button>
-                    <Link href={`https://wa.me/?text=${encodeURIComponent('Leave a tribute for ' + honourName + ': ' + capsuleUrl)}`} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp" style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '8px 12px', borderRadius: '10px', border: '1px solid rgba(74,222,128,0.22)', background: t.inputBg, color: 'rgba(74,222,128,0.7)', textDecoration: 'none' }}><span style={{ fontSize: '14px' }}>💬</span>Share</Link>
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' as const }}>
+                    <button onClick={() => { setShowVideoUploader(false); setShowAudioRecorder(v => !v) }} title="Record a voice tribute" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '6px 9px', borderRadius: '8px', border: `1px solid ${showAudioRecorder ? t.accentFaint : t.cardBorder}`, background: showAudioRecorder ? t.accentFaint : t.inputBg, color: showAudioRecorder ? t.accentPrimary : t.textMuted, cursor: 'pointer', whiteSpace: 'nowrap' as const }}><span style={{ fontSize: '13px' }}>🎙️</span>Audio</button>
+                    <button onClick={() => { setShowAudioRecorder(false); setShowVideoUploader(v => !v) }} title="Upload a video tribute" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '6px 9px', borderRadius: '8px', border: `1px solid ${showVideoUploader ? t.accentFaint : t.cardBorder}`, background: showVideoUploader ? t.accentFaint : t.inputBg, color: showVideoUploader ? t.accentPrimary : t.textMuted, cursor: 'pointer', whiteSpace: 'nowrap' as const }}><span style={{ fontSize: '13px' }}>🎬</span>Video</button>
+                    <button onClick={handleCopy} title="Copy link" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '6px 9px', borderRadius: '8px', border: `1px solid ${t.accentFaint}`, background: copied ? t.accentFaint : t.inputBg, color: copied ? t.accentPrimary : t.accentMuted, cursor: 'pointer', whiteSpace: 'nowrap' as const }}><span style={{ fontSize: '13px' }}>{copied ? '✓' : '🔗'}</span>{copied ? 'Copied' : 'Copy'}</button>
+                    <Link href={`https://wa.me/?text=${encodeURIComponent('Leave a tribute for ' + honourName + ': ' + capsuleUrl)}`} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '6px 9px', borderRadius: '8px', border: '1px solid rgba(74,222,128,0.22)', background: t.inputBg, color: 'rgba(74,222,128,0.7)', textDecoration: 'none', whiteSpace: 'nowrap' as const }}><span style={{ fontSize: '13px' }}>💬</span>Share</Link>
                   </div>
 
                   {/* Audio recorder — expands when toggled */}
@@ -574,7 +573,18 @@ export default function TributeWallClient({ capsule, initialContributions, profi
           {/* ── TRIBUTE CARDS ── */}
           <div style={{ margin: '0 12px 16px', borderRadius: '18px', overflow: 'hidden', flexShrink: 0, minHeight: '100px', maxHeight: '420px', height: 'auto', border: `1px solid ${t.cardBorder}`, background: 'rgba(0,0,0,0.12)' }}>
             <div style={{ maxHeight: '420px', overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px', scrollbarWidth: 'thin', scrollbarColor: `${t.accentFaint} transparent` }}>
-              {visible.length === 0 && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}><p style={{ color: t.textFaint, fontSize: '13px', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Be the first to leave a tribute.</p></div>}
+              {visible.length === 0 && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}><p style={{ color: t.textFaint, fontSize: '13px', lineHeight: 1.7, fontStyle: 'italic', maxWidth: '280px' }}>{(() => {
+                const type = capsule.event_type?.toLowerCase() ?? ''
+                if (type.includes('memorial') || type.includes('funeral')) return `Voices, memories and reflections shared in honour of ${honourName} will appear here.`
+                if (type.includes('retirement')) return `Messages of appreciation from colleagues and loved ones will appear here.`
+                if (type.includes('wedding')) return `Messages celebrating this union will appear here.`
+                if (type.includes('birthday')) return `Birthday tributes and warm messages will appear here.`
+                if (type.includes('graduation')) return `Congratulations and words of pride will appear here.`
+                if (type.includes('ordination') || type.includes('religious') || type.includes('thanksgiving')) return `Words of blessing and celebration will appear here.`
+                if (type.includes('chieftaincy')) return `Messages of honour and recognition will appear here.`
+                if (type.includes('anniversary')) return `Heartfelt messages celebrating this milestone will appear here.`
+                return `Tributes and messages for ${honourName} will appear here.`
+              })()}</p></div>}
               {visible.map(c => <TributeCard key={c.id} c={c} isAdmin={isAdmin} isOwn={visitorEmail !== '' && c.email?.toLowerCase() === visitorEmail.toLowerCase()} onApprove={handleApprove} onDelete={handleDelete} onEdit={handleEdit} t={t} />)}
               <div ref={bottomRef} />
             </div>
