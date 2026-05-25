@@ -22,6 +22,7 @@ import { getTributePageTitle } from '@/lib/eventLabels'
 import { COUNTRIES } from '@/lib/tributeWallHelpers'
 import { getThemeConfig } from '@/lib/themeConfig'
 import type { ThemeKey, ThemeConfig } from '@/lib/themeConfig'
+import dynamic from 'next/dynamic'
 
 const AudioTribute = dynamic(() => import('@/components/AudioTribute'), { ssr: false })
 const VideoTribute = dynamic(() => import('@/components/VideoTribute'), { ssr: false })
@@ -277,6 +278,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   const [copied, setCopied] = useState(false)
   const [heroImage, setHeroImage] = useState<string | null>(capsule.hero_image_url ?? null)
   const [heroPosition, setHeroPosition] = useState<string>((capsule as any).hero_image_position ?? 'center')
+  const [heroZoom, setHeroZoom] = useState<number>((capsule as any).hero_image_zoom ?? 100)
   const [showPositionPicker, setShowPositionPicker] = useState(false)
   const [uploadingHero, setUploadingHero] = useState(false)
   const heroPhotoRef = useRef<HTMLInputElement>(null)
@@ -384,7 +386,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
 
           {/* ── HERO — Identity first ── */}
           <div style={{ flexShrink: 0, position: 'relative', overflow: 'hidden', margin: '0 12px', borderRadius: '20px', minHeight: '220px' }}>
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${resolvedHero})`, backgroundSize: 'cover', backgroundPosition: heroPosition }} />
+            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${resolvedHero})`, backgroundSize: `${heroZoom}%`, backgroundPosition: heroPosition, backgroundRepeat: 'no-repeat' }} />
             <div style={{ position: 'absolute', inset: 0, background: t.heroOverlay }} />
             <div style={{ position: 'absolute', inset: 0, background: t.heroGlow }} />
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(to right, transparent, ${t.accentMuted}, transparent)` }} />
@@ -409,16 +411,26 @@ export default function TributeWallClient({ capsule, initialContributions, profi
             </div>
           </div>
 
-          {/* Hero position picker — always visible to organiser when photo exists */}
+          {/* Hero position picker — toggled by organiser */}
           {heroImage && (isAdmin || (visitorEmail && visitorEmail.toLowerCase() === capsule.organiser_email?.toLowerCase())) && (
-            <div style={{ margin: '8px 12px 0' }}>
-              <HeroPositionPicker
-                capsuleId={capsule.id}
-                imageUrl={heroImage}
-                currentPosition={heroPosition}
-                onPositionChange={(pos) => setHeroPosition(pos)}
-                t={t}
-              />
+            <div style={{ margin: '4px 12px 0', display: 'flex', justifyContent: 'flex-end' }}>
+              {!showPositionPicker ? (
+                <button onClick={() => setShowPositionPicker(true)} style={{ fontSize: '10px', padding: '4px 12px', borderRadius: '12px', border: `1px solid ${t.accentFaint}`, background: 'rgba(255,255,255,0.04)', color: t.accentMuted, cursor: 'pointer', letterSpacing: '0.06em' }}>
+                  ↕ Adjust photo
+                </button>
+              ) : (
+                <div style={{ width: '100%' }}>
+                  <HeroPositionPicker
+                    capsuleId={capsule.id}
+                    imageUrl={heroImage}
+                    currentPosition={heroPosition}
+                    currentZoom={heroZoom}
+                    onPositionChange={(pos, zoom) => { setHeroPosition(pos); setHeroZoom(zoom) }}
+                    onDone={() => setShowPositionPicker(false)}
+                    t={t}
+                  />
+                </div>
+              )}
             </div>
           )}
 
