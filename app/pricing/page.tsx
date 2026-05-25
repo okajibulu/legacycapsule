@@ -2,6 +2,7 @@
    app/pricing/page.tsx
    Reads NGN prices from lc_pricing via API.
    Naira-only at launch. Paystack note.
+   xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ========================================================= */
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
