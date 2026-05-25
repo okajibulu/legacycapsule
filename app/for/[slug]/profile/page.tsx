@@ -51,7 +51,7 @@ export default async function ProfilePage({ params }: PageProps) {
   const [profileRes, featuredRes, galleryRes, supportRes] = await Promise.all([
     adminClient.from('capsule_profile_sections').select('id, section_type, custom_title, content, sort_order, is_active').eq('capsule_id', capsule.id).eq('is_active', true).not('content', 'is', null).order('sort_order'),
     adminClient.from('capsule_featured_photos').select('id, image_url, caption, sort_order').eq('capsule_id', capsule.id).order('sort_order'),
-    adminClient.from('capsule_gallery').select('id, image_url, caption, sort_order').eq('capsule_id', capsule.id).order('sort_order'),
+    adminClient.from('capsule_gallery').select('id, image_url, caption, description, sort_order, section_index').eq('capsule_id', capsule.id).order('section_index').order('sort_order'),
     adminClient.from('capsule_support_accounts').select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, sort_order').eq('capsule_id', capsule.id).eq('is_active', true).is('deleted_at', null).order('sort_order'),
   ])
 
@@ -226,23 +226,37 @@ export default async function ProfilePage({ params }: PageProps) {
           </div>
         )}
 
-        {/* Gallery */}
-        {galleryPhotos.length > 0 && (
-          <div style={{ marginBottom: '32px' }}>
-            <div style={sectionHeadingStyle}>
-              <div style={ruleStyle} />
-              <h2 style={headingLabelStyle}>Gallery</h2>
-              <div style={ruleRightStyle} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-              {galleryPhotos.map((photo: any) => (
-                <div key={photo.id} style={{ borderRadius: '10px', overflow: 'hidden', border: `1px solid ${t.accentFaint}`, aspectRatio: '1' }}>
-                  <img src={photo.image_url} alt={photo.caption ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
+        {/* Gallery — grouped by section, photo + description rows */}
+        {galleryPhotos.length > 0 && (() => {
+          const maxSection = Math.max(...galleryPhotos.map((p: any) => p.section_index ?? 0))
+          return Array.from({ length: maxSection + 1 }, (_, si) => {
+            const sectionPhotos = galleryPhotos.filter((p: any) => (p.section_index ?? 0) === si)
+            if (sectionPhotos.length === 0) return null
+            return (
+              <div key={si} style={{ marginBottom: '32px' }}>
+                <div style={sectionHeadingStyle}>
+                  <div style={ruleStyle} />
+                  <h2 style={headingLabelStyle}>{maxSection > 0 ? `Gallery ${si + 1}` : 'Gallery'}</h2>
+                  <div style={ruleRightStyle} />
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {sectionPhotos.map((photo: any) => (
+                    <div key={photo.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'center', padding: '12px', borderRadius: '14px', background: t.cardBg, border: `1px solid ${t.accentFaint}` }}>
+                      <div style={{ borderRadius: '10px', overflow: 'hidden', aspectRatio: '4/3' }}>
+                        <img src={photo.image_url} alt={photo.description ?? photo.caption ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
+                      </div>
+                      {(photo.description || photo.caption) && (
+                        <p style={{ fontSize: '14px', color: t.textBody, lineHeight: 1.75, fontStyle: 'italic' }}>
+                          {photo.description || photo.caption}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })
+        })()}
 
         {/* Ways to Honour */}
         {hasWaysToHonour && (

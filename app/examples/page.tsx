@@ -1,92 +1,53 @@
+/* =========================================================
+   app/examples/page.tsx — Holding page, no inline logo
+========================================================= */
 import Link from 'next/link'
+
+export const metadata = { title: 'Examples · LegacyCapsule' }
 
 export default function ExamplesPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(160deg, #0f0a1e 0%, #1a0845 45%, #120630 100%)',
+      background: 'linear-gradient(160deg, #0f0a1e 0%, #1a0845 50%, #0f0a1e 100%)',
       fontFamily: "'DM Sans', sans-serif",
-      display: 'flex',
-      flexDirection: 'column',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      padding: '80px 24px 40px', // top padding for nav
+      textAlign: 'center',
     }}>
-      <div style={{ padding: '24px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Link href="/" style={{ textDecoration: 'none' }}>
-          <span style={{
-            fontSize: '12px', fontWeight: 800, letterSpacing: '0.18em',
-            background: 'linear-gradient(135deg, #E2C36B, #C9A84E)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          }}>LEGACY</span>
-          <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.18em', color: 'rgba(255,255,255,0.28)', marginLeft: '0.1em' }}>CAPSULE</span>
+      <div style={{ maxWidth: '560px' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', borderRadius: '20px', border: '1px solid rgba(226,195,107,0.25)', marginBottom: '32px' }}>
+          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#E2C36B', display: 'inline-block' }} />
+          <span style={{ fontSize: '11px', color: '#E2C36B', letterSpacing: '0.14em', fontWeight: 600, textTransform: 'uppercase' }}>Coming Soon</span>
+        </div>
+
+        <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(28px, 6vw, 44px)', fontWeight: 700, color: '#E2C36B', lineHeight: 1.2, marginBottom: '20px' }}>
+          Real events. Real voices. Real legacies.
+        </h1>
+
+        <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.75, marginBottom: '16px' }}>
+          The most powerful examples are the ones being built right now by real organisers.
+        </p>
+
+        <div style={{ height: '1px', background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.3), transparent)', margin: '24px 0' }} />
+
+        <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.75, marginBottom: '36px' }}>
+          Our first completed capsules — with full tribute walls, profile canvases, and digital publications — will become the showcase here. Come back soon to see events from across the world, preserved permanently on LegacyCapsule.
+        </p>
+
+        <Link href="/book" style={{ display: 'inline-block', padding: '14px 32px', borderRadius: '14px', background: 'linear-gradient(135deg, #E2C36B, #C9A84E)', color: '#1a0845', fontSize: '15px', fontWeight: 700, textDecoration: 'none', letterSpacing: '0.04em' }}>
+          Start Your Own →
         </Link>
-        <Link href="/book" style={{
-          fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em',
-          padding: '8px 18px', borderRadius: '20px', textDecoration: 'none',
-          background: 'linear-gradient(135deg, #E2C36B, #C9A84E)', color: '#1a0845',
-        }}>Start Free</Link>
-      </div>
 
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
-        <div style={{ maxWidth: '560px', width: '100%', textAlign: 'center' }}>
-
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '6px',
-            padding: '5px 14px', borderRadius: '20px', marginBottom: '20px',
-            border: '1px solid rgba(226,195,107,0.25)',
-            background: 'rgba(226,195,107,0.06)',
-          }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#E2C36B', display: 'inline-block' }} />
-            <span style={{ fontSize: '10px', color: 'rgba(226,195,107,0.7)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' as const }}>
-              Coming Soon
-            </span>
-          </div>
-
-          <h1 style={{
-            fontFamily: "'Playfair Display', Georgia, serif",
-            fontSize: 'clamp(28px, 6vw, 42px)', fontWeight: 800,
-            color: '#E2C36B', lineHeight: 1.2, marginBottom: '14px',
-            textShadow: '0 0 40px rgba(226,195,107,0.2)',
-          }}>
-            Real events. Real voices. Real legacies.
-          </h1>
-
-          <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.65, marginBottom: '20px', fontWeight: 500 }}>
-            The most powerful examples are the ones being built right now by real organisers.
-          </p>
-
-          <div style={{
-            height: '1px', margin: '24px auto', maxWidth: '200px',
-            background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.4), transparent)',
-          }} />
-
-          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.8, marginBottom: '36px' }}>
-            Our first completed capsules — with full tribute walls, profile canvases, and digital publications —
-            will become the showcase here. We are collecting them now. Come back soon to see events from across
-            the world, preserved permanently on LegacyCapsule.
-          </p>
-
-          <Link href="/book" style={{
-            display: 'inline-block', padding: '14px 32px', borderRadius: '12px',
-            textDecoration: 'none',
-            background: 'linear-gradient(135deg, #E2C36B, #C9A84E)', color: '#1a0845',
-            fontSize: '14px', fontWeight: 700, letterSpacing: '0.04em',
-            boxShadow: '0 4px 24px rgba(226,195,107,0.25)',
-          }}>
-            Start Your Own →
-          </Link>
-
-          <div style={{ marginTop: '24px' }}>
-            <Link href="/" style={{ fontSize: '12px', color: 'rgba(226,195,107,0.45)', textDecoration: 'none', letterSpacing: '0.06em' }}>
-              ← Back to home
-            </Link>
-          </div>
+        <div style={{ marginTop: '24px' }}>
+          <Link href="/" style={{ fontSize: '13px', color: 'rgba(226,195,107,0.5)', textDecoration: 'none' }}>← Back to home</Link>
         </div>
       </div>
 
-      <div style={{ padding: '20px', textAlign: 'center' }}>
-        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.12)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-          LEGACYCAPSULE · EVENTS END. LEGACIES DON&apos;T.
-        </p>
-      </div>
+      <p style={{ position: 'absolute', bottom: '24px', fontSize: '10px', color: 'rgba(255,255,255,0.12)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+        LEGACYCAPSULE · EVENTS END. LEGACIES DON'T.
+      </p>
     </div>
   )
 }

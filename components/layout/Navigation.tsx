@@ -153,10 +153,10 @@ export default function Navigation({ variant = "transparent" }: NavProps) {
             </Link>
           )}
           {NAV_LINKS.map(link => (
-            <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)} style={{ fontSize: "26px", fontWeight: 500, fontFamily: "'Playfair Display', Georgia, serif", color: "rgba(255,255,255,0.90)", padding: "14px 0", borderBottom: "1px solid rgba(226,195,107,0.08)", textDecoration: "none" }}>{link.label}</Link>
+            <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)} style={{ fontSize: "20px", fontWeight: 500, fontFamily: "'Playfair Display', Georgia, serif", color: "rgba(255,255,255,0.90)", padding: "14px 0", borderBottom: "1px solid rgba(226,195,107,0.08)", textDecoration: "none" }}>{link.label}</Link>
           ))}
           {signedIn && (
-            <Link href="/dashboard" onClick={() => setMenuOpen(false)} style={{ fontSize: "26px", fontWeight: 500, fontFamily: "'Playfair Display', Georgia, serif", color: "rgba(255,255,255,0.90)", padding: "14px 0", borderBottom: "1px solid rgba(226,195,107,0.08)", textDecoration: "none" }}>My Capsules</Link>
+            <Link href="/dashboard" onClick={() => setMenuOpen(false)} style={{ fontSize: "20px", fontWeight: 500, fontFamily: "'Playfair Display', Georgia, serif", color: "rgba(255,255,255,0.90)", padding: "14px 0", borderBottom: "1px solid rgba(226,195,107,0.08)", textDecoration: "none" }}>My Capsules</Link>
           )}
         </div>
 

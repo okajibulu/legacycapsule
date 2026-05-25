@@ -14,8 +14,8 @@
        3c. SectionCard
        3d. TributeReviewCard
        3e. EditField
-       3f. SectionEditor (NEW — full section management)
-       3g. StylePicker (NEW — theme selection)
+       3f. SectionEditor
+       3g. StylePicker
        3h. UpgradeCard
        3i. BottomNav
        3j. EmailGate
@@ -29,6 +29,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { getAllThemes, resolveTheme } from '@/lib/themeConfig'
 import type { ThemeKey } from '@/lib/themeConfig'
+import GalleryEditor from '@/components/GalleryEditor'
 
 /* =========================================================
    SECTION 1 — TYPES
@@ -63,7 +64,6 @@ const supabase = createClient(
 const FREE_TRIBUTE_LIMIT = 50
 const LS_EMAIL = 'lc_visitor_email'
 
-// Predefined section types for profile summary (tribute wall)
 const SUMMARY_SECTION_TYPES = [
   { type: 'intro', label: 'Introduction', placeholder: 'A brief introduction to the honouree and this occasion…', maxChars: 280 },
   { type: 'occasion', label: 'About the Occasion', placeholder: 'Details about this event or milestone…', maxChars: 280 },
@@ -71,7 +71,6 @@ const SUMMARY_SECTION_TYPES = [
   { type: 'message', label: 'Organiser Message', placeholder: 'A personal message from the organiser…', maxChars: 320 },
 ]
 
-// Extended section types for full profile page
 const PROFILE_SECTION_TYPES = [
   { type: 'biography', label: 'Biography', placeholder: 'The full story of the honouree…', maxChars: 2000 },
   { type: 'timeline', label: 'Timeline', placeholder: 'Key milestones and dates…', maxChars: 1000 },
@@ -99,6 +98,14 @@ const inp: React.CSSProperties = {
   fontFamily: "'DM Sans', sans-serif", boxSizing: 'border-box',
 }
 
+// Gallery editor theme tokens — matches design system
+const galleryTheme = {
+  accentPrimary: gold, accentFaint: goldFaint, accentMuted: goldMuted,
+  cardBg: 'rgba(255,255,255,0.04)', cardBorder: 'rgba(226,195,107,0.12)',
+  textPrimary, textBody: textSecondary, textFaint,
+  inputBg: 'rgba(255,255,255,0.06)', inputBorder: 'rgba(226,195,107,0.18)',
+}
+
 const TributeMap = dynamic(() => import('@/components/TributeMap'), {
   ssr: false,
   loading: () => <div style={{ width: '100%', height: '100%', background: '#0a0218' }} />,
@@ -107,21 +114,31 @@ const TributeMap = dynamic(() => import('@/components/TributeMap'), {
 /* =========================================================
    SECTION 3A — FREE TIER BAR
 ========================================================= */
-function FreeTierBar({ approvedCount, daysLeft, onUpgrade }: { approvedCount: number; daysLeft: number | null; onUpgrade: () => void }) {
+function FreeTierBar({ approvedCount, daysLeft, hasFirstTribute, onUpgrade }: {
+  approvedCount: number; daysLeft: number | null; hasFirstTribute: boolean; onUpgrade: () => void
+}) {
   const pct = Math.min(100, (approvedCount / FREE_TRIBUTE_LIMIT) * 100)
-  const urgent = (daysLeft !== null && daysLeft < 14) || pct > 80
+  const urgent = (daysLeft !== null && hasFirstTribute && daysLeft < 14) || pct > 80
   return (
-    <div style={{ background: urgent ? 'rgba(226,195,107,0.07)' : 'rgba(255,255,255,0.02)', borderBottom: `1px solid ${urgent ? 'rgba(226,195,107,0.2)' : 'rgba(255,255,255,0.05)'}`, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+    <div style={{ background: urgent ? 'rgba(226,195,107,0.07)' : 'rgba(255,255,255,0.02)', borderBottom: `1px solid ${urgent ? 'rgba(226,195,107,0.2)' : 'rgba(255,255,255,0.05)'}`, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' as const }}>
       <div style={{ flex: 1, minWidth: '140px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-          <span style={{ fontSize: '10px', color: goldMuted, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Tributes</span>
+          <span style={{ fontSize: '10px', color: goldMuted, letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Tributes</span>
           <span style={{ fontSize: '10px', color: urgent ? gold : textFaint }}>{approvedCount} / {FREE_TRIBUTE_LIMIT}</span>
         </div>
         <div style={{ height: '3px', borderRadius: '2px', background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${pct}%`, background: pct > 80 ? `linear-gradient(to right, ${gold}, #F0D878)` : 'linear-gradient(to right, rgba(226,195,107,0.5), rgba(226,195,107,0.8))', borderRadius: '2px', transition: 'width 0.6s ease' }} />
         </div>
       </div>
-      {daysLeft !== null && <span style={{ fontSize: '11px', color: daysLeft < 14 ? gold : textSecondary, fontWeight: daysLeft < 14 ? 600 : 400 }}>{daysLeft} {daysLeft === 1 ? 'day' : 'days'} remaining</span>}
+      {!hasFirstTribute ? (
+        <span style={{ fontSize: '10px', color: textFaint, fontStyle: 'italic', maxWidth: '160px', lineHeight: 1.4 }}>
+          Expiry countdown starts after first tribute is posted
+        </span>
+      ) : daysLeft !== null ? (
+        <span style={{ fontSize: '11px', color: daysLeft < 14 ? gold : textSecondary, fontWeight: daysLeft < 14 ? 600 : 400 }}>
+          {daysLeft} {daysLeft === 1 ? 'day' : 'days'} remaining
+        </span>
+      ) : null}
       <button onClick={onUpgrade} style={{ fontSize: '11px', fontWeight: 700, padding: '5px 14px', borderRadius: '20px', border: `1px solid rgba(226,195,107,0.35)`, background: 'rgba(226,195,107,0.08)', color: gold, cursor: 'pointer', letterSpacing: '0.04em' }}>Expand Capsule</button>
     </div>
   )
@@ -189,7 +206,10 @@ function TributeReviewCard({ c, onApprove, onDecline }: { c: Contribution; onApp
 /* =========================================================
    SECTION 3E — EDIT FIELD
 ========================================================= */
-function EditField({ label, value, placeholder, onSave, type = 'text', hint }: { label: string; value: string; placeholder?: string; onSave: (val: string) => Promise<void>; type?: 'text' | 'date' | 'email'; hint?: string }) {
+function EditField({ label, value, placeholder, onSave, type = 'text', hint }: {
+  label: string; value: string; placeholder?: string
+  onSave: (val: string) => Promise<void>; type?: 'text' | 'date' | 'email'; hint?: string
+}) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value)
   const [saving, setSaving] = useState(false)
@@ -220,7 +240,6 @@ function EditField({ label, value, placeholder, onSave, type = 'text', hint }: {
 
 /* =========================================================
    SECTION 3F — SECTION EDITOR
-   Predefined types for profile summary · Custom for full profile
 ========================================================= */
 function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; sections: ProfileSection[]; onRefresh: () => void }) {
   const [adding, setAdding] = useState(false)
@@ -239,14 +258,10 @@ function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; 
   const handleAdd = async () => {
     if (!newType || !newContent.trim()) return
     setSaving(true)
-    const isCustom = newType === 'custom'
     await supabase.from('capsule_profile_sections').insert({
-      capsule_id: capsuleId,
-      section_type: newType,
-      custom_title: isCustom ? (newTitle.trim() || 'Custom Section') : null,
-      content: newContent.trim(),
-      sort_order: sections.length,
-      is_active: true,
+      capsule_id: capsuleId, section_type: newType,
+      custom_title: newType === 'custom' ? (newTitle.trim() || 'Custom Section') : null,
+      content: newContent.trim(), sort_order: sections.length, is_active: true,
     })
     setNewType(''); setNewTitle(''); setNewContent(''); setAdding(false); setSaving(false)
     onRefresh()
@@ -295,18 +310,14 @@ function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; 
 
   return (
     <div>
-      {/* Existing sections */}
       {sections.length === 0 && !adding && (
         <p style={{ fontSize: '12px', color: textFaint, textAlign: 'center', padding: '16px 0' }}>No sections yet. Add your first section below.</p>
       )}
-
       {sections.map((s, idx) => (
         <div key={s.id} style={{ borderRadius: '10px', border: `1px solid ${s.is_active ? cardBorder : 'rgba(255,255,255,0.04)'}`, background: s.is_active ? cardBg : 'transparent', padding: '12px 14px', marginBottom: '8px', opacity: s.is_active ? 1 : 0.5, transition: 'all 0.2s' }}>
           {editingId === s.id ? (
             <div>
-              {s.section_type === 'custom' && (
-                <input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Section title" style={{ ...inp, marginBottom: '8px' }} />
-              )}
+              {s.section_type === 'custom' && <input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Section title" style={{ ...inp, marginBottom: '8px' }} />}
               <textarea value={editContent} onChange={e => setEditContent(e.target.value.slice(0, allTypes.find(t => t.type === s.section_type)?.maxChars ?? 1000))} rows={4} style={{ ...inp, resize: 'vertical', lineHeight: 1.6, marginBottom: '8px' }} />
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={() => handleSaveEdit(s.id)} style={{ padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', border: 'none', cursor: 'pointer' }}>Save</button>
@@ -315,13 +326,10 @@ function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; 
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-              {/* Up/down arrows */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0, paddingTop: '2px' }}>
                 <button onClick={() => handleMoveUp(s, idx)} disabled={idx === 0} style={{ background: 'none', border: 'none', color: idx === 0 ? 'rgba(255,255,255,0.1)' : textFaint, cursor: idx === 0 ? 'default' : 'pointer', fontSize: '12px', lineHeight: 1, padding: '2px' }}>↑</button>
                 <button onClick={() => handleMoveDown(s, idx)} disabled={idx === sections.length - 1} style={{ background: 'none', border: 'none', color: idx === sections.length - 1 ? 'rgba(255,255,255,0.1)' : textFaint, cursor: idx === sections.length - 1 ? 'default' : 'pointer', fontSize: '12px', lineHeight: 1, padding: '2px' }}>↓</button>
               </div>
-
-              {/* Content */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                   <span style={{ fontSize: '11px', fontWeight: 700, color: s.is_active ? gold : textFaint, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{getLabel(s)}</span>
@@ -329,8 +337,6 @@ function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; 
                 </div>
                 {s.content && <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.6, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>{s.content}</p>}
               </div>
-
-              {/* Actions */}
               <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                 <button onClick={() => handleToggle(s)} style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '6px', border: `1px solid ${cardBorder}`, background: 'transparent', color: textFaint, cursor: 'pointer' }}>{s.is_active ? 'Hide' : 'Show'}</button>
                 <button onClick={() => { setEditingId(s.id); setEditContent(s.content ?? ''); setEditTitle(s.custom_title ?? '') }} style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '6px', border: `1px solid ${cardBorder}`, background: 'transparent', color: textFaint, cursor: 'pointer' }}>Edit</button>
@@ -340,28 +346,18 @@ function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; 
           )}
         </div>
       ))}
-
-      {/* Add new section */}
       {adding ? (
         <div style={{ borderRadius: '12px', border: `1px solid ${cardBorder}`, background: cardBg, padding: '14px', marginTop: '8px' }}>
           <p style={{ fontSize: '11px', color: goldMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>New Section</p>
-
-          {/* Type selector */}
           <div style={{ marginBottom: '10px' }}>
             <label style={{ fontSize: '10px', color: textFaint, display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Section Type</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {[...SUMMARY_SECTION_TYPES, ...PROFILE_SECTION_TYPES].map(t => (
-                <button key={t.type} onClick={() => setNewType(t.type)} style={{ fontSize: '11px', padding: '5px 12px', borderRadius: '20px', border: `1px solid ${newType === t.type ? 'rgba(226,195,107,0.5)' : cardBorder}`, background: newType === t.type ? 'rgba(226,195,107,0.1)' : 'transparent', color: newType === t.type ? gold : textFaint, cursor: 'pointer', transition: 'all 0.15s' }}>{t.label}</button>
+                <button key={t.type} onClick={() => setNewType(t.type)} style={{ fontSize: '11px', padding: '5px 12px', borderRadius: '20px', border: `1px solid ${newType === t.type ? 'rgba(226,195,107,0.5)' : cardBorder}`, background: newType === t.type ? 'rgba(226,195,107,0.1)' : 'transparent', color: newType === t.type ? gold : textFaint, cursor: 'pointer' }}>{t.label}</button>
               ))}
             </div>
           </div>
-
-          {/* Custom title (for custom type only) */}
-          {newType === 'custom' && (
-            <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Section title (e.g. Words of Wisdom)" style={{ ...inp, marginBottom: '8px' }} maxLength={60} />
-          )}
-
-          {/* Content */}
+          {newType === 'custom' && <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Section title" style={{ ...inp, marginBottom: '8px' }} maxLength={60} />}
           {newType && (
             <>
               <div style={{ position: 'relative', marginBottom: '8px' }}>
@@ -389,40 +385,21 @@ function StylePicker({ currentTheme, eventType, onSave }: { currentTheme: string
   const themes = getAllThemes()
   const autoKey = resolveTheme('classic', eventType)
   const [saving, setSaving] = useState(false)
-
-  const handleSelect = async (key: ThemeKey | 'classic') => {
-    setSaving(true)
-    await onSave(key)
-    setSaving(false)
-  }
-
+  const handleSelect = async (key: ThemeKey | 'classic') => { setSaving(true); await onSave(key); setSaving(false) }
   return (
     <div>
-      <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.65, marginBottom: '14px' }}>
-        Choose the visual mood for your capsule. The default is automatically selected based on your event type
-        {' '}(<span style={{ color: goldMuted }}>{themes.find(t => t.key === autoKey)?.label}</span>).
-      </p>
-
-      {/* Auto option */}
-      <button onClick={() => handleSelect('classic')} style={{ width: '100%', textAlign: 'left', padding: '12px 14px', borderRadius: '10px', border: `1px solid ${(!currentTheme || currentTheme === 'classic') ? 'rgba(226,195,107,0.45)' : cardBorder}`, background: (!currentTheme || currentTheme === 'classic') ? 'rgba(226,195,107,0.07)' : 'transparent', cursor: 'pointer', marginBottom: '8px', transition: 'all 0.15s' }}>
+      <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.65, marginBottom: '14px' }}>Choose the visual mood for your capsule. Auto uses the best theme for your event type (<span style={{ color: goldMuted }}>{themes.find(t => t.key === autoKey)?.label}</span>).</p>
+      <button onClick={() => handleSelect('classic')} style={{ width: '100%', textAlign: 'left', padding: '12px 14px', borderRadius: '10px', border: `1px solid ${(!currentTheme || currentTheme === 'classic') ? 'rgba(226,195,107,0.45)' : cardBorder}`, background: (!currentTheme || currentTheme === 'classic') ? 'rgba(226,195,107,0.07)' : 'transparent', cursor: 'pointer', marginBottom: '8px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <p style={{ fontSize: '12px', fontWeight: 600, color: textPrimary, margin: 0 }}>Auto (Recommended)</p>
-            <p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0' }}>Uses {themes.find(t => t.key === autoKey)?.label} based on your event type</p>
-          </div>
+          <div><p style={{ fontSize: '12px', fontWeight: 600, color: textPrimary, margin: 0 }}>Auto (Recommended)</p><p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0' }}>Uses {themes.find(t => t.key === autoKey)?.label} based on your event type</p></div>
           {(!currentTheme || currentTheme === 'classic') && <span style={{ color: gold, fontSize: '14px' }}>✓</span>}
         </div>
       </button>
-
-      {/* Manual options */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {themes.map(t => (
-          <button key={t.key} onClick={() => handleSelect(t.key)} style={{ textAlign: 'left', padding: '12px 14px', borderRadius: '10px', border: `1px solid ${currentTheme === t.key ? 'rgba(226,195,107,0.45)' : cardBorder}`, background: currentTheme === t.key ? 'rgba(226,195,107,0.07)' : 'transparent', cursor: 'pointer', transition: 'all 0.15s' }}>
+          <button key={t.key} onClick={() => handleSelect(t.key)} style={{ textAlign: 'left', padding: '12px 14px', borderRadius: '10px', border: `1px solid ${currentTheme === t.key ? 'rgba(226,195,107,0.45)' : cardBorder}`, background: currentTheme === t.key ? 'rgba(226,195,107,0.07)' : 'transparent', cursor: 'pointer' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <p style={{ fontSize: '12px', fontWeight: 600, color: textPrimary, margin: 0 }}>{t.label}</p>
-                <p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0' }}>{t.description}</p>
-              </div>
+              <div><p style={{ fontSize: '12px', fontWeight: 600, color: textPrimary, margin: 0 }}>{t.label}</p><p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0' }}>{t.description}</p></div>
               {currentTheme === t.key && <span style={{ color: gold, fontSize: '14px' }}>✓</span>}
             </div>
           </button>
@@ -450,10 +427,7 @@ function UpgradeCard({ capsuleName }: { capsuleName: string }) {
       <div style={{ height: '2px', background: `linear-gradient(to right, transparent, rgba(226,195,107,0.55), transparent)` }} />
       <div style={{ padding: '20px 18px' }}>
         <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '17px', fontWeight: 700, color: gold, marginBottom: '8px' }}>Expand Your Capsule</h3>
-        <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.7, marginBottom: '16px' }}>Photo tributes, audio and video contributions, digital publication, extended validity — we'll build the right package around your event.</p>
-        <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(226,195,107,0.05)', border: `1px solid ${goldFaint}`, marginBottom: '16px' }}>
-          <p style={{ fontSize: '11px', color: goldMuted, lineHeight: 1.8, margin: 0 }}>✦ At the close of your event, LegacyCapsule automatically compiles every tribute, photo, and voice from your wall into a beautifully designed digital publication. The platform can be triggered to send it to every person who contributed, wherever they are.</p>
-        </div>
+        <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.7, marginBottom: '16px' }}>Photo tributes, audio and video contributions, digital publication, extended validity — add what your event needs.</p>
         {sent ? (
           <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(74,222,128,0.07)', border: '1px solid rgba(74,222,128,0.18)', textAlign: 'center' }}>
             <p style={{ fontSize: '13px', color: 'rgba(134,239,172,0.9)', fontWeight: 600, margin: 0 }}>✓ Message received — we'll be in touch within 24 hours.</p>
@@ -482,12 +456,17 @@ function BottomNav({ active, onChange, pendingCount }: { active: Tab; onChange: 
     { id: 'settings', label: 'Settings', icon: '⊙' },
   ]
   return (
-    <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50, background: 'rgba(15,10,30,0.97)', backdropFilter: 'blur(16px)', borderTop: `1px solid rgba(226,195,107,0.12)`, display: 'flex', padding: '8px 0 max(8px, env(safe-area-inset-bottom))' }}>
+    <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50, background: 'rgba(15,10,30,0.98)', backdropFilter: 'blur(20px)', borderTop: `1px solid rgba(226,195,107,0.15)`, display: 'flex', padding: '6px 8px max(8px, env(safe-area-inset-bottom))' }}>
       {tabs.map(tab => (
-        <button key={tab.id} onClick={() => onChange(tab.id)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', position: 'relative' }}>
-          <span style={{ fontSize: '16px', color: active === tab.id ? gold : 'rgba(255,255,255,0.2)', transition: 'all 0.15s', lineHeight: 1 }}>{tab.icon}</span>
-          <span style={{ fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase', color: active === tab.id ? gold : 'rgba(255,255,255,0.2)', fontWeight: active === tab.id ? 700 : 400, transition: 'all 0.15s' }}>{tab.label}</span>
-          {tab.id === 'tributes' && pendingCount > 0 && <span style={{ position: 'absolute', top: '0px', right: '20%', width: '14px', height: '14px', borderRadius: '50%', background: gold, color: '#1a0845', fontSize: '8px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{pendingCount}</span>}
+        <button key={tab.id} onClick={() => onChange(tab.id)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: active === tab.id ? 'rgba(226,195,107,0.1)' : 'transparent', border: 'none', cursor: 'pointer', padding: '8px 4px', borderRadius: '10px', position: 'relative', margin: '0 2px', transition: 'background 0.2s' }}>
+          <span style={{ fontSize: '18px', color: active === tab.id ? gold : 'rgba(255,255,255,0.45)', transition: 'color 0.15s', lineHeight: 1 }}>{tab.icon}</span>
+          <span style={{ fontSize: '10px', letterSpacing: '0.06em', textTransform: 'uppercase', color: active === tab.id ? gold : 'rgba(255,255,255,0.45)', fontWeight: active === tab.id ? 700 : 500, transition: 'color 0.15s' }}>{tab.label}</span>
+          {tab.id === 'tributes' && pendingCount > 0 && (
+            <span style={{ position: 'absolute', top: '4px', right: '18%', width: '16px', height: '16px', borderRadius: '50%', background: gold, color: '#1a0845', fontSize: '9px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{pendingCount}</span>
+          )}
+          {active === tab.id && (
+            <div style={{ position: 'absolute', bottom: '0', left: '25%', right: '25%', height: '2px', borderRadius: '1px', background: gold }} />
+          )}
         </button>
       ))}
     </div>
@@ -495,7 +474,7 @@ function BottomNav({ active, onChange, pendingCount }: { active: Tab; onChange: 
 }
 
 /* =========================================================
-   SECTION 3J — EMAIL GATE
+   SECTION 3J — EMAIL GATE (fallback only — signin preferred)
 ========================================================= */
 function EmailGate({ onEmail }: { onEmail: (email: string) => void }) {
   const [email, setEmail] = useState('')
@@ -523,9 +502,11 @@ export default function ManagePage() {
   const params = useParams()
   const slug = params?.slug as string
 
+  // ── State ────────────────────────────────────────────────
   const [capsule, setCapsule] = useState<Capsule | null>(null)
   const [contributions, setContributions] = useState<Contribution[]>([])
   const [profileSections, setProfileSections] = useState<ProfileSection[]>([])
+  const [galleryPhotos, setGalleryPhotos] = useState<any[]>([])
   const [visitorEmail, setVisitorEmail] = useState('')
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [loading, setLoading] = useState(true)
@@ -534,50 +515,95 @@ export default function ManagePage() {
   const [heroImage, setHeroImage] = useState<string | null>(null)
   const heroPhotoRef = useRef<HTMLInputElement>(null)
 
+  // ── Session check ────────────────────────────────────────
   useEffect(() => {
-    // Read email from URL param first (set by signin flow), then localStorage
-    const urlParams = new URLSearchParams(window.location.search)
-    const authEmail = urlParams.get('auth')
-    if (authEmail) {
-      const decoded = decodeURIComponent(authEmail)
-      localStorage.setItem(LS_EMAIL, decoded)
-      setVisitorEmail(decoded)
-      // Clean the URL param without page reload
-      const cleanUrl = window.location.pathname
-      window.history.replaceState({}, '', cleanUrl)
-    } else {
+    async function checkSession() {
+      // 1. URL param (from signin redirect)
+      const urlParams = new URLSearchParams(window.location.search)
+      const authEmail = urlParams.get('auth')
+      if (authEmail) {
+        const decoded = decodeURIComponent(authEmail)
+        localStorage.setItem(LS_EMAIL, decoded)
+        setVisitorEmail(decoded)
+        window.history.replaceState({}, '', window.location.pathname)
+        return
+      }
+      // 2. Supabase Auth session (persists weeks)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user?.email) {
+          localStorage.setItem(LS_EMAIL, session.user.email)
+          setVisitorEmail(session.user.email)
+          return
+        }
+      } catch {}
+      // 3. localStorage fallback
       const saved = localStorage.getItem(LS_EMAIL)
       if (saved) setVisitorEmail(saved)
     }
+    checkSession()
   }, [])
 
+  // ── Data fetch ───────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     if (!slug) return
-    const capRes = await supabase.from('capsules').select('id, slug, honouree_name, honouree_title, event_type, event_tag, event_date, page_state, tier, theme, hero_image_url, organiser_email, free_tier_expires_at, activated_at, approved_contrib_count, components').eq('slug', slug).single()
+    const capRes = await supabase.from('capsules')
+      .select('id, slug, honouree_name, honouree_title, event_type, event_tag, event_date, page_state, tier, theme, hero_image_url, organiser_email, free_tier_expires_at, activated_at, approved_contrib_count, components')
+      .eq('slug', slug).single()
     if (!capRes.data) { setLoading(false); return }
     const cap = capRes.data as Capsule
     setCapsule(cap); setHeroImage(cap.hero_image_url)
 
-    const [contribRes, sectionsRes] = await Promise.all([
-      supabase.from('contributions').select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, email, status, created_at').eq('capsule_id', cap.id).is('deleted_at', null).order('created_at', { ascending: false }),
-      supabase.from('capsule_profile_sections').select('id, section_type, custom_title, content, sort_order, is_active').eq('capsule_id', cap.id).order('sort_order'),
+    const [contribRes, sectionsRes, galleryRes] = await Promise.all([
+      supabase.from('contributions')
+        .select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, email, status, created_at')
+        .eq('capsule_id', cap.id).is('deleted_at', null).order('created_at', { ascending: false }),
+      supabase.from('capsule_profile_sections')
+        .select('id, section_type, custom_title, content, sort_order, is_active')
+        .eq('capsule_id', cap.id).order('sort_order'),
+      supabase.from('capsule_gallery')
+        .select('id, image_url, description, sort_order, section_index')
+        .eq('capsule_id', cap.id).order('section_index').order('sort_order'),
     ])
+
     if (contribRes.data) setContributions(contribRes.data as Contribution[])
     if (sectionsRes.data) setProfileSections(sectionsRes.data as ProfileSection[])
+    if (galleryRes.data) setGalleryPhotos(galleryRes.data)
     setLoading(false)
   }, [slug])
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
+  // ── Derived state ────────────────────────────────────────
   const isOrganiser = visitorEmail !== '' && visitorEmail.toLowerCase() === capsule?.organiser_email?.toLowerCase()
   const pending = contributions.filter(c => c.status === 'pending_review' || c.status === 'pending')
   const approved = contributions.filter(c => c.status === 'approved')
-  const days = capsule?.free_tier_expires_at ? Math.max(0, Math.ceil((new Date(capsule.free_tier_expires_at).getTime() - Date.now()) / 86400000)) : null
   const isFree = !capsule?.tier || capsule.tier === 'free'
-  const capsuleUrl = typeof window !== 'undefined' ? `${window.location.origin}/for/${slug}` : `https://itslegacycapsule.com/for/${slug}`
-  const pins = approved.filter(c => (c as any).lat && (c as any).lng).map(c => ({ lat: (c as any).lat, lng: (c as any).lng, name: c.contributor_name, country: c.country }))
+  const capsuleUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/for/${slug}`
+    : `https://itslegacycapsule.com/for/${slug}`
+  const pins = approved
+    .filter(c => (c as any).lat && (c as any).lng)
+    .map(c => ({ lat: (c as any).lat, lng: (c as any).lng, name: c.contributor_name, country: c.country }))
 
-  const handleApprove = async (id: string) => { await supabase.from('contributions').update({ status: 'approved' }).eq('id', id); fetch('/api/email/approval', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contributionId: id }) }).catch(() => {}); fetchAll() }
+  // Expiry: 90 days from first tribute
+  const firstTributeAt = contributions.length > 0
+    ? contributions.reduce((e, c) => new Date(c.created_at) < new Date(e.created_at) ? c : e).created_at
+    : null
+  const hasFirstTribute = firstTributeAt !== null
+  const expiryDate = firstTributeAt
+    ? new Date(new Date(firstTributeAt).getTime() + 90 * 86400000)
+    : null
+  const days = expiryDate && hasFirstTribute
+    ? Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / 86400000))
+    : null
+
+  // ── Handlers ─────────────────────────────────────────────
+  const handleApprove = async (id: string) => {
+    await supabase.from('contributions').update({ status: 'approved' }).eq('id', id)
+    fetch('/api/email/approval', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contributionId: id }) }).catch(() => {})
+    fetchAll()
+  }
   const handleDecline = async (id: string) => { await supabase.from('contributions').delete().eq('id', id); fetchAll() }
   const handleCopy = async () => { await navigator.clipboard.writeText(capsuleUrl); setCopied(true); setTimeout(() => setCopied(false), 2000) }
   const updateCapsule = async (fields: Partial<Capsule>) => { if (!capsule) return; await supabase.from('capsules').update(fields).eq('id', capsule.id); fetchAll() }
@@ -587,14 +613,19 @@ export default function ManagePage() {
     try {
       const ic = (await import('browser-image-compression')).default
       const compressed = await ic(f, { maxSizeMB: 1, maxWidthOrHeight: 1200, useWebWorker: true })
-      const ext = compressed.name.split('.').pop() ?? 'jpg'; const path = `hero/${capsule.id}.${ext}`
+      const ext = compressed.name.split('.').pop() ?? 'jpg'
+      const path = `hero/${capsule.id}.${ext}`
       const { error: ue } = await supabase.storage.from('tribute-photos').upload(path, compressed, { upsert: true })
-      if (!ue) { const url = supabase.storage.from('tribute-photos').getPublicUrl(path).data.publicUrl; await supabase.from('capsules').update({ hero_image_url: url }).eq('id', capsule.id); setHeroImage(url) }
+      if (!ue) {
+        const url = supabase.storage.from('tribute-photos').getPublicUrl(path).data.publicUrl
+        await supabase.from('capsules').update({ hero_image_url: url }).eq('id', capsule.id)
+        setHeroImage(url)
+      }
     } catch (err) { console.error(err) }
     setHeroUploading(false)
   }
 
-  // Loading
+  // ── Guards ───────────────────────────────────────────────
   if (loading) return (
     <div style={{ minHeight: '100vh', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif" }}>
       <div style={{ textAlign: 'center' }}>
@@ -605,26 +636,43 @@ export default function ManagePage() {
     </div>
   )
 
-  if (!capsule) return <div style={{ minHeight: '100vh', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ color: textFaint, fontSize: '14px' }}>Capsule not found.</p></div>
+  if (!capsule) return (
+    <div style={{ minHeight: '100vh', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <p style={{ color: textFaint, fontSize: '14px' }}>Capsule not found.</p>
+    </div>
+  )
 
-  if (!visitorEmail) return <EmailGate onEmail={email => { localStorage.setItem(LS_EMAIL, email); setVisitorEmail(email) }} />
+  if (!visitorEmail) return (
+    <div style={{ minHeight: '100vh', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', flexDirection: 'column', gap: '20px', textAlign: 'center', fontFamily: "'DM Sans', sans-serif" }}>
+      <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: goldFaint, border: `1px solid rgba(226,195,107,0.22)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>◈</div>
+      <div>
+        <p style={{ fontSize: '18px', fontWeight: 700, color: textPrimary, marginBottom: '8px', fontFamily: "'Playfair Display', serif" }}>Welcome back</p>
+        <p style={{ fontSize: '14px', color: textFaint, maxWidth: '280px', lineHeight: 1.65 }}>Sign in to access your capsule dashboard for <strong style={{ color: goldMuted }}>{capsule.honouree_name}</strong>.</p>
+      </div>
+      <Link href="/signin" style={{ padding: '12px 28px', borderRadius: '12px', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '14px', fontWeight: 700, textDecoration: 'none', letterSpacing: '0.04em' }}>Sign In →</Link>
+      <Link href={`/for/${slug}`} style={{ fontSize: '13px', color: goldMuted, textDecoration: 'none' }}>View the tribute wall instead</Link>
+    </div>
+  )
 
   if (!isOrganiser) return (
     <div style={{ minHeight: '100vh', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', flexDirection: 'column', gap: '16px', textAlign: 'center', fontFamily: "'DM Sans', sans-serif" }}>
-      <p style={{ color: textFaint, fontSize: '14px', maxWidth: '280px' }}>This dashboard is only accessible to the capsule organiser.</p>
-      <Link href={`/for/${slug}`} style={{ fontSize: '13px', color: goldMuted, textDecoration: 'underline' }}>View the tribute wall</Link>
+      <p style={{ fontSize: '16px', fontWeight: 600, color: textPrimary }}>Different account needed</p>
+      <p style={{ color: textFaint, fontSize: '14px', maxWidth: '300px', lineHeight: 1.65 }}>You are signed in as <strong style={{ color: goldMuted }}>{visitorEmail}</strong> but this capsule belongs to a different organiser.</p>
+      <button onClick={() => { localStorage.removeItem(LS_EMAIL); setVisitorEmail('') }} style={{ padding: '10px 22px', borderRadius: '10px', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '13px', fontWeight: 700, border: 'none', cursor: 'pointer' }}>Sign In with Different Email</button>
+      <Link href={`/for/${slug}`} style={{ fontSize: '13px', color: goldMuted, textDecoration: 'none' }}>View the tribute wall</Link>
     </div>
   )
 
   const resolvedHero = heroImage ?? '/honouree.jpg'
 
+  // ── Render ───────────────────────────────────────────────
   return (
     <>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } } * { box-sizing: border-box; } body { margin: 0; } ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: rgba(226,195,107,0.18); border-radius: 2px; } input:focus, textarea:focus, select:focus { border-color: rgba(226,195,107,0.45) !important; }`}</style>
 
       <div style={{ minHeight: '100vh', background: bg, fontFamily: "'DM Sans', sans-serif", color: textPrimary, paddingBottom: '80px' }}>
 
-        {/* TOP HEADER */}
+        {/* ── TOP HEADER ── */}
         <div style={{ background: 'rgba(255,255,255,0.02)', borderBottom: `1px solid rgba(226,195,107,0.08)`, padding: '12px 16px', position: 'sticky', top: 0, zIndex: 40, backdropFilter: 'blur(16px)' }}>
           <div style={{ maxWidth: '640px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <Link href="/" style={{ textDecoration: 'none', flexShrink: 0 }}>
@@ -634,29 +682,28 @@ export default function ManagePage() {
             <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: '13px', fontWeight: 700, color: textPrimary, fontFamily: "'Playfair Display', serif", margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{capsule.honouree_name}</p>
-              <p style={{ fontSize: '10px', color: textFaint, margin: 0, marginTop: '1px' }}>{capsule.event_type}{capsule.event_tag ? ` · ${capsule.event_tag}` : ''}</p>
+              <p style={{ fontSize: '10px', color: textFaint, margin: '1px 0 0' }}>{capsule.event_type}{capsule.event_tag ? ` · ${capsule.event_tag}` : ''}</p>
             </div>
-            <div style={{ flexShrink: 0, fontSize: '10px', fontWeight: 700, padding: '4px 10px', borderRadius: '20px', background: capsule.page_state === 'active' || capsule.page_state === 'tribute_collection' ? 'rgba(74,222,128,0.08)' : 'rgba(255,255,255,0.05)', border: `1px solid ${capsule.page_state === 'active' || capsule.page_state === 'tribute_collection' ? 'rgba(74,222,128,0.25)' : 'rgba(255,255,255,0.08)'}`, color: capsule.page_state === 'active' || capsule.page_state === 'tribute_collection' ? 'rgba(134,239,172,0.9)' : textFaint, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Live</div>
+            <div style={{ flexShrink: 0, fontSize: '10px', fontWeight: 700, padding: '4px 10px', borderRadius: '20px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', color: 'rgba(134,239,172,0.9)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Live</div>
           </div>
         </div>
 
-        {/* FREE TIER BAR */}
-        {isFree && <FreeTierBar approvedCount={capsule.approved_contrib_count} daysLeft={days} onUpgrade={() => setActiveTab('settings')} />}
+        {/* ── FREE TIER BAR ── */}
+        {isFree && <FreeTierBar approvedCount={capsule.approved_contrib_count} daysLeft={days} hasFirstTribute={hasFirstTribute} onUpgrade={() => setActiveTab('settings')} />}
 
-        {/* MAIN CONTENT */}
+        {/* ── MAIN CONTENT ── */}
         <div style={{ maxWidth: '640px', margin: '0 auto', padding: '16px 16px 0' }}>
 
-          {/* OVERVIEW TAB */}
+          {/* ── OVERVIEW TAB ── */}
           {activeTab === 'overview' && (
             <div>
               <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                <StatPill label="Total" value={contributions.length} />
-                <StatPill label="Approved" value={capsule.approved_contrib_count} accent />
-                <StatPill label="Awaiting" value={pending.length} />
+                {contributions.length > 0 && <StatPill label="Total" value={contributions.length} />}
+                {capsule.approved_contrib_count > 0 && <StatPill label="Approved" value={capsule.approved_contrib_count} accent />}
+                {pending.length > 0 && <StatPill label="Awaiting" value={pending.length} />}
                 {capsule.event_date && <StatPill label="Days to go" value={Math.max(0, Math.ceil((new Date(capsule.event_date).getTime() - Date.now()) / 86400000))} />}
               </div>
 
-              {/* Pending prompt */}
               {pending.length > 0 && (
                 <div onClick={() => setActiveTab('tributes')} style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(226,195,107,0.06)', border: `1px solid rgba(226,195,107,0.22)`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                   <div>
@@ -673,7 +720,7 @@ export default function ManagePage() {
                   <span style={{ flex: 1, fontSize: '12px', color: goldMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{capsuleUrl}</span>
                   <button onClick={handleCopy} style={{ flexShrink: 0, fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '6px', background: copied ? 'rgba(74,222,128,0.1)' : goldFaint, border: `1px solid ${copied ? 'rgba(74,222,128,0.28)' : 'rgba(226,195,107,0.22)'}`, color: copied ? 'rgba(134,239,172,0.9)' : gold, cursor: 'pointer' }}>{copied ? '✓ Copied' : 'Copy'}</button>
                 </div>
-                <Link href={`https://wa.me/?text=${encodeURIComponent(`You are invited to leave a tribute for ${capsule.honouree_name}: ${capsuleUrl}`)}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', borderRadius: '10px', background: 'rgba(74,222,128,0.05)', border: '1px solid rgba(74,222,128,0.18)', color: 'rgba(134,239,172,0.85)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em' }}>💬 Share via WhatsApp</Link>
+                <Link href={`https://wa.me/?text=${encodeURIComponent(`You are invited to leave a tribute for ${capsule.honouree_name}: ${capsuleUrl}`)}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', borderRadius: '10px', background: 'rgba(74,222,128,0.05)', border: '1px solid rgba(74,222,128,0.18)', color: 'rgba(134,239,172,0.85)', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>💬 Share via WhatsApp</Link>
               </SectionCard>
 
               {pins.length > 0 && (
@@ -688,7 +735,7 @@ export default function ManagePage() {
             </div>
           )}
 
-          {/* TRIBUTES TAB */}
+          {/* ── TRIBUTES TAB ── */}
           {activeTab === 'tributes' && (
             <div>
               {pending.length > 0 && (
@@ -719,17 +766,17 @@ export default function ManagePage() {
             </div>
           )}
 
-          {/* PROFILE TAB */}
+          {/* ── PROFILE TAB ── */}
           {activeTab === 'profile' && (
             <div>
-              {/* Hero photo */}
+              {/* Capsule photo */}
               <SectionCard title="Capsule Photo" subtitle="Appears on the tribute wall and profile">
                 <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
                   <div style={{ width: '72px', height: '72px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: `2px solid rgba(226,195,107,0.35)`, boxShadow: '0 0 16px rgba(226,195,107,0.12)' }}>
                     <img src={resolvedHero} alt={capsule.honouree_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.65, marginBottom: '10px' }}>This photo appears as the backdrop on the tribute wall and as the profile photo. Upload a clear, high-quality image.</p>
+                    <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.65, marginBottom: '10px' }}>Upload a clear, high-quality image. It appears on the tribute wall and profile canvas.</p>
                     <label style={{ display: 'inline-block', padding: '7px 16px', borderRadius: '8px', cursor: 'pointer', background: goldFaint, border: `1px solid rgba(226,195,107,0.22)`, color: gold, fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em' }}>
                       {heroUploading ? 'Uploading…' : '📷 Upload Photo'}
                       <input type="file" accept="image/*" onChange={handleHeroUpload} style={{ display: 'none' }} disabled={heroUploading} />
@@ -738,14 +785,25 @@ export default function ManagePage() {
                 </div>
               </SectionCard>
 
-              {/* Section editor */}
+              {/* Photo gallery */}
+              <SectionCard title="Photo Gallery" subtitle="Up to 3 sections · 10 photos each · photo + caption per row">
+                <GalleryEditor
+                  capsuleId={capsule.id}
+                  initialPhotos={galleryPhotos}
+                  supabase={supabase}
+                  t={galleryTheme}
+                  onSaved={fetchAll}
+                />
+              </SectionCard>
+
+              {/* Profile sections */}
               <SectionCard title="Profile Sections" subtitle="Content shown on the tribute wall and full profile page">
                 <SectionEditor capsuleId={capsule.id} sections={profileSections} onRefresh={fetchAll} />
               </SectionCard>
             </div>
           )}
 
-          {/* SETTINGS TAB */}
+          {/* ── SETTINGS TAB ── */}
           {activeTab === 'settings' && (
             <div>
               <SectionCard title="Capsule Details">
