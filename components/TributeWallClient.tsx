@@ -409,14 +409,14 @@ export default function TributeWallClient({ capsule, initialContributions, profi
             </div>
           </div>
 
-          {/* Hero position picker — shows after upload */}
-          {showPositionPicker && heroImage && (isAdmin || (visitorEmail && visitorEmail.toLowerCase() === capsule.organiser_email?.toLowerCase())) && (
+          {/* Hero position picker — always visible to organiser when photo exists */}
+          {heroImage && (isAdmin || (visitorEmail && visitorEmail.toLowerCase() === capsule.organiser_email?.toLowerCase())) && (
             <div style={{ margin: '8px 12px 0' }}>
               <HeroPositionPicker
                 capsuleId={capsule.id}
                 imageUrl={heroImage}
                 currentPosition={heroPosition}
-                onPositionChange={(pos) => { setHeroPosition(pos); setShowPositionPicker(false) }}
+                onPositionChange={(pos) => setHeroPosition(pos)}
                 t={t}
               />
             </div>
