@@ -277,7 +277,8 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   const [copied, setCopied] = useState(false)
   const [heroImage, setHeroImage] = useState<string | null>(capsule.hero_image_url ?? null)
   const [heroPosition, setHeroPosition] = useState<string>((capsule as any).hero_image_position ?? 'center')
-  const [heroZoom, setHeroZoom] = useState<number>((capsule as any).hero_image_zoom ?? 100)
+  const [heroZoom, setHeroZoom] = useState<number>((capsule as any).hero_image_zoom ?? 150)
+  const [heroFit, setHeroFit] = useState<string>((capsule as any).hero_image_fit ?? 'height')
   const [showPositionPicker, setShowPositionPicker] = useState(false)
   const [uploadingHero, setUploadingHero] = useState(false)
   const heroPhotoRef = useRef<HTMLInputElement>(null)
@@ -385,7 +386,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
 
           {/* ── HERO — Identity first ── */}
           <div style={{ flexShrink: 0, position: 'relative', overflow: 'hidden', margin: '0 12px', borderRadius: '20px', minHeight: '220px' }}>
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${resolvedHero})`, backgroundSize: `${heroZoom}%`, backgroundPosition: heroPosition, backgroundRepeat: 'no-repeat', backgroundColor: '#000' }} />
+            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${resolvedHero})`, backgroundSize: heroFit === 'width' ? '100% auto' : heroFit === 'height' ? 'auto 100%' : `${heroZoom}%`, backgroundPosition: heroPosition, backgroundRepeat: 'no-repeat', backgroundColor: '#000' }} />
             <div style={{ position: 'absolute', inset: 0, background: t.heroOverlay }} />
             <div style={{ position: 'absolute', inset: 0, background: t.heroGlow }} />
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(to right, transparent, ${t.accentMuted}, transparent)` }} />
@@ -424,7 +425,8 @@ export default function TributeWallClient({ capsule, initialContributions, profi
                     imageUrl={heroImage}
                     currentPosition={heroPosition}
                     currentZoom={heroZoom}
-                    onPositionChange={(pos, zoom) => { setHeroPosition(pos); setHeroZoom(zoom) }}
+                    currentFit={heroFit}
+                    onPositionChange={(pos, zoom, fit) => { setHeroPosition(pos); setHeroZoom(zoom); setHeroFit(fit) }}
                     onDone={() => setShowPositionPicker(false)}
                     t={t}
                   />
