@@ -1,8 +1,9 @@
 /* =========================================================
    app/api/auth/verify-signin/route.ts
-   Validates the 4-char sign-in code.
-   Establishes Supabase Auth session.
-   Returns redirect URL based on user's capsules.
+   Validates 4-char sign-in code.
+   Establishes REAL Supabase Auth session via magic link.
+   Returns session token + redirect URL.
+   Session persists across page navigations — no repeated sign-ins.
 ========================================================= */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     const normalised = email.trim().toLowerCase()
 
-    // Fetch most recent unverified signin code for this email
+    // Fetch most recent unverified signin code
     const { data, error } = await supabase
       .from('email_verifications')
       .select('id, verification_code, expires_at')
@@ -31,7 +32,9 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .single()
 
-    if (error || !data) return NextResponse.json({ valid: false, error: 'No code found. Please request a new one.' })
+    if (error || !data) {
+      return NextResponse.json({ valid: false, error: 'No code found. Please request a new one.' })
+    }
 
     // Check expiry
     if (new Date() > new Date(data.expires_at)) {
@@ -49,36 +52,61 @@ export async function POST(request: NextRequest) {
       .update({ verified_at: new Date().toISOString() })
       .eq('id', data.id)
 
-    // Ensure Supabase Auth account exists — use createUser with upsert approach
+    // Ensure user exists in Supabase Auth
     let userId: string | null = null
     try {
-      // Try to create — if already exists, error message contains existing user info
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email: normalised,
-        email_confirm: true,
+        email: normalised, email_confirm: true,
       })
       if (newUser?.user) {
         userId = newUser.user.id
       } else if (createError?.message?.includes('already been registered')) {
-        // User exists — fetch by email directly
+        // User exists — get by email
         const { data: { users } } = await supabase.auth.admin.listUsers()
         const existing = users?.find((u: any) => u.email === normalised)
         if (existing) userId = existing.id
       }
     } catch (authErr) {
       console.error('Auth user error:', authErr)
-      // Non-fatal — continue with redirect even if profile creation fails
     }
 
-    // Upsert profile
+    // Generate a real Supabase session via OTP link
+    // This gives us a proper access_token that persists in the browser
+    let accessToken: string | null = null
+    let refreshToken: string | null = null
+
     if (userId) {
-      await supabase.from('profiles').upsert(
-        { id: userId, email: normalised, role: 'organiser' },
-        { onConflict: 'id' }
-      )
+      try {
+        // Upsert profile
+        await supabase.from('profiles').upsert(
+          { id: userId, email: normalised, role: 'organiser' },
+          { onConflict: 'id' }
+        )
+
+        // Generate session tokens for this user
+        const { data: sessionData } = await supabase.auth.admin.generateLink({
+          type: 'magiclink',
+          email: normalised,
+        })
+
+        // Use the token to get a proper session
+        if (sessionData?.properties?.hashed_token) {
+          const { data: verifyData } = await supabase.auth.verifyOtp({
+            token_hash: sessionData.properties.hashed_token,
+            type: 'magiclink',
+          })
+          if (verifyData?.session) {
+            accessToken = verifyData.session.access_token
+            refreshToken = verifyData.session.refresh_token
+          }
+        }
+      } catch (sessionErr) {
+        console.error('Session generation error:', sessionErr)
+        // Non-fatal — continue with redirect
+      }
     }
 
-    // Find their capsules to determine redirect
+    // Find capsules for redirect
     const { data: capsules } = await supabase
       .from('capsules')
       .select('id, slug')
@@ -96,7 +124,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Determine redirect — include email as param for reliable auth handoff
+    // Redirect target
     let redirect = '/dashboard'
     if (capsules && capsules.length === 1) {
       redirect = `/manage/${capsules[0].slug}?auth=${encodeURIComponent(normalised)}`
@@ -106,7 +134,13 @@ export async function POST(request: NextRequest) {
       redirect = `/dashboard?auth=${encodeURIComponent(normalised)}`
     }
 
-    return NextResponse.json({ valid: true, redirect })
+    return NextResponse.json({
+      valid: true,
+      redirect,
+      // Return tokens so the client can set the session browser-side
+      accessToken,
+      refreshToken,
+    })
 
   } catch (error) {
     console.error('Verify signin error:', error)

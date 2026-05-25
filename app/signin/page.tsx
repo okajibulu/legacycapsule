@@ -81,7 +81,30 @@ export default function SignInPage() {
         setError(data.error ?? 'Incorrect code. Please try again.')
         setVerifying(false); return
       }
-      // Redirect based on what the API returns
+
+      // Store email in localStorage
+      localStorage.setItem('lc_visitor_email', email.trim().toLowerCase())
+
+      // If we got real Supabase session tokens, set them in the browser
+      // This makes the session persist across all pages without re-auth
+      if (data.accessToken && data.refreshToken) {
+        try {
+          const { createClient } = await import('@supabase/supabase-js')
+          const supabaseClient = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+          )
+          await supabaseClient.auth.setSession({
+            access_token: data.accessToken,
+            refresh_token: data.refreshToken,
+          })
+        } catch (sessionErr) {
+          console.error('Session set error:', sessionErr)
+          // Non-fatal — localStorage fallback works
+        }
+      }
+
+      // Navigate to dashboard
       window.location.href = data.redirect ?? '/dashboard'
     } catch {
       setError('Something went wrong. Please try again.')

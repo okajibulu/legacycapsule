@@ -378,12 +378,24 @@ export default function TributeWallClient({ capsule, initialContributions, profi
       <div style={{ minHeight: '100vh', width: '100%', display: 'flex', justifyContent: 'center', background: t.pageBg }}>
         <div style={{ width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif" }}>
 
-          {/* ── TOP BAR ── */}
-          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 16px 8px' }}>
-            <Link href="/" style={{ textDecoration: 'none' }}>
+          {/* ── TOP BAR — session aware ── */}
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 8px', gap: '12px' }}>
+            <Link href="/" style={{ textDecoration: 'none', flexShrink: 0 }}>
               <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.18em', background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LEGACY</span>
               <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.18em', color: t.textFaint, marginLeft: '0.18em' }}>CAPSULE</span>
             </Link>
+
+            {/* Admin quick links — only visible to organiser */}
+            {isAdmin && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Link href={`/manage/${capsule.slug}`} style={{ fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '20px', background: `rgba(226,195,107,0.1)`, border: `1px solid rgba(226,195,107,0.28)`, color: t.accentPrimary, textDecoration: 'none', letterSpacing: '0.04em', whiteSpace: 'nowrap' as const }}>
+                  ⚙ Manage
+                </Link>
+                <Link href={`/for/${capsule.slug}/profile`} style={{ fontSize: '11px', fontWeight: 600, padding: '5px 12px', borderRadius: '20px', background: 'rgba(255,255,255,0.04)', border: `1px solid rgba(255,255,255,0.1)`, color: t.textMuted, textDecoration: 'none', whiteSpace: 'nowrap' as const }}>
+                  Profile
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* ── HERO — Identity first ── */}
@@ -412,7 +424,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
               </div>
             )}
 
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, padding: '0 20px 20px', textAlign: 'center' }}>
+            <div style={{ position: 'relative', zIndex: 10, padding: '0 20px 20px', textAlign: 'center', position: 'absolute', bottom: 0, left: 0, right: 0 }}>
               <div style={{ fontSize: '28px', marginBottom: '8px', lineHeight: 1 }}>{ornament}</div>
               <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(22px, 6vw, 32px)', fontWeight: 800, color: t.textHeading, lineHeight: 1.15, textShadow: '0 2px 20px rgba(0,0,0,0.9)', marginBottom: '6px' }}>{pageTitle}</h1>
               {capsule.event_tag && <p style={{ fontSize: '11px', color: t.accentMuted, letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: '6px' }}>{capsule.event_tag}</p>}
