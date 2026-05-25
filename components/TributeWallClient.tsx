@@ -276,9 +276,11 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   const [fVideoThumb, setFVideoThumb] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [heroImage, setHeroImage] = useState<string | null>(capsule.hero_image_url ?? null)
-  const [heroPosition, setHeroPosition] = useState<string>((capsule as any).hero_image_position ?? 'center')
+  const [heroPosition, setHeroPosition] = useState<string>((capsule as any).hero_image_position ?? '50% 50%')
   const [heroZoom, setHeroZoom] = useState<number>((capsule as any).hero_image_zoom ?? 150)
   const [heroFit, setHeroFit] = useState<string>((capsule as any).hero_image_fit ?? 'height')
+  const [heroSize, setHeroSize] = useState<string>((capsule as any).hero_panel_size ?? 'standard')
+  const [heroBleed, setHeroBleed] = useState<boolean>((capsule as any).hero_full_bleed ?? false)
   const [showPositionPicker, setShowPositionPicker] = useState(false)
   const [uploadingHero, setUploadingHero] = useState(false)
   const heroPhotoRef = useRef<HTMLInputElement>(null)
@@ -385,7 +387,14 @@ export default function TributeWallClient({ capsule, initialContributions, profi
           </div>
 
           {/* ── HERO — Identity first ── */}
-          <div style={{ flexShrink: 0, position: 'relative', overflow: 'hidden', margin: '0 12px', borderRadius: '20px', minHeight: '220px' }}>
+          {(() => {
+            const sizeMap: Record<string, string> = { compact: '180px', standard: '260px', cinematic: '380px' }
+            const minH = sizeMap[heroSize] ?? '260px'
+            const bleedStyle = heroBleed
+              ? { margin: '0', borderRadius: '0' }
+              : { margin: '0 12px', borderRadius: '20px' }
+            return (
+          <div style={{ flexShrink: 0, position: 'relative', overflow: 'hidden', minHeight: minH, ...bleedStyle }}>
             <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${resolvedHero})`, backgroundSize: heroFit === 'width' ? '100% auto' : heroFit === 'height' ? 'auto 100%' : `${heroZoom}%`, backgroundPosition: heroPosition, backgroundRepeat: 'no-repeat', backgroundColor: '#000' }} />
             <div style={{ position: 'absolute', inset: 0, background: t.heroOverlay }} />
             <div style={{ position: 'absolute', inset: 0, background: t.heroGlow }} />
@@ -410,23 +419,30 @@ export default function TributeWallClient({ capsule, initialContributions, profi
               {capsule.event_date && <p style={{ fontSize: '10px', color: t.textFaint, marginTop: '6px' }}>{new Date(capsule.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>}
             </div>
           </div>
+          )
+          })()}
 
-          {/* Hero position picker — toggled by organiser */}
+          {/* Hero photo settings — toggled by organiser */}
           {heroImage && (isAdmin || (visitorEmail && visitorEmail.toLowerCase() === capsule.organiser_email?.toLowerCase())) && (
-            <div style={{ margin: '4px 12px 0', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ margin: `4px ${heroBleed ? '0' : '12px'} 0`, display: 'flex', justifyContent: 'flex-end' }}>
               {!showPositionPicker ? (
-                <button onClick={() => setShowPositionPicker(true)} style={{ fontSize: '10px', padding: '4px 12px', borderRadius: '12px', border: `1px solid ${t.accentFaint}`, background: 'rgba(255,255,255,0.04)', color: t.accentMuted, cursor: 'pointer', letterSpacing: '0.06em' }}>
+                <button onClick={() => setShowPositionPicker(true)} style={{ fontSize: '10px', padding: '4px 12px', borderRadius: '12px', border: `1px solid ${t.accentFaint}`, background: 'rgba(255,255,255,0.04)', color: t.accentMuted, cursor: 'pointer', letterSpacing: '0.06em', marginRight: heroBleed ? '12px' : '0' }}>
                   ↕ Adjust photo
                 </button>
               ) : (
-                <div style={{ width: '100%' }}>
+                <div style={{ width: '100%', padding: heroBleed ? '0 12px' : '0' }}>
                   <HeroPositionPicker
                     capsuleId={capsule.id}
                     imageUrl={heroImage}
                     currentPosition={heroPosition}
                     currentZoom={heroZoom}
                     currentFit={heroFit}
-                    onPositionChange={(pos, zoom, fit) => { setHeroPosition(pos); setHeroZoom(zoom); setHeroFit(fit) }}
+                    currentSize={heroSize}
+                    currentBleed={heroBleed}
+                    onSettingsChange={({ pos, zoom, fit, size, bleed }) => {
+                      setHeroPosition(pos); setHeroZoom(zoom); setHeroFit(fit)
+                      setHeroSize(size); setHeroBleed(bleed)
+                    }}
                     onDone={() => setShowPositionPicker(false)}
                     t={t}
                   />

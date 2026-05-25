@@ -1,10 +1,10 @@
 'use client'
 /* =========================================================
-   components/HeroPositionPicker.tsx — v5
-   Full drag in all modes.
-   Fit Width: drag vertically. Fit Height: drag horizontally.
-   Custom: drag in both axes + zoom slider.
-   Default: Fit Height, centred.
+   components/HeroPositionPicker.tsx — v6
+   Full image control panel:
+   - Fit Width / Fit Height / Custom (with drag + zoom)
+   - Height presets: Compact / Standard / Cinematic
+   - Full Bleed toggle: removes margin + border radius
 ========================================================= */
 import { useState, useRef, useCallback, useEffect } from 'react'
 
@@ -14,7 +14,12 @@ interface Props {
   currentPosition: string
   currentZoom?: number
   currentFit?: string
-  onPositionChange: (pos: string, zoom: number, fit: string) => void
+  currentSize?: string
+  currentBleed?: boolean
+  onSettingsChange: (settings: {
+    pos: string; zoom: number; fit: string
+    size: string; bleed: boolean
+  }) => void
   onDone: () => void
   t: {
     accentPrimary: string; accentFaint: string; accentMuted: string
@@ -24,12 +29,19 @@ interface Props {
 }
 
 type FitMode = 'width' | 'height' | 'custom'
+type SizeMode = 'compact' | 'standard' | 'cinematic'
+
+const SIZE_OPTIONS: { id: SizeMode; label: string; height: string }[] = [
+  { id: 'compact',   label: 'Compact',   height: '180px' },
+  { id: 'standard',  label: 'Standard',  height: '260px' },
+  { id: 'cinematic', label: 'Cinematic', height: '380px' },
+]
 
 export default function HeroPositionPicker({
   capsuleId, imageUrl, currentPosition, currentZoom = 150,
-  currentFit = 'height', onPositionChange, onDone, t,
+  currentFit = 'height', currentSize = 'standard', currentBleed = false,
+  onSettingsChange, onDone, t,
 }: Props) {
-
   const parsePos = (pos: string) => {
     const parts = pos?.split(' ')
     if (parts?.length === 2) {
@@ -44,24 +56,18 @@ export default function HeroPositionPicker({
   const [posX, setPosX] = useState(initial.x)
   const [posY, setPosY] = useState(initial.y)
   const [zoom, setZoom] = useState(currentZoom || 150)
+  const [size, setSize] = useState<SizeMode>((currentSize as SizeMode) || 'standard')
+  const [bleed, setBleed] = useState(currentBleed || false)
   const [saving, setSaving] = useState(false)
   const [dragging, setDragging] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const startDrag = useRef<{ mouseX: number; mouseY: number; posX: number; posY: number } | null>(null)
 
-  // Background size based on mode
-  const bgSize = fitMode === 'width' ? '100% auto'
-    : fitMode === 'height' ? 'auto 100%'
-    : `${zoom}%`
-
+  const bgSize = fitMode === 'width' ? '100% auto' : fitMode === 'height' ? 'auto 100%' : `${zoom}%`
   const positionString = `${posX.toFixed(1)}% ${posY.toFixed(1)}%`
 
-  // When switching fit mode, reset to sensible defaults
   const handleFitChange = (mode: FitMode) => {
-    setFitMode(mode)
-    if (mode === 'width') { setPosX(50); setPosY(50) }   // centre both
-    if (mode === 'height') { setPosX(50); setPosY(50) }  // centre both
-    if (mode === 'custom') { setPosX(50); setPosY(50) }  // centre both
+    setFitMode(mode); setPosX(50); setPosY(50)
   }
 
   const handleMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -77,23 +83,11 @@ export default function HeroPositionPicker({
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
     const rect = containerRef.current.getBoundingClientRect()
-
     const dx = ((startDrag.current.mouseX - clientX) / rect.width) * 80
     const dy = ((startDrag.current.mouseY - clientY) / rect.height) * 80
-
-    // In Fit Width — only vertical drag is meaningful
-    // In Fit Height — only horizontal drag is meaningful  
-    // In Custom — both axes
-    const newX = fitMode === 'width'
-      ? startDrag.current.posX  // locked
-      : Math.max(0, Math.min(100, startDrag.current.posX + dx))
-
-    const newY = fitMode === 'height'
-      ? startDrag.current.posY  // locked
-      : Math.max(0, Math.min(100, startDrag.current.posY + dy))
-
-    setPosX(newX)
-    setPosY(newY)
+    const newX = fitMode === 'width' ? startDrag.current.posX : Math.max(0, Math.min(100, startDrag.current.posX + dx))
+    const newY = fitMode === 'height' ? startDrag.current.posY : Math.max(0, Math.min(100, startDrag.current.posY + dy))
+    setPosX(newX); setPosY(newY)
   }, [fitMode])
 
   const handleUp = useCallback(() => { startDrag.current = null; setDragging(false) }, [])
@@ -122,15 +116,17 @@ export default function HeroPositionPicker({
         hero_image_position: positionString,
         hero_image_zoom: zoom,
         hero_image_fit: fitMode,
+        hero_panel_size: size,
+        hero_full_bleed: bleed,
       }).eq('id', capsuleId)
-      onPositionChange(positionString, zoom, fitMode)
+      onSettingsChange({ pos: positionString, zoom, fit: fitMode, size, bleed })
       onDone()
     } catch (err) { console.error(err) }
     setSaving(false)
   }
 
   const btnStyle = (active: boolean): React.CSSProperties => ({
-    flex: 1, padding: '8px 4px', borderRadius: '8px', fontSize: '11px',
+    flex: 1, padding: '7px 4px', borderRadius: '8px', fontSize: '11px',
     fontWeight: active ? 700 : 400,
     border: `1px solid ${active ? t.accentPrimary : t.accentFaint}`,
     background: active ? t.accentFaint : 'transparent',
@@ -138,41 +134,41 @@ export default function HeroPositionPicker({
     cursor: 'pointer', transition: 'all 0.15s', textAlign: 'center' as const,
   })
 
-  const dragHint = fitMode === 'width' ? '↕ Drag to move up/down'
-    : fitMode === 'height' ? '↔ Drag to move left/right'
+  const dragHint = fitMode === 'width' ? '↕ Drag up/down'
+    : fitMode === 'height' ? '↔ Drag left/right'
     : '✥ Drag to reposition'
 
   return (
     <div style={{ borderRadius: '14px', padding: '14px 16px', background: t.cardBg, border: `1px solid ${t.accentFaint}` }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <p style={{ fontSize: '10px', fontWeight: 700, color: t.accentMuted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Adjust Photo</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+        <p style={{ fontSize: '10px', fontWeight: 700, color: t.accentMuted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Photo Settings</p>
         <button onClick={onDone} style={{ fontSize: '20px', color: t.textFaint, background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1, padding: '0 4px' }}>×</button>
       </div>
 
-      {/* Fit mode */}
-      <div style={{ marginBottom: '12px' }}>
-        <p style={{ fontSize: '10px', color: t.textFaint, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Display Mode</p>
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+      {/* ── SECTION 1: Display Mode ── */}
+      <div style={{ marginBottom: '14px' }}>
+        <p style={{ fontSize: '10px', color: t.textFaint, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '7px' }}>Display Mode</p>
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '5px' }}>
           <button onClick={() => handleFitChange('width')} style={btnStyle(fitMode === 'width')}>Fit Width</button>
           <button onClick={() => handleFitChange('height')} style={btnStyle(fitMode === 'height')}>Fit Height</button>
           <button onClick={() => handleFitChange('custom')} style={btnStyle(fitMode === 'custom')}>Custom</button>
         </div>
         <p style={{ fontSize: '10px', color: t.textFaint, fontStyle: 'italic' }}>
-          {fitMode === 'width' ? 'Fills width — drag to move up/down · best for landscape photos'
-            : fitMode === 'height' ? 'Fills height — drag to move left/right · best for portrait photos'
-            : 'Full control — drag in any direction, use zoom slider'}
+          {fitMode === 'width' ? 'Fills width — drag up/down · landscape photos'
+            : fitMode === 'height' ? 'Fills height — drag left/right · portrait photos'
+            : 'Full control — drag any direction + zoom'}
         </p>
       </div>
 
-      {/* Drag preview */}
+      {/* ── SECTION 2: Drag preview ── */}
       <div
         ref={containerRef}
         onMouseDown={handleMouseDown}
         onTouchStart={handleMouseDown}
         style={{
-          height: '160px', borderRadius: '10px', overflow: 'hidden',
+          height: '130px', borderRadius: '10px', overflow: 'hidden',
           marginBottom: '14px', border: `1px solid ${t.accentFaint}`,
           cursor: dragging ? 'grabbing' : 'grab',
           position: 'relative', userSelect: 'none',
@@ -185,16 +181,11 @@ export default function HeroPositionPicker({
         }}
       >
         {!dragging && (
-          <div style={{
-            position: 'absolute', bottom: '8px', left: '50%', transform: 'translateX(-50%)',
-            padding: '4px 10px', borderRadius: '10px', background: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(4px)', fontSize: '10px', color: 'rgba(255,255,255,0.75)',
-            whiteSpace: 'nowrap', pointerEvents: 'none', letterSpacing: '0.04em',
-          }}>{dragHint}</div>
+          <div style={{ position: 'absolute', bottom: '8px', left: '50%', transform: 'translateX(-50%)', padding: '3px 9px', borderRadius: '10px', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', fontSize: '10px', color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap', pointerEvents: 'none' }}>{dragHint}</div>
         )}
       </div>
 
-      {/* Zoom — custom mode only */}
+      {/* ── SECTION 3: Zoom (custom only) ── */}
       {fitMode === 'custom' && (
         <div style={{ marginBottom: '14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -206,16 +197,42 @@ export default function HeroPositionPicker({
             <input type="range" min={100} max={300} step={5} value={zoom} onChange={e => setZoom(Number(e.target.value))} style={{ flex: 1, accentColor: t.accentPrimary, cursor: 'pointer' }} />
             <span style={{ fontSize: '13px', color: t.textFaint }}>+</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-            <span style={{ fontSize: '9px', color: t.textFaint }}>Show full photo</span>
-            <span style={{ fontSize: '9px', color: t.textFaint }}>Close up</span>
-          </div>
         </div>
       )}
 
-      {/* Reset + Apply */}
+      {/* ── SECTION 4: Panel Height ── */}
+      <div style={{ marginBottom: '14px' }}>
+        <p style={{ fontSize: '10px', color: t.textFaint, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '7px' }}>Panel Height</p>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {SIZE_OPTIONS.map(opt => (
+            <button key={opt.id} onClick={() => setSize(opt.id)} style={btnStyle(size === opt.id)}>{opt.label}</button>
+          ))}
+        </div>
+        <p style={{ fontSize: '10px', color: t.textFaint, marginTop: '5px', fontStyle: 'italic' }}>
+          {size === 'compact' ? 'Leaves more room for tributes'
+            : size === 'standard' ? 'Balanced — photo + tributes'
+            : 'Full dramatic backdrop — cinematic feel'}
+        </p>
+      </div>
+
+      {/* ── SECTION 5: Full Bleed ── */}
+      <div style={{ marginBottom: '16px', padding: '12px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: `1px solid ${t.accentFaint}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+        <div>
+          <p style={{ fontSize: '12px', fontWeight: 600, color: bleed ? t.accentPrimary : t.textFaint, marginBottom: '2px' }}>Full Bleed</p>
+          <p style={{ fontSize: '10px', color: t.textFaint, fontStyle: 'italic' }}>Photo extends edge-to-edge — cinematic editorial look</p>
+        </div>
+        <button onClick={() => setBleed(b => !b)} style={{
+          width: '48px', height: '26px', borderRadius: '13px', flexShrink: 0,
+          background: bleed ? `rgba(226,195,107,0.7)` : 'rgba(255,255,255,0.1)',
+          border: 'none', cursor: 'pointer', position: 'relative', transition: 'all 0.2s',
+        }}>
+          <div style={{ position: 'absolute', top: '3px', left: bleed ? '25px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: 'white', transition: 'left 0.2s' }} />
+        </button>
+      </div>
+
+      {/* ── Reset + Apply ── */}
       <div style={{ display: 'flex', gap: '8px' }}>
-        <button onClick={() => { handleFitChange(fitMode) }} style={{ padding: '9px 14px', borderRadius: '10px', fontSize: '12px', border: `1px solid ${t.accentFaint}`, background: 'transparent', color: t.textFaint, cursor: 'pointer' }}>Reset</button>
+        <button onClick={() => { handleFitChange('height'); setSize('standard'); setBleed(false); setZoom(150) }} style={{ padding: '9px 14px', borderRadius: '10px', fontSize: '12px', border: `1px solid ${t.accentFaint}`, background: 'transparent', color: t.textFaint, cursor: 'pointer' }}>Reset</button>
         <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '9px', borderRadius: '10px', background: saving ? 'rgba(226,195,107,0.15)' : `linear-gradient(135deg, ${t.accentPrimary}, rgba(226,195,107,0.7))`, color: saving ? 'rgba(226,195,107,0.4)' : '#1a0845', fontSize: '13px', fontWeight: 700, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', letterSpacing: '0.04em' }}>
           {saving ? 'Saving…' : '✓ Apply'}
         </button>
