@@ -385,7 +385,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
 
           {/* ── HERO — Identity first ── */}
           <div style={{ flexShrink: 0, position: 'relative', overflow: 'hidden', margin: '0 12px', borderRadius: '20px', minHeight: '220px' }}>
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${resolvedHero})`, backgroundSize: `${heroZoom}%`, backgroundPosition: heroPosition, backgroundRepeat: 'no-repeat' }} />
+            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${resolvedHero})`, backgroundSize: `${heroZoom}%`, backgroundPosition: heroPosition, backgroundRepeat: 'no-repeat', backgroundColor: '#000' }} />
             <div style={{ position: 'absolute', inset: 0, background: t.heroOverlay }} />
             <div style={{ position: 'absolute', inset: 0, background: t.heroGlow }} />
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(to right, transparent, ${t.accentMuted}, transparent)` }} />
