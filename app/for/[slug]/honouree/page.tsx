@@ -21,15 +21,21 @@ export default async function HonoureePortalPage({ params, searchParams }: {
   const token = searchParams?.token
   if (!token) redirect(`/for/${params.slug}`)
 
-  // Validate token
+  // Validate token — check exists and not expired
   const { data: tokenRow } = await supabase
     .from('honouree_portal_tokens')
-    .select('capsule_id, is_active, expires_at')
+    .select('capsule_id, expires_at')
     .eq('token', token)
     .single()
 
-  if (!tokenRow?.is_active) redirect(`/for/${params.slug}`)
+  if (!tokenRow) redirect(`/for/${params.slug}`)
   if (tokenRow.expires_at && new Date(tokenRow.expires_at) < new Date()) redirect(`/for/${params.slug}`)
+
+  // Update last_accessed_at
+  await supabase
+    .from('honouree_portal_tokens')
+    .update({ last_accessed_at: new Date().toISOString() })
+    .eq('token', token)
 
   // Fetch capsule
   const { data: capsule } = await supabase

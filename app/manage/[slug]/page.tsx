@@ -511,6 +511,64 @@ function WaysToHonourEditor({ capsuleId, supabase }: { capsuleId: string; supaba
   )
 }
 
+/* ── FAMILY REP INVITE BUTTON ─────────────────────────── */
+function FamilyRepInviteButton({ capsuleId, slug, repEmail, repName, sentAt }: {
+  capsuleId: string; slug: string; repEmail: string; repName: string; sentAt: string | null
+}) {
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
+
+  const canSend = repEmail.includes('@')
+
+  const handleSend = async () => {
+    if (!canSend) return
+    setSending(true); setError('')
+    try {
+      const res = await fetch('/api/rep/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ capsuleId, slug }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error ?? 'Failed to send'); setSending(false); return }
+      setSent(true)
+    } catch {
+      setError('Something went wrong. Please try again.')
+    }
+    setSending(false)
+  }
+
+  if (sent) return (
+    <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(74,222,128,0.07)', border: '1px solid rgba(74,222,128,0.2)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <span style={{ fontSize: '16px' }}>✓</span>
+      <div>
+        <p style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(134,239,172,0.9)', margin: 0 }}>Portal access link sent</p>
+        <p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0' }}>Sent to {repEmail}</p>
+      </div>
+    </div>
+  )
+
+  return (
+    <div>
+      {sentAt && !sent && (
+        <p style={{ fontSize: '11px', color: textFaint, marginBottom: '10px', fontStyle: 'italic' }}>
+          ✓ Last sent: {new Date(sentAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </p>
+      )}
+      <button
+        onClick={handleSend}
+        disabled={sending || !canSend}
+        style={{ width: '100%', padding: '11px', borderRadius: '10px', background: canSend ? `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))` : 'rgba(255,255,255,0.05)', border: canSend ? 'none' : `1px solid ${cardBorder}`, color: canSend ? '#1a0845' : textFaint, fontSize: '13px', fontWeight: 700, cursor: canSend ? 'pointer' : 'not-allowed', opacity: sending ? 0.7 : 1, letterSpacing: '0.04em' }}
+      >
+        {sending ? 'Sending…' : sentAt ? 'Resend Portal Access Link' : 'Send Portal Access Link →'}
+      </button>
+      {!canSend && <p style={{ fontSize: '11px', color: textFaint, marginTop: '6px', textAlign: 'center' }}>Enter the representative's email address above first.</p>}
+      {error && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.8)', marginTop: '6px' }}>{error}</p>}
+    </div>
+  )
+}
+
 /* ── ADD-ONS TABLE ────────────────────────────────────── */
 const LC_SERVICES = [
   {
@@ -910,9 +968,16 @@ export default function ManagePage() {
                 <StylePicker currentTheme={capsule.theme} eventType={capsule.event_type} onSave={async (key) => { await updateCapsule({ theme: key }) }} />
               </SectionCard>
 
-              <SectionCard title="Family Representative" subtitle="Private portal access">
+              <SectionCard title="Family Representative" subtitle="Private portal access for the honouree or trusted family member">
                 <EditField label="Representative Name" value={(capsule as any).family_rep_name ?? ''} placeholder="Name of the family rep" onSave={async val => { await updateCapsule({ family_rep_name: val } as any) }} />
-                <EditField label="Representative Email" value={(capsule as any).family_rep_email ?? ''} type="email" placeholder="Their email address" hint="Receives the Honouree Reveal and access to the private portal." onSave={async val => { await updateCapsule({ family_rep_email: val } as any) }} />
+                <EditField label="Representative Email" value={(capsule as any).family_rep_email ?? ''} type="email" placeholder="Their email address" hint="They will receive a private link to view tributes and acknowledgements." onSave={async val => { await updateCapsule({ family_rep_email: val } as any) }} />
+                <FamilyRepInviteButton
+                  capsuleId={capsule.id}
+                  slug={capsule.slug}
+                  repEmail={(capsule as any).family_rep_email ?? ''}
+                  repName={(capsule as any).family_rep_name ?? ''}
+                  sentAt={(capsule as any).rep_portal_sent_at ?? null}
+                />
               </SectionCard>
 
               {/* Ways to Honour */}
