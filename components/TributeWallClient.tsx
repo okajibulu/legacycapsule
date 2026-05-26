@@ -268,6 +268,116 @@ function ProfileSummarySection({ section, t, slug }: { section: ProfileSection; 
   )
 }
 
+const RELATIONSHIP_OPTIONS = [
+  'Parent/Guardian','Child','Sibling/Half/Step','Partner/Spouse/Ex',
+  'Extended Family','Father/Mother Figure','Friend','Acquaintance',
+  'Colleague/Professional Connection','Mentor/Teacher','Student/Mentee',
+  'Leader/Guide','Classmate/Alumni','Community','Team/Club Member',
+  'Faith/Spiritual Connection','Caregiver/Healthcare Worker',
+  'Legacy Beneficiary','Supporter/Well-wisher','Other',
+]
+
+function RelationshipSelect({ selected, onChange, error, t }: {
+  selected: string[]
+  onChange: (val: string[]) => void
+  error?: string
+  t: ThemeConfig
+}) {
+  const [open, setOpen] = useState(false)
+
+  const toggle = (opt: string) => {
+    onChange(selected.includes(opt) ? selected.filter(r => r !== opt) : [...selected, opt])
+  }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <p style={{ fontSize: '11px', color: t.accentMuted, fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+        How you are connected <span style={{ color: 'rgba(248,113,113,0.8)' }}>*</span>
+      </p>
+
+      {/* Trigger button */}
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', padding: '10px 14px', borderRadius: '10px',
+          background: 'rgba(255,255,255,0.06)',
+          border: `1px solid ${error ? 'rgba(248,113,113,0.5)' : open ? t.accentPrimary : t.inputBorder ?? 'rgba(226,195,107,0.18)'}`,
+          color: selected.length ? t.textBody : t.textFaint,
+          fontSize: '13px', textAlign: 'left' as const,
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          fontFamily: "'DM Sans', sans-serif",
+          transition: 'border-color 0.2s',
+        }}
+      >
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, flex: 1 }}>
+          {selected.length === 0
+            ? 'Select how you are connected…'
+            : selected.length === 1
+              ? selected[0]
+              : `${selected[0]} +${selected.length - 1} more`
+          }
+        </span>
+        <span style={{ marginLeft: '8px', fontSize: '10px', color: t.textFaint, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
+      </button>
+
+      {/* Selected tags — shown below trigger when multiple selected */}
+      {selected.length > 1 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+          {selected.map(s => (
+            <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', background: t.accentFaint, border: `1px solid rgba(226,195,107,0.2)`, color: t.accentPrimary }}>
+              {s}
+              <button type="button" onClick={() => toggle(s)} style={{ background: 'none', border: 'none', color: t.accentMuted, cursor: 'pointer', fontSize: '12px', lineHeight: 1, padding: 0 }}>×</button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Dropdown */}
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 100,
+          background: '#1a0f35', border: `1px solid rgba(226,195,107,0.25)`,
+          borderRadius: '12px', overflow: 'hidden',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+          maxHeight: '220px', overflowY: 'auto' as const,
+        }}>
+          {RELATIONSHIP_OPTIONS.map(opt => {
+            const isSelected = selected.includes(opt)
+            return (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => toggle(opt)}
+                style={{
+                  width: '100%', padding: '10px 14px', textAlign: 'left' as const,
+                  background: isSelected ? 'rgba(226,195,107,0.08)' : 'transparent',
+                  border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)',
+                  color: isSelected ? t.accentPrimary : t.textBody,
+                  fontSize: '13px', cursor: 'pointer', display: 'flex',
+                  alignItems: 'center', justifyContent: 'space-between',
+                  fontFamily: "'DM Sans', sans-serif",
+                  transition: 'background 0.15s',
+                }}
+              >
+                {opt}
+                {isSelected && <span style={{ color: t.accentPrimary, fontSize: '14px' }}>✓</span>}
+              </button>
+            )
+          })}
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            style={{ width: '100%', padding: '10px 14px', background: 'rgba(226,195,107,0.05)', border: 'none', color: t.accentMuted, fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", letterSpacing: '0.04em' }}
+          >Done ✓</button>
+        </div>
+      )}
+
+      {error && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.8)', marginTop: '4px' }}>{error}</p>}
+    </div>
+  )
+}
+
 /* =========================================================
    MAIN COMPONENT
 ========================================================= */
@@ -537,30 +647,12 @@ export default function TributeWallClient({ capsule, initialContributions, profi
                       </div>}
                     </div>
                     <div style={{ width: '100%', marginTop: '4px' }}>
-                      <p style={{ fontSize: '11px', color: t.accentMuted, fontWeight: 600, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                        How you are connected <span style={{ color: 'rgba(248,113,113,0.8)' }}>*</span>
-                      </p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '4px' }}>
-                        {['Parent/Guardian','Child','Sibling/Half/Step','Partner/Spouse/Ex','Extended Family','Father/Mother Figure','Friend','Acquaintance','Colleague/Professional Connection','Mentor/Teacher','Student/Mentee','Leader/Guide','Classmate/Alumni','Community','Team/Club Member','Faith/Spiritual Connection','Caregiver/Healthcare Worker','Legacy Beneficiary','Supporter/Well-wisher','Other'].map(opt => {
-                          const selected = fRel.includes(opt)
-                          return (
-                            <button
-                              key={opt}
-                              type="button"
-                              onClick={() => setFRel(prev => selected ? prev.filter(r => r !== opt) : [...prev, opt])}
-                              style={{
-                                fontSize: '11px', padding: '5px 10px', borderRadius: '20px',
-                                border: `1px solid ${selected ? t.accentPrimary : t.cardBorder}`,
-                                background: selected ? t.accentFaint : 'transparent',
-                                color: selected ? t.accentPrimary : t.textMuted,
-                                cursor: 'pointer', transition: 'all 0.15s',
-                                fontWeight: selected ? 600 : 400,
-                              }}
-                            >{opt}</button>
-                          )
-                        })}
-                      </div>
-                      {(errors as any).rel && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.8)', marginTop: '4px' }}>{(errors as any).rel}</p>}
+                      <RelationshipSelect
+                        selected={fRel}
+                        onChange={setFRel}
+                        error={(errors as any).rel}
+                        t={t}
+                      />
                     </div>
                   </div>
 
