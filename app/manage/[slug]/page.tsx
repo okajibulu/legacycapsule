@@ -4,22 +4,6 @@
    ORGANISER CONTROL DASHBOARD — /manage/[slug] — v2
    Full section editor · Style picker · Arrow reorder
    Theme-aware · Premium workspace aesthetic
-
-   SECTIONS:
-   1.  Imports & types
-   2.  Constants & supabase client
-   3.  Sub-components
-       3a. FreeTierBar
-       3b. StatPill
-       3c. SectionCard
-       3d. TributeReviewCard
-       3e. EditField
-       3f. SectionEditor
-       3g. StylePicker
-       3h. UpgradeCard
-       3i. BottomNav
-       3j. EmailGate
-   4.  Main component
 ========================================================= */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -31,9 +15,6 @@ import { getAllThemes, resolveTheme } from '@/lib/themeConfig'
 import type { ThemeKey } from '@/lib/themeConfig'
 import GalleryEditor from '@/components/GalleryEditor'
 
-/* =========================================================
-   SECTION 1 — TYPES
-========================================================= */
 interface Capsule {
   id: string; slug: string; honouree_name: string; honouree_title: string | null
   event_type: string; event_tag: string | null; event_date: string | null
@@ -53,9 +34,6 @@ interface ProfileSection {
 }
 type Tab = 'overview' | 'tributes' | 'profile' | 'settings'
 
-/* =========================================================
-   SECTION 2 — CONSTANTS
-========================================================= */
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -64,23 +42,23 @@ const supabase = createClient(
 const FREE_TRIBUTE_LIMIT = 50
 const LS_EMAIL = 'lc_visitor_email'
 
+// ── NO character limits on any section type ──────────────
 const SUMMARY_SECTION_TYPES = [
-  { type: 'intro', label: 'Introduction', placeholder: 'A brief introduction to the honouree and this occasion…', maxChars: 280 },
-  { type: 'occasion', label: 'About the Occasion', placeholder: 'Details about this event or milestone…', maxChars: 280 },
-  { type: 'quote', label: 'Featured Quote', placeholder: 'A meaningful quote from or about the honouree…', maxChars: 180 },
-  { type: 'message', label: 'Organiser Message', placeholder: 'A personal message from the organiser…', maxChars: 320 },
+  { type: 'intro',   label: 'Introduction',    placeholder: 'A brief introduction to the honouree and this occasion…' },
+  { type: 'occasion', label: 'About the Occasion', placeholder: 'Details about this event or milestone…' },
+  { type: 'quote',   label: 'Featured Quote',  placeholder: 'A meaningful quote from or about the honouree…' },
+  { type: 'message', label: 'Organiser Message', placeholder: 'A personal message from the organiser…' },
 ]
 
 const PROFILE_SECTION_TYPES = [
-  { type: 'biography', label: 'Biography', placeholder: 'The full story of the honouree…', maxChars: 2000 },
-  { type: 'timeline', label: 'Timeline', placeholder: 'Key milestones and dates…', maxChars: 1000 },
-  { type: 'achievements', label: 'Achievements', placeholder: 'Notable accomplishments and recognition…', maxChars: 1000 },
-  { type: 'family', label: 'Family', placeholder: 'Family members and relationships…', maxChars: 500 },
-  { type: 'legacy', label: 'Legacy', placeholder: 'The lasting impact and legacy…', maxChars: 800 },
-  { type: 'custom', label: 'Custom Section', placeholder: 'Write your own section…', maxChars: 1000 },
+  { type: 'biography',    label: 'Biography',     placeholder: 'The full story of the honouree…' },
+  { type: 'timeline',     label: 'Timeline',      placeholder: 'Key milestones and dates…' },
+  { type: 'achievements', label: 'Achievements',  placeholder: 'Notable accomplishments and recognition…' },
+  { type: 'family',       label: 'Family',        placeholder: 'Family members and relationships…' },
+  { type: 'legacy',       label: 'Legacy',        placeholder: 'The lasting impact and legacy…' },
+  { type: 'custom',       label: 'Custom Section', placeholder: 'Write your own section…' },
 ]
 
-// Design tokens
 const bg = '#0f0a1e'
 const cardBg = 'rgba(255,255,255,0.04)'
 const cardBorder = 'rgba(226,195,107,0.12)'
@@ -98,7 +76,6 @@ const inp: React.CSSProperties = {
   fontFamily: "'DM Sans', sans-serif", boxSizing: 'border-box',
 }
 
-// Gallery editor theme tokens — matches design system
 const galleryTheme = {
   accentPrimary: gold, accentFaint: goldFaint, accentMuted: goldMuted,
   cardBg: 'rgba(255,255,255,0.04)', cardBorder: 'rgba(226,195,107,0.12)',
@@ -111,9 +88,7 @@ const TributeMap = dynamic(() => import('@/components/TributeMap'), {
   loading: () => <div style={{ width: '100%', height: '100%', background: '#0a0218' }} />,
 })
 
-/* =========================================================
-   SECTION 3A — FREE TIER BAR
-========================================================= */
+/* ── FREE TIER BAR ────────────────────────────────────── */
 function FreeTierBar({ approvedCount, daysLeft, hasFirstTribute, onUpgrade }: {
   approvedCount: number; daysLeft: number | null; hasFirstTribute: boolean; onUpgrade: () => void
 }) {
@@ -136,7 +111,7 @@ function FreeTierBar({ approvedCount, daysLeft, hasFirstTribute, onUpgrade }: {
         </span>
       ) : daysLeft !== null ? (
         <span style={{ fontSize: '11px', color: daysLeft < 14 ? gold : textSecondary, fontWeight: daysLeft < 14 ? 600 : 400 }}>
-          {daysLeft} {daysLeft === 1 ? 'day' : 'days'} remaining
+          {daysLeft} {daysLeft === 1 ? 'day' : 'days'} before capsule expiry
         </span>
       ) : null}
       <button onClick={onUpgrade} style={{ fontSize: '11px', fontWeight: 700, padding: '5px 14px', borderRadius: '20px', border: `1px solid rgba(226,195,107,0.35)`, background: 'rgba(226,195,107,0.08)', color: gold, cursor: 'pointer', letterSpacing: '0.04em' }}>Expand Capsule</button>
@@ -144,9 +119,7 @@ function FreeTierBar({ approvedCount, daysLeft, hasFirstTribute, onUpgrade }: {
   )
 }
 
-/* =========================================================
-   SECTION 3B — STAT PILL
-========================================================= */
+/* ── STAT PILL ────────────────────────────────────────── */
 function StatPill({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
   return (
     <div style={{ flex: 1, minWidth: '70px', padding: '12px 10px', borderRadius: '12px', background: accent ? 'rgba(226,195,107,0.07)' : cardBg, border: `1px solid ${accent ? 'rgba(226,195,107,0.18)' : 'rgba(255,255,255,0.05)'}`, textAlign: 'center' }}>
@@ -156,9 +129,7 @@ function StatPill({ label, value, accent }: { label: string; value: string | num
   )
 }
 
-/* =========================================================
-   SECTION 3C — SECTION CARD WRAPPER
-========================================================= */
+/* ── SECTION CARD ─────────────────────────────────────── */
 function SectionCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: '16px', overflow: 'hidden', marginBottom: '14px' }}>
@@ -171,9 +142,7 @@ function SectionCard({ title, subtitle, children }: { title: string; subtitle?: 
   )
 }
 
-/* =========================================================
-   SECTION 3D — TRIBUTE REVIEW CARD
-========================================================= */
+/* ── TRIBUTE REVIEW CARD ──────────────────────────────── */
 function TributeReviewCard({ c, onApprove, onDecline }: { c: Contribution; onApprove: (id: string) => void; onDecline: (id: string) => void }) {
   const [declining, setDeclining] = useState(false)
   const [approving, setApproving] = useState(false)
@@ -187,7 +156,7 @@ function TributeReviewCard({ c, onApprove, onDecline }: { c: Contribution; onApp
       </div>
       <p style={{ fontSize: '13px', color: textPrimary, lineHeight: 1.7, marginBottom: '12px', fontStyle: 'italic' }}>"{c.tribute_text}"</p>
       <div style={{ display: 'flex', gap: '8px' }}>
-        <button disabled={approving} onClick={async () => { setApproving(true); await onApprove(c.id) }} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid rgba(74,222,128,0.28)', background: 'rgba(74,222,128,0.07)', color: approving ? textFaint : 'rgba(134,239,172,0.9)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', letterSpacing: '0.04em' }}>{approving ? 'Publishing…' : '✓ Publish'}</button>
+        <button disabled={approving} onClick={async () => { setApproving(true); await onApprove(c.id) }} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid rgba(74,222,128,0.28)', background: 'rgba(74,222,128,0.07)', color: approving ? textFaint : 'rgba(134,239,172,0.9)', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>{approving ? 'Publishing…' : '✓ Publish'}</button>
         <button onClick={() => setDeclining(true)} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid rgba(248,113,113,0.2)', background: 'rgba(248,113,113,0.05)', color: 'rgba(248,113,113,0.7)', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Decline</button>
       </div>
       {declining && (
@@ -203,9 +172,7 @@ function TributeReviewCard({ c, onApprove, onDecline }: { c: Contribution; onApp
   )
 }
 
-/* =========================================================
-   SECTION 3E — EDIT FIELD
-========================================================= */
+/* ── EDIT FIELD ───────────────────────────────────────── */
 function EditField({ label, value, placeholder, onSave, type = 'text', hint }: {
   label: string; value: string; placeholder?: string
   onSave: (val: string) => Promise<void>; type?: 'text' | 'date' | 'email'; hint?: string
@@ -238,9 +205,7 @@ function EditField({ label, value, placeholder, onSave, type = 'text', hint }: {
   )
 }
 
-/* =========================================================
-   SECTION 3F — SECTION EDITOR
-========================================================= */
+/* ── SECTION EDITOR — NO character limits ─────────────── */
 function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; sections: ProfileSection[]; onRefresh: () => void }) {
   const [adding, setAdding] = useState(false)
   const [newType, setNewType] = useState('')
@@ -253,7 +218,6 @@ function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; 
 
   const allTypes = [...SUMMARY_SECTION_TYPES, ...PROFILE_SECTION_TYPES]
   const selectedTypeDef = allTypes.find(t => t.type === newType)
-  const maxChars = selectedTypeDef?.maxChars ?? 1000
 
   const handleAdd = async () => {
     if (!newType || !newContent.trim()) return
@@ -314,11 +278,12 @@ function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; 
         <p style={{ fontSize: '12px', color: textFaint, textAlign: 'center', padding: '16px 0' }}>No sections yet. Add your first section below.</p>
       )}
       {sections.map((s, idx) => (
-        <div key={s.id} style={{ borderRadius: '10px', border: `1px solid ${s.is_active ? cardBorder : 'rgba(255,255,255,0.04)'}`, background: s.is_active ? cardBg : 'transparent', padding: '12px 14px', marginBottom: '8px', opacity: s.is_active ? 1 : 0.5, transition: 'all 0.2s' }}>
+        <div key={s.id} style={{ borderRadius: '10px', border: `1px solid ${s.is_active ? cardBorder : 'rgba(255,255,255,0.04)'}`, background: s.is_active ? cardBg : 'transparent', padding: '12px 14px', marginBottom: '8px', opacity: s.is_active ? 1 : 0.5 }}>
           {editingId === s.id ? (
             <div>
               {s.section_type === 'custom' && <input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Section title" style={{ ...inp, marginBottom: '8px' }} />}
-              <textarea value={editContent} onChange={e => setEditContent(e.target.value.slice(0, allTypes.find(t => t.type === s.section_type)?.maxChars ?? 1000))} rows={4} style={{ ...inp, resize: 'vertical', lineHeight: 1.6, marginBottom: '8px' }} />
+              {/* NO maxLength — no char counter — unlimited content */}
+              <textarea value={editContent} onChange={e => setEditContent(e.target.value)} rows={6} style={{ ...inp, resize: 'vertical', lineHeight: 1.6, marginBottom: '8px' }} />
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={() => handleSaveEdit(s.id)} style={{ padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', border: 'none', cursor: 'pointer' }}>Save</button>
                 <button onClick={() => setEditingId(null)} style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '12px', background: 'transparent', border: `1px solid ${cardBorder}`, color: textFaint, cursor: 'pointer' }}>Cancel</button>
@@ -352,7 +317,7 @@ function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; 
           <div style={{ marginBottom: '10px' }}>
             <label style={{ fontSize: '10px', color: textFaint, display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Section Type</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {[...SUMMARY_SECTION_TYPES, ...PROFILE_SECTION_TYPES].map(t => (
+              {allTypes.map(t => (
                 <button key={t.type} onClick={() => setNewType(t.type)} style={{ fontSize: '11px', padding: '5px 12px', borderRadius: '20px', border: `1px solid ${newType === t.type ? 'rgba(226,195,107,0.5)' : cardBorder}`, background: newType === t.type ? 'rgba(226,195,107,0.1)' : 'transparent', color: newType === t.type ? gold : textFaint, cursor: 'pointer' }}>{t.label}</button>
               ))}
             </div>
@@ -360,10 +325,14 @@ function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; 
           {newType === 'custom' && <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Section title" style={{ ...inp, marginBottom: '8px' }} maxLength={60} />}
           {newType && (
             <>
-              <div style={{ position: 'relative', marginBottom: '8px' }}>
-                <textarea value={newContent} onChange={e => setNewContent(e.target.value.slice(0, maxChars))} placeholder={selectedTypeDef?.placeholder ?? 'Write your content…'} rows={4} style={{ ...inp, resize: 'vertical', lineHeight: 1.6 }} />
-                <span style={{ position: 'absolute', bottom: '8px', right: '10px', fontSize: '9px', color: newContent.length > maxChars * 0.9 ? gold : textFaint, pointerEvents: 'none' }}>{newContent.length}/{maxChars}</span>
-              </div>
+              {/* NO maxLength, NO char counter — unlimited */}
+              <textarea
+                value={newContent}
+                onChange={e => setNewContent(e.target.value)}
+                placeholder={selectedTypeDef?.placeholder ?? 'Write your content…'}
+                rows={6}
+                style={{ ...inp, resize: 'vertical', lineHeight: 1.6, marginBottom: '8px' }}
+              />
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={handleAdd} disabled={saving || !newContent.trim()} style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', border: 'none', cursor: 'pointer', opacity: saving || !newContent.trim() ? 0.6 : 1 }}>{saving ? 'Adding…' : 'Add Section'}</button>
                 <button onClick={() => { setAdding(false); setNewType(''); setNewContent(''); setNewTitle('') }} style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '12px', background: 'transparent', border: `1px solid ${cardBorder}`, color: textFaint, cursor: 'pointer' }}>Cancel</button>
@@ -378,9 +347,7 @@ function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; 
   )
 }
 
-/* =========================================================
-   SECTION 3G — STYLE PICKER
-========================================================= */
+/* ── STYLE PICKER ─────────────────────────────────────── */
 function StylePicker({ currentTheme, eventType, onSave }: { currentTheme: string | null; eventType: string; onSave: (theme: ThemeKey | 'classic') => Promise<void> }) {
   const themes = getAllThemes()
   const autoKey = resolveTheme('classic', eventType)
@@ -410,9 +377,7 @@ function StylePicker({ currentTheme, eventType, onSave }: { currentTheme: string
   )
 }
 
-/* =========================================================
-   SECTION 3H — UPGRADE CARD
-========================================================= */
+/* ── UPGRADE CARD ─────────────────────────────────────── */
 function UpgradeCard({ capsuleName }: { capsuleName: string }) {
   const [name, setName] = useState(''); const [email, setEmail] = useState(''); const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false); const [sent, setSent] = useState(false)
@@ -445,14 +410,12 @@ function UpgradeCard({ capsuleName }: { capsuleName: string }) {
   )
 }
 
-/* =========================================================
-   SECTION 3I — BOTTOM NAV
-========================================================= */
+/* ── BOTTOM NAV ───────────────────────────────────────── */
 function BottomNav({ active, onChange, pendingCount }: { active: Tab; onChange: (t: Tab) => void; pendingCount: number }) {
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'overview', label: 'Overview', icon: '◈' },
     { id: 'tributes', label: 'Tributes', icon: '✦' },
-    { id: 'profile', label: 'Profile', icon: '◉' },
+    { id: 'profile',  label: 'Profile',  icon: '◉' },
     { id: 'settings', label: 'Settings', icon: '⊙' },
   ]
   return (
@@ -473,36 +436,11 @@ function BottomNav({ active, onChange, pendingCount }: { active: Tab; onChange: 
   )
 }
 
-/* =========================================================
-   SECTION 3J — EMAIL GATE (fallback only — signin preferred)
-========================================================= */
-function EmailGate({ onEmail }: { onEmail: (email: string) => void }) {
-  const [email, setEmail] = useState('')
-  return (
-    <div style={{ minHeight: '100vh', background: bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: "'DM Sans', sans-serif" }}>
-      <div style={{ marginBottom: '36px', textAlign: 'center' }}>
-        <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.18em', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LEGACY</span>
-        <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.18em', color: textFaint, marginLeft: '0.1em' }}>CAPSULE</span>
-      </div>
-      <div style={{ width: '100%', maxWidth: '340px', background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: '20px', padding: '32px 24px', textAlign: 'center' }}>
-        <div style={{ width: '48px', height: '48px', borderRadius: '50%', margin: '0 auto 20px', background: goldFaint, border: `1px solid rgba(226,195,107,0.22)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>◈</div>
-        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: '19px', fontWeight: 700, color: textPrimary, marginBottom: '8px' }}>Organiser Access</h2>
-        <p style={{ fontSize: '13px', color: textSecondary, lineHeight: 1.65, marginBottom: '22px' }}>Enter the email you used to create this capsule.</p>
-        <input type="email" placeholder="Your email address" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && email.includes('@') && onEmail(email.trim())} style={{ ...inp, marginBottom: '12px', textAlign: 'center' }} autoFocus />
-        <button onClick={() => email.includes('@') && onEmail(email.trim())} disabled={!email.includes('@')} style={{ width: '100%', padding: '12px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', border: 'none', cursor: !email.includes('@') ? 'not-allowed' : 'pointer', opacity: !email.includes('@') ? 0.55 : 1, letterSpacing: '0.04em' }}>Open Dashboard</button>
-      </div>
-    </div>
-  )
-}
-
-/* =========================================================
-   SECTION 4 — MAIN COMPONENT
-========================================================= */
+/* ── MAIN COMPONENT ───────────────────────────────────── */
 export default function ManagePage() {
   const params = useParams()
   const slug = params?.slug as string
 
-  // ── State ────────────────────────────────────────────────
   const [capsule, setCapsule] = useState<Capsule | null>(null)
   const [contributions, setContributions] = useState<Contribution[]>([])
   const [profileSections, setProfileSections] = useState<ProfileSection[]>([])
@@ -515,10 +453,8 @@ export default function ManagePage() {
   const [heroImage, setHeroImage] = useState<string | null>(null)
   const heroPhotoRef = useRef<HTMLInputElement>(null)
 
-  // ── Session check ────────────────────────────────────────
   useEffect(() => {
     async function checkSession() {
-      // 1. URL param (from signin redirect)
       const urlParams = new URLSearchParams(window.location.search)
       const authEmail = urlParams.get('auth')
       if (authEmail) {
@@ -528,7 +464,6 @@ export default function ManagePage() {
         window.history.replaceState({}, '', window.location.pathname)
         return
       }
-      // 2. Supabase Auth session (persists weeks)
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session?.user?.email) {
@@ -537,14 +472,12 @@ export default function ManagePage() {
           return
         }
       } catch {}
-      // 3. localStorage fallback
       const saved = localStorage.getItem(LS_EMAIL)
       if (saved) setVisitorEmail(saved)
     }
     checkSession()
   }, [])
 
-  // ── Data fetch ───────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     if (!slug) return
     const capRes = await supabase.from('capsules')
@@ -555,15 +488,9 @@ export default function ManagePage() {
     setCapsule(cap); setHeroImage(cap.hero_image_url)
 
     const [contribRes, sectionsRes, galleryRes] = await Promise.all([
-      supabase.from('contributions')
-        .select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, email, status, created_at')
-        .eq('capsule_id', cap.id).is('deleted_at', null).order('created_at', { ascending: false }),
-      supabase.from('capsule_profile_sections')
-        .select('id, section_type, custom_title, content, sort_order, is_active')
-        .eq('capsule_id', cap.id).order('sort_order'),
-      supabase.from('capsule_gallery')
-        .select('id, image_url, description, sort_order, section_index')
-        .eq('capsule_id', cap.id).order('section_index').order('sort_order'),
+      supabase.from('contributions').select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, email, status, created_at').eq('capsule_id', cap.id).is('deleted_at', null).order('created_at', { ascending: false }),
+      supabase.from('capsule_profile_sections').select('id, section_type, custom_title, content, sort_order, is_active').eq('capsule_id', cap.id).order('sort_order'),
+      supabase.from('capsule_gallery').select('id, image_url, description, sort_order, section_index').eq('capsule_id', cap.id).order('section_index').order('sort_order'),
     ])
 
     if (contribRes.data) setContributions(contribRes.data as Contribution[])
@@ -574,31 +501,18 @@ export default function ManagePage() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
-  // ── Derived state ────────────────────────────────────────
   const isOrganiser = visitorEmail !== '' && visitorEmail.toLowerCase() === capsule?.organiser_email?.toLowerCase()
   const pending = contributions.filter(c => c.status === 'pending_review' || c.status === 'pending')
   const approved = contributions.filter(c => c.status === 'approved')
   const isFree = !capsule?.tier || capsule.tier === 'free'
-  const capsuleUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/for/${slug}`
-    : `https://itslegacycapsule.com/for/${slug}`
-  const pins = approved
-    .filter(c => (c as any).lat && (c as any).lng)
-    .map(c => ({ lat: (c as any).lat, lng: (c as any).lng, name: c.contributor_name, country: c.country }))
+  const capsuleUrl = typeof window !== 'undefined' ? `${window.location.origin}/for/${slug}` : `https://itslegacycapsule.com/for/${slug}`
+  const pins = approved.filter(c => (c as any).lat && (c as any).lng).map(c => ({ lat: (c as any).lat, lng: (c as any).lng, name: c.contributor_name, country: c.country }))
 
-  // Expiry: 90 days from first tribute
-  const firstTributeAt = contributions.length > 0
-    ? contributions.reduce((e, c) => new Date(c.created_at) < new Date(e.created_at) ? c : e).created_at
-    : null
+  const firstTributeAt = contributions.length > 0 ? contributions.reduce((e, c) => new Date(c.created_at) < new Date(e.created_at) ? c : e).created_at : null
   const hasFirstTribute = firstTributeAt !== null
-  const expiryDate = firstTributeAt
-    ? new Date(new Date(firstTributeAt).getTime() + 90 * 86400000)
-    : null
-  const days = expiryDate && hasFirstTribute
-    ? Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / 86400000))
-    : null
+  const expiryDate = firstTributeAt ? new Date(new Date(firstTributeAt).getTime() + 90 * 86400000) : null
+  const days = expiryDate && hasFirstTribute ? Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / 86400000)) : null
 
-  // ── Handlers ─────────────────────────────────────────────
   const handleApprove = async (id: string) => {
     await supabase.from('contributions').update({ status: 'approved' }).eq('id', id)
     fetch('/api/email/approval', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contributionId: id }) }).catch(() => {})
@@ -625,7 +539,6 @@ export default function ManagePage() {
     setHeroUploading(false)
   }
 
-  // ── Guards ───────────────────────────────────────────────
   if (loading) return (
     <div style={{ minHeight: '100vh', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif" }}>
       <div style={{ textAlign: 'center' }}>
@@ -636,11 +549,7 @@ export default function ManagePage() {
     </div>
   )
 
-  if (!capsule) return (
-    <div style={{ minHeight: '100vh', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: textFaint, fontSize: '14px' }}>Capsule not found.</p>
-    </div>
-  )
+  if (!capsule) return <div style={{ minHeight: '100vh', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><p style={{ color: textFaint, fontSize: '14px' }}>Capsule not found.</p></div>
 
   if (!visitorEmail) return (
     <div style={{ minHeight: '100vh', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', flexDirection: 'column', gap: '20px', textAlign: 'center', fontFamily: "'DM Sans', sans-serif" }}>
@@ -663,12 +572,11 @@ export default function ManagePage() {
     </div>
   )
 
-  const resolvedHero = heroImage ?? '/honouree.jpg'
+  const resolvedHero = heroImage ?? null
 
-  // ── Render ───────────────────────────────────────────────
   return (
     <>
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } } @keyframes goldPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(226,195,107,0.4) } 50% { box-shadow: 0 0 0 6px rgba(226,195,107,0) } } * { box-sizing: border-box; } body { margin: 0; } ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: rgba(226,195,107,0.18); border-radius: 2px; } input:focus, textarea:focus, select:focus { border-color: rgba(226,195,107,0.45) !important; } .lc-btn:active { transform: scale(0.96); transition: transform 0.1s; } .lc-tab-active { animation: goldPulse 0.4s ease; }`}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } } * { box-sizing: border-box; } body { margin: 0; } ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: rgba(226,195,107,0.18); border-radius: 2px; } input:focus, textarea:focus, select:focus { border-color: rgba(226,195,107,0.45) !important; }`}</style>
 
       <div style={{ minHeight: '100vh', background: bg, fontFamily: "'DM Sans', sans-serif", color: textPrimary, paddingBottom: '80px' }}>
 
@@ -684,7 +592,8 @@ export default function ManagePage() {
               <p style={{ fontSize: '13px', fontWeight: 700, color: textPrimary, fontFamily: "'Playfair Display', serif", margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{capsule.honouree_name}</p>
               <p style={{ fontSize: '10px', color: textFaint, margin: '1px 0 0' }}>{capsule.event_type}{capsule.event_tag ? ` · ${capsule.event_tag}` : ''}</p>
             </div>
-            <div style={{ flexShrink: 0, fontSize: '10px', fontWeight: 700, padding: '4px 10px', borderRadius: '20px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', color: 'rgba(134,239,172,0.9)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Live</div>
+            {/* View Live — clickable link to public wall */}
+            <a href={`/for/${slug}`} target="_blank" rel="noopener noreferrer" style={{ flexShrink: 0, fontSize: '10px', fontWeight: 700, padding: '4px 10px', borderRadius: '20px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', color: 'rgba(134,239,172,0.9)', letterSpacing: '0.08em', textTransform: 'uppercase', textDecoration: 'none' }}>View Live ↗</a>
           </div>
         </div>
 
@@ -769,14 +678,16 @@ export default function ManagePage() {
           {/* ── PROFILE TAB ── */}
           {activeTab === 'profile' && (
             <div>
-              {/* Capsule photo */}
               <SectionCard title="Capsule Photo" subtitle="Appears on the tribute wall and profile">
                 <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-                  <div style={{ width: '72px', height: '72px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: `2px solid rgba(226,195,107,0.35)`, boxShadow: '0 0 16px rgba(226,195,107,0.12)' }}>
-                    <img src={resolvedHero} alt={capsule.honouree_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ width: '72px', height: '72px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: `2px solid rgba(226,195,107,0.35)`, background: '#1a0845', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {resolvedHero
+                      ? <img src={resolvedHero} alt={capsule.honouree_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.1em', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.6))`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LC</span>
+                    }
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.65, marginBottom: '10px' }}>Upload a clear, high-quality image. It appears on the tribute wall and profile canvas.</p>
+                    <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.65, marginBottom: '10px' }}>Upload a clear, high-quality image.</p>
                     <label style={{ display: 'inline-block', padding: '7px 16px', borderRadius: '8px', cursor: 'pointer', background: goldFaint, border: `1px solid rgba(226,195,107,0.22)`, color: gold, fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em' }}>
                       {heroUploading ? 'Uploading…' : '📷 Upload Photo'}
                       <input type="file" accept="image/*" onChange={handleHeroUpload} style={{ display: 'none' }} disabled={heroUploading} />
@@ -785,19 +696,11 @@ export default function ManagePage() {
                 </div>
               </SectionCard>
 
-              {/* Photo gallery */}
               <SectionCard title="Photo Gallery" subtitle="Up to 3 sections · 10 photos each · photo + caption per row">
-                <GalleryEditor
-                  capsuleId={capsule.id}
-                  initialPhotos={galleryPhotos}
-                  supabase={supabase}
-                  t={galleryTheme}
-                  onSaved={fetchAll}
-                />
+                <GalleryEditor capsuleId={capsule.id} initialPhotos={galleryPhotos} supabase={supabase} t={galleryTheme} onSaved={fetchAll} />
               </SectionCard>
 
-              {/* Profile sections */}
-              <SectionCard title="Profile Sections" subtitle="Content shown on the tribute wall and full profile page">
+              <SectionCard title="Profile Sections" subtitle="No character limit — write as much as your event deserves">
                 <SectionEditor capsuleId={capsule.id} sections={profileSections} onRefresh={fetchAll} />
               </SectionCard>
             </div>
@@ -809,8 +712,7 @@ export default function ManagePage() {
               <SectionCard title="Capsule Details">
                 <EditField label="Display Name" value={capsule.honouree_name} placeholder="Name as it appears on the tribute wall" onSave={async val => { await updateCapsule({ honouree_name: val }) }} />
                 <EditField label="Event Tag" value={capsule.event_tag ?? ''} placeholder="e.g. United In Love · 35 Years of Excellence" hint="Subtitle shown beneath the name on the tribute wall." onSave={async val => { await updateCapsule({ event_tag: val }) }} />
-                
-                <EditField label="Event Date" value={capsule.event_date ?? ''} type="date" hint="Used for the days-to-event countdown and anniversary reminder." onSave={async val => { await updateCapsule({ event_date: val }) }} />
+                <EditField label="Event Date" value={capsule.event_date ?? ''} type="date" hint="Used for the days-to-event countdown." onSave={async val => { await updateCapsule({ event_date: val }) }} />
                 <EditField label="Capsule URL" value={capsule.slug} placeholder="your-capsule-slug" hint={`Your link: itslegacycapsule.com/for/${capsule.slug}`} onSave={async val => { const clean = val.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'); await updateCapsule({ slug: clean }) }} />
               </SectionCard>
 
