@@ -91,8 +91,7 @@ function TributeCard({ c, isAdmin, isOwn, onApprove, onDelete, onEdit, t }: {
   const [expanded, setExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editText, setEditText] = useState(c.tribute_text)
-  const isLong = c.tribute_text.length > 260
-  const text = isLong && !expanded ? c.tribute_text.slice(0, 260) + '…' : c.tribute_text
+  // 3-line clamp via CSS — no char counting needed
   const isPending = c.status === 'pending_review' || c.status === 'pending'
   const canEdit = (isOwn && isPending) || isAdmin
   const canDelete = (isOwn && isPending) || isAdmin
@@ -107,24 +106,34 @@ function TributeCard({ c, isAdmin, isOwn, onApprove, onDelete, onEdit, t }: {
       borderLeft: `3px solid ${isPending ? t.cardAccentPending : t.cardAccentApproved}`,
     }}>
       <div style={{ padding: '14px 20px 14px 18px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '8px' }}>
           {/* Contributor thumbnail if uploaded */}
           {c.thumbnail_url && (
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: `1px solid ${t.accentFaint}` }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: `1px solid ${t.accentFaint}`, marginTop: '2px' }}>
               <img src={c.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
           )}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: t.textHeading, maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
-              {displayName}
-              {isOwn && <span style={{ marginLeft: '6px', fontSize: '9px', fontWeight: 400, color: t.accentMuted, textTransform: 'uppercase', letterSpacing: '0.15em' }}>you</span>}
-            </span>
-            <span style={{ fontSize: '10px', color: t.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-              {[c.city, c.country].filter(Boolean).join(' · ')}
-            </span>
-            <span style={{ fontSize: '10px', color: t.textFaint, whiteSpace: 'nowrap', flexShrink: 0 }}>
-              {new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-            </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Line 1: Name · Relationship */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: t.textHeading, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {c.contributor_name}
+              </span>
+              {c.relationship && (
+                <span style={{ fontSize: '10px', color: t.accentMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {c.relationship}</span>
+              )}
+              {isOwn && <span style={{ fontSize: '9px', fontWeight: 400, color: t.accentMuted, textTransform: 'uppercase', letterSpacing: '0.15em', flexShrink: 0 }}>you</span>}
+            </div>
+            {/* Line 2: City · Country · dd Mon yyyy */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' as const }}>
+              <span style={{ fontSize: '10px', color: t.textFaint }}>
+                {[c.city, c.country].filter(Boolean).join(' · ')}
+              </span>
+              {(c.city || c.country) && <span style={{ fontSize: '10px', color: t.textFaint }}>·</span>}
+              <span style={{ fontSize: '10px', color: t.textFaint }}>
+                {(() => { const d = new Date(c.created_at); return `${String(d.getDate()).padStart(2,'0')} ${d.toLocaleString('en-GB',{month:'short'})} ${d.getFullYear()}` })()}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -141,8 +150,20 @@ function TributeCard({ c, isAdmin, isOwn, onApprove, onDelete, onEdit, t }: {
           </div>
         ) : (
           <>
-            <p style={{ fontSize: '14px', color: t.textBody, lineHeight: 1.85, letterSpacing: '0.01em' }}>{text}</p>
-            {isLong && <button onClick={() => setExpanded(e => !e)} style={{ fontSize: '11px', color: t.accentMuted, marginTop: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>{expanded ? 'Show less' : 'Read more'}</button>}
+            {/* 3-line clamp with inline "read more" at end of line 3 */}
+            {!expanded ? (
+              <div style={{ position: 'relative' }}>
+                <p style={{ fontSize: '13px', color: t.textBody, lineHeight: 1.75, letterSpacing: '0.01em', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any, overflow: 'hidden', margin: 0 }}>{c.tribute_text}</p>
+                {c.tribute_text.length > 160 && (
+                  <button onClick={() => setExpanded(true)} style={{ fontSize: '11px', color: t.accentMuted, background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline', marginTop: '2px' }}>read more</button>
+                )}
+              </div>
+            ) : (
+              <div>
+                <p style={{ fontSize: '13px', color: t.textBody, lineHeight: 1.75, letterSpacing: '0.01em', margin: 0 }}>{c.tribute_text}</p>
+                <button onClick={() => setExpanded(false)} style={{ fontSize: '11px', color: t.accentMuted, marginTop: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'block' }}>show less</button>
+              </div>
+            )}
 
             {/* Audio playback */}
             {c.audio_url && (
@@ -392,6 +413,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   const [composerOpen, setComposerOpen] = useState(false)
   const [showAudioRecorder, setShowAudioRecorder] = useState(false)
   const [showVideoUploader, setShowVideoUploader] = useState(false)
+  const [premiumNotice, setPremiumNotice] = useState<'audio' | 'video' | null>(null)
   const [fAudioUrl, setFAudioUrl] = useState<string | null>(null)
   const [fVideoUrl, setFVideoUrl] = useState<string | null>(null)
   const [fVideoThumb, setFVideoThumb] = useState<string | null>(null)
@@ -493,6 +515,32 @@ export default function TributeWallClient({ capsule, initialContributions, profi
         @keyframes composerSlide { from{max-height:0;opacity:0} to{max-height:600px;opacity:1} }
         .composer-enter{animation:composerSlide 0.35s ease-out forwards}
       `}</style>
+
+      {/* Premium unlock notice */}
+      {premiumNotice && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }} onClick={() => setPremiumNotice(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ maxWidth: '340px', width: '100%', background: 'linear-gradient(145deg, #1a0845, #0f0620)', border: '1px solid rgba(226,195,107,0.3)', borderRadius: '20px', padding: '32px 24px', textAlign: 'center', position: 'relative' }}>
+            <div style={{ height: '2px', position: 'absolute', top: 0, left: '32px', right: '32px', background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.6), transparent)', borderRadius: '1px' }} />
+            <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'rgba(226,195,107,0.1)', border: '1px solid rgba(226,195,107,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '22px' }}>
+              {premiumNotice === 'audio' ? '🎙️' : '🎬'}
+            </div>
+            <p style={{ fontSize: '10px', color: 'rgba(226,195,107,0.55)', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: '12px' }}>Premium Feature</p>
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', fontWeight: 700, color: 'rgba(255,255,255,0.92)', marginBottom: '12px' }}>
+              {premiumNotice === 'audio' ? 'Voice Tributes' : 'Video Tributes'}
+            </h3>
+            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.75, marginBottom: '24px' }}>
+              {premiumNotice === 'audio'
+                ? 'Voice tributes allow contributors to record personal audio messages. Hearing someone&apos;s voice adds a dimension text cannot replicate.'
+                : 'Video tributes let contributors upload short video messages — visible in their tribute card with a play button.'
+              }
+            </p>
+            <p style={{ fontSize: '12px', color: 'rgba(226,195,107,0.6)', marginBottom: '20px', fontStyle: 'italic' }}>
+              This feature needs to be activated for this capsule. Contact the organiser or upgrade from the dashboard.
+            </p>
+            <button onClick={() => setPremiumNotice(null)} style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'linear-gradient(135deg, #E2C36B, rgba(226,195,107,0.7))', color: '#1a0845', fontSize: '14px', fontWeight: 700, border: 'none', cursor: 'pointer', letterSpacing: '0.04em' }}>Got it</button>
+          </div>
+        </div>
+      )}
 
       {mapOpen && <MapModal pins={pins} honourName={honourName} uniqueCountries={uniqueCountries} onClose={() => setMapOpen(false)} t={t} />}
 
@@ -668,12 +716,34 @@ export default function TributeWallClient({ capsule, initialContributions, profi
                     </button>
                   </div>
 
-                  {/* Action strip */}
-                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' as const }}>
-                    <button onClick={() => { setShowVideoUploader(false); setShowAudioRecorder(v => !v) }} title="Record a voice tribute" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '6px 9px', borderRadius: '8px', border: `1px solid ${showAudioRecorder ? t.accentFaint : t.cardBorder}`, background: showAudioRecorder ? t.accentFaint : t.inputBg, color: showAudioRecorder ? t.accentPrimary : t.textMuted, cursor: 'pointer', whiteSpace: 'nowrap' as const }}><span style={{ fontSize: '13px' }}>🎙️</span>Audio</button>
-                    <button onClick={() => { setShowAudioRecorder(false); setShowVideoUploader(v => !v) }} title="Upload a video tribute" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '6px 9px', borderRadius: '8px', border: `1px solid ${showVideoUploader ? t.accentFaint : t.cardBorder}`, background: showVideoUploader ? t.accentFaint : t.inputBg, color: showVideoUploader ? t.accentPrimary : t.textMuted, cursor: 'pointer', whiteSpace: 'nowrap' as const }}><span style={{ fontSize: '13px' }}>🎬</span>Video</button>
-                    <button onClick={handleCopy} title="Copy link" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '6px 9px', borderRadius: '8px', border: `1px solid ${t.accentFaint}`, background: copied ? t.accentFaint : t.inputBg, color: copied ? t.accentPrimary : t.accentMuted, cursor: 'pointer', whiteSpace: 'nowrap' as const }}><span style={{ fontSize: '13px' }}>{copied ? '✓' : '🔗'}</span>{copied ? 'Copied' : 'Copy'}</button>
-                    <Link href={`https://wa.me/?text=${encodeURIComponent('Leave a tribute for ' + honourName + ': ' + capsuleUrl)}`} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '6px 9px', borderRadius: '8px', border: '1px solid rgba(74,222,128,0.22)', background: t.inputBg, color: 'rgba(74,222,128,0.7)', textDecoration: 'none', whiteSpace: 'nowrap' as const }}><span style={{ fontSize: '13px' }}>💬</span>Share</Link>
+                  {/* Audio/Video premium toggles — above main strip */}
+                  <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                    {capsule.components?.includes('audio_tributes') ? (
+                      <button onClick={() => { setShowVideoUploader(false); setShowAudioRecorder(v => !v) }} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '5px 10px', borderRadius: '8px', border: `1px solid ${showAudioRecorder ? t.accentFaint : t.cardBorder}`, background: showAudioRecorder ? t.accentFaint : t.inputBg, color: showAudioRecorder ? t.accentPrimary : t.textMuted, cursor: 'pointer' }}>🎙️ Audio</button>
+                    ) : (
+                      <button onClick={() => setPremiumNotice('audio')} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '5px 10px', borderRadius: '8px', border: `1px solid ${t.cardBorder}`, background: t.inputBg, color: t.textFaint, cursor: 'pointer' }}>🎙️ Audio <span style={{ fontSize: '9px', color: t.accentMuted }}>✦</span></button>
+                    )}
+                    {capsule.components?.includes('video_tributes') ? (
+                      <button onClick={() => { setShowAudioRecorder(false); setShowVideoUploader(v => !v) }} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '5px 10px', borderRadius: '8px', border: `1px solid ${showVideoUploader ? t.accentFaint : t.cardBorder}`, background: showVideoUploader ? t.accentFaint : t.inputBg, color: showVideoUploader ? t.accentPrimary : t.textMuted, cursor: 'pointer' }}>🎬 Video</button>
+                    ) : (
+                      <button onClick={() => setPremiumNotice('video')} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '5px 10px', borderRadius: '8px', border: `1px solid ${t.cardBorder}`, background: t.inputBg, color: t.textFaint, cursor: 'pointer' }}>🎬 Video <span style={{ fontSize: '9px', color: t.accentMuted }}>✦</span></button>
+                    )}
+                  </div>
+
+                  {/* Main action strip: Copy Link | ✦ Click to Leave a Tribute | Share Link */}
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch' }}>
+                    {/* Copy Link — left */}
+                    <button onClick={handleCopy} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '11px', padding: '9px 6px', borderRadius: '10px', border: `1px solid ${copied ? 'rgba(74,222,128,0.28)' : t.accentFaint}`, background: copied ? 'rgba(74,222,128,0.07)' : t.inputBg, color: copied ? 'rgba(134,239,172,0.9)' : t.accentMuted, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' as const }}>
+                      {copied ? '✓' : '🔗'} {copied ? 'Copied' : 'Copy Link'}
+                    </button>
+                    {/* Leave a Tribute — centre, primary */}
+                    <button onClick={() => setComposerOpen(true)} style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '13px', padding: '9px 12px', borderRadius: '10px', border: `1px solid ${t.accentFaint}`, background: `linear-gradient(135deg, rgba(226,195,107,0.12), rgba(226,195,107,0.06))`, color: t.accentPrimary, cursor: 'pointer', fontWeight: 700, letterSpacing: '0.03em', whiteSpace: 'nowrap' as const }}>
+                      <span style={{ fontSize: '14px' }}>✦</span> Leave a Tribute
+                    </button>
+                    {/* Share Link — right */}
+                    <Link href={`https://wa.me/?text=${encodeURIComponent('Leave a tribute for ' + honourName + ': ' + capsuleUrl)}`} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '11px', padding: '9px 6px', borderRadius: '10px', border: '1px solid rgba(74,222,128,0.22)', background: t.inputBg, color: 'rgba(74,222,128,0.7)', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' as const }}>
+                      💬 Share
+                    </Link>
                   </div>
 
                   {/* Audio recorder — expands when toggled */}
