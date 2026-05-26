@@ -668,7 +668,7 @@ export default function ManagePage() {
   // ── Render ───────────────────────────────────────────────
   return (
     <>
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } } * { box-sizing: border-box; } body { margin: 0; } ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: rgba(226,195,107,0.18); border-radius: 2px; } input:focus, textarea:focus, select:focus { border-color: rgba(226,195,107,0.45) !important; }`}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } } @keyframes goldPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(226,195,107,0.4) } 50% { box-shadow: 0 0 0 6px rgba(226,195,107,0) } } * { box-sizing: border-box; } body { margin: 0; } ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: rgba(226,195,107,0.18); border-radius: 2px; } input:focus, textarea:focus, select:focus { border-color: rgba(226,195,107,0.45) !important; } .lc-btn:active { transform: scale(0.96); transition: transform 0.1s; } .lc-tab-active { animation: goldPulse 0.4s ease; }`}</style>
 
       <div style={{ minHeight: '100vh', background: bg, fontFamily: "'DM Sans', sans-serif", color: textPrimary, paddingBottom: '80px' }}>
 
@@ -809,7 +809,7 @@ export default function ManagePage() {
               <SectionCard title="Capsule Details">
                 <EditField label="Display Name" value={capsule.honouree_name} placeholder="Name as it appears on the tribute wall" onSave={async val => { await updateCapsule({ honouree_name: val }) }} />
                 <EditField label="Event Tag" value={capsule.event_tag ?? ''} placeholder="e.g. United In Love · 35 Years of Excellence" hint="Subtitle shown beneath the name on the tribute wall." onSave={async val => { await updateCapsule({ event_tag: val }) }} />
-                <EditField label="Honouree Title" value={capsule.honouree_title ?? ''} placeholder="e.g. Dr · Chief · Pastor" onSave={async val => { await updateCapsule({ honouree_title: val }) }} />
+                
                 <EditField label="Event Date" value={capsule.event_date ?? ''} type="date" hint="Used for the days-to-event countdown and anniversary reminder." onSave={async val => { await updateCapsule({ event_date: val }) }} />
                 <EditField label="Capsule URL" value={capsule.slug} placeholder="your-capsule-slug" hint={`Your link: itslegacycapsule.com/for/${capsule.slug}`} onSave={async val => { const clean = val.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'); await updateCapsule({ slug: clean }) }} />
               </SectionCard>

@@ -123,7 +123,7 @@ function TributeCard({ c, isAdmin, isOwn, onApprove, onDelete, onEdit, t }: {
               {[c.city, c.country].filter(Boolean).join(' · ')}
             </span>
             <span style={{ fontSize: '10px', color: t.textFaint, whiteSpace: 'nowrap', flexShrink: 0 }}>
-              {new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+              {new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
             </span>
           </div>
         </div>
@@ -242,17 +242,28 @@ function MapModal({ pins, honourName, uniqueCountries, onClose, t }: { pins: Pin
 /* =========================================================
    PROFILE SECTION RENDERER — for profile summary
 ========================================================= */
-function ProfileSummarySection({ section, t }: { section: ProfileSection; t: ThemeConfig }) {
+function ProfileSummarySection({ section, t, slug }: { section: ProfileSection; t: ThemeConfig; slug: string }) {
   const title = section.custom_title ?? section.section_type.replace(/_/g, ' ')
   if (!section.content) return null
+  const truncated = section.content.length > 100 ? section.content.slice(0, 100).trimEnd() + '…' : section.content
+  const needsTruncation = section.content.length > 100
   return (
-    <div style={{ marginBottom: '24px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-        <div style={{ flex: 1, height: '1px', background: `linear-gradient(to right, ${t.accentFaint}, transparent)` }} />
-        <h3 style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.22em', color: t.accentMuted, margin: 0, whiteSpace: 'nowrap' }}>{title}</h3>
-        <div style={{ flex: 1, height: '1px', background: `linear-gradient(to left, ${t.accentFaint}, transparent)` }} />
+    <div style={{ marginBottom: '20px' }}>
+      {/* Gold separator line */}
+      <div style={{ height: '1px', marginBottom: '16px', background: `linear-gradient(to right, transparent, ${t.accentPrimary}, transparent)`, opacity: 0.4 }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+        <h3 style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.22em', color: t.accentMuted, margin: 0 }}>{title}</h3>
       </div>
-      <p style={{ fontSize: '13px', color: t.textBody, lineHeight: 1.85, textAlign: 'center', padding: '0 8px', opacity: 0.85 }}>{section.content}</p>
+      {needsTruncation ? (
+        <Link href={`/for/${slug}/profile`} style={{ textDecoration: 'none' }}>
+          <p style={{ fontSize: '13px', color: t.textBody, lineHeight: 1.85, padding: '0 8px', opacity: 0.85, cursor: 'pointer' }}>
+            {truncated}
+            <span style={{ color: t.accentMuted, fontSize: '12px', marginLeft: '4px' }}>read more</span>
+          </p>
+        </Link>
+      ) : (
+        <p style={{ fontSize: '13px', color: t.textBody, lineHeight: 1.85, padding: '0 8px', opacity: 0.85 }}>{section.content}</p>
+      )}
     </div>
   )
 }
@@ -286,7 +297,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   const heroPhotoRef = useRef<HTMLInputElement>(null)
   const [fName, setFName] = useState(''); const [fEmail, setFEmail] = useState('')
   const [fCity, setFCity] = useState(''); const [fCountry, setFCountry] = useState('')
-  const [fMsg, setFMsg] = useState(''); const [fRel, setFRel] = useState('')
+  const [fMsg, setFMsg] = useState(''); const [fRel, setFRel] = useState<string[]>([])
   const [fPhoto, setFPhoto] = useState<File | null>(null); const [fPhotoPreview, setFPhotoPreview] = useState<string | null>(null)
   const [countryQuery, setCountryQuery] = useState(''); const [showCountryList, setShowCountryList] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -304,9 +315,8 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   const pins: Pin[] = all.filter(c => c.status === 'approved' && c.lat && c.lng).map(c => ({ lat: c.lat as number, lng: c.lng as number, name: c.contributor_name, country: c.country }))
   const uniqueCountries = [...new Set(all.filter(c => c.status === 'approved' && (c as any).ip_country).map(c => (c as any).ip_country as string))]
   const capsuleUrl = typeof window !== 'undefined' ? window.location.origin + '/for/' + capsule.slug : 'https://itslegacycapsule.com/for/' + capsule.slug
- const resolvedHero = heroImage ?? featuredPhotos.find(p => p.is_hero)?.image_url ?? null
- 
- // Cities list for map label
+  const resolvedHero = heroImage ?? featuredPhotos.find(p => p.is_hero)?.image_url ?? '/honouree.jpg'
+  // Cities list for map label
   const cityNames = [...new Set(pins.map(p => p.name ? p.country : '').filter(Boolean))].slice(0, 3)
 
   /* ── EFFECTS ── */
@@ -341,11 +351,11 @@ export default function TributeWallClient({ capsule, initialContributions, profi
       let photoUrl: string | null = null
       if (fPhoto) { const ext = fPhoto.name.split('.').pop() ?? 'jpg'; const path = capsule.id + '/' + Date.now() + '.' + ext; const { error: ue } = await supabaseClient.storage.from(BUCKET).upload(path, fPhoto, { upsert: false }); if (!ue) photoUrl = supabaseClient.storage.from(BUCKET).getPublicUrl(path).data.publicUrl }
       const coords = await getIPCoords()
-      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, contributor_name: fName.trim(), city: fCity.trim(), country: fCountry, relationship: fRel.trim() || null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review' }).select('id').single()
+      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, contributor_name: fName.trim(), city: fCity.trim(), country: fCountry, relationship: fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review' }).select('id').single()
       if (ie) { setSubmitErr(ie.message); setSubmitting(false); return }
       if (nc) { fetch('/api/email/submission-confirmation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contributionId: nc.id, capsuleSlug: capsule.slug, contributorName: fName.trim(), contributorEmail: fEmail.trim(), subjectName: honourName, eventType: capsule.event_type, tributeText: fMsg.trim() }) }).catch(() => {}) }
       localStorage.setItem(LS_EMAIL, fEmail); setVisitorEmail(fEmail)
-      setFName(''); setFCity(''); setFCountry(''); setFMsg(''); setFRel(''); setFPhoto(null); setFPhotoPreview(null); setCountryQuery(''); setErrors({})
+      setFName(''); setFCity(''); setFCountry(''); setFMsg(''); setFRel([]); setFPhoto(null); setFPhotoPreview(null); setCountryQuery(''); setErrors({})
       setFAudioUrl(null); setFVideoUrl(null); setFVideoThumb(null)
       setShowAudioRecorder(false); setShowVideoUploader(false)
       setSubmitSuccess(true); setComposerOpen(false); setTimeout(() => setSubmitSuccess(false), 3500); poll()
@@ -408,7 +418,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
               : { margin: '0 12px', borderRadius: '20px' }
             return (
           <div style={{ flexShrink: 0, position: 'relative', overflow: 'hidden', minHeight: minH, ...bleedStyle }}>
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: resolvedHero ? `url(${resolvedHero})` : 'none', backgroundSize: heroFit === 'width' ? '100% auto' : heroFit === 'height' ? 'auto 100%' : `${heroZoom}%`, backgroundPosition: heroPosition, backgroundRepeat: 'no-repeat', backgroundColor: '#000' }} />
+            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${resolvedHero})`, backgroundSize: heroFit === 'width' ? '100% auto' : heroFit === 'height' ? 'auto 100%' : `${heroZoom}%`, backgroundPosition: heroPosition, backgroundRepeat: 'no-repeat', backgroundColor: '#000' }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.75) 100%)' }} />
             <div style={{ position: 'absolute', inset: 0, background: t.heroGlow }} />
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(to right, transparent, ${t.accentMuted}, transparent)` }} />
@@ -425,34 +435,41 @@ export default function TributeWallClient({ capsule, initialContributions, profi
               </div>
             )}
 
-{!resolvedHero && (
-  <div style={{
-    position: 'absolute', inset: 0,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'linear-gradient(160deg, #0f0a1e 0%, #1a0845 100%)',
-    flexDirection: 'column', gap: '8px',
-  }}>
-    <div style={{
-      width: '64px', height: '64px', borderRadius: '50%',
-      border: '1px solid rgba(226,195,107,0.3)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'rgba(226,195,107,0.06)',
-    }}>
-      <span style={{
-        fontSize: '11px', fontWeight: 800, letterSpacing: '0.16em',
-        background: 'linear-gradient(135deg, #E2C36B, rgba(226,195,107,0.6))',
-        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-      }}>LC</span>
-    </div>
-    <p style={{ fontSize: '9px', color: 'rgba(226,195,107,0.3)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>Add a photo</p>
-  </div>
-)}
-
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, padding: '0 20px 20px', textAlign: 'center' }}>
               <div style={{ fontSize: '28px', marginBottom: '8px', lineHeight: 1 }}>{ornament}</div>
               <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(22px, 6vw, 32px)', fontWeight: 800, color: t.textHeading, lineHeight: 1.15, textShadow: '0 2px 20px rgba(0,0,0,0.9)', marginBottom: '6px' }}>{pageTitle}</h1>
               {capsule.event_tag && <p style={{ fontSize: '11px', color: t.accentMuted, letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: '6px' }}>{capsule.event_tag}</p>}
-       {capsule.event_date && <p style={{ fontSize: '10px', color: t.textFaint, marginTop: '6px' }}>{(() => { const d = new Date(capsule.event_date!); return `${String(d.getDate()).padStart(2,'0')}.${d.toLocaleString('en-GB',{month:'short'})}.${d.getFullYear()}` })()}</p>}
+              {capsule.event_date && (() => {
+                const d = new Date(capsule.event_date!)
+                const day = String(d.getDate()).padStart(2, '0')
+                const month = d.toLocaleString('en-GB', { month: 'short' })
+                const year = d.getFullYear()
+                const daysLeft = Math.ceil((d.getTime() - Date.now()) / 86400000)
+                const isPast = daysLeft < 0
+                const isToday = daysLeft === 0
+                return (
+                  <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.75)', fontWeight: 600, letterSpacing: '0.08em', textShadow: '0 1px 8px rgba(0,0,0,0.8)' }}>
+                      {day}.{month}.{year}
+                    </p>
+                    {!isPast && !isToday && (
+                      <p style={{ fontSize: '10px', color: t.accentPrimary, fontWeight: 700, letterSpacing: '0.12em', textShadow: '0 1px 8px rgba(0,0,0,0.9)', background: 'rgba(0,0,0,0.35)', padding: '2px 8px', borderRadius: '10px', backdropFilter: 'blur(4px)' }}>
+                        {daysLeft} {daysLeft === 1 ? 'day' : 'days'} to go
+                      </p>
+                    )}
+                    {isToday && (
+                      <p style={{ fontSize: '10px', color: t.accentPrimary, fontWeight: 700, letterSpacing: '0.12em', textShadow: '0 1px 8px rgba(0,0,0,0.9)', background: 'rgba(0,0,0,0.35)', padding: '2px 8px', borderRadius: '10px' }}>
+                        Today ✦
+                      </p>
+                    )}
+                    {isPast && (
+                      <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textShadow: '0 1px 8px rgba(0,0,0,0.8)' }}>
+                        Event concluded
+                      </p>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
           </div>
           )
@@ -533,7 +550,32 @@ export default function TributeWallClient({ capsule, initialContributions, profi
                         ))}
                       </div>}
                     </div>
-                    <div style={{ flex: 1 }}><input style={inp} placeholder="Relationship" value={fRel} onChange={e => setFRel(e.target.value)} maxLength={50} /></div>
+                    <div style={{ width: '100%', marginTop: '4px' }}>
+                      <p style={{ fontSize: '11px', color: t.accentMuted, fontWeight: 600, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        How you are connected <span style={{ color: 'rgba(248,113,113,0.8)' }}>*</span>
+                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '4px' }}>
+                        {['Parent/Guardian','Child','Sibling/Half/Step','Partner/Spouse/Ex','Extended Family','Father/Mother Figure','Friend','Acquaintance','Colleague/Professional Connection','Mentor/Teacher','Student/Mentee','Leader/Guide','Classmate/Alumni','Community','Team/Club Member','Faith/Spiritual Connection','Caregiver/Healthcare Worker','Legacy Beneficiary','Supporter/Well-wisher','Other'].map(opt => {
+                          const selected = fRel.includes(opt)
+                          return (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => setFRel(prev => selected ? prev.filter(r => r !== opt) : [...prev, opt])}
+                              style={{
+                                fontSize: '11px', padding: '5px 10px', borderRadius: '20px',
+                                border: `1px solid ${selected ? t.accentPrimary : t.cardBorder}`,
+                                background: selected ? t.accentFaint : 'transparent',
+                                color: selected ? t.accentPrimary : t.textMuted,
+                                cursor: 'pointer', transition: 'all 0.15s',
+                                fontWeight: selected ? 600 : 400,
+                              }}
+                            >{opt}</button>
+                          )
+                        })}
+                      </div>
+                      {(errors as any).rel && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.8)', marginTop: '4px' }}>{(errors as any).rel}</p>}
+                    </div>
                   </div>
 
                   {/* Tribute + Submit */}
@@ -638,10 +680,10 @@ export default function TributeWallClient({ capsule, initialContributions, profi
           {/* No photo/name repeat. No placeholder notices. Only active sections. */}
           {profileSections.length > 0 && (
             <div style={{ padding: '0 16px 8px' }}>
-              {profileSections.map(section => <ProfileSummarySection key={section.id} section={section} t={t} />)}
+              {profileSections.map(section => <ProfileSummarySection key={section.id} section={section} t={t} slug={capsule.slug} />)}
               <div style={{ textAlign: 'center', marginTop: '4px' }}>
                 <Link href={`/for/${capsule.slug}/profile`} style={{ fontSize: '12px', color: t.accentMuted, textDecoration: 'none', letterSpacing: '0.06em' }}>
-                  Read the full story of {honourName} →
+                  Visit profile page of {honourName} →
                 </Link>
               </div>
             </div>
