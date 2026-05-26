@@ -27,7 +27,7 @@ interface CapsuleRow {
   event_type: string; event_tag: string | null
   approved_contrib_count: number; page_state: string
   event_date: string | null; free_tier_expires_at: string | null
-  tier: string | null
+  tier: string | null; pendingCount: number
 }
 
 function formatCountdown(eventDate: string): { label: string; color: string; urgent: boolean } {
@@ -90,9 +90,9 @@ function CapsuleCard({ capsule }: { capsule: CapsuleRow }) {
           <span style={{ fontSize: '9px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', color: 'rgba(134,239,172,0.85)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Live</span>
 
           {/* Pending approval badge */}
-          {(capsule as any).pendingCount > 0 && (
+          {capsule.pendingCount > 0 && (
             <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(226,195,107,0.1)', border: '1px solid rgba(226,195,107,0.3)', color: '#E2C36B', fontWeight: 700 }}>
-              {(capsule as any).pendingCount} awaiting approval
+              ✦ {capsule.pendingCount} awaiting approval
             </span>
           )}
 
@@ -159,12 +159,32 @@ export default function DashboardPage() {
 
       const { data } = await supabase
         .from('capsules')
-        .select('id, slug, honouree_name, event_type, event_tag, approved_contrib_count, page_state, event_date, free_tier_expires_at, tier, pending_contrib_count:contributions(count)')
+        .select('id, slug, honouree_name, event_type, event_tag, approved_contrib_count, page_state, event_date, free_tier_expires_at, tier')
         .eq('organiser_email', emailToUse.toLowerCase())
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
 
-      setCapsules(data ?? [])
+      if (!data || data.length === 0) { setCapsules([]); setLoading(false); return }
+
+      // Fetch pending counts for all capsules in one query
+      const capsuleIds = data.map(c => c.id)
+      const { data: pendingData } = await supabase
+        .from('contributions')
+        .select('capsule_id')
+        .in('capsule_id', capsuleIds)
+        .in('status', ['pending', 'pending_review'])
+        .is('deleted_at', null)
+
+      // Count per capsule
+      const pendingMap: Record<string, number> = {}
+      pendingData?.forEach(row => {
+        pendingMap[row.capsule_id] = (pendingMap[row.capsule_id] ?? 0) + 1
+      })
+
+      // Merge pending counts into capsule rows
+      const enriched = data.map(c => ({ ...c, pendingCount: pendingMap[c.id] ?? 0 }))
+
+      setCapsules(enriched ?? [])
       setLoading(false)
     }
     load()
