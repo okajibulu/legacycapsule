@@ -505,7 +505,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   }
 
   /* =========================================================
-     RENDER
+     RENDER   XXX
   ========================================================= */
   return (
     <>
