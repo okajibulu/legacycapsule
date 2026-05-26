@@ -634,7 +634,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
                     <input ref={photoRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: 'none' }} />
                   </div>
 
-                  {/* City + Country + Relationship */}
+                  {/* City + Country — same row */}
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <div style={{ flex: 1 }}><input style={inp} placeholder="City *" value={fCity} onChange={e => setFCity(e.target.value)} maxLength={50} />{errors.city && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.city}</p>}</div>
                     <div style={{ flex: 1, position: 'relative' }} ref={countryRef}>
@@ -646,15 +646,15 @@ export default function TributeWallClient({ capsule, initialContributions, profi
                         ))}
                       </div>}
                     </div>
-                    <div style={{ width: '100%', marginTop: '4px' }}>
-                      <RelationshipSelect
-                        selected={fRel}
-                        onChange={setFRel}
-                        error={(errors as any).rel}
-                        t={t}
-                      />
-                    </div>
                   </div>
+
+                  {/* How you are connected — own row */}
+                  <RelationshipSelect
+                    selected={fRel}
+                    onChange={setFRel}
+                    error={(errors as any).rel}
+                    t={t}
+                  />
 
                   {/* Tribute + Submit */}
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
