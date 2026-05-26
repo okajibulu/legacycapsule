@@ -418,7 +418,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
               : { margin: '0 12px', borderRadius: '20px' }
             return (
           <div style={{ flexShrink: 0, position: 'relative', overflow: 'hidden', minHeight: minH, ...bleedStyle }}>
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${resolvedHero})`, backgroundSize: heroFit === 'width' ? '100% auto' : heroFit === 'height' ? 'auto 100%' : `${heroZoom}%`, backgroundPosition: heroPosition, backgroundRepeat: 'no-repeat', backgroundColor: '#000' }} />
+            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${resolvedHero})`, backgroundSize: heroFit === 'width' ? '100% auto' : heroFit === 'height' ? 'auto 100%' : heroFit === 'custom' ? `${heroZoom}%` : 'cover', backgroundPosition: heroPosition, backgroundRepeat: heroFit === 'custom' ? 'no-repeat' : 'no-repeat', backgroundColor: '#000' }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.75) 100%)' }} />
             <div style={{ position: 'absolute', inset: 0, background: t.heroGlow }} />
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(to right, transparent, ${t.accentMuted}, transparent)` }} />
@@ -447,26 +447,12 @@ export default function TributeWallClient({ capsule, initialContributions, profi
                 const daysLeft = Math.ceil((d.getTime() - Date.now()) / 86400000)
                 const isPast = daysLeft < 0
                 const isToday = daysLeft === 0
+                const countdownText = isToday ? 'Today ✦' : isPast ? 'Event concluded' : `${daysLeft}d to go`
                 return (
-                  <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                    <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.75)', fontWeight: 600, letterSpacing: '0.08em', textShadow: '0 1px 8px rgba(0,0,0,0.8)' }}>
-                      {day}.{month}.{year}
-                    </p>
-                    {!isPast && !isToday && (
-                      <p style={{ fontSize: '10px', color: t.accentPrimary, fontWeight: 700, letterSpacing: '0.12em', textShadow: '0 1px 8px rgba(0,0,0,0.9)', background: 'rgba(0,0,0,0.35)', padding: '2px 8px', borderRadius: '10px', backdropFilter: 'blur(4px)' }}>
-                        {daysLeft} {daysLeft === 1 ? 'day' : 'days'} to go
-                      </p>
-                    )}
-                    {isToday && (
-                      <p style={{ fontSize: '10px', color: t.accentPrimary, fontWeight: 700, letterSpacing: '0.12em', textShadow: '0 1px 8px rgba(0,0,0,0.9)', background: 'rgba(0,0,0,0.35)', padding: '2px 8px', borderRadius: '10px' }}>
-                        Today ✦
-                      </p>
-                    )}
-                    {isPast && (
-                      <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textShadow: '0 1px 8px rgba(0,0,0,0.8)' }}>
-                        Event concluded
-                      </p>
-                    )}
+                  <div style={{ marginTop: '6px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(0,0,0,0.4)', padding: '3px 10px', borderRadius: '12px', backdropFilter: 'blur(4px)' }}>
+                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.85)', fontWeight: 600, letterSpacing: '0.06em' }}>{day}.{month}.{year}</span>
+                    <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: isPast ? 'rgba(255,255,255,0.3)' : t.accentPrimary, flexShrink: 0, display: 'inline-block' }} />
+                    <span style={{ fontSize: '10px', color: isPast ? 'rgba(255,255,255,0.45)' : t.accentPrimary, fontWeight: isPast ? 400 : 700, letterSpacing: '0.08em' }}>{countdownText}</span>
                   </div>
                 )
               })()}

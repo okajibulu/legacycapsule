@@ -55,7 +55,11 @@ export default function SignInPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error ?? 'Failed to send code. Please try again.')
+        if (data.noAccount) {
+          setError("We don't have an account for this email. Check the address or create a capsule first.")
+        } else {
+          setError(data.error ?? 'Failed to send code. Please try again.')
+        }
         setSending(false); return
       }
       setStep('code')

@@ -27,6 +27,26 @@ export async function POST(request: NextRequest) {
     if (!email?.includes('@')) return NextResponse.json({ error: 'Valid email required' }, { status: 400 })
 
     const normalised = email.trim().toLowerCase()
+
+    // Check if this email has any capsules in the DB
+    const { createClient: createAdminClient } = await import('@supabase/supabase-js')
+    const adminSupa = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { count } = await adminSupa
+      .from('capsules')
+      .select('id', { count: 'exact', head: true })
+      .eq('organiser_email', normalised)
+      .is('deleted_at', null)
+
+    if (!count || count === 0) {
+      return NextResponse.json({
+        error: "We don't have an account for this email. Check the email or create a capsule first.",
+        noAccount: true,
+      }, { status: 404 })
+    }
+
     const code = generateCode()
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString()
 

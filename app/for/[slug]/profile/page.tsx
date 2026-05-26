@@ -129,7 +129,10 @@ export default async function ProfilePage({ params }: PageProps) {
             <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.16em', background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LEGACY</span>
             <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.16em', color: t.textFaint, marginLeft: '0.1em' }}>CAPSULE</span>
           </a>
-          <a href={`/for/${slug}`} style={{ fontSize: '12px', color: t.accentMuted, textDecoration: 'none', letterSpacing: '0.04em' }}>← Tribute Wall</a>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <a href={`/for/${slug}`} style={{ fontSize: '12px', color: t.accentMuted, textDecoration: 'none', letterSpacing: '0.04em' }}>← Tribute Wall</a>
+            <a href={`/manage/${slug}`} style={{ fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '20px', background: 'rgba(226,195,107,0.1)', border: '1px solid rgba(226,195,107,0.28)', color: '#E2C36B', textDecoration: 'none', letterSpacing: '0.04em' }}>⚙ Manage</a>
+          </div>
         </div>
       </div>
 
@@ -144,7 +147,6 @@ export default async function ProfilePage({ params }: PageProps) {
           <p style={{ fontSize: '26px', marginBottom: '10px', lineHeight: 1 }}>{eventEmoji}</p>
           <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.24em', color: t.accentMuted, marginBottom: '12px' }}>{eventLabel}</p>
           <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(26px, 6vw, 40px)', fontWeight: 800, color: '#ffffff', lineHeight: 1.15, marginBottom: '10px', textShadow: '0 2px 20px rgba(0,0,0,0.8)' }}>{capsule.honouree_name}</h1>
-          {capsule.honouree_title && <p style={{ fontSize: '13px', color: t.textMuted, marginBottom: '6px' }}>{capsule.honouree_title}</p>}
           {capsule.event_tag && <p style={{ fontSize: '14px', color: t.accentPrimary, marginBottom: '6px', fontWeight: 500 }}>{capsule.event_tag}</p>}
           {capsule.event_date && <p style={{ fontSize: '12px', color: t.textFaint }}>{formatDate(capsule.event_date)}</p>}
         </div>
