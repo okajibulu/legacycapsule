@@ -436,6 +436,191 @@ function BottomNav({ active, onChange, pendingCount }: { active: Tab; onChange: 
   )
 }
 
+/* ── WAYS TO HONOUR EDITOR ───────────────────────────── */
+function WaysToHonourEditor({ capsuleId, supabase }: { capsuleId: string; supabase: any }) {
+  const [accounts, setAccounts] = useState<any[]>([])
+  const [adding, setAdding] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({ title: '', account_name: '', bank_name: '', account_number: '', currency: 'NGN', instructions: '', support_type: 'bank_transfer', is_visible: true, reveal_required: true })
+
+  useEffect(() => {
+    supabase.from('capsule_support_accounts').select('*').eq('capsule_id', capsuleId).order('sort_order').then(({ data }: any) => setAccounts(data ?? []))
+  }, [capsuleId])
+
+  const handleAdd = async () => {
+    if (!form.account_name.trim() || !form.account_number.trim()) return
+    setSaving(true)
+    await supabase.from('capsule_support_accounts').insert({ capsule_id: capsuleId, ...form, sort_order: accounts.length })
+    const { data } = await supabase.from('capsule_support_accounts').select('*').eq('capsule_id', capsuleId).order('sort_order')
+    setAccounts(data ?? [])
+    setForm({ title: '', account_name: '', bank_name: '', account_number: '', currency: 'NGN', instructions: '', support_type: 'bank_transfer', is_visible: true, reveal_required: true })
+    setAdding(false); setSaving(false)
+  }
+
+  const handleToggle = async (id: string, is_visible: boolean) => {
+    await supabase.from('capsule_support_accounts').update({ is_visible: !is_visible }).eq('id', id)
+    setAccounts(prev => prev.map(a => a.id === id ? { ...a, is_visible: !is_visible } : a))
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Remove this account?')) return
+    await supabase.from('capsule_support_accounts').delete().eq('id', id)
+    setAccounts(prev => prev.filter(a => a.id !== id))
+  }
+
+  return (
+    <div>
+      <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.65, marginBottom: '14px' }}>
+        Add bank account details for guests who wish to send support. Displayed tastefully on your profile page. LegacyCapsule never handles or processes any funds.
+      </p>
+
+      {accounts.map(acc => (
+        <div key={acc.id} style={{ padding: '12px 14px', borderRadius: '10px', background: cardBg, border: `1px solid ${cardBorder}`, marginBottom: '8px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: acc.is_visible ? gold : textFaint, marginBottom: '2px' }}>{acc.title || acc.bank_name || 'Account'}</p>
+            <p style={{ fontSize: '11px', color: textFaint }}>{acc.account_name} · {acc.bank_name}</p>
+            <p style={{ fontSize: '11px', color: textFaint }}>••••{acc.account_number?.slice(-4)} · {acc.currency}</p>
+          </div>
+          <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+            <button onClick={() => handleToggle(acc.id, acc.is_visible)} style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '6px', border: `1px solid ${cardBorder}`, background: 'transparent', color: textFaint, cursor: 'pointer' }}>{acc.is_visible ? 'Hide' : 'Show'}</button>
+            <button onClick={() => handleDelete(acc.id)} style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(248,113,113,0.2)', background: 'transparent', color: 'rgba(248,113,113,0.6)', cursor: 'pointer' }}>✕</button>
+          </div>
+        </div>
+      ))}
+
+      {adding ? (
+        <div style={{ borderRadius: '12px', border: `1px solid ${cardBorder}`, background: cardBg, padding: '14px', marginTop: '8px' }}>
+          <p style={{ fontSize: '11px', color: goldMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>New Account</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <input style={inp} placeholder="Label (e.g. Celebrate With Prof. Adesina)" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+            <input style={inp} placeholder="Account name *" value={form.account_name} onChange={e => setForm(f => ({ ...f, account_name: e.target.value }))} />
+            <input style={inp} placeholder="Bank name" value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} />
+            <input style={inp} placeholder="Account number *" value={form.account_number} onChange={e => setForm(f => ({ ...f, account_number: e.target.value }))} />
+            <input style={inp} placeholder="Currency (e.g. NGN, USD, GBP)" value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))} />
+            <textarea style={{ ...inp, resize: 'none', lineHeight: 1.6 }} rows={2} placeholder="Optional note (e.g. Please use your name as reference)" value={form.instructions} onChange={e => setForm(f => ({ ...f, instructions: e.target.value }))} />
+          </div>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+            <button onClick={handleAdd} disabled={saving || !form.account_name.trim() || !form.account_number.trim()} style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', border: 'none', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : 'Add Account'}</button>
+            <button onClick={() => setAdding(false)} style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '12px', background: 'transparent', border: `1px solid ${cardBorder}`, color: textFaint, cursor: 'pointer' }}>Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setAdding(true)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: `1px dashed rgba(226,195,107,0.2)`, background: 'transparent', color: goldMuted, fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginTop: '4px', letterSpacing: '0.04em' }}>+ Add Support Account</button>
+      )}
+    </div>
+  )
+}
+
+/* ── ADD-ONS TABLE ────────────────────────────────────── */
+const LC_SERVICES = [
+  {
+    id: 'tribute_wall',       label: 'Tribute Wall',           desc: 'Public wall where contributors leave text tributes, viewable by all guests.', active: true, alwaysOn: true, phase: 1 },
+  { id: 'world_map',         label: 'World Tribute Map',      desc: 'Interactive map showing where tributes came from across the globe.', active: true, alwaysOn: true, phase: 1 },
+  { id: 'profile_canvas',    label: 'Profile Canvas',         desc: 'A rich profile page with biography, timeline, gallery and profile sections.', active: true, alwaysOn: true, phase: 1 },
+  { id: 'ways_to_honour',    label: 'Ways to Honour',         desc: 'Dignified bank transfer details for guests who wish to support the honouree.', active: true, alwaysOn: false, phase: 1 },
+  { id: 'audio_tributes',    label: 'Voice Tributes',         desc: 'Contributors can record personal audio messages up to 2 minutes.', active: false, alwaysOn: false, phase: 1 },
+  { id: 'video_tributes',    label: 'Video Tributes',         desc: 'Contributors can upload short video messages shown in their tribute card.', active: false, alwaysOn: false, phase: 1 },
+  { id: 'photo_tributes',    label: 'Photo Tributes',         desc: 'Contributors can attach photos to their tribute messages.', active: true, alwaysOn: true, phase: 1 },
+  { id: 'family_rep_portal', label: 'Family Rep Portal',      desc: 'Private token-gated portal for the Family Representative to view tributes and acknowledgements.', active: true, alwaysOn: false, phase: 1 },
+  { id: 'publication',       label: 'Digital Publication',    desc: 'A beautifully designed keepsake publication compiled from all tributes, sent to every contributor.', active: false, alwaysOn: false, phase: 2 },
+  { id: 'rsvp',              label: 'Guest Management & RSVP', desc: 'Collect RSVPs, manage guest lists, and coordinate event attendance.', active: false, alwaysOn: false, phase: 2 },
+  { id: 'attire',            label: 'Fabric & Attire',        desc: 'Coordinate event dress code, fabric choices and attire instructions for guests.', active: false, alwaysOn: false, phase: 2 },
+  { id: 'gift_capsule',      label: 'Gift a Capsule',         desc: 'Commission a capsule as a ceremonial gift for someone with a milestone event.', active: false, alwaysOn: false, phase: 2 },
+  { id: 'group_gift',        label: 'Group Commission',       desc: 'Multiple people pool together to commission a premium capsule as a group gift.', active: false, alwaysOn: false, phase: 3 },
+  { id: 'anniversary',       label: 'Anniversary Recall',     desc: 'On the anniversary of the event, all contributors receive a memory recall email.', active: false, alwaysOn: false, phase: 3 },
+]
+
+function AddOnsTable({ capsuleComponents, onUpgrade }: { capsuleComponents: string[]; onUpgrade: () => void }) {
+  const [tooltip, setTooltip] = useState<string | null>(null)
+
+  return (
+    <div>
+      {/* Legend */}
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '12px', flexWrap: 'wrap' as const }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(74,222,128,0.7)' }} />
+          <span style={{ fontSize: '10px', color: textFaint }}>Active on your capsule</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(226,195,107,0.4)' }} />
+          <span style={{ fontSize: '10px', color: textFaint }}>Available — contact us to activate</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.12)' }} />
+          <span style={{ fontSize: '10px', color: textFaint }}>Coming in a future phase</span>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div style={{ borderRadius: '12px', border: `1px solid ${cardBorder}`, overflow: 'hidden' }}>
+        {LC_SERVICES.map((svc, idx) => {
+          const isActivated = svc.alwaysOn || capsuleComponents.includes(svc.id)
+          const isAvailable = svc.phase === 1
+          const isComingSoon = svc.phase > 1
+          const isHovered = tooltip === svc.id
+
+          return (
+            <div
+              key={svc.id}
+              onMouseEnter={() => setTooltip(svc.id)}
+              onMouseLeave={() => setTooltip(null)}
+              onTouchStart={() => setTooltip(isHovered ? null : svc.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '11px 14px',
+                borderBottom: idx < LC_SERVICES.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                background: isHovered ? 'rgba(226,195,107,0.04)' : 'transparent',
+                transition: 'background 0.15s',
+                opacity: isComingSoon ? 0.45 : 1,
+                cursor: isComingSoon ? 'default' : 'pointer',
+                position: 'relative' as const,
+              }}
+            >
+              {/* Status dot */}
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0, background: isActivated ? 'rgba(74,222,128,0.7)' : isAvailable ? 'rgba(226,195,107,0.4)' : 'rgba(255,255,255,0.12)' }} />
+
+              {/* Label */}
+              <span style={{ flex: 1, fontSize: '12px', color: isComingSoon ? textFaint : isActivated ? textPrimary : textSecondary, fontWeight: isActivated ? 600 : 400 }}>
+                {svc.label}
+              </span>
+
+              {/* Phase badge for coming soon */}
+              {isComingSoon && (
+                <span style={{ fontSize: '9px', padding: '2px 7px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: textFaint, letterSpacing: '0.08em' }}>
+                  Phase {svc.phase}
+                </span>
+              )}
+
+              {/* Active tick */}
+              {isActivated && (
+                <span style={{ fontSize: '12px', color: 'rgba(74,222,128,0.7)', flexShrink: 0 }}>✓</span>
+              )}
+
+              {/* Available — activate CTA */}
+              {!isActivated && isAvailable && (
+                <button onClick={onUpgrade} style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '8px', border: '1px solid rgba(226,195,107,0.25)', background: 'rgba(226,195,107,0.06)', color: goldMuted, cursor: 'pointer', flexShrink: 0 }}>
+                  Activate
+                </button>
+              )}
+
+              {/* Hover tooltip */}
+              {isHovered && (
+                <div style={{ position: 'absolute', bottom: 'calc(100% + 4px)', left: '14px', right: '14px', zIndex: 20, padding: '8px 12px', borderRadius: '10px', background: '#1a0845', border: `1px solid rgba(226,195,107,0.2)`, boxShadow: '0 8px 24px rgba(0,0,0,0.5)', pointerEvents: 'none' }}>
+                  <p style={{ fontSize: '11px', color: textSecondary, lineHeight: 1.6, margin: 0 }}>{svc.desc}</p>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      <p style={{ fontSize: '10px', color: textFaint, marginTop: '10px', textAlign: 'center', fontStyle: 'italic' }}>
+        Prices are set based on your event and capsule requirements. Contact us to discuss activation.
+      </p>
+    </div>
+  )
+}
+
 /* ── MAIN COMPONENT ───────────────────────────────────── */
 export default function ManagePage() {
   const params = useParams()
@@ -641,6 +826,11 @@ export default function ManagePage() {
               )}
 
               <Link href={`/for/${slug}`} target="_blank" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '11px', borderRadius: '10px', border: `1px solid rgba(255,255,255,0.07)`, background: 'rgba(255,255,255,0.02)', color: textSecondary, textDecoration: 'none', fontSize: '12px', letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '14px' }}>View Public Tribute Wall ↗</Link>
+
+              {/* ── ADD-ONS / SERVICES TABLE ── */}
+              <SectionCard title="Capsule Services" subtitle="Tap any service to learn more — contact us to activate">
+                <AddOnsTable capsuleComponents={capsule.components ?? []} onUpgrade={() => setActiveTab('settings')} />
+              </SectionCard>
             </div>
           )}
 
@@ -723,6 +913,11 @@ export default function ManagePage() {
               <SectionCard title="Family Representative" subtitle="Private portal access">
                 <EditField label="Representative Name" value={(capsule as any).family_rep_name ?? ''} placeholder="Name of the family rep" onSave={async val => { await updateCapsule({ family_rep_name: val } as any) }} />
                 <EditField label="Representative Email" value={(capsule as any).family_rep_email ?? ''} type="email" placeholder="Their email address" hint="Receives the Honouree Reveal and access to the private portal." onSave={async val => { await updateCapsule({ family_rep_email: val } as any) }} />
+              </SectionCard>
+
+              {/* Ways to Honour */}
+              <SectionCard title="Ways to Honour" subtitle="Premium · Add bank accounts for guests to send support">
+                <WaysToHonourEditor capsuleId={capsule.id} supabase={supabase} />
               </SectionCard>
 
               <UpgradeCard capsuleName={capsule.honouree_name} />

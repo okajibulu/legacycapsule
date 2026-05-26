@@ -89,6 +89,13 @@ function CapsuleCard({ capsule }: { capsule: CapsuleRow }) {
           {/* Live badge */}
           <span style={{ fontSize: '9px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', color: 'rgba(134,239,172,0.85)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Live</span>
 
+          {/* Pending approval badge */}
+          {(capsule as any).pendingCount > 0 && (
+            <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(226,195,107,0.1)', border: '1px solid rgba(226,195,107,0.3)', color: '#E2C36B', fontWeight: 700 }}>
+              {(capsule as any).pendingCount} awaiting approval
+            </span>
+          )}
+
           {/* Event countdown */}
           {countdown && (
             <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '10px', background: countdown.urgent ? 'rgba(226,195,107,0.08)' : 'transparent', border: `1px solid ${countdown.urgent ? 'rgba(226,195,107,0.25)' : 'rgba(255,255,255,0.06)'}`, color: countdown.color, fontWeight: countdown.urgent ? 700 : 400 }}>
@@ -152,7 +159,7 @@ export default function DashboardPage() {
 
       const { data } = await supabase
         .from('capsules')
-        .select('id, slug, honouree_name, event_type, event_tag, approved_contrib_count, page_state, event_date, free_tier_expires_at, tier')
+        .select('id, slug, honouree_name, event_type, event_tag, approved_contrib_count, page_state, event_date, free_tier_expires_at, tier, pending_contrib_count:contributions(count)')
         .eq('organiser_email', emailToUse.toLowerCase())
         .is('deleted_at', null)
         .order('created_at', { ascending: false })

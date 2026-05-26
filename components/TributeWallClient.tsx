@@ -505,7 +505,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   }
 
   /* =========================================================
-     RENDER   XXX
+     RENDER
   ========================================================= */
   return (
     <>
@@ -651,17 +651,21 @@ export default function TributeWallClient({ capsule, initialContributions, profi
           {/* ── COLLAPSIBLE COMPOSER ── */}
           <div style={{ flexShrink: 0, margin: '10px 12px 0' }}>
             {!composerOpen ? (
-              /* Collapsed — invitation bar */
-              <button onClick={() => setComposerOpen(true)} style={{
-                width: '100%', padding: '14px 20px', borderRadius: '16px', cursor: 'pointer',
-                background: t.cardBg, border: `1px solid ${t.accentFaint}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                transition: 'all 0.2s',
-              }}>
-                <span style={{ fontSize: '13px', color: t.accentPrimary, fontWeight: 600, letterSpacing: '0.04em' }}>
-                  ✦ Click to leave a tribute
-                </span>
-              </button>
+              /* Collapsed — three-part action row */
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch' }}>
+                {/* Copy Link — left */}
+                <button onClick={handleCopy} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '11px', padding: '12px 6px', borderRadius: '12px', border: `1px solid ${copied ? 'rgba(74,222,128,0.28)' : t.accentFaint}`, background: copied ? 'rgba(74,222,128,0.07)' : t.cardBg, color: copied ? 'rgba(134,239,172,0.9)' : t.accentMuted, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' as const, transition: 'all 0.2s' }}>
+                  {copied ? '✓' : '🔗'} {copied ? 'Copied' : 'Copy Link'}
+                </button>
+                {/* ✦ Leave a Tribute — centre primary */}
+                <button onClick={() => setComposerOpen(true)} style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '13px', padding: '12px 12px', borderRadius: '12px', border: `1px solid ${t.accentFaint}`, background: t.cardBg, color: t.accentPrimary, cursor: 'pointer', fontWeight: 700, letterSpacing: '0.03em', whiteSpace: 'nowrap' as const, transition: 'all 0.2s' }}>
+                  <span style={{ fontSize: '14px' }}>✦</span> Leave a Tribute
+                </button>
+                {/* Share Link — right */}
+                <a href={`https://wa.me/?text=${encodeURIComponent('Leave a tribute for ' + honourName + ': ' + capsuleUrl)}`} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '11px', padding: '12px 6px', borderRadius: '12px', border: '1px solid rgba(74,222,128,0.22)', background: t.cardBg, color: 'rgba(74,222,128,0.7)', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' as const }}>
+                  💬 Share
+                </a>
+              </div>
             ) : (
               /* Expanded — full form */
               <div className="composer-enter" style={{ borderRadius: '18px', padding: '18px 16px', background: t.cardBg, border: `1px solid ${t.accentFaint}`, overflow: 'hidden' }}>
@@ -716,34 +720,18 @@ export default function TributeWallClient({ capsule, initialContributions, profi
                     </button>
                   </div>
 
-                  {/* Audio/Video premium toggles — above main strip */}
-                  <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                  {/* Audio/Video premium toggles */}
+                  <div style={{ display: 'flex', gap: '6px' }}>
                     {capsule.components?.includes('audio_tributes') ? (
-                      <button onClick={() => { setShowVideoUploader(false); setShowAudioRecorder(v => !v) }} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '5px 10px', borderRadius: '8px', border: `1px solid ${showAudioRecorder ? t.accentFaint : t.cardBorder}`, background: showAudioRecorder ? t.accentFaint : t.inputBg, color: showAudioRecorder ? t.accentPrimary : t.textMuted, cursor: 'pointer' }}>🎙️ Audio</button>
+                      <button type="button" onClick={() => { setShowVideoUploader(false); setShowAudioRecorder(v => !v) }} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '5px 10px', borderRadius: '8px', border: `1px solid ${showAudioRecorder ? t.accentFaint : t.cardBorder}`, background: showAudioRecorder ? t.accentFaint : t.inputBg, color: showAudioRecorder ? t.accentPrimary : t.textMuted, cursor: 'pointer' }}>🎙️ Audio</button>
                     ) : (
-                      <button onClick={() => setPremiumNotice('audio')} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '5px 10px', borderRadius: '8px', border: `1px solid ${t.cardBorder}`, background: t.inputBg, color: t.textFaint, cursor: 'pointer' }}>🎙️ Audio <span style={{ fontSize: '9px', color: t.accentMuted }}>✦</span></button>
+                      <button type="button" onClick={() => setPremiumNotice('audio')} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '5px 10px', borderRadius: '8px', border: `1px solid ${t.cardBorder}`, background: t.inputBg, color: t.textFaint, cursor: 'pointer' }}>🎙️ Audio <span style={{ fontSize: '9px', color: t.accentMuted }}>✦</span></button>
                     )}
                     {capsule.components?.includes('video_tributes') ? (
-                      <button onClick={() => { setShowAudioRecorder(false); setShowVideoUploader(v => !v) }} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '5px 10px', borderRadius: '8px', border: `1px solid ${showVideoUploader ? t.accentFaint : t.cardBorder}`, background: showVideoUploader ? t.accentFaint : t.inputBg, color: showVideoUploader ? t.accentPrimary : t.textMuted, cursor: 'pointer' }}>🎬 Video</button>
+                      <button type="button" onClick={() => { setShowAudioRecorder(false); setShowVideoUploader(v => !v) }} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '5px 10px', borderRadius: '8px', border: `1px solid ${showVideoUploader ? t.accentFaint : t.cardBorder}`, background: showVideoUploader ? t.accentFaint : t.inputBg, color: showVideoUploader ? t.accentPrimary : t.textMuted, cursor: 'pointer' }}>🎬 Video</button>
                     ) : (
-                      <button onClick={() => setPremiumNotice('video')} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '5px 10px', borderRadius: '8px', border: `1px solid ${t.cardBorder}`, background: t.inputBg, color: t.textFaint, cursor: 'pointer' }}>🎬 Video <span style={{ fontSize: '9px', color: t.accentMuted }}>✦</span></button>
+                      <button type="button" onClick={() => setPremiumNotice('video')} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '5px 10px', borderRadius: '8px', border: `1px solid ${t.cardBorder}`, background: t.inputBg, color: t.textFaint, cursor: 'pointer' }}>🎬 Video <span style={{ fontSize: '9px', color: t.accentMuted }}>✦</span></button>
                     )}
-                  </div>
-
-                  {/* Main action strip: Copy Link | ✦ Click to Leave a Tribute | Share Link */}
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch' }}>
-                    {/* Copy Link — left */}
-                    <button onClick={handleCopy} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '11px', padding: '9px 6px', borderRadius: '10px', border: `1px solid ${copied ? 'rgba(74,222,128,0.28)' : t.accentFaint}`, background: copied ? 'rgba(74,222,128,0.07)' : t.inputBg, color: copied ? 'rgba(134,239,172,0.9)' : t.accentMuted, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' as const }}>
-                      {copied ? '✓' : '🔗'} {copied ? 'Copied' : 'Copy Link'}
-                    </button>
-                    {/* Leave a Tribute — centre, primary */}
-                    <button onClick={() => setComposerOpen(true)} style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '13px', padding: '9px 12px', borderRadius: '10px', border: `1px solid ${t.accentFaint}`, background: `linear-gradient(135deg, rgba(226,195,107,0.12), rgba(226,195,107,0.06))`, color: t.accentPrimary, cursor: 'pointer', fontWeight: 700, letterSpacing: '0.03em', whiteSpace: 'nowrap' as const }}>
-                      <span style={{ fontSize: '14px' }}>✦</span> Leave a Tribute
-                    </button>
-                    {/* Share Link — right */}
-                    <Link href={`https://wa.me/?text=${encodeURIComponent('Leave a tribute for ' + honourName + ': ' + capsuleUrl)}`} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '11px', padding: '9px 6px', borderRadius: '10px', border: '1px solid rgba(74,222,128,0.22)', background: t.inputBg, color: 'rgba(74,222,128,0.7)', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' as const }}>
-                      💬 Share
-                    </Link>
                   </div>
 
                   {/* Audio recorder — expands when toggled */}
