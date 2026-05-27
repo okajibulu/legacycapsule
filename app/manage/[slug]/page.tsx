@@ -687,11 +687,14 @@ function AddOnsTable({ capsuleComponents, onUpgrade }: { capsuleComponents: stri
                 <span style={{ fontSize: '12px', color: 'rgba(74,222,128,0.7)', flexShrink: 0 }}>✓</span>
               )}
 
-              {/* Available — paid unlock indicator */}
+              {/* Available — clicking opens upgrade path */}
               {!isActivated && isAvailable && (
-                <span style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '8px', border: '1px solid rgba(226,195,107,0.2)', background: 'rgba(226,195,107,0.04)', color: goldMuted, flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <button
+                  onClick={onUpgrade}
+                  title="This is a paid add-on. Click to enquire about unlocking."
+                  style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '8px', border: '1px solid rgba(226,195,107,0.25)', background: 'rgba(226,195,107,0.05)', color: goldMuted, flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                   🔒 Unlock
-                </span>
+                </button>
               )}
 
               {/* Hover tooltip */}
@@ -920,7 +923,12 @@ export default function ManagePage() {
 
               {/* ── ADD-ONS / SERVICES TABLE ── */}
               <SectionCard title="Capsule Services" subtitle="Tap any service to learn more — contact us to activate">
-                <AddOnsTable capsuleComponents={capsule.components ?? []} onUpgrade={() => setActiveTab('settings')} />
+                <AddOnsTable capsuleComponents={capsule.components ?? []} onUpgrade={() => {
+                  setActiveTab('settings')
+                  setTimeout(() => {
+                    document.getElementById('upgrade-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }, 150)
+                }} />
               </SectionCard>
             </div>
           )}
@@ -1018,7 +1026,9 @@ export default function ManagePage() {
                 <WaysToHonourEditor capsuleId={capsule.id} supabase={supabase} />
               </SectionCard>
 
-              <UpgradeCard capsuleName={capsule.honouree_name} />
+              <div id="upgrade-form">
+                <UpgradeCard capsuleName={capsule.honouree_name} />
+              </div>
             </div>
           )}
         </div>
