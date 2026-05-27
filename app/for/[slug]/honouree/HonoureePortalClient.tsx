@@ -38,12 +38,134 @@ type Tab = 'tributes' | 'honour' | 'acknowledgements'
 interface Tribute {
   id: string; contributor_name: string; city: string; country: string
   relationship: string | null; tribute_text: string; thumbnail_url: string | null
-  audio_url: string | null; video_url: string | null; created_at: string; status: string
+  audio_url: string | null; video_url: string | null; created_at: string
+  status: string; email: string | null
 }
 interface Acknowledgement {
   id: string; contributor_name: string; relationship: string | null
   amount: string | null; currency: string | null; note: string | null
   created_at: string; support_account_id: string | null
+}
+
+// ── Tribute card with respond button ─────────────────────
+function TributeRepCard({ tribute, capsuleId, token, formatDate }: {
+  tribute: Tribute; capsuleId: string; token: string
+  formatDate: (s: string) => string
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const [showRespond, setShowRespond] = useState(false)
+  const [responseText, setResponseText] = useState('')
+  const [respondedBy, setRespondedBy] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(!!(tribute as any).response_text)
+  const [existingResponse] = useState((tribute as any).response_text ?? null)
+  const [existingBy] = useState((tribute as any).responded_by ?? null)
+
+  const handleRespond = async () => {
+    if (!responseText.trim()) return
+    setSending(true)
+    try {
+      const res = await fetch('/api/rep/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contributionId: tribute.id,
+          capsuleId,
+          responseText,
+          respondedBy: respondedBy.trim() || 'The Family',
+          token,
+        }),
+      })
+      if (res.ok) { setSent(true); setShowRespond(false) }
+    } catch { /* handle silently */ }
+    setSending(false)
+  }
+
+  return (
+    <div style={{ borderRadius: '14px', background: cardBg, border: `1px solid ${cardBorder}`, borderLeft: `3px solid rgba(226,195,107,0.4)`, padding: '14px 16px', marginBottom: '10px' }}>
+      {/* Name · Relationship */}
+      <div style={{ marginBottom: '4px' }}>
+        <span style={{ fontSize: '13px', fontWeight: 700, color: textPrimary }}>{tribute.contributor_name}</span>
+        {tribute.relationship && <span style={{ fontSize: '11px', color: goldMuted, marginLeft: '6px' }}>· {tribute.relationship}</span>}
+      </div>
+      {/* City · Country · Date */}
+      <p style={{ fontSize: '10px', color: textFaint, marginBottom: '10px' }}>
+        {[tribute.city, tribute.country].filter(Boolean).join(' · ')}{(tribute.city || tribute.country) ? ' · ' : ''}{formatDate(tribute.created_at)}
+      </p>
+      {/* Tribute text */}
+      <p style={{ fontSize: '13px', color: textSecondary, lineHeight: 1.75, display: expanded ? 'block' : '-webkit-box', WebkitLineClamp: expanded ? undefined : 3, WebkitBoxOrient: 'vertical' as any, overflow: expanded ? 'visible' : 'hidden', margin: 0 }}>
+        {tribute.tribute_text}
+      </p>
+      {tribute.tribute_text.length > 160 && (
+        <button onClick={() => setExpanded(!expanded)} style={{ fontSize: '11px', color: goldMuted, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0 0', display: 'block' }}>
+          {expanded ? 'show less' : 'read more'}
+        </button>
+      )}
+
+      {/* Audio/Video */}
+      {tribute.audio_url && (
+        <div style={{ marginTop: '10px' }}>
+          <p style={{ fontSize: '9px', color: goldMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>🎙️ Voice Tribute</p>
+          <audio controls src={tribute.audio_url} style={{ width: '100%', height: '32px' }} />
+        </div>
+      )}
+      {tribute.video_url && (
+        <div style={{ marginTop: '10px' }}>
+          <p style={{ fontSize: '9px', color: goldMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>🎬 Video Tribute</p>
+          <video controls src={tribute.video_url} style={{ width: '100%', borderRadius: '8px', maxHeight: '200px' }} />
+        </div>
+      )}
+
+      {/* Existing response */}
+      {existingResponse && (
+        <div style={{ marginTop: '10px', padding: '10px 12px', borderRadius: '10px', background: 'rgba(226,195,107,0.06)', borderLeft: `3px solid rgba(226,195,107,0.35)` }}>
+          <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: goldMuted, marginBottom: '5px' }}>
+            Your Response · {existingBy || 'The Family'}
+          </p>
+          <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.7, fontStyle: 'italic', margin: 0 }}>"{existingResponse}"</p>
+        </div>
+      )}
+
+      {/* Respond section */}
+      {!sent && !showRespond && (
+        <button onClick={() => setShowRespond(true)} style={{ marginTop: '10px', fontSize: '11px', padding: '5px 14px', borderRadius: '8px', border: `1px solid rgba(226,195,107,0.22)`, background: 'rgba(226,195,107,0.05)', color: goldMuted, cursor: 'pointer', fontWeight: 600 }}>
+          ✦ Respond to this tribute
+        </button>
+      )}
+
+      {showRespond && !sent && (
+        <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <input
+            placeholder="Your name / role (e.g. The Adesina Family)"
+            value={respondedBy}
+            onChange={e => setRespondedBy(e.target.value)}
+            style={{ width: '100%', fontSize: '12px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(226,195,107,0.18)', color: textPrimary, outline: 'none', boxSizing: 'border-box', fontFamily: "'DM Sans', sans-serif" }}
+          />
+          <textarea
+            placeholder="Write your response…"
+            value={responseText}
+            onChange={e => setResponseText(e.target.value)}
+            rows={3}
+            style={{ width: '100%', fontSize: '12px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(226,195,107,0.18)', color: textPrimary, outline: 'none', resize: 'none', lineHeight: 1.65, boxSizing: 'border-box', fontFamily: "'DM Sans', sans-serif" }}
+          />
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={handleRespond} disabled={sending || !responseText.trim()} style={{ flex: 1, padding: '8px', borderRadius: '8px', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '12px', fontWeight: 700, border: 'none', cursor: 'pointer', opacity: sending || !responseText.trim() ? 0.6 : 1 }}>
+              {sending ? 'Sending…' : 'Send Response'}
+            </button>
+            <button onClick={() => setShowRespond(false)} style={{ padding: '8px 14px', borderRadius: '8px', background: 'transparent', border: `1px solid ${cardBorder}`, color: textFaint, fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+          </div>
+          {tribute.email
+            ? <p style={{ fontSize: '10px', color: textFaint, fontStyle: 'italic' }}>✓ {tribute.contributor_name} will receive an email notification of your response.</p>
+            : <p style={{ fontSize: '10px', color: textFaint, fontStyle: 'italic' }}>This contributor did not provide an email — no notification will be sent.</p>
+          }
+        </div>
+      )}
+
+      {sent && !existingResponse && (
+        <p style={{ marginTop: '8px', fontSize: '11px', color: 'rgba(134,239,172,0.8)' }}>✓ Response sent — it will appear on the tribute wall.</p>
+      )}
+    </div>
+  )
 }
 
 export default function HonoureePortalClient({ capsule, tributes, supportAccounts, acknowledgements, token }: {
@@ -114,44 +236,22 @@ export default function HonoureePortalClient({ capsule, tributes, supportAccount
         {/* Tributes tab */}
         {activeTab === 'tributes' && (
           <div style={{ paddingBottom: '32px' }}>
+            <p style={{ fontSize: '11px', color: textFaint, fontStyle: 'italic', marginBottom: '16px', lineHeight: 1.6 }}>
+              You can respond to individual tributes below. Contributors who provided an email will receive a notification of your response.
+            </p>
             {tributes.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '48px 24px' }}>
                 <p style={{ fontSize: '32px', marginBottom: '12px' }}>✦</p>
                 <p style={{ fontSize: '14px', color: textFaint, lineHeight: 1.7 }}>No tributes yet. They will appear here as they are approved.</p>
               </div>
             ) : tributes.map(tribute => (
-              <div key={tribute.id} style={{ borderRadius: '14px', background: cardBg, border: `1px solid ${cardBorder}`, borderLeft: `3px solid rgba(226,195,107,0.4)`, padding: '14px 16px', marginBottom: '10px' }}>
-                {/* Name · Relationship */}
-                <div style={{ marginBottom: '4px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: textPrimary }}>{tribute.contributor_name}</span>
-                  {tribute.relationship && <span style={{ fontSize: '11px', color: goldMuted, marginLeft: '6px' }}>· {tribute.relationship}</span>}
-                </div>
-                {/* City · Country · Date */}
-                <p style={{ fontSize: '10px', color: textFaint, marginBottom: '10px' }}>
-                  {[tribute.city, tribute.country].filter(Boolean).join(' · ')}{(tribute.city || tribute.country) ? ' · ' : ''}{formatDate(tribute.created_at)}
-                </p>
-                {/* Text — 3-line clamp */}
-                <p style={{ fontSize: '13px', color: textSecondary, lineHeight: 1.75, display: expanded === tribute.id ? 'block' : '-webkit-box', WebkitLineClamp: expanded === tribute.id ? undefined : 3, WebkitBoxOrient: 'vertical' as any, overflow: expanded === tribute.id ? 'visible' : 'hidden', margin: 0 }}>
-                  {tribute.tribute_text}
-                </p>
-                {tribute.tribute_text.length > 160 && (
-                  <button onClick={() => setExpanded(expanded === tribute.id ? null : tribute.id)} style={{ fontSize: '11px', color: goldMuted, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0 0', display: 'block' }}>
-                    {expanded === tribute.id ? 'show less' : 'read more'}
-                  </button>
-                )}
-                {tribute.audio_url && (
-                  <div style={{ marginTop: '10px' }}>
-                    <p style={{ fontSize: '9px', color: goldMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>🎙️ Voice Tribute</p>
-                    <audio controls src={tribute.audio_url} style={{ width: '100%', height: '32px' }} />
-                  </div>
-                )}
-                {tribute.video_url && (
-                  <div style={{ marginTop: '10px' }}>
-                    <p style={{ fontSize: '9px', color: goldMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>🎬 Video Tribute</p>
-                    <video controls src={tribute.video_url} style={{ width: '100%', borderRadius: '8px', maxHeight: '200px' }} />
-                  </div>
-                )}
-              </div>
+              <TributeRepCard
+                key={tribute.id}
+                tribute={tribute}
+                capsuleId={capsule.id}
+                token={token}
+                formatDate={formatDate}
+              />
             ))}
           </div>
         )}
@@ -178,6 +278,12 @@ export default function HonoureePortalClient({ capsule, tributes, supportAccount
         {/* Acknowledgements tab */}
         {activeTab === 'acknowledgements' && (
           <div style={{ paddingBottom: '32px' }}>
+            <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(226,195,107,0.05)', border: `1px solid rgba(226,195,107,0.12)`, marginBottom: '16px' }}>
+              <p style={{ fontSize: '12px', color: goldMuted, fontWeight: 600, marginBottom: '4px' }}>What are acknowledgements?</p>
+              <p style={{ fontSize: '11px', color: textFaint, lineHeight: 1.65, margin: 0 }}>
+                When a guest views the Ways to Honour section and clicks "I Have Sent Support", they fill in a short form with their name, optional amount, and a message. Those submissions appear here — a private record of who has honoured {capsule.honouree_name} with financial support. This is only visible to you and the organiser.
+              </p>
+            </div>
             {acknowledgements.length === 0 ? (
               <p style={{ textAlign: 'center', color: textFaint, fontSize: '13px', padding: '32px 0', fontStyle: 'italic' }}>No acknowledgements have been submitted yet.</p>
             ) : acknowledgements.map(ack => (

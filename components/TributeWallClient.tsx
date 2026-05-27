@@ -83,8 +83,8 @@ async function getIPCoords(): Promise<{ lat: number; lng: number; country: strin
 /* =========================================================
    TRIBUTE CARD — theme-aware, left accent
 ========================================================= */
-function TributeCard({ c, isAdmin, isOwn, onApprove, onDelete, onEdit, t }: {
-  c: Contribution; isAdmin: boolean; isOwn: boolean
+function TributeCard({ c, capsuleId, isAdmin, isOwn, onApprove, onDelete, onEdit, t }: {
+  c: Contribution; capsuleId: string; isAdmin: boolean; isOwn: boolean
   onApprove: (id: string) => void; onDelete: (id: string) => void
   onEdit: (id: string, text: string) => void; t: ThemeConfig
 }) {
@@ -201,6 +201,23 @@ function TributeCard({ c, isAdmin, isOwn, onApprove, onDelete, onEdit, t }: {
           </>
         )}
 
+        {/* Emoji reactions */}
+        {!isPending && (
+          <EmojiReactions contributionId={c.id} capsuleId={capsuleId} t={t} />
+        )}
+
+        {/* Family response — shown if exists */}
+        {(c as any).response_text && (
+          <div style={{ marginTop: '10px', padding: '10px 12px', borderRadius: '10px', background: 'rgba(226,195,107,0.05)', borderLeft: `3px solid rgba(226,195,107,0.35)` }}>
+            <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' as const, color: t.accentMuted, marginBottom: '5px' }}>
+              Family Response · {(c as any).responded_by || 'The Family'}
+            </p>
+            <p style={{ fontSize: '12px', color: t.textBody, lineHeight: 1.7, fontStyle: 'italic', margin: 0 }}>
+              "{(c as any).response_text}"
+            </p>
+          </div>
+        )}
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
           {isPending && <span style={{ fontSize: '9px', color: t.accentMuted, letterSpacing: '0.15em', textTransform: 'uppercase' }}>· Awaiting review</span>}
           <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
@@ -210,6 +227,94 @@ function TributeCard({ c, isAdmin, isOwn, onApprove, onDelete, onEdit, t }: {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+/* =========================================================
+   EMOJI REACTIONS
+========================================================= */
+const EMOJIS = ['❤️', '🙏', '✦', '😢', '👏', '🕊️']
+
+function EmojiReactions({ contributionId, capsuleId, t }: {
+  contributionId: string; capsuleId: string; t: ThemeConfig
+}) {
+  const [counts, setCounts] = useState<Record<string, number>>({})
+  const [myReactions, setMyReactions] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from('tribute_reactions')
+        .select('emoji')
+        .eq('contribution_id', contributionId)
+
+      const tally: Record<string, number> = {}
+      data?.forEach(r => { tally[r.emoji] = (tally[r.emoji] ?? 0) + 1 })
+      setCounts(tally)
+      setLoading(false)
+    }
+    load()
+
+    // Load my reactions from localStorage
+    const stored = localStorage.getItem(`reactions_${contributionId}`)
+    if (stored) setMyReactions(JSON.parse(stored))
+  }, [contributionId])
+
+  const handleReact = async (emoji: string) => {
+    const res = await fetch('/api/tribute/react', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contributionId, capsuleId, emoji }),
+    })
+    const data = await res.json()
+
+    if (data.action === 'added') {
+      setCounts(prev => ({ ...prev, [emoji]: (prev[emoji] ?? 0) + 1 }))
+      const updated = [...myReactions, emoji]
+      setMyReactions(updated)
+      localStorage.setItem(`reactions_${contributionId}`, JSON.stringify(updated))
+    } else {
+      setCounts(prev => ({ ...prev, [emoji]: Math.max(0, (prev[emoji] ?? 1) - 1) }))
+      const updated = myReactions.filter(r => r !== emoji)
+      setMyReactions(updated)
+      localStorage.setItem(`reactions_${contributionId}`, JSON.stringify(updated))
+    }
+  }
+
+  if (loading) return null
+
+  const hasAny = EMOJIS.some(e => (counts[e] ?? 0) > 0) || true // always show
+
+  return (
+    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' as const, marginTop: '10px' }}>
+      {EMOJIS.map(emoji => {
+        const count = counts[emoji] ?? 0
+        const isMine = myReactions.includes(emoji)
+        return (
+          <button
+            key={emoji}
+            onClick={() => handleReact(emoji)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '3px',
+              padding: '3px 8px', borderRadius: '20px', cursor: 'pointer',
+              fontSize: '13px', lineHeight: 1,
+              border: `1px solid ${isMine ? 'rgba(226,195,107,0.4)' : 'rgba(255,255,255,0.08)'}`,
+              background: isMine ? 'rgba(226,195,107,0.08)' : 'rgba(255,255,255,0.03)',
+              transition: 'all 0.15s',
+            }}
+          >
+            <span>{emoji === '✦' ? <span style={{ color: '#E2C36B', fontSize: '11px' }}>✦</span> : emoji}</span>
+            {count > 0 && <span style={{ fontSize: '10px', color: isMine ? t.accentPrimary : t.textFaint, fontWeight: isMine ? 700 : 400 }}>{count}</span>}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -464,7 +569,23 @@ export default function TributeWallClient({ capsule, initialContributions, profi
     } catch {}
   }, [capsule.slug, capsule.honouree_name])
   useEffect(() => { if (fEmail.includes('@')) { localStorage.setItem(LS_EMAIL, fEmail); setVisitorEmail(fEmail) } }, [fEmail])
-  const poll = useCallback(async () => { const { data } = await supabaseClient.from('contributions').select('id, contributor_name, city, country, ip_country, relationship, tribute_text, thumbnail_url, audio_url, video_url, lat, lng, status, email, created_at').eq('capsule_id', capsule.id).is('deleted_at', null).order('created_at', { ascending: false }); if (data) setAll(data as Contribution[]) }, [capsule.id])
+  const poll = useCallback(async () => {
+    const { data } = await supabaseClient
+      .from('contributions')
+      .select('id, contributor_name, city, country, ip_country, relationship, tribute_text, thumbnail_url, audio_url, video_url, lat, lng, status, email, created_at, tribute_responses(response_text, responded_by)')
+      .eq('capsule_id', capsule.id)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+    if (data) {
+      // Flatten response onto contribution
+      const enriched = data.map((c: any) => ({
+        ...c,
+        response_text: c.tribute_responses?.[0]?.response_text ?? null,
+        responded_by: c.tribute_responses?.[0]?.responded_by ?? null,
+      }))
+      setAll(enriched as Contribution[])
+    }
+  }, [capsule.id])
   useEffect(() => { const iv = setInterval(poll, 60_000); return () => clearInterval(iv) }, [poll])
   useEffect(() => { const handler = (e: MouseEvent) => { if (countryRef.current && !countryRef.current.contains(e.target as Node)) setShowCountryList(false) }; document.addEventListener('mousedown', handler); return () => document.removeEventListener('mousedown', handler) }, [])
   useEffect(() => { document.body.style.overflow = mapOpen ? 'hidden' : ''; return () => { document.body.style.overflow = '' } }, [mapOpen])
@@ -787,7 +908,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
                 if (type.includes('anniversary')) return `Heartfelt messages celebrating this milestone will appear here.`
                 return `Tributes and messages for ${honourName} will appear here.`
               })()}</p></div>}
-              {visible.map(c => <TributeCard key={c.id} c={c} isAdmin={isAdmin} isOwn={visitorEmail !== '' && c.email?.toLowerCase() === visitorEmail.toLowerCase()} onApprove={handleApprove} onDelete={handleDelete} onEdit={handleEdit} t={t} />)}
+              {visible.map(c => <TributeCard key={c.id} c={c} capsuleId={capsule.id} isAdmin={isAdmin} isOwn={visitorEmail !== '' && c.email?.toLowerCase() === visitorEmail.toLowerCase()} onApprove={handleApprove} onDelete={handleDelete} onEdit={handleEdit} t={t} />)}
               <div ref={bottomRef} />
             </div>
           </div>

@@ -15,12 +15,11 @@ const supabase = createClient(
 )
 
 export default async function HonoureePortalPage({ params, searchParams }: {
-  params: Promise<{ slug: string }>
-  searchParams: Promise<{ token?: string }>
+  params: { slug: string }
+  searchParams: { token?: string }
 }) {
-  const { slug } = await params
-  const { token } = await searchParams
-  if (!token) redirect(`/for/${slug}`)
+  const token = searchParams?.token
+  if (!token) redirect(`/for/${params.slug}`)
 
   // Validate token — check exists and not expired
   const { data: tokenRow } = await supabase
@@ -29,8 +28,8 @@ export default async function HonoureePortalPage({ params, searchParams }: {
     .eq('token', token)
     .single()
 
-  if (!tokenRow) redirect(`/for/${slug}`)
-  if (tokenRow.expires_at && new Date(tokenRow.expires_at) < new Date()) redirect(`/for/${slug}`)
+  if (!tokenRow) redirect(`/for/${params.slug}`)
+  if (tokenRow.expires_at && new Date(tokenRow.expires_at) < new Date()) redirect(`/for/${params.slug}`)
 
   // Update last_accessed_at
   await supabase
@@ -42,15 +41,15 @@ export default async function HonoureePortalPage({ params, searchParams }: {
   const { data: capsule } = await supabase
     .from('capsules')
     .select('id, slug, honouree_name, event_type, event_tag, event_date, hero_image_url, theme, organiser_email')
-    .eq('slug', slug)
+    .eq('slug', params.slug)
     .single()
 
   if (!capsule || capsule.id !== tokenRow.capsule_id) notFound()
 
-  // Fetch approved tributes
+  // Fetch approved tributes with responses
   const { data: tributes } = await supabase
     .from('contributions')
-    .select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, audio_url, video_url, created_at, status')
+    .select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, audio_url, video_url, created_at, status, email, tribute_responses(response_text, responded_by)')
     .eq('capsule_id', capsule.id)
     .eq('status', 'approved')
     .is('deleted_at', null)
