@@ -88,7 +88,7 @@ const TributeMap = dynamic(() => import('@/components/TributeMap'), {
   loading: () => <div style={{ width: '100%', height: '100%', background: '#0a0218' }} />,
 })
 
-/* ── FREE TIER BAR ────────────────────────────────────── */
+/* ── FREE TIER BAR ──────────────────────────-──────────── */
 function FreeTierBar({ approvedCount, daysLeft, hasFirstTribute, onUpgrade }: {
   approvedCount: number; daysLeft: number | null; hasFirstTribute: boolean; onUpgrade: () => void
 }) {
@@ -119,7 +119,7 @@ function FreeTierBar({ approvedCount, daysLeft, hasFirstTribute, onUpgrade }: {
   )
 }
 
-/* ── STAT PILL ────────────────────────────────────────── */
+/* ── STAT PILL ────────────────────────────---────────────── */
 function StatPill({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
   return (
     <div style={{ flex: 1, minWidth: '70px', padding: '12px 10px', borderRadius: '12px', background: accent ? 'rgba(226,195,107,0.07)' : cardBg, border: `1px solid ${accent ? 'rgba(226,195,107,0.18)' : 'rgba(255,255,255,0.05)'}`, textAlign: 'center' }}>

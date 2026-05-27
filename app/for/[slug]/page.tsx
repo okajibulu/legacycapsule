@@ -42,7 +42,7 @@ export async function generateMetadata({
 }
 
 /* =========================================================
-   PAGE COMPONENT
+   PAGE COMPONENT  xxxxxxxxxxxxxxxxxxxxxx
 ========================================================= */
 export default async function TributePage({
   params,
