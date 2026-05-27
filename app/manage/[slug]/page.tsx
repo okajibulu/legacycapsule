@@ -511,18 +511,33 @@ function WaysToHonourEditor({ capsuleId, supabase }: { capsuleId: string; supaba
   )
 }
 
-/* ── FAMILY REP INVITE BUTTON ─────────────────────────── */
-function FamilyRepInviteButton({ capsuleId, slug, repEmail, repName, sentAt }: {
-  capsuleId: string; slug: string; repEmail: string; repName: string; sentAt: string | null
+/* ── FAMILY REP SECTION — inline fields, single send ─── */
+function FamilyRepSection({ capsuleId, slug, initialName, initialEmail, sentAt, onSaved }: {
+  capsuleId: string; slug: string; initialName: string; initialEmail: string
+  sentAt: string | null; onSaved: () => void
 }) {
+  const [name, setName] = useState(initialName)
+  const [email, setEmail] = useState(initialEmail)
+  const [saving, setSaving] = useState(false)
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
 
-  const canSend = repEmail.includes('@')
+  const canSend = email.includes('@')
+  const isDirty = name !== initialName || email !== initialEmail
+
+  const handleSave = async () => {
+    setSaving(true)
+    await supabase.from('capsules').update({ family_rep_name: name || null, family_rep_email: email || null } as any).eq('id', capsuleId)
+    setSaving(false); setSaved(true); onSaved()
+    setTimeout(() => setSaved(false), 2000)
+  }
 
   const handleSend = async () => {
     if (!canSend) return
+    // Save first if dirty
+    if (isDirty) await handleSave()
     setSending(true); setError('')
     try {
       const res = await fetch('/api/rep/invite', {
@@ -532,39 +547,57 @@ function FamilyRepInviteButton({ capsuleId, slug, repEmail, repName, sentAt }: {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Failed to send'); setSending(false); return }
-      setSent(true)
-    } catch {
-      setError('Something went wrong. Please try again.')
-    }
+      setSent(true); onSaved()
+    } catch { setError('Something went wrong. Please try again.') }
     setSending(false)
   }
 
-  if (sent) return (
-    <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(74,222,128,0.07)', border: '1px solid rgba(74,222,128,0.2)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-      <span style={{ fontSize: '16px' }}>✓</span>
-      <div>
-        <p style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(134,239,172,0.9)', margin: 0 }}>Portal access link sent</p>
-        <p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0' }}>Sent to {repEmail}</p>
-      </div>
-    </div>
-  )
-
   return (
     <div>
-      {sentAt && !sent && (
-        <p style={{ fontSize: '11px', color: textFaint, marginBottom: '10px', fontStyle: 'italic' }}>
-          ✓ Last sent: {new Date(sentAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-        </p>
+      <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.65, marginBottom: '14px' }}>
+        The Family Representative receives a private link to view all tributes, support acknowledgements and Ways to Honour details — without organiser access.
+      </p>
+
+      {/* Always-editable fields — no edit button needed */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
+        <div>
+          <label style={{ fontSize: '10px', color: goldMuted, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '5px' }}>Representative Name</label>
+          <input style={inp} placeholder="Full name of the family rep" value={name} onChange={e => setName(e.target.value)} />
+        </div>
+        <div>
+          <label style={{ fontSize: '10px', color: goldMuted, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '5px' }}>Representative Email</label>
+          <input type="email" style={inp} placeholder="Their email address" value={email} onChange={e => setEmail(e.target.value)} />
+        </div>
+      </div>
+
+      {/* Save details if changed */}
+      {isDirty && (
+        <button onClick={handleSave} disabled={saving} style={{ width: '100%', padding: '9px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: `1px solid ${cardBorder}`, color: textSecondary, fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginBottom: '8px', opacity: saving ? 0.7 : 1 }}>
+          {saving ? 'Saving…' : 'Save Details'}
+        </button>
       )}
-      <button
-        onClick={handleSend}
-        disabled={sending || !canSend}
-        style={{ width: '100%', padding: '11px', borderRadius: '10px', background: canSend ? `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))` : 'rgba(255,255,255,0.05)', border: canSend ? 'none' : `1px solid ${cardBorder}`, color: canSend ? '#1a0845' : textFaint, fontSize: '13px', fontWeight: 700, cursor: canSend ? 'pointer' : 'not-allowed', opacity: sending ? 0.7 : 1, letterSpacing: '0.04em' }}
-      >
-        {sending ? 'Sending…' : sentAt ? 'Resend Portal Access Link' : 'Send Portal Access Link →'}
-      </button>
-      {!canSend && <p style={{ fontSize: '11px', color: textFaint, marginTop: '6px', textAlign: 'center' }}>Enter the representative's email address above first.</p>}
-      {error && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.8)', marginTop: '6px' }}>{error}</p>}
+      {saved && !isDirty && <p style={{ fontSize: '11px', color: 'rgba(134,239,172,0.8)', marginBottom: '8px', textAlign: 'center' }}>✓ Details saved</p>}
+
+      {/* Send portal access */}
+      {sent ? (
+        <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(74,222,128,0.07)', border: '1px solid rgba(74,222,128,0.2)' }}>
+          <p style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(134,239,172,0.9)', margin: '0 0 2px' }}>✓ Portal access link sent</p>
+          <p style={{ fontSize: '11px', color: textFaint, margin: 0 }}>Sent to {email} — they can click the link to view tributes privately.</p>
+        </div>
+      ) : (
+        <div>
+          {sentAt && (
+            <p style={{ fontSize: '11px', color: textFaint, marginBottom: '8px', fontStyle: 'italic' }}>
+              ✓ Previously sent: {new Date(sentAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </p>
+          )}
+          <button onClick={handleSend} disabled={sending || !canSend} style={{ width: '100%', padding: '11px', borderRadius: '10px', background: canSend ? `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))` : 'rgba(255,255,255,0.04)', border: canSend ? 'none' : `1px solid ${cardBorder}`, color: canSend ? '#1a0845' : textFaint, fontSize: '13px', fontWeight: 700, cursor: canSend ? 'pointer' : 'not-allowed', opacity: sending ? 0.7 : 1, letterSpacing: '0.04em' }}>
+            {sending ? 'Sending…' : sentAt ? 'Resend Portal Access Link' : 'Send Portal Access Link →'}
+          </button>
+          {!canSend && <p style={{ fontSize: '11px', color: textFaint, marginTop: '6px', textAlign: 'center' }}>Enter the representative's email address above first.</p>}
+          {error && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.8)', marginTop: '6px' }}>{error}</p>}
+        </div>
+      )}
     </div>
   )
 }
@@ -654,11 +687,11 @@ function AddOnsTable({ capsuleComponents, onUpgrade }: { capsuleComponents: stri
                 <span style={{ fontSize: '12px', color: 'rgba(74,222,128,0.7)', flexShrink: 0 }}>✓</span>
               )}
 
-              {/* Available — activate CTA */}
+              {/* Available — paid unlock indicator */}
               {!isActivated && isAvailable && (
-                <button onClick={onUpgrade} style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '8px', border: '1px solid rgba(226,195,107,0.25)', background: 'rgba(226,195,107,0.06)', color: goldMuted, cursor: 'pointer', flexShrink: 0 }}>
-                  Activate
-                </button>
+                <span style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '8px', border: '1px solid rgba(226,195,107,0.2)', background: 'rgba(226,195,107,0.04)', color: goldMuted, flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  🔒 Unlock
+                </span>
               )}
 
               {/* Hover tooltip */}
@@ -673,7 +706,7 @@ function AddOnsTable({ capsuleComponents, onUpgrade }: { capsuleComponents: stri
       </div>
 
       <p style={{ fontSize: '10px', color: textFaint, marginTop: '10px', textAlign: 'center', fontStyle: 'italic' }}>
-        Prices are set based on your event and capsule requirements. Contact us to discuss activation.
+        🔒 Locked services require a paid add-on. Contact us or use the Expand Capsule form to unlock.
       </p>
     </div>
   )
@@ -969,14 +1002,13 @@ export default function ManagePage() {
               </SectionCard>
 
               <SectionCard title="Family Representative" subtitle="Private portal access for the honouree or trusted family member">
-                <EditField label="Representative Name" value={(capsule as any).family_rep_name ?? ''} placeholder="Name of the family rep" onSave={async val => { await updateCapsule({ family_rep_name: val } as any) }} />
-                <EditField label="Representative Email" value={(capsule as any).family_rep_email ?? ''} type="email" placeholder="Their email address" hint="They will receive a private link to view tributes and acknowledgements." onSave={async val => { await updateCapsule({ family_rep_email: val } as any) }} />
-                <FamilyRepInviteButton
+                <FamilyRepSection
                   capsuleId={capsule.id}
                   slug={capsule.slug}
-                  repEmail={(capsule as any).family_rep_email ?? ''}
-                  repName={(capsule as any).family_rep_name ?? ''}
+                  initialName={(capsule as any).family_rep_name ?? ''}
+                  initialEmail={(capsule as any).family_rep_email ?? ''}
                   sentAt={(capsule as any).rep_portal_sent_at ?? null}
+                  onSaved={fetchAll}
                 />
               </SectionCard>
 
