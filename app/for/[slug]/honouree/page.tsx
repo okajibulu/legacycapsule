@@ -15,11 +15,12 @@ const supabase = createClient(
 )
 
 export default async function HonoureePortalPage({ params, searchParams }: {
-  params: { slug: string }
-  searchParams: { token?: string }
+  params: Promise<{ slug: string }>
+  searchParams: Promise<{ token?: string }>
 }) {
-  const token = searchParams?.token
-  if (!token) redirect(`/for/${params.slug}`)
+  const { slug } = await params
+  const { token } = await searchParams
+  if (!token) redirect(`/for/${slug}`)
 
   // Validate token — check exists and not expired
   const { data: tokenRow } = await supabase
@@ -28,8 +29,8 @@ export default async function HonoureePortalPage({ params, searchParams }: {
     .eq('token', token)
     .single()
 
-  if (!tokenRow) redirect(`/for/${params.slug}`)
-  if (tokenRow.expires_at && new Date(tokenRow.expires_at) < new Date()) redirect(`/for/${params.slug}`)
+  if (!tokenRow) redirect(`/for/${slug}`)
+  if (tokenRow.expires_at && new Date(tokenRow.expires_at) < new Date()) redirect(`/for/${slug}`)
 
   // Update last_accessed_at
   await supabase
@@ -41,7 +42,7 @@ export default async function HonoureePortalPage({ params, searchParams }: {
   const { data: capsule } = await supabase
     .from('capsules')
     .select('id, slug, honouree_name, event_type, event_tag, event_date, hero_image_url, theme, organiser_email')
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .single()
 
   if (!capsule || capsule.id !== tokenRow.capsule_id) notFound()
