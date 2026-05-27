@@ -129,7 +129,7 @@ function StatPill({ label, value, accent }: { label: string; value: string | num
   )
 }
 
-/* ── SECTION CARD ─────────────────────────────────────── */
+/* ── SECTION CARD ─────────-----────────────────────────────── */
 function SectionCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: '16px', overflow: 'hidden', marginBottom: '14px' }}>
