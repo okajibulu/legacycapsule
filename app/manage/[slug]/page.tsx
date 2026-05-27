@@ -602,6 +602,200 @@ function FamilyRepSection({ capsuleId, slug, initialName, initialEmail, sentAt, 
   )
 }
 
+/* ── NOTIFICATION SETTINGS ────────────────────────────── */
+function NotificationSettings({ capsuleId, currentFrequency, eventDate, onSaved }: {
+  capsuleId: string; currentFrequency: string | null
+  eventDate: string | null; onSaved: () => void
+}) {
+  const [enabled, setEnabled] = useState(!!currentFrequency)
+  const [frequency, setFrequency] = useState(currentFrequency ?? '1hr')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  const endDate = eventDate
+    ? new Date(new Date(eventDate).getTime() + 30 * 86400000)
+    : null
+
+  const handleSave = async (newEnabled: boolean, newFreq: string) => {
+    setSaving(true); setSaved(false)
+    await supabase
+      .from('capsules')
+      .update({ notification_frequency: newEnabled ? newFreq : null } as any)
+      .eq('id', capsuleId)
+    setSaving(false); setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+    onSaved()
+  }
+
+  const handleToggle = async () => {
+    const newEnabled = !enabled
+    setEnabled(newEnabled)
+    await handleSave(newEnabled, frequency)
+  }
+
+  const handleFrequency = async (freq: string) => {
+    setFrequency(freq)
+    if (enabled) await handleSave(true, freq)
+  }
+
+  const FREQUENCIES = [
+    { value: '20min', label: 'Every 20 minutes' },
+    { value: '1hr',   label: 'Every hour' },
+    { value: '6hr',   label: 'Every 6 hours' },
+    { value: '24hr',  label: 'Once a day' },
+  ]
+
+  return (
+    <div>
+      <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.65, marginBottom: '14px' }}>
+        Receive an email when new tributes arrive and are waiting for your approval. One email per window — never flooded.
+      </p>
+
+      {/* Toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+        <span style={{ fontSize: '13px', color: enabled ? textPrimary : textFaint, fontWeight: enabled ? 600 : 400 }}>
+          {enabled ? 'Notifications on' : 'Notifications off'}
+        </span>
+        <button
+          onClick={handleToggle}
+          disabled={saving}
+          style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', background: enabled ? gold : 'rgba(255,255,255,0.12)', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
+        >
+          <div style={{ position: 'absolute', top: '3px', left: enabled ? '23px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }} />
+        </button>
+      </div>
+
+      {/* Frequency selector — only shown when enabled */}
+      {enabled && (
+        <div>
+          <label style={{ fontSize: '10px', color: goldMuted, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '8px' }}>
+            Notification Frequency
+          </label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {FREQUENCIES.map(f => (
+              <button
+                key={f.value}
+                onClick={() => handleFrequency(f.value)}
+                style={{ textAlign: 'left', padding: '10px 14px', borderRadius: '10px', border: `1px solid ${frequency === f.value ? 'rgba(226,195,107,0.45)' : cardBorder}`, background: frequency === f.value ? 'rgba(226,195,107,0.07)' : 'transparent', color: frequency === f.value ? textPrimary : textSecondary, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+              >
+                {f.label}
+                {frequency === f.value && <span style={{ color: gold, fontSize: '13px' }}>✓</span>}
+              </button>
+            ))}
+          </div>
+
+          {/* End date notice */}
+          <p style={{ fontSize: '10px', color: textFaint, marginTop: '10px', lineHeight: 1.6, fontStyle: 'italic' }}>
+            {endDate
+              ? `Notifications will stop automatically after ${endDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} (30 days after your event).`
+              : 'Notifications will stop automatically 120 days after capsule creation.'
+            }
+          </p>
+        </div>
+      )}
+
+      {saved && <p style={{ fontSize: '11px', color: 'rgba(134,239,172,0.8)', marginTop: '8px' }}>✓ Saved</p>}
+      {saving && <p style={{ fontSize: '11px', color: textFaint, marginTop: '8px' }}>Saving…</p>}
+    </div>
+  )
+}
+
+/* ── DELETE ACCOUNT SECTION ───────────────────────────── */
+function DeleteAccountSection({ email, slug }: { email: string; slug: string }) {
+  const [showModal, setShowModal] = useState(false)
+  const [confirmation, setConfirmation] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleDelete = async () => {
+    if (confirmation !== 'DELETE') return
+    setDeleting(true); setError('')
+    try {
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, confirmation }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error ?? 'Failed to delete account'); setDeleting(false); return }
+      // Clear session and redirect
+      localStorage.clear()
+      window.location.href = '/?deleted=true'
+    } catch {
+      setError('Something went wrong. Please try again.')
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <>
+      {/* Danger zone */}
+      <div style={{ marginTop: '8px', padding: '16px', borderRadius: '12px', border: '1px solid rgba(248,113,113,0.15)', background: 'rgba(248,113,113,0.03)' }}>
+        <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(248,113,113,0.7)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px' }}>Danger Zone</p>
+        <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.65, marginBottom: '12px' }}>
+          Permanently delete your account and all capsules. This action cannot be undone.
+        </p>
+        <button
+          onClick={() => setShowModal(true)}
+          style={{ padding: '8px 18px', borderRadius: '8px', border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.06)', color: 'rgba(248,113,113,0.8)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', letterSpacing: '0.04em' }}
+        >
+          Delete My Account
+        </button>
+      </div>
+
+      {/* Confirmation modal */}
+      {showModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', background: 'rgba(8,2,20,0.92)', backdropFilter: 'blur(8px)' }} onClick={() => { if (!deleting) setShowModal(false) }}>
+          <div style={{ width: '100%', maxWidth: '340px', borderRadius: '20px', background: 'linear-gradient(145deg, #1e0d4e, #2a1060)', border: '1px solid rgba(248,113,113,0.25)', boxShadow: '0 24px 64px rgba(0,0,0,0.6)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+            <div style={{ height: '2px', background: 'linear-gradient(to right, transparent, rgba(248,113,113,0.6), transparent)' }} />
+            <div style={{ padding: '24px 20px' }}>
+              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                <p style={{ fontSize: '28px', marginBottom: '10px' }}>⚠️</p>
+                <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '17px', fontWeight: 700, color: textPrimary, marginBottom: '8px' }}>Delete Account</h3>
+                <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.7 }}>
+                  This will permanently delete your account <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{email}</strong> and all capsules. All tributes, profile sections and media will be removed. <strong style={{ color: 'rgba(248,113,113,0.8)' }}>This cannot be undone.</strong>
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ fontSize: '10px', color: 'rgba(248,113,113,0.7)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '6px' }}>
+                  Type DELETE to confirm
+                </label>
+                <input
+                  style={{ ...inp, border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.05)' }}
+                  placeholder="DELETE"
+                  value={confirmation}
+                  onChange={e => setConfirmation(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              {error && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.8)', marginBottom: '10px' }}>{error}</p>}
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting || confirmation !== 'DELETE'}
+                  style={{ flex: 1, padding: '10px', borderRadius: '10px', background: confirmation === 'DELETE' ? 'rgba(248,113,113,0.15)' : 'rgba(255,255,255,0.04)', border: `1px solid ${confirmation === 'DELETE' ? 'rgba(248,113,113,0.4)' : 'rgba(255,255,255,0.08)'}`, color: confirmation === 'DELETE' ? 'rgba(248,113,113,0.9)' : textFaint, fontSize: '13px', fontWeight: 700, cursor: confirmation === 'DELETE' ? 'pointer' : 'not-allowed', opacity: deleting ? 0.7 : 1 }}
+                >
+                  {deleting ? 'Deleting…' : 'Confirm Delete'}
+                </button>
+                <button
+                  onClick={() => { setShowModal(false); setConfirmation('') }}
+                  disabled={deleting}
+                  style={{ flex: 1, padding: '10px', borderRadius: '10px', background: 'transparent', border: `1px solid ${cardBorder}`, color: textFaint, fontSize: '13px', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 /* ── ADD-ONS TABLE ────────────────────────────────────── */
 const LC_SERVICES = [
   // ── Free — always on ────────────────────────────────
@@ -1017,6 +1211,15 @@ export default function ManagePage() {
                 <EditField label="Capsule URL" value={capsule.slug} placeholder="your-capsule-slug" hint={`Your link: itslegacycapsule.com/for/${capsule.slug}`} onSave={async val => { const clean = val.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'); await updateCapsule({ slug: clean }) }} />
               </SectionCard>
 
+              <SectionCard title="Tribute Notifications" subtitle="Get notified when new tributes arrive for review">
+                <NotificationSettings
+                  capsuleId={capsule.id}
+                  currentFrequency={(capsule as any).notification_frequency ?? null}
+                  eventDate={capsule.event_date}
+                  onSaved={fetchAll}
+                />
+              </SectionCard>
+
               <SectionCard title="Visual Style" subtitle="Choose the mood for your capsule">
                 <StylePicker currentTheme={capsule.theme} eventType={capsule.event_type} onSave={async (key) => { await updateCapsule({ theme: key }) }} />
               </SectionCard>
@@ -1040,6 +1243,8 @@ export default function ManagePage() {
               <div id="upgrade-form">
                 <UpgradeCard capsuleName={capsule.honouree_name} />
               </div>
+
+              <DeleteAccountSection email={visitorEmail} slug={slug} />
             </div>
           )}
         </div>
