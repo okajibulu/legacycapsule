@@ -992,6 +992,7 @@ export default function ManagePage() {
             <div>
               <SectionCard title="Capsule Details">
                 <EditField label="Display Name" value={capsule.honouree_name} placeholder="Name as it appears on the tribute wall" onSave={async val => { await updateCapsule({ honouree_name: val }) }} />
+                <EditField label="Honouree Title" value={capsule.honouree_title ?? ''} placeholder="e.g. Dr · Chief · Pastor · Prof (optional)" hint="Displayed beneath the name on the tribute wall." onSave={async val => { await updateCapsule({ honouree_title: val }) }} />
                 <EditField label="Event Tag" value={capsule.event_tag ?? ''} placeholder="e.g. United In Love · 35 Years of Excellence" hint="Subtitle shown beneath the name on the tribute wall." onSave={async val => { await updateCapsule({ event_tag: val }) }} />
                 <EditField label="Event Date" value={capsule.event_date ?? ''} type="date" hint="Used for the days-to-event countdown." onSave={async val => { await updateCapsule({ event_date: val }) }} />
                 <EditField label="Capsule URL" value={capsule.slug} placeholder="your-capsule-slug" hint={`Your link: itslegacycapsule.com/for/${capsule.slug}`} onSave={async val => { const clean = val.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'); await updateCapsule({ slug: clean }) }} />
