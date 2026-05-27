@@ -79,7 +79,7 @@ export default async function TributePage({
   }
 
   // Parallel fetch — contributions, sections, photos
-  const [contribRes, profileRes, featuredRes] = await Promise.all([
+  const [contribRes, profileRes, featuredRes, supportRes] = await Promise.all([
     supabase
       .from('contributions')
       .select(
@@ -102,6 +102,13 @@ export default async function TributePage({
       .select('id, image_url, caption, sort_order, is_hero')
       .eq('capsule_id', capsule.id)
       .order('sort_order', { ascending: true }),
+
+    supabase
+      .from('capsule_support_accounts')
+      .select('id, support_type, title, account_name, bank_name, account_number, currency, country, contact_person, contact_phone, instructions, is_visible, reveal_required, sort_order')
+      .eq('capsule_id', capsule.id)
+      .eq('is_visible', true)
+      .order('sort_order', { ascending: true }),
   ])
 
   // Resolve theme — auto from event type, or manual override
@@ -113,6 +120,7 @@ export default async function TributePage({
       initialContributions={contribRes.data ?? []}
       profileSections={profileRes.data ?? []}
       featuredPhotos={featuredRes.data ?? []}
+      supportAccounts={supportRes.data ?? []}
       themeKey={themeKey}
     />
   )

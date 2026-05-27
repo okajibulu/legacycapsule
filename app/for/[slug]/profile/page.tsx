@@ -17,6 +17,8 @@ import {
   getEventTypeEmoji,
 } from '@/lib/eventLabels'
 import WaysToHonourCard from '@/components/honouree/WaysToHonourCard'
+import SectionReactions from '@/components/SectionReactions'
+import GalleryLightbox from '@/components/GalleryLightbox'
 
 const adminClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -184,6 +186,8 @@ export default async function ProfilePage({ params }: PageProps) {
                 <p style={bodyTextStyle}>{section.content}</p>
               </div>
             )}
+            {/* Emoji reactions per section */}
+            <SectionReactions sectionId={section.id} capsuleId={capsule.id} />
           </div>
         ))}
 
@@ -220,7 +224,7 @@ export default async function ProfilePage({ params }: PageProps) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
               {featuredPhotos.map((photo: any) => (
                 <div key={photo.id} style={{ borderRadius: '12px', overflow: 'hidden', border: `1px solid ${t.accentFaint}`, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
-                  <img src={photo.image_url} alt={photo.caption ?? `Photo of ${capsule.honouree_name}`} style={{ width: '100%', objectFit: 'cover', aspectRatio: '4/3', display: 'block' }} loading="lazy" />
+                  <GalleryLightbox src={photo.image_url} caption={photo.caption ?? ''} alt={`Photo of ${capsule.honouree_name}`} aspectRatio="4/3" />
                   {photo.caption && <div style={{ padding: '10px 14px', background: 'rgba(255,253,248,0.95)' }}><p style={{ fontSize: '12px', color: '#5F5E5A', margin: 0 }}>{photo.caption}</p></div>}
                 </div>
               ))}
