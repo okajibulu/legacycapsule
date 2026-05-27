@@ -5,7 +5,7 @@
    Per-capsule frequency: 20min | 1hr | 6hr | 24hr | off
    Auto-terminates: event_date + 30 days (or created_at + 120 days)
    
-   RULE: All crons must have end date logic — no perpetual jobs.
+   RULE: All crons must have end date logic — no perpetual jobs. xxxx
 ========================================================= */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'

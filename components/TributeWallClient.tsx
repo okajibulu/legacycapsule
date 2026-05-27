@@ -11,7 +11,7 @@
    - Map framed as memory card with title
    - Profile summary: no photo/name repeat, no placeholder notices
    - Left accent on tribute cards
-   - Hero identity-first — composer no longer dominates
+   - Hero identity-first — composer no longer dominates xxxxx
 ========================================================= */
 
 import { useState, useEffect, useCallback, useRef } from 'react'

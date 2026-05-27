@@ -1,7 +1,7 @@
 /* =========================================================
    app/api/account/delete/route.ts
    Permanently deletes organiser account and all capsules
-   GDPR Article 17 — Right to Erasure
+   GDPR Article 17 — Right to Erasure xxxxxx
 ========================================================= */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
