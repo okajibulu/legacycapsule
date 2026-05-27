@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { isAdminAuthenticated } from '@/lib/admin/auth'
 import { getCapsuleById } from '@/lib/admin/actions'
 import CapsuleActions from './CapsuleActions'
+import ComponentsPanel from './ComponentsPanel'
 import Link from 'next/link'
 
 export default async function CapsuleDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -50,6 +51,12 @@ export default async function CapsuleDetailPage({ params }: { params: Promise<{ 
           <a href={`https://itslegacycapsule.com/manage/${capsule.slug}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: gold, textDecoration: 'none', padding: '4px 10px', borderRadius: '6px', border: `1px solid rgba(226,195,107,0.2)` }}>Manage Dashboard ↗</a>
         </div>
       </div>
+
+      {/* Premium Components Panel */}
+      <ComponentsPanel
+        capsuleId={capsule.id}
+        components={capsule.components ?? []}
+      />
 
       <CapsuleActions capsuleId={capsule.id} currentState={capsule.page_state} />
     </div>
