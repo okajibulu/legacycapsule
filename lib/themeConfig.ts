@@ -227,7 +227,7 @@ const EVENT_TYPE_THEME: Record<string, ThemeKey> = {
   'Milestone Birthday':   'celebration',
   'Anniversary':          'celebration',
   'Graduation':           'celebration',
-  'Retirement':           'celebration',
+  'Retirement':           'honour',
   'Award Ceremony':       'honour',
   'Chieftaincy Ceremony': 'honour',
   'Ordination':           'honour',

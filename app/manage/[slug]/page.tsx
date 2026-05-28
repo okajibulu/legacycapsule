@@ -1,7 +1,7 @@
 'use client'
 
 /* =========================================================
-   ORGANISER CONTROL DASHBOARD — /manage/[slug] — v2
+   ORGANISER CONTROL DASHBOARD — app/manage/[slug]/page.tsx — v2
    Full section editor · Style picker · Arrow reorder
    Theme-aware · Premium workspace aesthetic
 ========================================================= */
@@ -211,22 +211,59 @@ function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; 
   const [newType, setNewType] = useState('')
   const [newTitle, setNewTitle] = useState('')
   const [newContent, setNewContent] = useState('')
+  const [drafts, setDrafts] = useState<
+  Record<string, { title: string; content: string }>
+>({})
   const [saving, setSaving] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editContent, setEditContent] = useState('')
-  const [editTitle, setEditTitle] = useState('')
-
+ 
   const allTypes = [...SUMMARY_SECTION_TYPES, ...PROFILE_SECTION_TYPES]
   const selectedTypeDef = allTypes.find(t => t.type === newType)
+useEffect(() => {
+  const initialDrafts: Record<
+    string,
+    { title: string; content: string }
+  > = {}
+
+  sections.forEach(s => {
+    initialDrafts[s.id] = {
+      title:
+        s.custom_title ??
+        allTypes.find(t => t.type === s.section_type)?.label ??
+        s.section_type.replace(/_/g, ' '),
+
+      content: s.content ?? '',
+    }
+  })
+
+  setDrafts(initialDrafts)
+}, [sections])
 
   const handleAdd = async () => {
     if (!newType || !newContent.trim()) return
     setSaving(true)
-    await supabase.from('capsule_profile_sections').insert({
-      capsule_id: capsuleId, section_type: newType,
-      custom_title: newType === 'custom' ? (newTitle.trim() || 'Custom Section') : null,
-      content: newContent.trim(), sort_order: sections.length, is_active: true,
-    })
+const nextSortOrder =
+  sections.length > 0
+    ? Math.max(...sections.map(s => s.sort_order ?? 0)) + 1
+    : 0
+
+const { error } = await supabase
+  .from('capsule_profile_sections')
+  .insert({
+    capsule_id: capsuleId,
+    section_type: newType,
+    custom_title:
+      newType === 'custom'
+        ? (newTitle.trim() || 'Custom Section')
+        : null,
+    content: newContent.trim(),
+    sort_order: nextSortOrder,
+    is_active: true,
+  })
+
+if (error) {
+  console.error('SECTION INSERT ERROR:', error)
+  alert(error.message)
+}
     setNewType(''); setNewTitle(''); setNewContent(''); setAdding(false); setSaving(false)
     onRefresh()
   }
@@ -262,10 +299,21 @@ function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; 
     onRefresh()
   }
 
-  const handleSaveEdit = async (id: string) => {
-    await supabase.from('capsule_profile_sections').update({ content: editContent, custom_title: editTitle || null }).eq('id', id)
-    setEditingId(null); onRefresh()
-  }
+const handleSaveEdit = async (
+  id: string,
+  title: string,
+  content: string
+) => {
+  await supabase
+    .from('capsule_profile_sections')
+    .update({
+      content,
+      custom_title: title || null,
+    })
+    .eq('id', id)
+
+  onRefresh()
+}
 
   const getLabel = (s: ProfileSection) => {
     if (s.custom_title) return s.custom_title
@@ -279,36 +327,84 @@ function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; 
       )}
       {sections.map((s, idx) => (
         <div key={s.id} style={{ borderRadius: '10px', border: `1px solid ${s.is_active ? cardBorder : 'rgba(255,255,255,0.04)'}`, background: s.is_active ? cardBg : 'transparent', padding: '12px 14px', marginBottom: '8px', opacity: s.is_active ? 1 : 0.5 }}>
-          {editingId === s.id ? (
-            <div>
-              {s.section_type === 'custom' && <input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Section title" style={{ ...inp, marginBottom: '8px' }} />}
-              {/* NO maxLength — no char counter — unlimited content */}
-              <textarea value={editContent} onChange={e => setEditContent(e.target.value)} rows={6} style={{ ...inp, resize: 'vertical', lineHeight: 1.6, marginBottom: '8px' }} />
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => handleSaveEdit(s.id)} style={{ padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', border: 'none', cursor: 'pointer' }}>Save</button>
-                <button onClick={() => setEditingId(null)} style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '12px', background: 'transparent', border: `1px solid ${cardBorder}`, color: textFaint, cursor: 'pointer' }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0, paddingTop: '2px' }}>
-                <button onClick={() => handleMoveUp(s, idx)} disabled={idx === 0} style={{ background: 'none', border: 'none', color: idx === 0 ? 'rgba(255,255,255,0.1)' : textFaint, cursor: idx === 0 ? 'default' : 'pointer', fontSize: '12px', lineHeight: 1, padding: '2px' }}>↑</button>
-                <button onClick={() => handleMoveDown(s, idx)} disabled={idx === sections.length - 1} style={{ background: 'none', border: 'none', color: idx === sections.length - 1 ? 'rgba(255,255,255,0.1)' : textFaint, cursor: idx === sections.length - 1 ? 'default' : 'pointer', fontSize: '12px', lineHeight: 1, padding: '2px' }}>↓</button>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: s.is_active ? gold : textFaint, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{getLabel(s)}</span>
-                  <span style={{ fontSize: '9px', padding: '2px 8px', borderRadius: '10px', background: s.is_active ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.04)', color: s.is_active ? 'rgba(134,239,172,0.8)' : textFaint, border: `1px solid ${s.is_active ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.06)'}` }}>{s.is_active ? 'Live' : 'Hidden'}</span>
-                </div>
-                {s.content && <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.6, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>{s.content}</p>}
-              </div>
-              <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-                <button onClick={() => handleToggle(s)} style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '6px', border: `1px solid ${cardBorder}`, background: 'transparent', color: textFaint, cursor: 'pointer' }}>{s.is_active ? 'Hide' : 'Show'}</button>
-                <button onClick={() => { setEditingId(s.id); setEditContent(s.content ?? ''); setEditTitle(s.custom_title ?? '') }} style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '6px', border: `1px solid ${cardBorder}`, background: 'transparent', color: textFaint, cursor: 'pointer' }}>Edit</button>
-                <button onClick={() => handleDelete(s.id)} style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(248,113,113,0.2)', background: 'transparent', color: 'rgba(248,113,113,0.6)', cursor: 'pointer' }}>✕</button>
-              </div>
-            </div>
-          )}
+<div style={{ flex: 1, minWidth: 0 }}>
+  <input
+    value={drafts[s.id]?.title ?? ''}
+    onChange={e =>
+      setDrafts(prev => ({
+        ...prev,
+        [s.id]: {
+          ...prev[s.id],
+          title: e.target.value,
+        },
+      }))
+    }
+    placeholder="Section title"
+    style={{
+      ...inp,
+      marginBottom: '10px',
+      fontSize: '12px',
+      fontWeight: 700,
+      color: gold,
+      letterSpacing: '0.08em',
+      textTransform: 'uppercase',
+    }}
+  />
+
+  <textarea
+    value={drafts[s.id]?.content ?? ''}
+    onChange={e =>
+      setDrafts(prev => ({
+        ...prev,
+        [s.id]: {
+          ...prev[s.id],
+          content: e.target.value,
+        },
+      }))
+    }
+    rows={5}
+    placeholder="Write here..."
+    style={{
+      ...inp,
+      resize: 'vertical',
+      lineHeight: 1.7,
+      marginBottom: '12px',
+      fontSize: '12px',
+      color: textSecondary,
+    }}
+  />
+
+  <div
+    style={{
+      display: 'flex',
+      gap: '8px',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+    }}
+  >
+    <button
+      onClick={() =>
+        handleSaveEdit(
+          s.id,
+          drafts[s.id]?.title ?? '',
+          drafts[s.id]?.content ?? ''
+        )
+      }
+      style={{
+        padding: '6px 14px',
+        borderRadius: '8px',
+        border: 'none',
+        background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`,
+        color: '#1a0845',
+        fontWeight: 700,
+        fontSize: '11px',
+        cursor: 'pointer',
+      }}
+    >
+      Save
+    </button>
+  </div>
+</div>
         </div>
       ))}
       {adding ? (

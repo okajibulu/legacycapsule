@@ -112,10 +112,27 @@
   --tracking-widest:   0.12em;
   --tracking-ceremony: 0.2em;
 
+  /* LC ATMOSPHERIC DEPTH */
+
+  --atmosphere-vignette:
+    radial-gradient(circle at top,
+    rgba(255,255,255,0.04),
+    transparent 55%);
+
+  --atmosphere-haze:
+    linear-gradient(to bottom,
+    rgba(255,255,255,0.02),
+    transparent);
+
+  --surface-glass: rgba(255,255,255,0.04);
+  --surface-glass-strong: rgba(255,255,255,0.08);
+
+  --section-spacing: clamp(4rem, 8vw, 7rem);
+
   /* Shadows */
   --shadow-gold:       0 0 20px rgba(184, 150, 12, 0.4);
   --shadow-gold-sm:    0 0 12px rgba(184, 150, 12, 0.3);
-  --shadow-gold-strong:0 0 40px rgba(184, 150, 12, 0.6);
+  --shadow-gold-strong:0 0 28px rgba(184, 150, 12, 0.45);
   --shadow-card:       0 8px 40px rgba(45, 27, 105, 0.15);
   --shadow-card-hover: 0 16px 60px rgba(45, 27, 105, 0.25);
   --shadow-hero:       0 32px 80px rgba(13, 8, 32, 0.6);
@@ -132,6 +149,7 @@
   --transition-base:   250ms cubic-bezier(0.16, 1, 0.3, 1);
   --transition-slow:   400ms cubic-bezier(0.16, 1, 0.3, 1);
   --transition-spring: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-ceremonial: 700ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ── Reset ── */
@@ -236,7 +254,7 @@ html {
 }
 .card:hover {
   box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
+   
 }
 
 /* ── Gold threshold — signature divider ── */
@@ -339,7 +357,7 @@ html {
 }
 
 .animate-fade-up {
-  animation: fadeUp 0.7s var(--transition-slow) both;
+  animation: fadeUp 1s var(--transition-slow) both;
 }
 
 .animate-fade-in {
@@ -377,10 +395,10 @@ input[type="text"],
 input[type="password"] {
   color: white;
   -webkit-text-fill-color: white;
+}
 
 @keyframes scrollBounce {
   0%, 100% { transform: translateY(0); opacity: 0.5; }
   50%       { transform: translateY(6px); opacity: 1; }
 }
 
-}

@@ -410,6 +410,7 @@ function RelationshipSelect({ selected, onChange, error, t }: {
   error?: string
   t: ThemeConfig
 }) {
+  const [search, setSearch] = useState('')
   const [open, setOpen] = useState(false)
 
   const toggle = (opt: string) => {
@@ -467,15 +468,43 @@ function RelationshipSelect({ selected, onChange, error, t }: {
           background: '#1a0f35', border: `1px solid rgba(226,195,107,0.25)`,
           borderRadius: '12px', overflow: 'hidden',
           boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-          maxHeight: '220px', overflowY: 'auto' as const,
+          maxHeight: '180px', overflowY: 'auto' as const,
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain' as const,
         }}>
-          {RELATIONSHIP_OPTIONS.map(opt => {
-            const isSelected = selected.includes(opt)
+
+<div style={{ padding: '10px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+  <input
+    value={search}
+    onChange={e => setSearch(e.target.value)}
+    placeholder="Search relationship..."
+    style={{
+      width: '100%',
+      padding: '8px 10px',
+      borderRadius: '8px',
+      border: '1px solid rgba(226,195,107,0.18)',
+      background: 'rgba(255,255,255,0.04)',
+      color: t.textBody,
+      fontSize: '12px',
+      outline: 'none',
+    }}
+  />
+</div>
+
+{RELATIONSHIP_OPTIONS
+  .filter(opt =>
+    opt.toLowerCase().includes(search.toLowerCase())
+  )
+  .map(opt => {
+                const isSelected = selected.includes(opt)
             return (
               <button
                 key={opt}
                 type="button"
-                onClick={() => toggle(opt)}
+                onClick={() => {
+  toggle(opt)
+  setOpen(false)
+}}
                 style={{
                   width: '100%', padding: '10px 14px', textAlign: 'left' as const,
                   background: isSelected ? 'rgba(226,195,107,0.08)' : 'transparent',
@@ -553,8 +582,11 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   const pins: Pin[] = all.filter(c => c.status === 'approved' && c.lat && c.lng).map(c => ({ lat: c.lat as number, lng: c.lng as number, name: c.contributor_name, country: c.country }))
   const uniqueCountries = [...new Set(all.filter(c => c.status === 'approved' && (c as any).ip_country).map(c => (c as any).ip_country as string))]
   const capsuleUrl = typeof window !== 'undefined' ? window.location.origin + '/for/' + capsule.slug : 'https://itslegacycapsule.com/for/' + capsule.slug
-  const resolvedHero = heroImage ?? featuredPhotos.find(p => p.is_hero)?.image_url ?? '/honouree.jpg'
-  // Cities list for map label
+ const resolvedHero =
+  heroImage ??
+  featuredPhotos.find(p => p.is_hero)?.image_url ??
+  null
+   // Cities list for map label
   const cityNames = [...new Set(pins.map(p => p.name ? p.country : '').filter(Boolean))].slice(0, 3)
 
   /* ── EFFECTS ── */
@@ -698,7 +730,163 @@ export default function TributeWallClient({ capsule, initialContributions, profi
               : { margin: '0 12px', borderRadius: '20px' }
             return (
           <div style={{ flexShrink: 0, position: 'relative', overflow: 'hidden', minHeight: minH, ...bleedStyle }}>
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${resolvedHero})`, backgroundSize: heroFit === 'width' ? '100% auto' : heroFit === 'height' ? 'auto 100%' : heroFit === 'custom' ? `${heroZoom}%` : 'cover', backgroundPosition: heroPosition, backgroundRepeat: heroFit === 'custom' ? 'no-repeat' : 'no-repeat', backgroundColor: '#000' }} />
+
+{resolvedHero ? (
+  <div
+    style={{
+      position: 'absolute',
+      inset: 0,
+      backgroundImage: `url(${resolvedHero})`,
+      backgroundSize:
+        heroFit === 'width'
+          ? '100% auto'
+          : heroFit === 'height'
+          ? 'auto 100%'
+          : heroFit === 'custom'
+          ? `${heroZoom}%`
+          : 'cover',
+      backgroundPosition: heroPosition,
+      backgroundRepeat: 'no-repeat',
+      backgroundColor: '#000'
+    }}
+  />
+) : (
+  <div
+    style={{
+      position: 'absolute',
+      inset: 0,
+      overflow: 'hidden',
+background:
+  capsule?.event_type === 'Memorial'
+    ? 'linear-gradient(145deg, #050507 0%, #140f1d 45%, #24142d 100%)'
+    : capsule?.event_type === 'Retirement' ||
+      capsule?.event_type === 'Award Ceremony' ||
+      capsule?.event_type === 'Ordination' ||
+      capsule?.event_type === 'Chieftaincy'
+    ? 'linear-gradient(145deg, #120d06 0%, #2a1b08 45%, #4b3212 100%)'
+    : capsule?.event_type === 'Biography'
+    ? 'linear-gradient(145deg, #08121a 0%, #132634 45%, #1d3c52 100%)'
+    : 'linear-gradient(145deg, #2a0d18 0%, #4b1730 45%, #6e2345 100%)'
+  }}
+  >
+    {/* soft glow */}
+    <div
+      style={{
+        position: 'absolute',
+        width: '60%',
+        height: '60%',
+        borderRadius: '999px',
+        background: 'rgba(226,195,107,0.12)',
+        filter: 'blur(90px)',
+        top: '-10%',
+        right: '-10%'
+      }}
+    />
+
+    {/* texture overlay */}
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        opacity: 0.05,
+        backgroundImage:
+          'radial-gradient(rgba(255,255,255,0.35) 1px, transparent 1px)',
+        backgroundSize: '18px 18px'
+      }}
+    />
+
+    {/* ceremonial lines */}
+    <div
+      style={{
+        position: 'absolute',
+        top: 28,
+        left: 28,
+        right: 28,
+        height: 1,
+        background:
+          'linear-gradient(to right, transparent, rgba(226,195,107,0.5), transparent)'
+      }}
+    />
+
+    <div
+      style={{
+        position: 'absolute',
+        bottom: 28,
+        left: 28,
+        right: 28,
+        height: 1,
+        background:
+          'linear-gradient(to right, transparent, rgba(226,195,107,0.3), transparent)'
+      }}
+    />
+
+    {/* centered ceremonial identity */}
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        textAlign: 'center'
+      }}
+    >
+      <div
+        style={{
+          fontSize: '11px',
+          letterSpacing: '0.42em',
+          textTransform: 'uppercase',
+          color: 'rgba(226,195,107,0.72)',
+          marginBottom: '14px',
+          fontWeight: 700
+        }}
+      >
+        Legacy Capsule
+      </div>
+
+      <div
+        style={{
+          fontSize: 'clamp(32px, 7vw, 64px)',
+          fontWeight: 800,
+          lineHeight: 1,
+          color: '#f4d47a',
+          textShadow: '0 6px 24px rgba(0,0,0,0.45)',
+          marginBottom: '12px'
+        }}
+      >
+        {honourName}
+      </div>
+
+      {capsule?.event_tag && (
+        <div
+          style={{
+            fontSize: '14px',
+            letterSpacing: '0.08em',
+            color: 'rgba(255,255,255,0.74)',
+            maxWidth: '80%'
+          }}
+        >
+        {capsule?.event_tag}
+        </div>
+      )}
+
+      <div
+        style={{
+          marginTop: '26px',
+          fontSize: '10px',
+          letterSpacing: '0.28em',
+          textTransform: 'uppercase',
+          color: 'rgba(255,255,255,0.34)'
+        }}
+      >
+        A space for memories, honour and presence
+      </div>
+    </div>
+  </div>
+)}
+
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.75) 100%)' }} />
             <div style={{ position: 'absolute', inset: 0, background: t.heroGlow }} />
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(to right, transparent, ${t.accentMuted}, transparent)` }} />
@@ -720,6 +908,35 @@ export default function TributeWallClient({ capsule, initialContributions, profi
               <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(22px, 6vw, 32px)', fontWeight: 800, color: t.textHeading, lineHeight: 1.15, textShadow: '0 2px 20px rgba(0,0,0,0.9)', marginBottom: '6px' }}>{pageTitle}</h1>
               {capsule.event_tag && <p style={{ fontSize: '11px', color: t.accentMuted, letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: '6px' }}>{capsule.event_tag}</p>}
               {capsule.event_date && (() => {
+
+/* ── PROFILE ENTRY CTA — deeper story access ── */
+<div style={{ marginTop: '14px' }}>
+  <Link
+    href={`/for/${capsule.slug}/profile`}
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      padding: '8px 16px',
+      borderRadius: '999px',
+      background: 'rgba(0,0,0,0.28)',
+      border: `1px solid ${t.accentFaint}`,
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+      color: t.textHeading,
+      textDecoration: 'none',
+      fontSize: '11px',
+      fontWeight: 600,
+      letterSpacing: '0.08em',
+      textTransform: 'uppercase',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+    }}
+  >
+    ✦ View Profile & Memories
+  </Link>
+</div>
+
+
                 const d = new Date(capsule.event_date!)
                 const day = String(d.getDate()).padStart(2, '0')
                 const month = d.toLocaleString('en-GB', { month: 'short' })
@@ -941,7 +1158,7 @@ export default function TributeWallClient({ capsule, initialContributions, profi
               {profileSections.map(section => <ProfileSummarySection key={section.id} section={section} t={t} slug={capsule.slug} />)}
               <div style={{ textAlign: 'center', marginTop: '4px' }}>
                 <Link href={`/for/${capsule.slug}/profile`} style={{ fontSize: '12px', color: t.accentMuted, textDecoration: 'none', letterSpacing: '0.06em' }}>
-                  Visit profile page of {honourName} →
+                    
                 </Link>
               </div>
             </div>
