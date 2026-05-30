@@ -218,6 +218,28 @@ export async function PUT(request: NextRequest) {
       .from('capsules')
       .update({ verified_at: new Date().toISOString() })
 
+
+// Strategy B — write owner_user_id at booking verification time
+try {
+  const { data: capsuleRow } = await supabase
+    .from('capsules')
+    .select('organiser_email')
+    .eq('id', capsuleId)
+    .single()
+
+  if (capsuleRow?.organiser_email) {
+    const { data: { users } } = await supabase.auth.admin.listUsers()
+    const authUser = users?.find((u: any) => u.email === capsuleRow.organiser_email)
+    if (authUser) {
+      await supabase
+        .from('capsules')
+        .update({ owner_user_id: authUser.id })
+        .eq('id', capsuleId)
+        .is('owner_user_id', null)
+    }
+  }
+} catch { /* non-fatal */ }
+
 {/* =========================================================
    ADDITION TO app/api/email/verify-code/route.ts
    PUT handler — add AFTER marking capsule as verified,

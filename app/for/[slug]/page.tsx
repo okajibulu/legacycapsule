@@ -105,9 +105,8 @@ export default async function TributePage({
 
     supabase
       .from('capsule_support_accounts')
-      .select('id, support_type, title, account_name, bank_name, account_number, currency, country, contact_person, contact_phone, instructions, is_visible, reveal_required, sort_order')
-      .eq('capsule_id', capsule.id)
-      .eq('is_visible', true)
+.select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, is_active, sort_order')
+.eq('is_active', true)
       .order('sort_order', { ascending: true }),
   ])
 

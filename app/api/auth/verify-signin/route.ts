@@ -71,7 +71,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate a real Supabase session via OTP link
-    // This gives us a proper access_token that persists in the browser
     let accessToken: string | null = null
     let refreshToken: string | null = null
 
@@ -102,7 +101,6 @@ export async function POST(request: NextRequest) {
         }
       } catch (sessionErr) {
         console.error('Session generation error:', sessionErr)
-        // Non-fatal — continue with redirect
       }
     }
 
@@ -114,7 +112,8 @@ export async function POST(request: NextRequest) {
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
-    // Ensure capsule_access rows exist
+    // Strategy C — ensure capsule_access rows exist
+    // and backfill owner_user_id on all capsules where still null
     if (userId && capsules && capsules.length > 0) {
       for (const cap of capsules) {
         await supabase.from('capsule_access').upsert(
@@ -122,6 +121,13 @@ export async function POST(request: NextRequest) {
           { onConflict: 'capsule_id,user_id' }
         )
       }
+
+      // Backfill owner_user_id on all capsules for this organiser where null
+      await supabase
+        .from('capsules')
+        .update({ owner_user_id: userId })
+        .eq('organiser_email', normalised)
+        .is('owner_user_id', null)
     }
 
     // Redirect target
@@ -137,7 +143,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       valid: true,
       redirect,
-      // Return tokens so the client can set the session browser-side
       accessToken,
       refreshToken,
     })

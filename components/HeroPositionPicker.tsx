@@ -60,6 +60,23 @@ export default function HeroPositionPicker({
   const [bleed, setBleed] = useState(currentBleed || false)
   const [saving, setSaving] = useState(false)
   const [dragging, setDragging] = useState(false)
+  useEffect(() => {
+  const parsed = parsePos(currentPosition)
+
+  setPosX(parsed.x)
+  setPosY(parsed.y)
+
+  setFitMode((currentFit as FitMode) || 'height')
+  setZoom(currentZoom || 150)
+  setSize((currentSize as SizeMode) || 'standard')
+  setBleed(currentBleed || false)
+}, [
+  currentPosition,
+  currentZoom,
+  currentFit,
+  currentSize,
+  currentBleed,
+])
   const containerRef = useRef<HTMLDivElement>(null)
   const startDrag = useRef<{ mouseX: number; mouseY: number; posX: number; posY: number } | null>(null)
 

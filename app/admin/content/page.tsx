@@ -6,14 +6,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SUPABASE CLIENT
-// Anon key — reads lc_content. Writes go through API route (service role).
-// ─────────────────────────────────────────────────────────────────────────────
-const client = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { supabase } from '@/lib/supabase-browser'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -322,7 +315,7 @@ export default function ContentPage() {
 
   // ── Load all lc_content rows ───────────────────────────────────────────────
   const load = async () => {
-    const { data } = await client
+    const { data } = await supabase
       .from('lc_content')
       .select('id, key, label, value, group_key, sort_order, updated_at')
       .order('group_key')

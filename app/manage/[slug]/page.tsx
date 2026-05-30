@@ -546,8 +546,26 @@ function WaysToHonourEditor({ capsuleId, supabase }: { capsuleId: string; supaba
   const handleAdd = async () => {
     if (!form.account_name.trim() || !form.account_number.trim()) return
     setSaving(true)
-    await supabase.from('capsule_support_accounts').insert({ capsule_id: capsuleId, ...form, sort_order: accounts.length })
-    const { data } = await supabase.from('capsule_support_accounts').select('*').eq('capsule_id', capsuleId).order('sort_order')
+
+const { data: insertData, error } = await supabase
+  .from('capsule_support_accounts')
+.insert({
+  capsule_id: capsuleId,
+  method_label: form.title,
+  account_holder: form.account_name,
+  bank_name: form.bank_name,
+  account_number: form.account_number,
+  reference_guide: form.instructions,
+  currency: form.currency,
+  is_active: true,
+  sort_order: accounts.length
+})
+  .select()
+
+console.log('WAYS TO HONOUR RESULT', insertData)
+console.log('WAYS TO HONOUR ERROR', error)
+
+const { data } = await supabase.from('capsule_support_accounts').select('*').eq('capsule_id', capsuleId).order('sort_order')
     setAccounts(data ?? [])
     setForm({ title: '', account_name: '', bank_name: '', account_number: '', currency: 'NGN', instructions: '', support_type: 'bank_transfer', is_visible: true, reveal_required: true })
     setAdding(false); setSaving(false)

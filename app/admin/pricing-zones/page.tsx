@@ -6,14 +6,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SUPABASE CLIENT
-// Anon key for reads. Writes go through API route (service role).
-// ─────────────────────────────────────────────────────────────────────────────
-const client = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -58,7 +51,7 @@ export default function PricingZonesPage() {
 
   // ── Load pricing zones ─────────────────────────────────────────────────────
   const load = async () => {
-    const { data } = await client
+    const { data } = await supabase
       .from('lc_pricing_zones')
       .select('id, zone_name, currency_code, currency_symbol, multiplier, countries')
       .order('zone_name')

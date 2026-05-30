@@ -87,20 +87,28 @@ function GiftAcknowledgeForm({
     focus:outline-none focus:border-[#B8960C]/40
   `;
 
-  if (done) {
-    return (
-      <div className="mt-3 rounded-xl bg-[#2D1B69]/8 border border-[#B8960C]/20 p-4 text-center">
-        <p className="text-[#2D1B69] text-sm font-medium mb-1">Thank you — noted with gratitude.</p>
-        {email && (
-          <p className="text-[#5F5E5A] text-xs">A thank-you note will be sent to {email}.</p>
-        )}
-      </div>
-    );
-  }
+if (done) {
+  return (
+    <div className="mt-3 rounded-xl bg-[#2D1B69]/8 border border-[#B8960C]/20 p-4 text-center">
+      <p className="text-[#2D1B69] text-sm font-medium mb-2">
+        Thank you.
+      </p>
 
+      <p className="text-[#5F5E5A] text-xs leading-relaxed">
+        The beneficiary has been notified of your Expression of Honour.
+      </p>
+
+      {email && (
+        <p className="text-[#5F5E5A]/70 text-[11px] mt-2">
+          A confirmation has been sent to {email}.
+        </p>
+      )}
+    </div>
+  );
+}
   return (
     <div className="mt-3 rounded-xl bg-[#2D1B69]/5 border border-[#B8960C]/20 p-4 space-y-3">
-      <p className="text-[#2D1B69] text-xs font-medium">Let them know</p>
+      <p className="text-[#2D1B69] text-xs font-medium">Notify Beneficiary</p>
 
       <input
         type="text"
@@ -137,7 +145,7 @@ function GiftAcknowledgeForm({
             disabled:opacity-50
           "
         >
-          {sending ? 'Recording…' : 'Confirm'}
+          {sending ? 'Recording…' : 'Notify Beneficiary'}
         </button>
         <button
           onClick={onClose}

@@ -102,9 +102,12 @@ function TributeCard({ c, capsuleId, isAdmin, isOwn, onApprove, onDelete, onEdit
     <div style={{
       borderRadius: '16px', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
       backgroundColor: isPending ? 'rgba(234,179,8,0.05)' : t.cardBg,
-      border: `1px solid ${isPending ? t.cardAccentPending : isOwn ? t.accentFaint : t.cardBorder}`,
+     borderTop: `1px solid ${isPending ? t.cardAccentPending : t.cardBorder}`,
+borderRight: `1px solid ${isPending ? t.cardAccentPending : t.cardBorder}`,
+borderBottom: `1px solid ${isPending ? t.cardAccentPending : t.cardBorder}`,
+borderLeft: `3px solid ${isPending ? t.cardAccentPending : t.accentPrimary}`,
       boxShadow: t.cardShadow, transition: 'all 0.24s ease',
-      borderLeft: `3px solid ${isPending ? t.cardAccentPending : t.cardAccentApproved}`,
+ 
     }}>
       <div style={{ padding: '14px 20px 14px 18px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '8px' }}>
@@ -132,7 +135,11 @@ function TributeCard({ c, capsuleId, isAdmin, isOwn, onApprove, onDelete, onEdit
               </span>
               {(c.city || c.country) && <span style={{ fontSize: '10px', color: t.textFaint }}>·</span>}
               <span style={{ fontSize: '10px', color: t.textFaint }}>
-                {(() => { const d = new Date(c.created_at); return `${String(d.getDate()).padStart(2,'0')} ${d.toLocaleString('en-GB',{month:'short'})} ${d.getFullYear()}` })()}
+                {new Intl.DateTimeFormat('en-GB', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+}).format(new Date(c.created_at))}
               </span>
             </div>
           </div>
@@ -909,32 +916,6 @@ background:
               {capsule.event_tag && <p style={{ fontSize: '11px', color: t.accentMuted, letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: '6px' }}>{capsule.event_tag}</p>}
               {capsule.event_date && (() => {
 
-/* ── PROFILE ENTRY CTA — deeper story access ── */
-<div style={{ marginTop: '14px' }}>
-  <Link
-    href={`/for/${capsule.slug}/profile`}
-    style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px',
-      padding: '8px 16px',
-      borderRadius: '999px',
-      background: 'rgba(0,0,0,0.28)',
-      border: `1px solid ${t.accentFaint}`,
-      backdropFilter: 'blur(10px)',
-      WebkitBackdropFilter: 'blur(10px)',
-      color: t.textHeading,
-      textDecoration: 'none',
-      fontSize: '11px',
-      fontWeight: 600,
-      letterSpacing: '0.08em',
-      textTransform: 'uppercase',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
-    }}
-  >
-    ✦ View Profile & Memories
-  </Link>
-</div>
 
 
                 const d = new Date(capsule.event_date!)
@@ -1000,9 +981,30 @@ background:
                 <button onClick={() => setComposerOpen(true)} style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '13px', padding: '12px 12px', borderRadius: '12px', border: `1px solid ${t.accentFaint}`, background: t.cardBg, color: t.accentPrimary, cursor: 'pointer', fontWeight: 700, letterSpacing: '0.03em', whiteSpace: 'nowrap' as const, transition: 'all 0.2s' }}>
                   <span style={{ fontSize: '14px' }}>✦</span> Leave a Tribute
                 </button>
+                <Link
+  href={`/for/${capsule.slug}/profile`}
+  style={{
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '4px',
+    fontSize: '11px',
+    padding: '12px 6px',
+    borderRadius: '12px',
+    border: `1px solid ${t.accentFaint}`,
+    background: t.cardBg,
+    color: t.accentPrimary,
+    textDecoration: 'none',
+    fontWeight: 600,
+    whiteSpace: 'nowrap' as const
+  }}
+>
+  👤 Profile
+</Link>
                 {/* Share Link — right */}
                 <a href={`https://wa.me/?text=${encodeURIComponent('Leave a tribute for ' + honourName + ': ' + capsuleUrl)}`} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '11px', padding: '12px 6px', borderRadius: '12px', border: '1px solid rgba(74,222,128,0.22)', background: t.cardBg, color: 'rgba(74,222,128,0.7)', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' as const }}>
-                  💬 Share
+                 💬 Share
                 </a>
               </div>
             ) : (
@@ -1153,7 +1155,6 @@ background:
 
           {/* ── PROFILE SUMMARY ── */}
           {/* No photo/name repeat. No placeholder notices. Only active sections. */}
-          {profileSections.length > 0 && (
             <div style={{ padding: '0 16px 8px' }}>
               {profileSections.map(section => <ProfileSummarySection key={section.id} section={section} t={t} slug={capsule.slug} />)}
               <div style={{ textAlign: 'center', marginTop: '4px' }}>
@@ -1162,9 +1163,8 @@ background:
                 </Link>
               </div>
             </div>
-          )}
-
-          {/* ── WAYS TO HONOUR — gold plaque ── */}
+          
+          {/* ── Expression of Honour — gold plaque ── */}
           {supportAccounts.length > 0 && capsule.components?.includes('ways_to_honour') && (
             <div style={{ margin: '8px 16px 16px', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 8px 32px rgba(188,152,60,0.35), 0 2px 8px rgba(0,0,0,0.4)' }}>
               {/* Solid gold plaque background */}
@@ -1178,21 +1178,21 @@ background:
                   <p style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(80,45,0,0.75)', marginBottom: '4px' }}>
                     {(() => {
                       const type = capsule.event_type?.toLowerCase() ?? ''
-                      if (type.includes('memorial') || type.includes('funeral')) return 'Ways to Support the Family'
+                      if (type.includes('memorial') || type.includes('funeral')) return 'Expression of Honour'
                       if (type.includes('retirement')) return `Celebrate With ${honourName}`
-                      if (type.includes('wedding')) return 'Wedding Support'
-                      if (type.includes('ordination') || type.includes('thanksgiving')) return 'Blessings & Support'
+                      if (type.includes('wedding')) return 'Expression of Honour'
+                      if (type.includes('ordination') || type.includes('thanksgiving')) return 'Expression of Honour'
                       if (type.includes('birthday')) return `Honour ${honourName}`
                       if (type.includes('chieftaincy') || type.includes('recognition')) return 'Expressions of Honour'
-                      return 'Ways to Honour'
+                      return 'Expression of Honour'
                     })()}
                   </p>
                   <p style={{ fontSize: '11px', color: 'rgba(70,38,0,0.65)', lineHeight: 1.6, maxWidth: '280px', margin: '0 auto', fontStyle: 'italic' }}>
                     {(() => {
                       const type = capsule.event_type?.toLowerCase() ?? ''
-                      if (type.includes('memorial') || type.includes('funeral')) return 'The family appreciates every expression of love and support.'
-                      if (type.includes('retirement')) return 'For those who wish to honour a lifetime of impact and service.'
-                      return 'For those who may wish to celebrate or support this occasion.'
+                      if (type.includes('memorial') || type.includes('funeral')) return 'The family is deeply grateful for every expression of love, remembrance and honour shared during this time.'
+                      if (type.includes('retirement')) return 'Presence, prayers, goodwill and every expression of honour shared on this occasion are sincerely appreciated.'
+                      return 'Presence, prayers, goodwill and every expression of honour shared on this occasion are sincerely appreciated.'
                     })()}
                   </p>
                   <div style={{ height: '1px', background: 'rgba(100,60,0,0.3)', marginTop: '12px' }} />
