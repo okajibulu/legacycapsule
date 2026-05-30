@@ -1,9 +1,12 @@
 'use client'
 /* =========================================================
    components/GalleryEditor.tsx
+   → app/manage/[slug] — Gallery tab
+   
    Photo + description gallery editor for manage dashboard.
-   - Up to 3 gallery sections
+   - Up to 5 gallery sections (was 3)
    - Up to 10 photos per section
+   - Editable section titles
    - Each row: photo left, description right (desktop)
    - + button adds row, × removes
    - Saves to capsule_gallery table
@@ -23,6 +26,7 @@ interface GalleryPhoto {
 interface Props {
   capsuleId: string
   initialPhotos: GalleryPhoto[]
+  initialTitles?: Record<number, string>
   supabase: any
   t: {
     accentPrimary: string; accentFaint: string; accentMuted: string
@@ -32,12 +36,13 @@ interface Props {
   onSaved?: () => void
 }
 
-const MAX_SECTIONS = 3
+const MAX_SECTIONS = 5
 const MAX_PER_SECTION = 10
 const BUCKET = 'tribute-photos'
 
-export default function GalleryEditor({ capsuleId, initialPhotos, supabase, t, onSaved }: Props) {
+export default function GalleryEditor({ capsuleId, initialPhotos, initialTitles, supabase, t, onSaved }: Props) {
   const [photos, setPhotos] = useState<GalleryPhoto[]>(initialPhotos ?? [])
+  const [sectionTitles, setSectionTitles] = useState<Record<number, string>>(initialTitles ?? {})
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
@@ -81,7 +86,6 @@ export default function GalleryEditor({ capsuleId, initialPhotos, supabase, t, o
     try {
       for (const photo of photos) {
         if (photo.file) {
-          // Upload new photo
           const ext = photo.file.name.split('.').pop() ?? 'jpg'
           const path = `gallery/${capsuleId}/${photo.section_index}-${photo.sort_order}-${Date.now()}.${ext}`
           const { error: ue } = await supabase.storage.from(BUCKET).upload(path, photo.file, { upsert: true })
@@ -98,6 +102,7 @@ export default function GalleryEditor({ capsuleId, initialPhotos, supabase, t, o
               capsule_id: capsuleId, image_url: url,
               description: photo.description, sort_order: photo.sort_order,
               section_index: photo.section_index,
+              section_title: sectionTitles[photo.section_index] || null,
             }).select('id').single()
             if (data?.id) {
               setPhotos(prev => prev.map(p =>
@@ -106,13 +111,23 @@ export default function GalleryEditor({ capsuleId, initialPhotos, supabase, t, o
             }
           }
         } else if (photo.id) {
-          // Update description only
           await supabase.from('capsule_gallery').update({
             description: photo.description,
             sort_order: photo.sort_order,
           }).eq('id', photo.id)
         }
       }
+
+      // Save section titles for sections that have photos
+      for (let si = 0; si < MAX_SECTIONS; si++) {
+        if (sections[si].length > 0 && sectionTitles[si]) {
+          await supabase.from('capsule_gallery')
+            .update({ section_title: sectionTitles[si] })
+            .eq('capsule_id', capsuleId)
+            .eq('section_index', si)
+        }
+      }
+
       setMsg('✓ Gallery saved')
       onSaved?.()
     } catch (err) {
@@ -134,17 +149,27 @@ export default function GalleryEditor({ capsuleId, initialPhotos, supabase, t, o
     <div>
       {Array.from({ length: MAX_SECTIONS }, (_, si) => {
         const sectionPhotos = sections[si]
-        const hasPhotos = sectionPhotos.length > 0
-        if (si > 0 && sections[si - 1].length === 0) return null // don't show empty sections beyond first gap
+        if (si > 0 && sections[si - 1].length === 0 && sectionPhotos.length === 0) return null
 
         return (
           <div key={si} style={{ marginBottom: '32px' }}>
-            {/* Section header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-              <p style={{ fontSize: '11px', fontWeight: 700, color: t.accentMuted, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                Gallery {si + 1}
-              </p>
-              <div style={{ flex: 1, height: '1px', background: `rgba(226,195,107,0.1)` }} />
+            {/* Section header — editable title */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+              <input
+                value={sectionTitles[si] ?? ''}
+                onChange={e => setSectionTitles(prev => ({ ...prev, [si]: e.target.value }))}
+                placeholder={`Gallery ${si + 1}`}
+                maxLength={60}
+                style={{
+                  background: 'transparent', border: 'none', outline: 'none',
+                  fontSize: '11px', fontWeight: 700, color: t.accentMuted,
+                  textTransform: 'uppercase' as const, letterSpacing: '0.1em',
+                  padding: '4px 0', width: '180px',
+                  borderBottom: '1px solid rgba(226,195,107,0.15)',
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+              />
+              <div style={{ flex: 1, height: '1px', background: 'rgba(226,195,107,0.1)' }} />
               <p style={{ fontSize: '10px', color: t.textFaint }}>{sectionPhotos.length}/{MAX_PER_SECTION}</p>
             </div>
 
@@ -206,7 +231,7 @@ export default function GalleryEditor({ capsuleId, initialPhotos, supabase, t, o
                 onClick={() => addPhoto(si)}
                 style={{ width: '100%', padding: '10px', borderRadius: '10px', border: `1px dashed ${t.accentFaint}`, background: 'transparent', color: t.accentMuted, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
               >
-                <span style={{ fontSize: '18px' }}>+</span> Add photo to Gallery {si + 1}
+                <span style={{ fontSize: '18px' }}>+</span> Add photo to {sectionTitles[si] || `Gallery ${si + 1}`}
               </button>
             )}
           </div>

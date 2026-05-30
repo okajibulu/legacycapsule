@@ -391,7 +391,7 @@ function BookPage() {
           tier: 'free',
           pricing_key: '',
           visitor_type: path === 'gift' ? 'gift' : 'personal',
-          page_state: 'tribute_collection',
+          page_state: 'active',
           theme: 'classic',
           free_tier_expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
         })

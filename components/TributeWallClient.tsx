@@ -708,26 +708,78 @@ export default function TributeWallClient({ capsule, initialContributions, profi
       <div style={{ minHeight: '100vh', width: '100%', display: 'flex', justifyContent: 'center', background: t.pageBg }}>
         <div style={{ width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif" }}>
 
-          {/* ── TOP BAR — session aware ── */}
-          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 8px', gap: '12px' }}>
-            <Link href="/" style={{ textDecoration: 'none', flexShrink: 0 }}>
-              <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.18em', background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LEGACY</span>
-              <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.18em', color: t.textFaint, marginLeft: '0.18em' }}>CAPSULE</span>
-            </Link>
+{/* ── TOP BAR — session aware ── */}
+<div
+  style={{
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '16px 16px 8px',
+    gap: '12px'
+  }}
+>
+  <Link href="/" style={{ textDecoration: 'none', flexShrink: 0 }}>
+    <span
+      style={{
+        fontSize: '12px',
+        fontWeight: 800,
+        letterSpacing: '0.18em',
+        background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`,
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent'
+      }}
+    >
+      LEGACY
+    </span>
+    <span
+      style={{
+        fontSize: '12px',
+        fontWeight: 800,
+        letterSpacing: '0.18em',
+        color: t.textFaint,
+        marginLeft: '0.18em'
+      }}
+    >
+      CAPSULE
+    </span>
+  </Link>
 
-            {/* Admin quick links — only visible to organiser */}
-            {isAdmin && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Link href={`/manage/${capsule.slug}`} style={{ fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '20px', background: `rgba(226,195,107,0.1)`, border: `1px solid rgba(226,195,107,0.28)`, color: t.accentPrimary, textDecoration: 'none', letterSpacing: '0.04em', whiteSpace: 'nowrap' as const }}>
-                  ⚙ Manage
-                </Link>
-                <Link href={`/for/${capsule.slug}/profile`} style={{ fontSize: '11px', fontWeight: 600, padding: '5px 12px', borderRadius: '20px', background: 'rgba(255,255,255,0.04)', border: `1px solid rgba(255,255,255,0.1)`, color: t.textMuted, textDecoration: 'none', whiteSpace: 'nowrap' as const }}>
-                  Profile
-                </Link>
-              </div>
-            )}
-          </div>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <Link
+      href={`/for/${capsule.slug}/profile`}
+      style={{
+        fontSize: '12px',
+        fontWeight: 600,
+        color: t.accentPrimary,
+        textDecoration: 'none',
+        whiteSpace: 'nowrap'
+      }}
+    >
+      View Profile →
+    </Link>
 
+    {isAdmin && (
+      <Link
+        href={`/manage/${capsule.slug}`}
+        style={{
+          fontSize: '11px',
+          fontWeight: 700,
+          padding: '5px 12px',
+          borderRadius: '20px',
+          background: `rgba(226,195,107,0.1)`,
+          border: `1px solid rgba(226,195,107,0.28)`,
+          color: t.accentPrimary,
+          textDecoration: 'none',
+          letterSpacing: '0.04em',
+          whiteSpace: 'nowrap'
+        }}
+      >
+        ⚙ Manage
+      </Link>
+    )}
+  </div>
+</div>
           {/* ── HERO — Identity first ── */}
           {(() => {
             const sizeMap: Record<string, string> = { compact: '180px', standard: '260px', cinematic: '380px' }
@@ -981,27 +1033,7 @@ background:
                 <button onClick={() => setComposerOpen(true)} style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '13px', padding: '12px 12px', borderRadius: '12px', border: `1px solid ${t.accentFaint}`, background: t.cardBg, color: t.accentPrimary, cursor: 'pointer', fontWeight: 700, letterSpacing: '0.03em', whiteSpace: 'nowrap' as const, transition: 'all 0.2s' }}>
                   <span style={{ fontSize: '14px' }}>✦</span> Leave a Tribute
                 </button>
-                <Link
-  href={`/for/${capsule.slug}/profile`}
-  style={{
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '4px',
-    fontSize: '11px',
-    padding: '12px 6px',
-    borderRadius: '12px',
-    border: `1px solid ${t.accentFaint}`,
-    background: t.cardBg,
-    color: t.accentPrimary,
-    textDecoration: 'none',
-    fontWeight: 600,
-    whiteSpace: 'nowrap' as const
-  }}
->
-  👤 Profile
-</Link>
+
                 {/* Share Link — right */}
                 <a href={`https://wa.me/?text=${encodeURIComponent('Leave a tribute for ' + honourName + ': ' + capsuleUrl)}`} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '11px', padding: '12px 6px', borderRadius: '12px', border: '1px solid rgba(74,222,128,0.22)', background: t.cardBg, color: 'rgba(74,222,128,0.7)', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' as const }}>
                  💬 Share

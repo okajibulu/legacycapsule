@@ -1,9 +1,7 @@
 /**
  * ============================================================
- * LEGACYCAPSULE — app/for/[slug]/profile/page.tsx — v2
- * Theme-aware · All section types with dedicated renderers
- * Server component — no 'use client'
- * Account numbers masked server-side — NEVER reaches client
+ * LEGACYCAPSULE — app/for/[slug]/profile/page.tsx
+ * → app/for/[slug]/profile/page.tsx
  * ============================================================
  */
 
@@ -19,6 +17,7 @@ import {
 import WaysToHonourCard from '@/components/honouree/WaysToHonourCard'
 import SectionReactions from '@/components/SectionReactions'
 import GalleryLightbox from '@/components/GalleryLightbox'
+import SectionTextClamp from '@/components/SectionTextClamp'
 
 const adminClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,11 +52,12 @@ export default async function ProfilePage({ params }: PageProps) {
   const [profileRes, featuredRes, galleryRes, supportRes] = await Promise.all([
     adminClient.from('capsule_profile_sections').select('id, section_type, custom_title, content, sort_order, is_active').eq('capsule_id', capsule.id).eq('is_active', true).not('content', 'is', null).order('sort_order'),
     adminClient.from('capsule_featured_photos').select('id, image_url, caption, sort_order').eq('capsule_id', capsule.id).order('sort_order'),
-    adminClient.from('capsule_gallery').select('id, image_url, caption, description, sort_order, section_index').eq('capsule_id', capsule.id).order('section_index').order('sort_order'),
-    adminClient.from('capsule_support_accounts').select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, sort_order').eq('capsule_id', capsule.id).eq('is_active', true).is('deleted_at', null).order('sort_order'),
+    // Include section_title for editable gallery section names
+    adminClient.from('capsule_gallery').select('id, image_url, caption, description, sort_order, section_index, section_title').eq('capsule_id', capsule.id).order('section_index').order('sort_order'),
+    adminClient.from('capsule_support_accounts').select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, sort_order, relationship_to_honouree').eq('capsule_id', capsule.id).eq('is_active', true).is('deleted_at', null).order('sort_order'),
   ])
 
-  // Milestones — table may not exist, fetch separately
+  // Milestones
   let milestones: any[] = []
   try {
     const { data: mData } = await adminClient
@@ -68,13 +68,13 @@ export default async function ProfilePage({ params }: PageProps) {
       .limit(20)
     milestones = mData ?? []
   } catch { milestones = [] }
+
   const profileSections = profileRes.data ?? []
   const featuredPhotos = featuredRes.data ?? []
   const galleryPhotos = galleryRes.data ?? []
   const supportAccounts = (supportRes.data ?? []).map((acc: any) => ({ ...acc, account_number: maskAccountNumber(acc.account_number) }))
   const hasWaysToHonour = supportAccounts.length > 0
 
-  // Resolve theme
   const themeKey = resolveTheme(capsule.theme, capsule.event_type)
   const t = getThemeConfig(themeKey)
 
@@ -83,7 +83,6 @@ export default async function ProfilePage({ params }: PageProps) {
   const waysLabel = getWaysToHonourLabel(capsule.event_type, capsule.honouree_name)
   const resolvedHero = capsule.hero_image_url ?? '/honouree.jpg'
 
-  // Section type → render function
   function getSectionTitle(section: { section_type: string; custom_title: string | null }): string {
     if (section.custom_title) return section.custom_title
     const labels: Record<string, string> = {
@@ -94,32 +93,22 @@ export default async function ProfilePage({ params }: PageProps) {
     return labels[section.section_type] ?? section.section_type.replace(/_/g, ' ')
   }
 
+  // EOH ceremonial message
+  function getEOHMessage(eventType: string): string {
+    const type = eventType?.toLowerCase() ?? ''
+    if (type.includes('memorial') || type.includes('funeral'))
+      return 'The family is deeply grateful for every expression of love, remembrance and honour shared during this time.'
+    return 'Presence, prayers, goodwill and every expression of honour shared on this occasion are sincerely appreciated.'
+  }
+
   const hasContent = profileSections.length > 0 || featuredPhotos.length > 0 || galleryPhotos.length > 0 || hasWaysToHonour || milestones.length > 0
 
-  // Shared inline styles using theme tokens
-  const sectionHeadingStyle: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '18px'
-  }
-  const ruleStyle: React.CSSProperties = {
-    flex: 1, height: '1px', background: `linear-gradient(to right, ${t.accentFaint}, transparent)`
-  }
-  const ruleRightStyle: React.CSSProperties = {
-    flex: 1, height: '1px', background: `linear-gradient(to left, ${t.accentFaint}, transparent)`
-  }
-  const headingLabelStyle: React.CSSProperties = {
-    fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const,
-    letterSpacing: '0.22em', color: t.accentMuted, margin: 0, whiteSpace: 'nowrap' as const,
-  }
-  const cardStyle: React.CSSProperties = {
-    background: 'rgba(255,253,248,0.93)', borderRadius: '14px',
-    padding: '22px 24px', border: `1px solid ${t.accentFaint}`,
-    boxShadow: '0 4px 24px rgba(0,0,0,0.28)',
-  }
-  const bodyTextStyle: React.CSSProperties = {
-    fontFamily: "'Playfair Display', Georgia, serif",
-    fontSize: '15px', color: '#1C1014', lineHeight: 1.85,
-    whiteSpace: 'pre-wrap' as const, margin: 0,
-  }
+  const sectionHeadingStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '18px' }
+  const ruleStyle: React.CSSProperties = { flex: 1, height: '1px', background: `linear-gradient(to right, ${t.accentFaint}, transparent)` }
+  const ruleRightStyle: React.CSSProperties = { flex: 1, height: '1px', background: `linear-gradient(to left, ${t.accentFaint}, transparent)` }
+  const headingLabelStyle: React.CSSProperties = { fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.22em', color: t.accentMuted, margin: 0, whiteSpace: 'nowrap' as const }
+  const cardStyle: React.CSSProperties = { background: 'rgba(255,253,248,0.93)', borderRadius: '14px', padding: '22px 24px', border: `1px solid ${t.accentFaint}`, boxShadow: '0 4px 24px rgba(0,0,0,0.28)' }
+  const bodyTextStyle: React.CSSProperties = { fontFamily: "'Playfair Display', Georgia, serif", fontSize: '15px', color: '#1C1014', lineHeight: 1.85, whiteSpace: 'pre-wrap' as const, margin: 0 }
 
   return (
     <div style={{ minHeight: '100vh', background: t.pageBg, fontFamily: "'DM Sans', sans-serif" }}>
@@ -144,7 +133,6 @@ export default async function ProfilePage({ params }: PageProps) {
         <div style={{ position: 'absolute', inset: 0, background: t.heroOverlay }} />
         <div style={{ position: 'absolute', inset: 0, background: t.heroGlow }} />
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(to right, transparent, ${t.accentMuted}, transparent)` }} />
-
         <div style={{ position: 'relative', zIndex: 10, maxWidth: '720px', margin: '0 auto', padding: '48px 20px 36px', textAlign: 'center' }}>
           <p style={{ fontSize: '26px', marginBottom: '10px', lineHeight: 1 }}>{eventEmoji}</p>
           <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.24em', color: t.accentMuted, marginBottom: '12px' }}>{eventLabel}</p>
@@ -158,7 +146,7 @@ export default async function ProfilePage({ params }: PageProps) {
       <div style={{ height: '2px', background: `linear-gradient(to right, transparent, ${t.accentMuted}, transparent)` }} />
 
       {/* LEAVE TRIBUTE CTA */}
-      <div style={{ background: `rgba(0,0,0,0.15)`, borderBottom: `1px solid ${t.accentFaint}`, padding: '14px 20px', textAlign: 'center' }}>
+      <div style={{ background: 'rgba(0,0,0,0.15)', borderBottom: `1px solid ${t.accentFaint}`, padding: '14px 20px', textAlign: 'center' }}>
         <a href={`/for/${slug}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 24px', borderRadius: '24px', background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, color: '#1a0845', fontSize: '13px', fontWeight: 700, textDecoration: 'none', letterSpacing: '0.04em', boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}>
           ✦ Leave a tribute
         </a>
@@ -167,7 +155,7 @@ export default async function ProfilePage({ params }: PageProps) {
       {/* MAIN CONTENT */}
       <main style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 16px 60px' }}>
 
-        {/* Profile text sections */}
+        {/* Profile text sections — with 6-line clamp */}
         {profileSections.map((section: any) => (
           <div key={section.id} style={{ marginBottom: '32px' }}>
             <div style={sectionHeadingStyle}>
@@ -175,23 +163,20 @@ export default async function ProfilePage({ params }: PageProps) {
               <h2 style={headingLabelStyle}>{getSectionTitle(section)}</h2>
               <div style={ruleRightStyle} />
             </div>
-
-            {/* Quote gets special treatment */}
             {section.section_type === 'quote' ? (
               <div style={{ ...cardStyle, textAlign: 'center', padding: '28px 32px' }}>
-                <p style={{ ...bodyTextStyle, fontSize: '17px', fontStyle: 'italic', lineHeight: 1.75 }}>"{section.content}"</p>
+                <SectionTextClamp content={section.content} isQuote bodyTextStyle={bodyTextStyle} />
               </div>
             ) : (
               <div style={cardStyle}>
-                <p style={bodyTextStyle}>{section.content}</p>
+                <SectionTextClamp content={section.content} bodyTextStyle={bodyTextStyle} />
               </div>
             )}
-            {/* Emoji reactions per section */}
             <SectionReactions sectionId={section.id} capsuleId={capsule.id} />
           </div>
         ))}
 
-        {/* Milestones — timeline style */}
+        {/* Milestones */}
         {milestones.length > 0 && (
           <div style={{ marginBottom: '32px' }}>
             <div style={sectionHeadingStyle}>
@@ -224,37 +209,59 @@ export default async function ProfilePage({ params }: PageProps) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
               {featuredPhotos.map((photo: any) => (
                 <div key={photo.id} style={{ borderRadius: '12px', overflow: 'hidden', border: `1px solid ${t.accentFaint}`, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
-                  <GalleryLightbox src={photo.image_url} caption={photo.caption ?? ''} alt={`Photo of ${capsule.honouree_name}`} aspectRatio="4/3" />
-                  {photo.caption && <div style={{ padding: '10px 14px', background: 'rgba(255,253,248,0.95)' }}><p style={{ fontSize: '12px', color: '#5F5E5A', margin: 0 }}>{photo.caption}</p></div>}
+                  <GalleryLightbox
+                    src={photo.image_url}
+                    caption={photo.caption ?? ''}
+                    alt={`Photo of ${capsule.honouree_name}`}
+                    aspectRatio="4/3"
+                  />
+                  {photo.caption && (
+                    <div style={{ padding: '10px 14px', background: 'rgba(255,253,248,0.95)' }}>
+                      <p style={{ fontSize: '12px', color: '#5F5E5A', margin: 0 }}>{photo.caption}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Gallery — grouped by section, photo + description rows */}
+        {/* Gallery — vertical stack, description below photo, lightbox + comments */}
         {galleryPhotos.length > 0 && (() => {
           const maxSection = Math.max(...galleryPhotos.map((p: any) => p.section_index ?? 0))
           return Array.from({ length: maxSection + 1 }, (_, si) => {
             const sectionPhotos = galleryPhotos.filter((p: any) => (p.section_index ?? 0) === si)
             if (sectionPhotos.length === 0) return null
+
+            // Use section_title from DB if set, fallback to Gallery N
+            const sectionTitle = sectionPhotos[0]?.section_title
+              ?? (maxSection > 0 ? `Gallery ${si + 1}` : 'Gallery')
+
             return (
               <div key={si} style={{ marginBottom: '32px' }}>
                 <div style={sectionHeadingStyle}>
                   <div style={ruleStyle} />
-                  <h2 style={headingLabelStyle}>{maxSection > 0 ? `Gallery ${si + 1}` : 'Gallery'}</h2>
+                  <h2 style={headingLabelStyle}>{sectionTitle}</h2>
                   <div style={ruleRightStyle} />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {sectionPhotos.map((photo: any) => (
-                    <div key={photo.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'center', padding: '12px', borderRadius: '14px', background: t.cardBg, border: `1px solid ${t.accentFaint}` }}>
-                      <div style={{ borderRadius: '10px', overflow: 'hidden', aspectRatio: '4/3' }}>
-                        <img src={photo.image_url} alt={photo.description ?? photo.caption ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
-                      </div>
+                    <div key={photo.id} style={{ borderRadius: '14px', overflow: 'hidden', border: `1px solid ${t.accentFaint}`, background: t.cardBg, boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}>
+                      {/* Photo — full width, clickable */}
+                      <GalleryLightbox
+                        src={photo.image_url}
+                        caption={photo.description || photo.caption || ''}
+                        alt={`Gallery photo`}
+                        photoId={photo.id}
+                        capsuleId={capsule.id}
+                      />
+                      {/* Description below — only if exists */}
                       {(photo.description || photo.caption) && (
-                        <p style={{ fontSize: '14px', color: t.textBody, lineHeight: 1.75, fontStyle: 'italic' }}>
-                          {photo.description || photo.caption}
-                        </p>
+                        <div style={{ padding: '12px 16px', borderTop: `1px solid ${t.accentFaint}` }}>
+                          <p style={{ fontSize: '13px', color: t.textBody, lineHeight: 1.75, fontStyle: 'italic', margin: 0 }}>
+                            {photo.description || photo.caption}
+                          </p>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -264,23 +271,35 @@ export default async function ProfilePage({ params }: PageProps) {
           })
         })()}
 
-        {/* Ways to Honour */}
+        {/* Expression of Honour */}
         {hasWaysToHonour && (
           <div style={{ marginBottom: '32px' }}>
-            <div style={sectionHeadingStyle}>
-              <div style={ruleStyle} />
-              <h2 style={headingLabelStyle}>{waysLabel}</h2>
-              <div style={ruleRightStyle} />
+            {/* Zone A — Ceremonial header */}
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{ height: '1px', background: `linear-gradient(to right, transparent, rgba(226,195,107,0.4), transparent)`, marginBottom: '20px' }} />
+              <div style={{ width: '48px', height: '48px', margin: '0 auto 12px', borderRadius: '50%', background: 'rgba(226,195,107,0.08)', border: '1px solid rgba(226,195,107,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', boxShadow: '0 0 24px rgba(226,195,107,0.12)' }}>✦</div>
+              <p style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.24em', textTransform: 'uppercase' as const, color: t.accentMuted, marginBottom: '8px' }}>Expression of Honour</p>
+              <p style={{ fontSize: '13px', color: t.textFaint, lineHeight: 1.7, maxWidth: '320px', margin: '0 auto', fontStyle: 'italic' }}>
+                {getEOHMessage(capsule.event_type)}
+              </p>
+              <div style={{ height: '1px', background: `linear-gradient(to right, transparent, rgba(226,195,107,0.2), transparent)`, marginTop: '20px' }} />
             </div>
+
+            {/* Zone B — Cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {supportAccounts.map(account => (
-                <WaysToHonourCard key={account.id} account={account} capsuleId={capsule.id} acknowledgeLabel={getGiftAcknowledgeLabel(capsule.event_type)} />
+              {supportAccounts.map((account: any) => (
+                <WaysToHonourCard
+                  key={account.id}
+                  account={account}
+                  capsuleId={capsule.id}
+                  acknowledgeLabel={getGiftAcknowledgeLabel(capsule.event_type)}
+                />
               ))}
             </div>
           </div>
         )}
 
-        {/* Empty state — always looks complete */}
+        {/* Empty state */}
         {!hasContent && (
           <div style={{ textAlign: 'center', padding: '48px 24px', borderRadius: '16px', border: `1px solid ${t.accentFaint}`, background: 'rgba(255,255,255,0.02)' }}>
             <p style={{ fontSize: '28px', marginBottom: '16px' }}>{eventEmoji}</p>
