@@ -96,15 +96,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   // ── 2.4  Insert acknowledgement record ────────────────────
 
-  const { error: insertErr } = await adminClient
+const { error: insertErr } = await adminClient
     .from('support_acknowledgements')
     .insert({
       capsule_id,
       support_account_id,
       supporter_name:  supporter_name.trim(),
       supporter_email: supporter_email?.trim() || null,
-      thankyou_sent:   false,
-    });
+    })
 
   if (insertErr) {
     console.error('[acknowledgement] insert error:', insertErr.message);
@@ -132,16 +131,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     if (result.ok) {
       // Mark thank-you as sent
-      await adminClient
+await adminClient
         .from('support_acknowledgements')
         .update({
-          thankyou_sent:    true,
-          thankyou_sent_at: new Date().toISOString(),
+          thank_you_sent_at: new Date().toISOString(),
         })
         .eq('capsule_id', capsule_id)
         .eq('supporter_name', supporter_name.trim())
         .order('created_at', { ascending: false })
-        .limit(1);
+        .limit(1)
 
       emailSent = true;
     }

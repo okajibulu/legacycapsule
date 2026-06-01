@@ -205,12 +205,8 @@ function BeneficiaryCard({ account, honourName, t }: {
 function NotifyBeneficiaryModal({ capsuleId, accountId, honourName, onClose }: {
   capsuleId: string; accountId: string; honourName: string; onClose: () => void
 }) {
-  const [name, setName] = useState('')
+const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [city, setCity] = useState('')
-  const [country, setCountry] = useState('')
-  const [amount, setAmount] = useState('')
-  const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
@@ -233,10 +229,8 @@ function NotifyBeneficiaryModal({ capsuleId, accountId, honourName, onClose }: {
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle()
-          if (data) {
+if (data) {
             if (data.contributor_name) setName(data.contributor_name)
-            if (data.city) setCity(data.city)
-            if (data.country) setCountry(data.country)
           }
         }
       } catch { /* non-critical */ }
@@ -306,17 +300,11 @@ function NotifyBeneficiaryModal({ capsuleId, accountId, honourName, onClose }: {
               {prefilling ? (
                 <div style={{ textAlign: 'center', padding: '12px 0', color: 'rgba(226,195,107,0.5)', fontSize: '12px' }}>Loading…</div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <input style={inp} placeholder="Your name *" value={name} onChange={e => { setName(e.target.value); setError('') }} />
-                  <input style={inp} type="email" placeholder="Your email" value={email} onChange={e => setEmail(e.target.value)} />
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input style={{ ...inp, flex: 1 }} placeholder="City" value={city} onChange={e => setCity(e.target.value)} />
-                    <input style={{ ...inp, flex: 1 }} placeholder="Country" value={country} onChange={e => setCountry(e.target.value)} />
-                  </div>
-                  <input style={inp} placeholder="Amount (optional)" value={amount} onChange={e => setAmount(e.target.value)} />
-                  <textarea style={{ ...inp, resize: 'none' as const, lineHeight: 1.6 }} placeholder="A personal message (optional)" rows={3} value={message} onChange={e => setMessage(e.target.value)} />
-                  {error && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.9)', margin: 0 }}>{error}</p>}
-                  <button onClick={handleSubmit} disabled={saving || !name.trim()} style={{ padding: '12px', borderRadius: '12px', background: 'linear-gradient(135deg, rgba(226,195,107,1), rgba(226,195,107,0.7))', color: '#1a0845', fontSize: '14px', fontWeight: 700, border: 'none', cursor: 'pointer', opacity: saving || !name.trim() ? 0.6 : 1 }}>
+<div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <input style={inp} placeholder="Your name *" value={name} onChange={e => { setName(e.target.value); setError('') }} />
+                    <input style={inp} type="email" placeholder="Your email (optional — to receive a confirmation)" value={email} onChange={e => setEmail(e.target.value)} />
+                    {error && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.9)', margin: 0 }}>{error}</p>}
+                    <button onClick={handleSubmit} disabled={saving || !name.trim()} style={{ padding: '12px', borderRadius: '12px', background: 'linear-gradient(135deg, rgba(226,195,107,1), rgba(226,195,107,0.7))', color: '#1a0845', fontSize: '14px', fontWeight: 700, border: 'none', cursor: 'pointer', opacity: saving || !name.trim() ? 0.6 : 1 }}>
                     {saving ? 'Sending…' : 'Notify Beneficiary'}
                   </button>
                   <button onClick={onClose} style={{ padding: '8px', background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: '12px', cursor: 'pointer' }}>Cancel</button>

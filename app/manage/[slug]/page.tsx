@@ -713,6 +713,23 @@ function WaysToHonourEditor({ capsuleId, supabase }: { capsuleId: string; supaba
 }
 
 
+/* =========================================================
+   REPLACEMENT FOR: FamilyRepSection component
+   inside app/manage/[slug]/page.tsx
+
+   Find the entire "function FamilyRepSection" block
+   (from its first line to its closing "}") and replace
+   with this.
+
+   Changes v1.2.7 (AI6):
+   - Adds issued portal tokens list below send button
+   - Each token row: rep email, issued date, last accessed,
+     active/expired badge, Resend button
+   - Resend calls /api/rep/invite (same route, resend mode)
+   - Tokens fetched from honouree_portal_tokens on mount
+     and after each send/resend
+========================================================= */
+
 /* ── FAMILY REP SECTION — inline fields, single send ─── */
 function FamilyRepSection({ capsuleId, slug, initialName, initialEmail, sentAt, onSaved }: {
   capsuleId: string; slug: string; initialName: string; initialEmail: string
@@ -725,20 +742,36 @@ function FamilyRepSection({ capsuleId, slug, initialName, initialEmail, sentAt, 
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const [tokens, setTokens] = useState<any[]>([])
+  const [resendingId, setResendingId] = useState<string | null>(null)
 
   const canSend = email.includes('@')
   const isDirty = name !== initialName || email !== initialEmail
 
+  /* ── Fetch issued tokens ── */
+  const fetchTokens = async () => {
+    const { data } = await supabase
+      .from('honouree_portal_tokens')
+      .select('id, honouree_email, created_at, last_accessed_at, expires_at')
+      .eq('capsule_id', capsuleId)
+      .order('created_at', { ascending: false })
+    setTokens(data ?? [])
+  }
+
+  useEffect(() => { fetchTokens() }, [capsuleId])
+
   const handleSave = async () => {
     setSaving(true)
-    await supabase.from('capsules').update({ family_rep_name: name || null, family_rep_email: email || null } as any).eq('id', capsuleId)
+    await supabase
+      .from('capsules')
+      .update({ family_rep_name: name || null, family_rep_email: email || null } as any)
+      .eq('id', capsuleId)
     setSaving(false); setSaved(true); onSaved()
     setTimeout(() => setSaved(false), 2000)
   }
 
   const handleSend = async () => {
     if (!canSend) return
-    // Save first if dirty
     if (isDirty) await handleSave()
     setSending(true); setError('')
     try {
@@ -749,10 +782,31 @@ function FamilyRepSection({ capsuleId, slug, initialName, initialEmail, sentAt, 
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Failed to send'); setSending(false); return }
-      setSent(true); onSaved()
+      setSent(true); onSaved(); fetchTokens()
     } catch { setError('Something went wrong. Please try again.') }
     setSending(false)
   }
+
+  const handleResend = async (repEmail: string) => {
+    setResendingId(repEmail)
+    setError('')
+    try {
+      const res = await fetch('/api/rep/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ capsuleId, slug, repEmail }),
+      })
+      const data = await res.json()
+      if (!res.ok) setError(data.error ?? 'Failed to resend')
+      else fetchTokens()
+    } catch { setError('Something went wrong.') }
+    setResendingId(null)
+  }
+
+  const now = new Date()
+
+  const formatDate = (s: string) =>
+    new Date(s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 
   return (
     <div>
@@ -760,7 +814,7 @@ function FamilyRepSection({ capsuleId, slug, initialName, initialEmail, sentAt, 
         The Family Representative receives a private link to view all tributes, support acknowledgements and Ways to Honour details — without organiser access.
       </p>
 
-      {/* Always-editable fields — no edit button needed */}
+      {/* Always-editable fields */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
         <div>
           <label style={{ fontSize: '10px', color: goldMuted, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '5px' }}>Representative Name</label>
@@ -772,37 +826,93 @@ function FamilyRepSection({ capsuleId, slug, initialName, initialEmail, sentAt, 
         </div>
       </div>
 
-      {/* Save details if changed */}
+      {/* Save if changed */}
       {isDirty && (
         <button onClick={handleSave} disabled={saving} style={{ width: '100%', padding: '9px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: `1px solid ${cardBorder}`, color: textSecondary, fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginBottom: '8px', opacity: saving ? 0.7 : 1 }}>
           {saving ? 'Saving…' : 'Save Details'}
         </button>
       )}
-      {saved && !isDirty && <p style={{ fontSize: '11px', color: 'rgba(134,239,172,0.8)', marginBottom: '8px', textAlign: 'center' }}>✓ Details saved</p>}
+      {saved && !isDirty && (
+        <p style={{ fontSize: '11px', color: 'rgba(134,239,172,0.8)', marginBottom: '8px', textAlign: 'center' }}>✓ Details saved</p>
+      )}
 
       {/* Send portal access */}
       {sent ? (
-        <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(74,222,128,0.07)', border: '1px solid rgba(74,222,128,0.2)' }}>
+        <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(74,222,128,0.07)', border: '1px solid rgba(74,222,128,0.2)', marginBottom: '16px' }}>
           <p style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(134,239,172,0.9)', margin: '0 0 2px' }}>✓ Portal access link sent</p>
           <p style={{ fontSize: '11px', color: textFaint, margin: 0 }}>Sent to {email} — they can click the link to view tributes privately.</p>
         </div>
       ) : (
-        <div>
+        <div style={{ marginBottom: '16px' }}>
           {sentAt && (
             <p style={{ fontSize: '11px', color: textFaint, marginBottom: '8px', fontStyle: 'italic' }}>
-              ✓ Previously sent: {new Date(sentAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+              ✓ Previously sent: {formatDate(sentAt)}
             </p>
           )}
           <button onClick={handleSend} disabled={sending || !canSend} style={{ width: '100%', padding: '11px', borderRadius: '10px', background: canSend ? `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))` : 'rgba(255,255,255,0.04)', border: canSend ? 'none' : `1px solid ${cardBorder}`, color: canSend ? '#1a0845' : textFaint, fontSize: '13px', fontWeight: 700, cursor: canSend ? 'pointer' : 'not-allowed', opacity: sending ? 0.7 : 1, letterSpacing: '0.04em' }}>
             {sending ? 'Sending…' : sentAt ? 'Resend Portal Access Link' : 'Send Portal Access Link →'}
           </button>
-          {!canSend && <p style={{ fontSize: '11px', color: textFaint, marginTop: '6px', textAlign: 'center' }}>Enter the representative's email address above first.</p>}
+          {!canSend && (
+            <p style={{ fontSize: '11px', color: textFaint, marginTop: '6px', textAlign: 'center' }}>
+              Enter the representative's email address above first.
+            </p>
+          )}
           {error && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.8)', marginTop: '6px' }}>{error}</p>}
+        </div>
+      )}
+
+      {/* ── Issued Portal Access List ── */}
+      {tokens.length > 0 && (
+        <div>
+          <div style={{ height: '1px', background: `linear-gradient(to right, transparent, rgba(226,195,107,0.15), transparent)`, marginBottom: '14px' }} />
+          <p style={{ fontSize: '10px', fontWeight: 700, color: goldMuted, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '10px' }}>
+            Issued Access Links
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {tokens.map(token => {
+              const isExpired = token.expires_at && new Date(token.expires_at) < now
+              const isResending = resendingId === token.honouree_email
+              return (
+                <div key={token.id} style={{ padding: '10px 12px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: `1px solid ${isExpired ? 'rgba(255,255,255,0.05)' : 'rgba(226,195,107,0.08)'}`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: isExpired ? textFaint : textPrimary, marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {token.honouree_email}
+                    </p>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as const }}>
+                      <span style={{ fontSize: '10px', color: textFaint }}>Issued: {formatDate(token.created_at)}</span>
+                      <span style={{ fontSize: '10px', color: textFaint }}>
+                        {token.last_accessed_at ? `Last accessed: ${formatDate(token.last_accessed_at)}` : 'Never accessed'}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <span style={{
+                      fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em',
+                      textTransform: 'uppercase' as const, padding: '2px 7px', borderRadius: '6px',
+                      background: isExpired ? 'rgba(248,113,113,0.08)' : 'rgba(74,222,128,0.08)',
+                      border: `1px solid ${isExpired ? 'rgba(248,113,113,0.18)' : 'rgba(74,222,128,0.18)'}`,
+                      color: isExpired ? 'rgba(248,113,113,0.7)' : 'rgba(134,239,172,0.8)',
+                    }}>
+                      {isExpired ? 'Expired' : 'Active'}
+                    </span>
+                    <button
+                      onClick={() => handleResend(token.honouree_email)}
+                      disabled={!!resendingId}
+                      style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '6px', border: `1px solid rgba(226,195,107,0.2)`, background: 'rgba(226,195,107,0.05)', color: goldMuted, cursor: 'pointer', opacity: resendingId ? 0.5 : 1 }}
+                    >
+                      {isResending ? '…' : 'Resend'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>
   )
 }
+
 
 /* ── NOTIFICATION SETTINGS ────────────────────────────── */
 function NotificationSettings({ capsuleId, currentFrequency, eventDate, onSaved }: {

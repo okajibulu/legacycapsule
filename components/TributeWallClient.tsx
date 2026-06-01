@@ -566,8 +566,13 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   const [heroFit, setHeroFit] = useState<string>((capsule as any).hero_image_fit ?? 'height')
   const [heroSize, setHeroSize] = useState<string>((capsule as any).hero_panel_size ?? 'standard')
   const [heroBleed, setHeroBleed] = useState<boolean>((capsule as any).hero_full_bleed ?? false)
-  const [showPositionPicker, setShowPositionPicker] = useState(false)
+const [showPositionPicker, setShowPositionPicker] = useState(false)
   const [uploadingHero, setUploadingHero] = useState(false)
+  const [repAccessOpen, setRepAccessOpen] = useState(false)
+  const [repAccessEmail, setRepAccessEmail] = useState('')
+  const [repAccessSending, setRepAccessSending] = useState(false)
+  const [repAccessDone, setRepAccessDone] = useState(false)
+  const [repAccessError, setRepAccessError] = useState('')
   const heroPhotoRef = useRef<HTMLInputElement>(null)
   const [fName, setFName] = useState(''); const [fEmail, setFEmail] = useState('')
   const [fCity, setFCity] = useState(''); const [fCountry, setFCountry] = useState('')
@@ -637,6 +642,23 @@ export default function TributeWallClient({ capsule, initialContributions, profi
   const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (!f) return; const compressed = await compressPhoto(f); setFPhoto(compressed); const reader = new FileReader(); reader.onload = ev => setFPhotoPreview(ev.target?.result as string); reader.readAsDataURL(compressed) }
   const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (!f || !isAdmin) return; setUploadingHero(true); try { const compressed = await compressPhoto(f); const ext = compressed.name.split('.').pop() ?? 'jpg'; const path = `hero/${capsule.id}.${ext}`; const { error: ue } = await supabaseClient.storage.from(BUCKET).upload(path, compressed, { upsert: true }); if (!ue) { const url = supabaseClient.storage.from(BUCKET).getPublicUrl(path).data.publicUrl; await supabaseClient.from('capsules').update({ hero_image_url: url }).eq('id', capsule.id); setHeroImage(url); setShowPositionPicker(true) } } catch (err) { console.error(err) } setUploadingHero(false) }
   const handleCopy = async () => { await navigator.clipboard.writeText(capsuleUrl); setCopied(true); setTimeout(() => setCopied(false), 2000) }
+
+  const handleRepAccessRequest = async () => {
+    if (!repAccessEmail.trim() || !repAccessEmail.includes('@')) {
+      setRepAccessError('Please enter a valid email address.')
+      return
+    }
+    setRepAccessSending(true); setRepAccessError('')
+    try {
+      await fetch('/api/rep/request-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: repAccessEmail.trim().toLowerCase() }),
+      })
+      setRepAccessDone(true)
+    } catch { setRepAccessError('Something went wrong. Please try again.') }
+    setRepAccessSending(false)
+  }
   const validate = () => { const e: Record<string, string> = {}; if (!fName.trim()) e.name = 'Name required'; if (!fEmail.trim() || !fEmail.includes('@')) e.email = 'Valid email required'; if (!fCity.trim()) e.city = 'City required'; if (!fCountry) e.country = 'Country required'; if (fMsg.trim().length < MIN_CHARS) e.msg = `${MIN_CHARS}+ characters`; if (fMsg.trim().length > MAX_CHARS) e.msg = `Over ${MAX_CHARS} limit`; setErrors(e); return !Object.keys(e).length }
   const handleSubmit = async () => {
     if (!validate()) return; setSubmitting(true); setSubmitErr('')
@@ -703,8 +725,92 @@ export default function TributeWallClient({ capsule, initialContributions, profi
         </div>
       )}
 
-      {mapOpen && <MapModal pins={pins} honourName={honourName} uniqueCountries={uniqueCountries} onClose={() => setMapOpen(false)} t={t} />}
+{mapOpen && <MapModal pins={pins} honourName={honourName} uniqueCountries={uniqueCountries} onClose={() => setMapOpen(false)} t={t} />}
 
+      {/* ── Family Rep Access Modal ── */}
+      {repAccessOpen && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'rgba(8,2,20,0.92)', backdropFilter: 'blur(8px)' }}
+          onClick={() => { setRepAccessOpen(false); setRepAccessDone(false); setRepAccessEmail(''); setRepAccessError('') }}
+        >
+          <div
+            style={{ width: '100%', maxWidth: '360px', borderRadius: '20px', background: 'linear-gradient(145deg, #1e0d4e, #2a1060)', border: '1px solid rgba(226,195,107,0.2)', boxShadow: '0 24px 64px rgba(0,0,0,0.6)', overflow: 'hidden' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ height: '2px', background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.7), transparent)' }} />
+            <div style={{ padding: '28px 24px' }}>
+              {repAccessDone ? (
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '32px', marginBottom: '14px' }}>✦</div>
+                  <p style={{ fontSize: '16px', fontWeight: 700, color: 'rgba(226,195,107,1)', fontFamily: "'Playfair Display', serif", marginBottom: '10px' }}>Check your inbox</p>
+                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, marginBottom: '20px' }}>
+                    If your email is registered as a Family Representative on this capsule, your portal access link has been sent.
+                  </p>
+                  <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', fontStyle: 'italic', marginBottom: '20px' }}>
+                    Didn't receive it? Check your spam folder, or ask the organiser to resend from the capsule dashboard.
+                  </p>
+                  <button
+                    onClick={() => { setRepAccessOpen(false); setRepAccessDone(false); setRepAccessEmail('') }}
+                    style={{ padding: '10px 28px', borderRadius: '20px', background: 'linear-gradient(135deg, rgba(226,195,107,1), rgba(226,195,107,0.7))', color: '#1a0845', fontSize: '13px', fontWeight: 700, border: 'none', cursor: 'pointer' }}
+                  >
+                    Close
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div style={{ textAlign: 'center', marginBottom: '22px' }}>
+                    <p style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff', fontFamily: "'Playfair Display', serif", marginBottom: '6px' }}>Family Rep Portal</p>
+                    <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.65 }}>
+                      Enter your email address and we will send your private portal access link.
+                    </p>
+                  </div>
+                  <div style={{ marginBottom: '12px' }}>
+                    <input
+                      type="email"
+                      placeholder="Your email address"
+                      value={repAccessEmail}
+                      onChange={e => { setRepAccessEmail(e.target.value); setRepAccessError('') }}
+                      onKeyDown={e => e.key === 'Enter' && handleRepAccessRequest()}
+                      style={{
+                        width: '100%', fontSize: '13px', padding: '11px 14px', borderRadius: '10px',
+                        background: 'rgba(255,255,255,0.1)',
+                        border: `1px solid ${repAccessError ? 'rgba(248,113,113,0.4)' : 'rgba(226,195,107,0.25)'}`,
+                        color: '#ffffff', outline: 'none',
+                        fontFamily: "'DM Sans', sans-serif", boxSizing: 'border-box' as const,
+                      }}
+                    />
+                    {repAccessError && (
+                      <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.8)', marginTop: '5px' }}>{repAccessError}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleRepAccessRequest}
+                    disabled={repAccessSending || !repAccessEmail.trim()}
+                    style={{
+                      width: '100%', padding: '12px', borderRadius: '12px',
+                      background: repAccessEmail.trim()
+                        ? 'linear-gradient(135deg, rgba(226,195,107,1), rgba(226,195,107,0.7))'
+                        : 'rgba(255,255,255,0.06)',
+                      color: repAccessEmail.trim() ? '#1a0845' : 'rgba(255,255,255,0.3)',
+                      fontSize: '13px', fontWeight: 700, border: 'none',
+                      cursor: repAccessEmail.trim() ? 'pointer' : 'not-allowed',
+                      opacity: repAccessSending ? 0.7 : 1,
+                    }}
+                  >
+                    {repAccessSending ? 'Sending…' : 'Send My Access Link →'}
+                  </button>
+                  <button
+                    onClick={() => { setRepAccessOpen(false); setRepAccessEmail(''); setRepAccessError('') }}
+                    style={{ width: '100%', marginTop: '8px', padding: '8px', background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: '12px', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{ minHeight: '100vh', width: '100%', display: 'flex', justifyContent: 'center', background: t.pageBg }}>
         <div style={{ width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif" }}>
 
@@ -1268,9 +1374,20 @@ background:
             </button>
           </div>
 
-          {/* ── FOOTER ── */}
+  {/* ── FOOTER ── */}
           <div style={{ padding: '28px 16px 24px', textAlign: 'center' }}>
-            </div>
+            <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.18em', background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LEGACY</span>
+            <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.18em', color: t.textFaint, marginLeft: '0.18em' }}>CAPSULE</span>
+            <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.12)', marginTop: '6px', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Events end. Legacies continue.</p>
+            <p style={{ marginTop: '10px' }}>
+              <button
+                onClick={() => { setRepAccessOpen(true); setRepAccessDone(false); setRepAccessEmail(''); setRepAccessError('') }}
+                style={{ fontSize: '12px', color: 'rgba(255,255,255,0.22)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: "'DM Sans', sans-serif" }}
+              >
+                Family Representative? Access your portal →
+              </button>
+            </p>
+          </div>
 
         </div>
       </div>
