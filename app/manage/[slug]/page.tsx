@@ -14,6 +14,7 @@ import Link from 'next/link'
 import { getAllThemes, resolveTheme } from '@/lib/themeConfig'
 import type { ThemeKey } from '@/lib/themeConfig'
 import GalleryEditor from '@/components/GalleryEditor'
+import HeroPositionPicker from '@/components/HeroPositionPicker'
 
 interface Capsule {
   id: string; slug: string; honouree_name: string; honouree_title: string | null
@@ -22,6 +23,9 @@ interface Capsule {
   hero_image_url: string | null; organiser_email: string
   free_tier_expires_at: string | null; activated_at: string | null
   approved_contrib_count: number; components: string[]
+  hero_image_position: string | null; hero_image_zoom: number | null
+  hero_image_fit: string | null; hero_panel_size: string | null
+  hero_full_bleed: boolean | null
 }
 interface Contribution {
   id: string; contributor_name: string; city: string; country: string
@@ -537,43 +541,77 @@ function WaysToHonourEditor({ capsuleId, supabase }: { capsuleId: string; supaba
   const [accounts, setAccounts] = useState<any[]>([])
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ title: '', account_name: '', bank_name: '', account_number: '', currency: 'NGN', instructions: '', support_type: 'bank_transfer', is_visible: true, reveal_required: true })
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<any>({})
+  const [form, setForm] = useState({
+    title: '',
+    account_name: '',
+    bank_name: '',
+    account_number: '',
+    currency: 'NGN',
+    instructions: '',
+    relationship: '',
+  })
 
-  useEffect(() => {
-    supabase.from('capsule_support_accounts').select('*').eq('capsule_id', capsuleId).order('sort_order').then(({ data }: any) => setAccounts(data ?? []))
-  }, [capsuleId])
+  const fetchAccounts = async () => {
+    const { data } = await supabase
+      .from('capsule_support_accounts')
+      .select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, is_active, sort_order, relationship_to_honouree')
+      .eq('capsule_id', capsuleId)
+      .is('deleted_at', null)
+      .order('sort_order')
+    setAccounts(data ?? [])
+  }
+
+  useEffect(() => { fetchAccounts() }, [capsuleId])
 
   const handleAdd = async () => {
     if (!form.account_name.trim() || !form.account_number.trim()) return
     setSaving(true)
-
-const { data: insertData, error } = await supabase
-  .from('capsule_support_accounts')
-.insert({
-  capsule_id: capsuleId,
-  method_label: form.title,
-  account_holder: form.account_name,
-  bank_name: form.bank_name,
-  account_number: form.account_number,
-  reference_guide: form.instructions,
-  currency: form.currency,
-  is_active: true,
-  sort_order: accounts.length
-})
-  .select()
-
-console.log('WAYS TO HONOUR RESULT', insertData)
-console.log('WAYS TO HONOUR ERROR', error)
-
-const { data } = await supabase.from('capsule_support_accounts').select('*').eq('capsule_id', capsuleId).order('sort_order')
-    setAccounts(data ?? [])
-    setForm({ title: '', account_name: '', bank_name: '', account_number: '', currency: 'NGN', instructions: '', support_type: 'bank_transfer', is_visible: true, reveal_required: true })
-    setAdding(false); setSaving(false)
+    const { error } = await supabase
+      .from('capsule_support_accounts')
+      .insert({
+        capsule_id: capsuleId,
+        method_label: form.title || null,
+        account_holder: form.account_name,
+        bank_name: form.bank_name || null,
+        account_number: form.account_number,
+        reference_guide: form.instructions || null,
+        currency: form.currency,
+        relationship_to_honouree: form.relationship || null,
+        is_active: true,
+        sort_order: accounts.length,
+      })
+    if (error) { console.error('EOH insert error:', error); alert(error.message) }
+    await fetchAccounts()
+    setForm({ title: '', account_name: '', bank_name: '', account_number: '', currency: 'NGN', instructions: '', relationship: '' })
+    setAdding(false)
+    setSaving(false)
   }
 
-  const handleToggle = async (id: string, is_visible: boolean) => {
-    await supabase.from('capsule_support_accounts').update({ is_visible: !is_visible }).eq('id', id)
-    setAccounts(prev => prev.map(a => a.id === id ? { ...a, is_visible: !is_visible } : a))
+  const handleEditSave = async (id: string) => {
+    await supabase
+      .from('capsule_support_accounts')
+      .update({
+        method_label: editForm.method_label || null,
+        account_holder: editForm.account_holder,
+        bank_name: editForm.bank_name || null,
+        account_number: editForm.account_number,
+        reference_guide: editForm.reference_guide || null,
+        currency: editForm.currency,
+        relationship_to_honouree: editForm.relationship_to_honouree || null,
+      })
+      .eq('id', id)
+    await fetchAccounts()
+    setEditingId(null)
+  }
+
+  const handleToggle = async (id: string, is_active: boolean) => {
+    await supabase
+      .from('capsule_support_accounts')
+      .update({ is_active: !is_active })
+      .eq('id', id)
+    setAccounts(prev => prev.map(a => a.id === id ? { ...a, is_active: !is_active } : a))
   }
 
   const handleDelete = async (id: string) => {
@@ -585,20 +623,64 @@ const { data } = await supabase.from('capsule_support_accounts').select('*').eq(
   return (
     <div>
       <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.65, marginBottom: '14px' }}>
-        Add bank account details for guests who wish to send support. Displayed tastefully on your profile page. LegacyCapsule never handles or processes any funds.
+        Add bank account details for guests who wish to send support. Displayed on the tribute wall. LegacyCapsule never handles or processes any funds.
       </p>
 
       {accounts.map(acc => (
-        <div key={acc.id} style={{ padding: '12px 14px', borderRadius: '10px', background: cardBg, border: `1px solid ${cardBorder}`, marginBottom: '8px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: acc.is_visible ? gold : textFaint, marginBottom: '2px' }}>{acc.title || acc.bank_name || 'Account'}</p>
-            <p style={{ fontSize: '11px', color: textFaint }}>{acc.account_name} · {acc.bank_name}</p>
-            <p style={{ fontSize: '11px', color: textFaint }}>••••{acc.account_number?.slice(-4)} · {acc.currency}</p>
-          </div>
-          <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-            <button onClick={() => handleToggle(acc.id, acc.is_visible)} style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '6px', border: `1px solid ${cardBorder}`, background: 'transparent', color: textFaint, cursor: 'pointer' }}>{acc.is_visible ? 'Hide' : 'Show'}</button>
-            <button onClick={() => handleDelete(acc.id)} style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(248,113,113,0.2)', background: 'transparent', color: 'rgba(248,113,113,0.6)', cursor: 'pointer' }}>✕</button>
-          </div>
+        <div key={acc.id}>
+          {editingId === acc.id ? (
+            /* ── Inline Edit Mode ── */
+            <div style={{ padding: '14px', borderRadius: '12px', border: `1px solid rgba(226,195,107,0.3)`, background: 'rgba(226,195,107,0.05)', marginBottom: '8px' }}>
+              <p style={{ fontSize: '11px', color: goldMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>Edit Account</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <input style={inp} placeholder="Label (e.g. Celebrate With Prof. Adesina)" value={editForm.method_label ?? ''} onChange={e => setEditForm((f: any) => ({ ...f, method_label: e.target.value }))} />
+                <input style={inp} placeholder="Account holder name *" value={editForm.account_holder ?? ''} onChange={e => setEditForm((f: any) => ({ ...f, account_holder: e.target.value }))} />
+                <input style={inp} placeholder="Relationship to honouree (e.g. Spouse, Son)" value={editForm.relationship_to_honouree ?? ''} onChange={e => setEditForm((f: any) => ({ ...f, relationship_to_honouree: e.target.value }))} />
+                <input style={inp} placeholder="Bank name" value={editForm.bank_name ?? ''} onChange={e => setEditForm((f: any) => ({ ...f, bank_name: e.target.value }))} />
+                <input style={inp} placeholder="Account number *" value={editForm.account_number ?? ''} onChange={e => setEditForm((f: any) => ({ ...f, account_number: e.target.value }))} />
+                <input style={inp} placeholder="Currency (e.g. NGN, USD, GBP)" value={editForm.currency ?? ''} onChange={e => setEditForm((f: any) => ({ ...f, currency: e.target.value }))} />
+                <textarea style={{ ...inp, resize: 'none', lineHeight: 1.6 }} rows={2} placeholder="Optional note for guests" value={editForm.reference_guide ?? ''} onChange={e => setEditForm((f: any) => ({ ...f, reference_guide: e.target.value }))} />
+              </div>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                <button onClick={() => handleEditSave(acc.id)} style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', border: 'none', cursor: 'pointer' }}>Save</button>
+                <button onClick={() => setEditingId(null)} style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '12px', background: 'transparent', border: `1px solid ${cardBorder}`, color: textFaint, cursor: 'pointer' }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            /* ── Display Mode ── */
+            <div style={{ padding: '12px 14px', borderRadius: '10px', background: cardBg, border: `1px solid ${cardBorder}`, marginBottom: '8px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: acc.is_active ? gold : textFaint, marginBottom: '2px' }}>
+                  {acc.method_label || acc.bank_name || 'Account'}
+                </p>
+                <p style={{ fontSize: '11px', color: textFaint }}>{acc.account_holder} · {acc.bank_name}</p>
+                {acc.relationship_to_honouree && (
+                  <p style={{ fontSize: '10px', color: textFaint, fontStyle: 'italic' }}>{acc.relationship_to_honouree}</p>
+                )}
+                <p style={{ fontSize: '11px', color: textFaint }}>••••{acc.account_number?.slice(-4)} · {acc.currency}</p>
+              </div>
+              <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                <button
+                  onClick={() => { setEditingId(acc.id); setEditForm({ ...acc }) }}
+                  style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '6px', border: `1px solid rgba(226,195,107,0.25)`, background: 'rgba(226,195,107,0.06)', color: goldMuted, cursor: 'pointer' }}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleToggle(acc.id, acc.is_active)}
+                  style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '6px', border: `1px solid ${cardBorder}`, background: 'transparent', color: textFaint, cursor: 'pointer' }}
+                >
+                  {acc.is_active ? 'Hide' : 'Show'}
+                </button>
+                <button
+                  onClick={() => handleDelete(acc.id)}
+                  style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(248,113,113,0.2)', background: 'transparent', color: 'rgba(248,113,113,0.6)', cursor: 'pointer' }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       ))}
 
@@ -607,23 +689,29 @@ const { data } = await supabase.from('capsule_support_accounts').select('*').eq(
           <p style={{ fontSize: '11px', color: goldMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>New Account</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <input style={inp} placeholder="Label (e.g. Celebrate With Prof. Adesina)" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
-            <input style={inp} placeholder="Account name *" value={form.account_name} onChange={e => setForm(f => ({ ...f, account_name: e.target.value }))} />
+            <input style={inp} placeholder="Account holder name *" value={form.account_name} onChange={e => setForm(f => ({ ...f, account_name: e.target.value }))} />
+            <input style={inp} placeholder="Relationship to honouree (e.g. Spouse, Son, Daughter)" value={form.relationship} onChange={e => setForm(f => ({ ...f, relationship: e.target.value }))} />
             <input style={inp} placeholder="Bank name" value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} />
             <input style={inp} placeholder="Account number *" value={form.account_number} onChange={e => setForm(f => ({ ...f, account_number: e.target.value }))} />
             <input style={inp} placeholder="Currency (e.g. NGN, USD, GBP)" value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))} />
             <textarea style={{ ...inp, resize: 'none', lineHeight: 1.6 }} rows={2} placeholder="Optional note (e.g. Please use your name as reference)" value={form.instructions} onChange={e => setForm(f => ({ ...f, instructions: e.target.value }))} />
           </div>
           <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-            <button onClick={handleAdd} disabled={saving || !form.account_name.trim() || !form.account_number.trim()} style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', border: 'none', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : 'Add Account'}</button>
+            <button onClick={handleAdd} disabled={saving || !form.account_name.trim() || !form.account_number.trim()} style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', border: 'none', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+              {saving ? 'Saving…' : 'Add Account'}
+            </button>
             <button onClick={() => setAdding(false)} style={{ padding: '8px 14px', borderRadius: '8px', fontSize: '12px', background: 'transparent', border: `1px solid ${cardBorder}`, color: textFaint, cursor: 'pointer' }}>Cancel</button>
           </div>
         </div>
       ) : (
-        <button onClick={() => setAdding(true)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: `1px dashed rgba(226,195,107,0.2)`, background: 'transparent', color: goldMuted, fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginTop: '4px', letterSpacing: '0.04em' }}>+ Add Support Account</button>
+        <button onClick={() => setAdding(true)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: `1px dashed rgba(226,195,107,0.2)`, background: 'transparent', color: goldMuted, fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginTop: '4px', letterSpacing: '0.04em' }}>
+          + Add Support Account
+        </button>
       )}
     </div>
   )
 }
+
 
 /* ── FAMILY REP SECTION — inline fields, single send ─── */
 function FamilyRepSection({ capsuleId, slug, initialName, initialEmail, sentAt, onSaved }: {
@@ -1047,8 +1135,9 @@ export default function ManagePage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
-  const [heroUploading, setHeroUploading] = useState(false)
+const [heroUploading, setHeroUploading] = useState(false)
   const [heroImage, setHeroImage] = useState<string | null>(null)
+  const [showHeroPicker, setShowHeroPicker] = useState(false)
   const heroPhotoRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -1078,8 +1167,8 @@ export default function ManagePage() {
 
   const fetchAll = useCallback(async () => {
     if (!slug) return
-    const capRes = await supabase.from('capsules')
-      .select('id, slug, honouree_name, honouree_title, event_type, event_tag, event_date, page_state, tier, theme, hero_image_url, organiser_email, free_tier_expires_at, activated_at, approved_contrib_count, components')
+const capRes = await supabase.from('capsules')
+      .select('id, slug, honouree_name, honouree_title, event_type, event_tag, event_date, page_state, tier, theme, hero_image_url, organiser_email, free_tier_expires_at, activated_at, approved_contrib_count, components, hero_image_position, hero_image_zoom, hero_image_fit, hero_panel_size, hero_full_bleed')
       .eq('slug', slug).single()
     if (!capRes.data) { setLoading(false); return }
     const cap = capRes.data as Capsule
@@ -1286,8 +1375,8 @@ export default function ManagePage() {
           {/* ── PROFILE TAB ── */}
           {activeTab === 'profile' && (
             <div>
-              <SectionCard title="Capsule Photo" subtitle="Appears on the tribute wall and profile">
-                <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+<SectionCard title="Capsule Photo" subtitle="Appears on the tribute wall and profile">
+                <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', marginBottom: resolvedHero ? '14px' : '0' }}>
                   <div style={{ width: '72px', height: '72px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: `2px solid rgba(226,195,107,0.35)`, background: '#1a0845', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {resolvedHero
                       ? <img src={resolvedHero} alt={capsule.honouree_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -1296,12 +1385,38 @@ export default function ManagePage() {
                   </div>
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.65, marginBottom: '10px' }}>Upload a clear, high-quality image.</p>
-                    <label style={{ display: 'inline-block', padding: '7px 16px', borderRadius: '8px', cursor: 'pointer', background: goldFaint, border: `1px solid rgba(226,195,107,0.22)`, color: gold, fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em' }}>
-                      {heroUploading ? 'Uploading…' : '📷 Upload Photo'}
-                      <input type="file" accept="image/*" onChange={handleHeroUpload} style={{ display: 'none' }} disabled={heroUploading} />
-                    </label>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' as const }}>
+                      <label style={{ display: 'inline-block', padding: '7px 16px', borderRadius: '8px', cursor: 'pointer', background: goldFaint, border: `1px solid rgba(226,195,107,0.22)`, color: gold, fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em' }}>
+                        {heroUploading ? 'Uploading…' : '📷 Upload Photo'}
+                        <input type="file" accept="image/*" onChange={handleHeroUpload} style={{ display: 'none' }} disabled={heroUploading} />
+                      </label>
+                      {resolvedHero && (
+                        <button
+                          onClick={() => setShowHeroPicker(p => !p)}
+                          style={{ padding: '7px 16px', borderRadius: '8px', cursor: 'pointer', background: showHeroPicker ? 'rgba(226,195,107,0.15)' : 'transparent', border: `1px solid rgba(226,195,107,0.22)`, color: goldMuted, fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em' }}
+                        >
+                          ⚙ Adjust
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
+                {resolvedHero && showHeroPicker && (
+                  <HeroPositionPicker
+                    capsuleId={capsule.id}
+                    imageUrl={resolvedHero}
+                    currentPosition={capsule.hero_image_position ?? '50% 50%'}
+                    currentZoom={capsule.hero_image_zoom ?? 150}
+                    currentFit={capsule.hero_image_fit ?? 'height'}
+                    currentSize={capsule.hero_panel_size ?? 'standard'}
+                    currentBleed={capsule.hero_full_bleed ?? false}
+                    onSettingsChange={({ pos, zoom, fit, size, bleed }) => {
+                      setCapsule(prev => prev ? { ...prev, hero_image_position: pos, hero_image_zoom: zoom, hero_image_fit: fit, hero_panel_size: size, hero_full_bleed: bleed } : prev)
+                    }}
+                    onDone={() => setShowHeroPicker(false)}
+                    t={{ accentPrimary: gold, accentFaint: goldFaint, accentMuted: goldMuted, cardBg, cardBorder, textMuted: textSecondary, textFaint, inputBg: 'rgba(255,255,255,0.06)', inputBorder: 'rgba(226,195,107,0.18)' }}
+                  />
+                )}
               </SectionCard>
 
               <SectionCard title="Photo Gallery" subtitle="Up to 3 sections · 10 photos each · photo + caption per row">

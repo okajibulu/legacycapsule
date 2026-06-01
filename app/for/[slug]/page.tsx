@@ -60,7 +60,7 @@ export default async function TributePage({
   const { data: capsule, error: capsuleError } = await supabase
     .from('capsules')
     .select(
-      'id, slug, honouree_name, honouree_title, event_type, event_tag, event_date, page_state, tier, theme, hero_image_url, organiser_email, free_tier_expires_at, created_at, approved_contrib_count, components'
+      'id, slug, honouree_name, honouree_title, event_type, event_tag, event_date, page_state, tier, theme, hero_image_url, organiser_email, free_tier_expires_at, created_at, approved_contrib_count, components, hero_image_position, hero_image_zoom, hero_image_fit, hero_panel_size, hero_full_bleed'
     )
     .eq('slug', slug)
     .single()
@@ -103,16 +103,17 @@ export default async function TributePage({
       .eq('capsule_id', capsule.id)
       .order('sort_order', { ascending: true }),
 
-    supabase
+supabase
       .from('capsule_support_accounts')
-.select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, is_active, sort_order')
-.eq('is_active', true)
-      .order('sort_order', { ascending: true }),
+      .select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, is_active, sort_order, relationship_to_honouree')
+      .eq('capsule_id', capsule.id)
+      .eq('is_active', true)
+      .is('deleted_at', null)
+.order('sort_order', { ascending: true }),
   ])
 
   // Resolve theme — auto from event type, or manual override
   const themeKey = resolveTheme(capsule.theme, capsule.event_type)
-
   return (
     <TributeWallClient
       capsule={capsule}

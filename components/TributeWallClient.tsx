@@ -1258,15 +1258,19 @@ background:
             </div>
           )}
 
+{/* ── Page Navigation ── */}
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', padding: '8px 16px 20px', flexWrap: 'wrap' as const }}>
+            <a href={`/for/${capsule.slug}/profile`} style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentMuted, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>
+              View Profile →
+            </a>
+            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ padding: '10px 22px', borderRadius: '24px', border: `1px solid ${t.accentFaint}`, background: 'rgba(255,255,255,0.03)', color: t.accentMuted, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', cursor: 'pointer' }}>
+              ↑ Back to Top
+            </button>
+          </div>
+
           {/* ── FOOTER ── */}
           <div style={{ padding: '28px 16px 24px', textAlign: 'center' }}>
-            <div style={{ height: '1px', marginBottom: '20px', background: `linear-gradient(to right, transparent, ${t.accentFaint}, transparent)` }} />
-            <Link href="/" style={{ textDecoration: 'none' }}>
-              <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.18em', background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LEGACY</span>
-              <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.18em', color: t.textFaint, marginLeft: '0.18em' }}>CAPSULE</span>
-            </Link>
-            <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.12)', marginTop: '6px', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Events end. Legacies continue.</p>
-          </div>
+            </div>
 
         </div>
       </div>

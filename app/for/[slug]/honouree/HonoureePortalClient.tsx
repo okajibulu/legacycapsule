@@ -42,8 +42,7 @@ interface Tribute {
   status: string; email: string | null
 }
 interface Acknowledgement {
-  id: string; contributor_name: string; relationship: string | null
-  amount: string | null; currency: string | null; note: string | null
+  id: string; supporter_name: string; supporter_email: string | null
   created_at: string; support_account_id: string | null
 }
 
@@ -262,7 +261,7 @@ export default function HonoureePortalClient({ capsule, tributes, supportAccount
             {supportAccounts.length === 0 ? (
               <p style={{ textAlign: 'center', color: textFaint, fontSize: '13px', padding: '32px 0' }}>No support channels have been set up yet.</p>
             ) : (
-              <WaysToHonourSection
+<WaysToHonourSection
                 accounts={supportAccounts}
                 capsuleId={capsule.id}
                 honourName={honourName}
@@ -287,14 +286,14 @@ export default function HonoureePortalClient({ capsule, tributes, supportAccount
             {acknowledgements.length === 0 ? (
               <p style={{ textAlign: 'center', color: textFaint, fontSize: '13px', padding: '32px 0', fontStyle: 'italic' }}>No acknowledgements have been submitted yet.</p>
             ) : acknowledgements.map(ack => (
-              <div key={ack.id} style={{ borderRadius: '12px', background: cardBg, border: `1px solid ${cardBorder}`, padding: '12px 14px', marginBottom: '8px' }}>
+<div key={ack.id} style={{ borderRadius: '12px', background: cardBg, border: `1px solid ${cardBorder}`, padding: '12px 14px', marginBottom: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: textPrimary }}>{ack.contributor_name}</span>
-                  {ack.amount && <span style={{ fontSize: '12px', color: gold, fontWeight: 700 }}>{ack.currency || ''} {ack.amount}</span>}
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: textPrimary }}>{ack.supporter_name}</span>
+                  <span style={{ fontSize: '10px', color: textFaint }}>{formatDate(ack.created_at)}</span>
                 </div>
-                {ack.relationship && <p style={{ fontSize: '11px', color: goldMuted, marginBottom: '4px' }}>{ack.relationship}</p>}
-                {ack.note && <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.6, fontStyle: 'italic' }}>"{ack.note}"</p>}
-                <p style={{ fontSize: '10px', color: textFaint, marginTop: '6px' }}>{formatDate(ack.created_at)}</p>
+                {ack.supporter_email && (
+                  <p style={{ fontSize: '11px', color: goldMuted, marginBottom: '4px' }}>{ack.supporter_email}</p>
+                )}
               </div>
             ))}
           </div>
