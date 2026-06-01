@@ -39,11 +39,11 @@ export async function createSession(): Promise<void> {
   const expires = Date.now() + SESSION_HOURS * 60 * 60 * 1000
   const token = signToken(String(expires))
   const cookieStore = await cookies()
-  cookieStore.set(COOKIE_NAME, token, {
+cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    path: '/admin',
+    path: '/',
     maxAge: SESSION_HOURS * 60 * 60,
   })
 }
