@@ -582,6 +582,9 @@ const [showPositionPicker, setShowPositionPicker] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false); const [submitSuccess, setSubmitSuccess] = useState(false)
   const [submitErr, setSubmitErr] = useState('')
+const [fConsent, setFConsent] = useState(false)
+  const [arrivalRef, setArrivalRef] = useState<string | null>(null)
+  const [myRefCode, setMyRefCode] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null); const countryRef = useRef<HTMLDivElement>(null); const photoRef = useRef<HTMLInputElement>(null)
 
   /* ── DERIVED ── */
@@ -603,6 +606,40 @@ const [showPositionPicker, setShowPositionPicker] = useState(false)
 
   /* ── EFFECTS ── */
   useEffect(() => { const saved = localStorage.getItem(LS_EMAIL); if (saved) { setVisitorEmail(saved); setFEmail(saved) } }, [])
+// LC-PARTICIPATION-001: Capture ?ref= from URL on arrival
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const ref = params.get('ref')
+      if (ref && /^[A-Z2-9]{8}$/.test(ref)) {
+        setArrivalRef(ref)
+        sessionStorage.setItem('lc_arrival_ref_' + capsule.slug, ref)
+      } else {
+        const stored = sessionStorage.getItem('lc_arrival_ref_' + capsule.slug)
+        if (stored) setArrivalRef(stored)
+      }
+    } catch {}
+  }, [capsule.slug])
+
+  // LC-PARTICIPATION-001: Fetch visitor's own ref code for share links
+  useEffect(() => {
+    if (!visitorEmail) return
+    const fetchMyRef = async () => {
+      try {
+        const { data } = await supabaseClient
+          .from('contributions')
+          .select('ref_code')
+          .eq('capsule_id', capsule.id)
+          .eq('email', visitorEmail)
+          .eq('status', 'approved')
+          .not('ref_code', 'is', null)
+          .limit(1)
+          .single()
+        if (data?.ref_code) setMyRefCode(data.ref_code)
+      } catch {}
+    }
+    fetchMyRef()
+  }, [visitorEmail, capsule.id])
 
   // Store this capsule as last visited — for nav back link
   useEffect(() => {
@@ -641,8 +678,19 @@ const [showPositionPicker, setShowPositionPicker] = useState(false)
   const handleEdit = async (id: string, text: string) => { await supabaseClient.from('contributions').update({ tribute_text: text }).eq('id', id); poll() }
   const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (!f) return; const compressed = await compressPhoto(f); setFPhoto(compressed); const reader = new FileReader(); reader.onload = ev => setFPhotoPreview(ev.target?.result as string); reader.readAsDataURL(compressed) }
   const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (!f || !isAdmin) return; setUploadingHero(true); try { const compressed = await compressPhoto(f); const ext = compressed.name.split('.').pop() ?? 'jpg'; const path = `hero/${capsule.id}.${ext}`; const { error: ue } = await supabaseClient.storage.from(BUCKET).upload(path, compressed, { upsert: true }); if (!ue) { const url = supabaseClient.storage.from(BUCKET).getPublicUrl(path).data.publicUrl; await supabaseClient.from('capsules').update({ hero_image_url: url }).eq('id', capsule.id); setHeroImage(url); setShowPositionPicker(true) } } catch (err) { console.error(err) } setUploadingHero(false) }
-  const handleCopy = async () => { await navigator.clipboard.writeText(capsuleUrl); setCopied(true); setTimeout(() => setCopied(false), 2000) }
-
+const handleCopy = async () => {
+    const shareUrl = myRefCode ? capsuleUrl + '?ref=' + myRefCode : capsuleUrl
+    await navigator.clipboard.writeText(shareUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+    if (myRefCode) {
+      fetch('/api/share/record', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ capsuleId: capsule.id, refCode: myRefCode, channel: 'copy_link', contributionId: null }),
+      }).catch(() => {})
+    }
+  }
   const handleRepAccessRequest = async () => {
     if (!repAccessEmail.trim() || !repAccessEmail.includes('@')) {
       setRepAccessError('Please enter a valid email address.')
@@ -666,12 +714,32 @@ const [showPositionPicker, setShowPositionPicker] = useState(false)
       let photoUrl: string | null = null
       if (fPhoto) { const ext = fPhoto.name.split('.').pop() ?? 'jpg'; const path = capsule.id + '/' + Date.now() + '.' + ext; const { error: ue } = await supabaseClient.storage.from(BUCKET).upload(path, fPhoto, { upsert: false }); if (!ue) photoUrl = supabaseClient.storage.from(BUCKET).getPublicUrl(path).data.publicUrl }
       const coords = await getIPCoords()
-      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, contributor_name: fName.trim(), city: fCity.trim(), country: fCountry, relationship: fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review' }).select('id').single()
+      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, contributor_name: fName.trim(), city: fCity.trim(), country: fCountry, relationship: fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review', legacy_builder_consent: fConsent }).select('id').single()
       if (ie) { setSubmitErr(ie.message); setSubmitting(false); return }
       if (nc) { fetch('/api/email/submission-confirmation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contributionId: nc.id, capsuleSlug: capsule.slug, contributorName: fName.trim(), contributorEmail: fEmail.trim(), subjectName: honourName, eventType: capsule.event_type, tributeText: fMsg.trim() }) }).catch(() => {}) }
+     
+     // LC-PARTICIPATION-001: Record attribution if visitor arrived via ?ref= link
+      const refFromSession = arrivalRef || sessionStorage.getItem('lc_arrival_ref_' + capsule.slug)
+      if (refFromSession && nc) {
+        try {
+          const { data: referrer } = await supabaseClient
+            .from('contributions')
+            .select('id')
+            .eq('ref_code', refFromSession)
+            .single()
+          await supabaseClient.from('contribution_attribution').insert({
+            contribution_id: nc.id,
+            ref_code: refFromSession,
+            referrer_contribution_id: referrer?.id ?? null,
+            capsule_id: capsule.id,
+          })
+        } catch {}
+        sessionStorage.removeItem('lc_arrival_ref_' + capsule.slug)
+      }
+     
       localStorage.setItem(LS_EMAIL, fEmail); setVisitorEmail(fEmail)
       setFName(''); setFCity(''); setFCountry(''); setFMsg(''); setFRel([]); setFPhoto(null); setFPhotoPreview(null); setCountryQuery(''); setErrors({})
-      setFAudioUrl(null); setFVideoUrl(null); setFVideoThumb(null)
+setFAudioUrl(null); setFVideoUrl(null); setFVideoThumb(null); setFConsent(false)
       setShowAudioRecorder(false); setShowVideoUploader(false)
       setSubmitSuccess(true); setComposerOpen(false); setTimeout(() => setSubmitSuccess(false), 3500); poll()
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 200)
@@ -1141,7 +1209,8 @@ background:
                 </button>
 
                 {/* Share Link — right */}
-                <a href={`https://wa.me/?text=${encodeURIComponent('Leave a tribute for ' + honourName + ': ' + capsuleUrl)}`} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '11px', padding: '12px 6px', borderRadius: '12px', border: '1px solid rgba(74,222,128,0.22)', background: t.cardBg, color: 'rgba(74,222,128,0.7)', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' as const }}>
+                <a href={`https://wa.me/?text=${encodeURIComponent('Leave a tribute for ' + honourName + ': ' + (myRefCode ? capsuleUrl + '?ref=' + myRefCode : capsuleUrl))}`}
+   onClick={() => { if (myRefCode) fetch('/api/share/record', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ capsuleId: capsule.id, refCode: myRefCode, channel: 'whatsapp', contributionId: null }) }).catch(() => {}) }} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '11px', padding: '12px 6px', borderRadius: '12px', border: '1px solid rgba(74,222,128,0.22)', background: t.cardBg, color: 'rgba(74,222,128,0.7)', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' as const }}>
                  💬 Share
                 </a>
               </div>
@@ -1212,6 +1281,20 @@ background:
                       <button type="button" onClick={() => setPremiumNotice('video')} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '5px 10px', borderRadius: '8px', border: `1px solid ${t.cardBorder}`, background: t.inputBg, color: t.textFaint, cursor: 'pointer' }}>🎬 Video <span style={{ fontSize: '9px', color: t.accentMuted }}>✦</span></button>
                     )}
                   </div>
+
+{/* LC-PARTICIPATION-001: Legacy Builder consent checkbox */}
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', padding: '4px 0' }}>
+                    <input
+                      type="checkbox"
+                      checked={fConsent}
+                      onChange={e => setFConsent(e.target.checked)}
+                      style={{ marginTop: '2px', accentColor: t.accentPrimary, cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '11px', color: t.textFaint, lineHeight: 1.5 }}>
+                      If my tribute helps bring others to this collection, I'd like to be recognised as a Legacy Builder.
+                    </span>
+                  </label>
+
 
                   {/* Audio recorder — expands when toggled */}
                   {showAudioRecorder && (

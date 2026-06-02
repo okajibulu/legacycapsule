@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     // contributor_name — not name. Gotcha #3.
     const { data: contribution, error: contribError } = await adminClient
       .from('contributions')
-      .select('id, capsule_id, contributor_name, city, country, tribute_text, email')
+      .select('id, capsule_id, contributor_name, city, country, tribute_text, email, ref_code')
       .eq('id', contributionId)
       .single()
 
@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
       capsuleSlug: capsule.slug,
       city: contribution.city,
       country: contribution.country,
+    refCode: contribution.ref_code ?? null,
     })
 
     return NextResponse.json({ ok: true })

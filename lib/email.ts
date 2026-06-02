@@ -28,6 +28,7 @@ interface ApprovalEmailParams {
   capsuleSlug: string
   city: string
   country: string
+  refCode?: string | null
 }
 
 interface OrganisingWelcomeParams {
@@ -257,7 +258,7 @@ function buildKeepsakeCardHtml(params: ApprovalEmailParams): string {
             </td>
           </tr>
 
-          <!-- ── SHARE PROMPT ──────────────────────────────────────────── -->
+          <!-- ── SHARE PROMPT — LC-PARTICIPATION-001 ───────────────────── -->
           <tr>
             <td style="padding:24px 28px;border-radius:12px;
               border:1px solid rgba(212,174,42,0.15);
@@ -266,18 +267,28 @@ function buildKeepsakeCardHtml(params: ApprovalEmailParams): string {
               <p style="margin:0 0 8px;font-size:12px;
                 color:rgba(212,174,42,0.7);
                 text-transform:uppercase;letter-spacing:0.1em;">
-                Share the wall
+                Help this collection grow
               </p>
               <p style="margin:0 0 14px;font-size:13px;
                 color:rgba(255,255,255,0.35);line-height:1.6;">
-                Know someone who would like to add their tribute?
-                Share the wall with them.
+                Know someone who should add their voice?
+                Share the link below — every tribute you bring in
+                helps build something lasting.
               </p>
-              <a href="${capsuleUrl}"
-                style="font-size:13px;color:rgba(212,174,42,0.6);
-                  text-decoration:none;word-break:break-all;">
-                ${capsuleUrl}
+              <a href="${params.refCode ? capsuleUrl + '?ref=' + params.refCode : capsuleUrl}"
+                style="display:inline-block;padding:10px 24px;
+                  border-radius:8px;
+                  background:rgba(212,174,42,0.12);
+                  border:1px solid rgba(212,174,42,0.25);
+                  color:rgba(212,174,42,0.8);font-size:13px;
+                  font-weight:600;text-decoration:none;
+                  letter-spacing:0.03em;">
+                Share the Tribute Wall →
               </a>
+              <p style="margin:12px 0 0;font-size:11px;
+                color:rgba(255,255,255,0.2);word-break:break-all;">
+                ${params.refCode ? capsuleUrl + '?ref=' + params.refCode : capsuleUrl}
+              </p>
             </td>
           </tr>
 
