@@ -46,9 +46,18 @@ export async function generateMetadata({ params }: PageProps) {
     .eq('slug', slug)
     .maybeSingle()
   if (!data) return { title: 'Profile | LegacyCapsule' }
+  const ogImageUrl = `https://itslegacycapsule.com/api/og/${slug}`
   return {
     title: `${data.honouree_name} — ${data.event_tag ?? getEventTypeLabel(data.event_type)} | LegacyCapsule`,
     description: `${data.event_tag ?? getEventTypeLabel(data.event_type)} — a LegacyCapsule tribute collection.`,
+    openGraph: {
+      title: `${data.honouree_name} — ${data.event_tag ?? getEventTypeLabel(data.event_type)}`,
+      description: `A LegacyCapsule tribute collection.`,
+      url: `https://itslegacycapsule.com/for/${slug}/profile`,
+      siteName: 'LegacyCapsule',
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: `${data.honouree_name} — LegacyCapsule` }],
+    },
+    twitter: { card: 'summary_large_image', images: [ogImageUrl] },
   }
 }
 
@@ -88,6 +97,17 @@ export default async function ProfilePage({ params }: PageProps) {
       .order('section_index')
       .order('sort_order'),
   ])
+
+  // Participation summary — for conditional Legacy Room nav link
+  let contributorCount = 0
+  try {
+    const { data: summaryData } = await adminClient
+      .from('capsule_participation_summary')
+      .select('contributor_count')
+      .eq('capsule_id', capsule.id)
+      .single()
+    contributorCount = summaryData?.contributor_count ?? 0
+  } catch {}
 
   // Milestones — optional table, graceful fallback
   let milestones: any[] = []
@@ -181,6 +201,51 @@ export default async function ProfilePage({ params }: PageProps) {
 
       {/* MAIN CONTENT */}
       <main style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 16px 60px' }}>
+
+{/* Auto-composed occasion block — shows when no Introduction section exists */}
+        {!profileSections.some((s: any) => s.section_type === 'intro' || s.section_type === 'introduction') && (
+          <div style={{ marginBottom: '32px' }}>
+            <div style={sectionHeadingStyle}>
+              <div style={ruleStyle} />
+              <h2 style={headingLabelStyle}>About This Occasion</h2>
+              <div style={ruleRightStyle} />
+            </div>
+            <div style={cardStyle}>
+              <p style={{ ...bodyTextStyle, fontStyle: 'italic', color: '#3a2a1e' }}>
+                {(() => {
+                  const type = capsule.event_type?.toLowerCase() ?? ''
+                  const name = capsule.honouree_name
+                  const tag = capsule.event_tag ? ` ${capsule.event_tag}.` : ''
+                  const date = capsule.event_date ? ` ${formatDate(capsule.event_date)}.` : ''
+
+                  if (type.includes('memorial') || type.includes('funeral'))
+                    return `This capsule preserves the memory and legacy of ${name}.${tag}${date}`
+                  if (type.includes('retirement'))
+                    return `This capsule celebrates the retirement of ${name}.${tag}${date}`
+                  if (type.includes('wedding'))
+                    return `This capsule celebrates the union of ${name}.${tag}${date}`
+                  if (type.includes('birthday'))
+                    return `This capsule celebrates a milestone birthday for ${name}.${tag}${date}`
+                  if (type.includes('graduation'))
+                    return `This capsule honours the graduation of ${name}.${tag}${date}`
+                  if (type.includes('chieftaincy'))
+                    return `This capsule honours the installation of ${name}.${tag}${date}`
+                  if (type.includes('ordination'))
+                    return `This capsule celebrates the ordination of ${name}.${tag}${date}`
+                  if (type.includes('anniversary'))
+                    return `This capsule celebrates a milestone anniversary for ${name}.${tag}${date}`
+                  if (type.includes('award'))
+                    return `This capsule honours ${name} on the occasion of this award ceremony.${tag}${date}`
+                  if (type.includes('thanksgiving'))
+                    return `This capsule celebrates a thanksgiving service for ${name}.${tag}${date}`
+                  if (type.includes('conference'))
+                    return `This capsule captures the voices and contributions shared at ${name}.${tag}${date}`
+                  return `This capsule honours ${name}.${tag}${date}`
+                })()}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Profile text sections */}
         {profileSections.map((section: any) => (
@@ -292,6 +357,9 @@ export default async function ProfilePage({ params }: PageProps) {
 {/* Bottom navigation */}
         <div style={{ paddingTop: '32px', borderTop: `1px solid ${t.accentFaint}`, display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center', marginTop: '16px' }}>
           <a href={`/for/${slug}`} style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentMuted, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>← Tribute Wall</a>
+          {contributorCount >= 1 && (
+            <a href={`/for/${slug}/legacy`} style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentPrimary, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>Legacy Room →</a>
+          )}
           <a href="#top" style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentMuted, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>↑ Back to Top</a>
         </div>
       </main>

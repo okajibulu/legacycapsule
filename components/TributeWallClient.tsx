@@ -1449,6 +1449,11 @@ background:
 
 {/* ── Page Navigation ── */}
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', padding: '8px 16px 20px', flexWrap: 'wrap' as const }}>
+            {approvedCount >= 1 && (
+              <a href={`/for/${capsule.slug}/legacy`} style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentPrimary, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>
+                Legacy Room →
+              </a>
+            )}
             <a href={`/for/${capsule.slug}/profile`} style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentMuted, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>
               View Profile →
             </a>

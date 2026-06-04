@@ -1026,8 +1026,8 @@ function DeleteAccountSection({ email, slug }: { email: string; slug: string }) 
       const res = await fetch('/api/account/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, confirmation }),
-      })
+body: JSON.stringify({ email, confirmation, capsuleId: capsule?.id }),
+     })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Failed to delete account'); setDeleting(false); return }
       // Clear session and redirect

@@ -324,9 +324,9 @@ export default function SubmitPage() {
           relationship: relationship.trim() || null,
           tribute_text: message.trim(),
           email: email.trim() || null,
-          photo_url: photoUrl,
-          latitude: coords?.lat ?? null,
-          longitude: coords?.lng ?? null,
+          thumbnail_url: photoUrl,
+          lat: coords?.lat ?? null,
+          lng: coords?.lng ?? null,
           status: 'pending_review',
         })
         .select('id')
