@@ -1013,7 +1013,7 @@ function NotificationSettings({ capsuleId, currentFrequency, eventDate, onSaved 
 }
 
 /* ── DELETE ACCOUNT SECTION ───────────────────────────── */
-function DeleteAccountSection({ email, slug }: { email: string; slug: string }) {
+function DeleteAccountSection({ email, slug, capsuleId }: { email: string; slug: string; capsuleId: string }) {
   const [showModal, setShowModal] = useState(false)
   const [confirmation, setConfirmation] = useState('')
   const [deleting, setDeleting] = useState(false)
@@ -1026,7 +1026,7 @@ function DeleteAccountSection({ email, slug }: { email: string; slug: string }) 
       const res = await fetch('/api/account/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ email, confirmation, capsuleId: capsule?.id }),
+body: JSON.stringify({ email, confirmation, capsuleId }),
      })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Failed to delete account'); setDeleting(false); return }
@@ -1583,7 +1583,7 @@ const capRes = await supabase.from('capsules')
                 <UpgradeCard capsuleName={capsule.honouree_name} />
               </div>
 
-              <DeleteAccountSection email={visitorEmail} slug={slug} />
+              <DeleteAccountSection email={visitorEmail} slug={slug} capsuleId={capsule?.id ?? ''} />
             </div>
           )}
         </div>

@@ -226,8 +226,7 @@ export default function SubmitPage() {
   const [message, setMessage] = useState('')
   const [relationship, setRelationship] = useState('')
   const [email, setEmail] = useState('')
-  const [photoFile, setPhotoFile] = useState<File | null>(null)
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+const [consent, setConsent] = useState(false)  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
   // ── UI state ───────────────────────────────────────────────────────────────
@@ -250,6 +249,14 @@ export default function SubmitPage() {
         return
       }
       setCapsule(data as Capsule)
+      // LC-PARTICIPATION-001: capture arrival ref
+      try {
+        const urlParams = new URLSearchParams(window.location.search)
+        const ref = urlParams.get('ref')
+        if (ref && /^[A-Z2-9]{8}$/.test(ref)) {
+          sessionStorage.setItem('lc_arrival_ref_' + slug, ref)
+        }
+      } catch {}
     }
     loadCapsule()
   }, [slug])
@@ -328,6 +335,7 @@ export default function SubmitPage() {
           lat: coords?.lat ?? null,
           lng: coords?.lng ?? null,
           status: 'pending_review',
+          legacy_builder_consent: consent,
         })
         .select('id')
         .single()
@@ -336,6 +344,25 @@ export default function SubmitPage() {
         setSubmitError('Something went wrong. Please try again.')
         setSubmitting(false)
         return
+      }
+
+// LC-PARTICIPATION-001: Record attribution if arrived via ref link
+      const arrivalRef = sessionStorage.getItem('lc_arrival_ref_' + slug)
+      if (arrivalRef && contribution) {
+        try {
+          const { data: referrer } = await supabase
+            .from('contributions')
+            .select('id')
+            .eq('ref_code', arrivalRef)
+            .single()
+          await supabase.from('contribution_attribution').insert({
+            contribution_id: contribution.id,
+            ref_code: arrivalRef,
+            referrer_contribution_id: referrer?.id ?? null,
+            capsule_id: capsule.id,
+          })
+        } catch {}
+        sessionStorage.removeItem('lc_arrival_ref_' + slug)
       }
 
       // 4. Send submission confirmation email if email provided (Path A)
@@ -782,6 +809,19 @@ export default function SubmitPage() {
           </div>
 
         </div>
+
+{/* LC-PARTICIPATION-001: Legacy Builder consent */}
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', marginTop: '8px' }}>
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={e => setConsent(e.target.checked)}
+            style={{ marginTop: '3px', accentColor: '#D4AE2A' }}
+          />
+          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+            If my tribute helps bring others to this collection, I'd like to be recognised as a Legacy Builder.
+          </span>
+        </label>
 
         {/* Preview CTA */}
         <div style={{ marginTop: '32px' }}>
