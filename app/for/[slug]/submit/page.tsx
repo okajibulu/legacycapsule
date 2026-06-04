@@ -226,7 +226,9 @@ export default function SubmitPage() {
   const [message, setMessage] = useState('')
   const [relationship, setRelationship] = useState('')
   const [email, setEmail] = useState('')
-const [consent, setConsent] = useState(false)  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+const [consent, setConsent] = useState(false)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
   // ── UI state ───────────────────────────────────────────────────────────────
