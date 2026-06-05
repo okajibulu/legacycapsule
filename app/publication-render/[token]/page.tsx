@@ -786,10 +786,14 @@ function formatEventDate(dateStr: string | null): string {
 
 export default async function PublicationRenderPage({
   params,
+  searchParams,
 }: {
-params: Promise<{ token: string }>;
+  params: Promise<{ token: string }>;
+  searchParams: Promise<{ autoPrint?: string }>;
 }) {
   const { token } = await params;
+  const { autoPrint } = await searchParams;
+  const shouldAutoPrint = autoPrint === '1';
 
   if (!token || token.length < 32) return notFound();
 
@@ -959,7 +963,15 @@ params: Promise<{ token: string }>;
           }
         `}} />
       </head>
-      <body dangerouslySetInnerHTML={{ __html: sectionHtml }} />
+      <body dangerouslySetInnerHTML={{ __html: sectionHtml }} >
+        {shouldAutoPrint && (
+          <script dangerouslySetInnerHTML={{ __html: `
+            window.addEventListener('load', function() {
+              setTimeout(function() { window.print(); }, 800);
+            });
+          `}} />
+        )}
+      </body>
     </html>
   );
 }

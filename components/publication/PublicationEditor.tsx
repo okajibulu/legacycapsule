@@ -10,27 +10,17 @@
  *
  * Responsibilities:
  *   1. Initialise — POST to /api/publication/init on mount.
- *      Returns existing layout_config or triggers auto-arrangement.
- *   2. Pre-fetch — load all photo metadata and contribution data
- *      referenced in the layout_config, so child components never
- *      individually query Supabase.
+ *   2. Pre-fetch — load all photo metadata and contribution data.
  *   3. State — hold the live layout_config in React state.
- *      All mutations flow through the mutate() helper.
- *   4. Autosave — debounced POST to /api/publication/save on
- *      every layout change (800ms after last mutation).
- *   5. Composition — render SectionNavigator (left), the active
- *      section editor (main), and GenerateButton (right sidebar).
+ *   4. Autosave — debounced POST to /api/publication/save.
+ *   5. Composition — SectionNavigator (left), active editor (main),
+ *      GenerateButton + Preview button (right sidebar).
  *
- * Three-panel layout:
- *   ┌────────────┬──────────────────────┬──────────────┐
- *   │ Section    │  Active section      │  Generate    │
- *   │ Navigator  │  editor              │  panel       │
- *   │  (left)    │  (main, scrollable)  │  (right)     │
- *   └────────────┴──────────────────────┴──────────────┘
- *
- * Props:
- *   capsuleId   — UUID of the capsule (from page params)
- *   capsuleSlug — slug (used for back-navigation link)
+ * Changes AI7:
+ *   - Added "Preview & Save as PDF" button (browser print approach)
+ *     works on Vercel Hobby plan without Puppeteer.
+ *   - handlePreviewPrint: calls /api/publication/preview-token,
+ *     opens /publication-render/[token]?autoPrint=1 in new tab.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -61,9 +51,7 @@ import GenerateButton   from './GenerateButton';
 
 
 // ============================================================
-// SECTION 1 — Supabase anon client (client-side reads only)
-// Data writes go through server-side API routes, never directly
-// from the client. This client is for read-only pre-fetching.
+// SECTION 1 — Supabase anon client
 // ============================================================
 
 const supabase = createClient(
@@ -71,7 +59,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-/** Autosave debounce delay in milliseconds. */
 const AUTOSAVE_DELAY_MS = 800;
 
 
@@ -116,7 +103,6 @@ function SaveStatusBadge({ state }: { state: EditorSaveState }) {
 
 // ============================================================
 // SECTION 4 — Non-editable section placeholder
-// Shown for cover, honouree_profile, who_attended, closing_message
 // ============================================================
 
 function AutoSectionPlaceholder({ type }: { type: string }) {
@@ -164,55 +150,27 @@ export default function PublicationEditor({
 
   // ── 5.1  Core state ───────────────────────────────────────
 
-  /** Live layout config — mutations applied here trigger autosave. */
-  const [layout,        setLayout]        = useState<LayoutConfig | null>(null);
+  const [layout,          setLayout]          = useState<LayoutConfig | null>(null);
+  const [autoLayout,      setAutoLayout]       = useState<LayoutConfig | null>(null);
+  const [activeSection,   setActiveSection]    = useState<string>('section_cover');
+  const [pubId,           setPubId]            = useState<string | null>(null);
+  const [existingPdfUrl,  setExistingPdfUrl]   = useState<string | null>(null);
+  const [existingVersion, setExistingVersion]  = useState<number | null>(null);
+  const [saveState,       setSaveState]        = useState<EditorSaveState>('saved');
+  const [previewing,      setPreviewing]       = useState(false);
+  const [previewError,    setPreviewError]     = useState<string | null>(null);
+  const [initialising,    setInitialising]     = useState(true);
+  const [initError,       setInitError]        = useState<string | null>(null);
 
-  /**
-   * The original auto-generated layout — stored on first load.
-   * Never mutated. Used by resetSectionToAuto() as the reference state.
-   */
-  const [autoLayout,    setAutoLayout]    = useState<LayoutConfig | null>(null);
-
-  /** ID of the section currently shown in the main area. */
-  const [activeSection, setActiveSection] = useState<string>('section_cover');
-
-  /** Publication record ID — passed to GenerateButton. */
-  const [pubId,         setPubId]         = useState<string | null>(null);
-
-  /** Existing PDF URL from a previous successful generation, if any. */
-  const [existingPdfUrl, setExistingPdfUrl] = useState<string | null>(null);
-
-  /** Version number from a previous successful generation. */
-  const [existingVersion, setExistingVersion] = useState<number | null>(null);
-
-  /** Autosave state indicator. */
-  const [saveState,     setSaveState]     = useState<EditorSaveState>('saved');
-
-  /** Whether the layout has any changes not yet saved. */
   const hasUnsavedChanges = saveState === 'unsaved' || saveState === 'saving';
-
-  /** Loading state during init. */
-  const [initialising,  setInitialising]  = useState(true);
-
-  /** Init error message if /api/publication/init failed. */
-  const [initError,     setInitError]     = useState<string | null>(null);
 
 
   // ── 5.2  Pre-fetched content maps ─────────────────────────
 
-  /**
-   * Map of photo_id → gallery item metadata.
-   * Pre-fetched on init. Passed to PhotoSection / ExcludedTray.
-   * Includes image_url so child components render without querying Supabase.
-   */
   const [photos, setPhotos] = useState<
     Record<string, GalleryItemForArrangement & { image_url: string }>
   >({});
 
-  /**
-   * Map of contribution_id → contribution display data.
-   * Pre-fetched on init. Passed to TributeSection.
-   */
   const [contributions, setContributions] = useState<
     Record<string, ContributionDisplay>
   >({});
@@ -223,11 +181,8 @@ export default function PublicationEditor({
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const saveLayout = useCallback(async (newLayout: LayoutConfig) => {
-    // Clear any pending autosave
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-
     setSaveState('unsaved');
-
     saveTimerRef.current = setTimeout(async () => {
       setSaveState('saving');
       try {
@@ -250,47 +205,37 @@ export default function PublicationEditor({
     const init = async () => {
       setInitialising(true);
       setInitError(null);
-
       try {
-        // ── Step 1: Call /api/publication/init ──────────────
         const initRes = await fetch('/api/publication/init', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ capsule_id: capsuleId }),
         });
-
         if (!initRes.ok) {
           const data = await initRes.json().catch(() => ({}));
           throw new Error(data.error ?? `Init failed with status ${initRes.status}`);
         }
-
         const { layout_config, pub_id } = await initRes.json();
-
         setLayout(layout_config);
-        setAutoLayout(layout_config); // frozen reference for reset
+        setAutoLayout(layout_config);
         setPubId(pub_id);
 
-        // ── Step 2: Fetch existing PDF metadata ─────────────
         const { data: pubRow } = await supabase
           .from('publications')
           .select('pdf_url, version, generation_status')
           .eq('id', pub_id)
           .maybeSingle();
-
         if (pubRow?.pdf_url) {
           setExistingPdfUrl(pubRow.pdf_url);
           setExistingVersion(pubRow.version);
         }
 
-        // ── Step 3: Pre-fetch all photo metadata ─────────────
         const allPhotoIds = getAllPhotoIds(layout_config);
-
         if (allPhotoIds.length > 0) {
           const { data: photoRows } = await supabase
             .from('gallery_items')
             .select('id, image_url, caption, width_px, height_px, aspect_ratio, phase_id, approved, created_at')
             .in('id', allPhotoIds);
-
           if (photoRows) {
             const map: typeof photos = {};
             photoRows.forEach(p => { map[p.id] = p; });
@@ -298,18 +243,15 @@ export default function PublicationEditor({
           }
         }
 
-        // ── Step 4: Pre-fetch all contribution display data ───
         const tributeSection = layout_config.sections.find(
           (s: { type: string }) => s.type === 'tributes'
         ) as TributesSection | undefined;
-
         if (tributeSection && tributeSection.items.length > 0) {
           const contribIds = tributeSection.items.map((i: TributeItem) => i.contribution_id);
           const { data: contribRows } = await supabase
             .from('contributions')
             .select('id, contributor_name, city, country, relationship, tribute_text, is_anonymous, created_at')
             .in('id', contribIds);
-
           if (contribRows) {
             const map: typeof contributions = {};
             contribRows.forEach(c => { map[c.id] = c; });
@@ -317,7 +259,6 @@ export default function PublicationEditor({
           }
         }
 
-        // ── Step 5: Set active section to first enabled section
         const firstEnabled = layout_config.sections.find(
           (s: { enabled: boolean }) => s.enabled
         );
@@ -330,17 +271,12 @@ export default function PublicationEditor({
         setInitialising(false);
       }
     };
-
     init();
   }, [capsuleId]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // ── 5.5  Layout mutation helper ───────────────────────────
 
-  /**
-   * Central mutation handler. All changes to layout_config flow through here.
-   * Applies the given transform function and triggers autosave.
-   */
   const mutate = useCallback((fn: (l: LayoutConfig) => LayoutConfig) => {
     setLayout(prev => {
       if (!prev) return prev;
@@ -353,27 +289,27 @@ export default function PublicationEditor({
 
   // ── 5.6  Section-specific mutation handlers ───────────────
 
-  const handleToggleSection = useCallback((sectionId: string) => {
+  const handleToggleSection    = useCallback((sectionId: string) => {
     mutate(l => toggleSection(l, sectionId));
   }, [mutate]);
 
-  const handleSwapPhotos = useCallback((idA: string, idB: string) => {
+  const handleSwapPhotos       = useCallback((idA: string, idB: string) => {
     mutate(l => swapPhotos(l, activeSection, idA, idB));
   }, [mutate, activeSection]);
 
-  const handleReplacePhoto = useCallback((outgoing: string, incoming: string) => {
+  const handleReplacePhoto     = useCallback((outgoing: string, incoming: string) => {
     mutate(l => replacePhoto(l, activeSection, outgoing, incoming));
   }, [mutate, activeSection]);
 
-  const handleRemovePhoto = useCallback((id: string) => {
+  const handleRemovePhoto      = useCallback((id: string) => {
     mutate(l => removePhoto(l, activeSection, id));
   }, [mutate, activeSection]);
 
-  const handlePromotePhoto = useCallback((id: string) => {
+  const handlePromotePhoto     = useCallback((id: string) => {
     mutate(l => promoteToFeature(l, activeSection, id));
   }, [mutate, activeSection]);
 
-  const handleResetSection = useCallback(() => {
+  const handleResetSection     = useCallback(() => {
     if (!autoLayout) return;
     mutate(l => resetSectionToAuto(l, autoLayout, activeSection));
   }, [mutate, autoLayout, activeSection]);
@@ -382,7 +318,7 @@ export default function PublicationEditor({
     mutate(l => setTributeOrderMode(l, mode));
   }, [mutate]);
 
-  const handleReorderTributes = useCallback((items: TributeItem[]) => {
+  const handleReorderTributes  = useCallback((items: TributeItem[]) => {
     mutate(l => ({
       ...l,
       arrangement_source: 'manual',
@@ -396,7 +332,6 @@ export default function PublicationEditor({
 
   const handleGenerateComplete = useCallback(
     ({ pdfUrl, pageMap }: { pdfUrl: string; pageMap: Record<string, number> }) => {
-      // Sync page_map back into the live layout so tribute rows show page numbers
       mutate(l => ({ ...l, page_map: pageMap }));
       setExistingPdfUrl(pdfUrl);
       setExistingVersion(prev => (prev ?? 1) + 1);
@@ -404,23 +339,40 @@ export default function PublicationEditor({
     [mutate]
   );
 
+  // ── 5.7  Preview & print handler (AI7 — Hobby plan PDF) ──
+  // Generates a short-lived render token, opens the publication
+  // render page in a new tab with autoPrint=1 so the browser
+  // print dialog fires automatically. User saves as PDF.
 
-  // ── 5.7  Loading and error states ─────────────────────────
+  const handlePreviewPrint = useCallback(async () => {
+    if (!capsuleId) return;
+    setPreviewing(true);
+    setPreviewError(null);
+    try {
+      const res = await fetch('/api/publication/preview-token', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ capsuleId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.token) throw new Error(data.error ?? 'Failed to generate preview');
+      window.open(`/publication-render/${data.token}?autoPrint=1`, '_blank');
+    } catch (err) {
+      setPreviewError(err instanceof Error ? err.message : 'Preview failed');
+    } finally {
+      setPreviewing(false);
+    }
+  }, [capsuleId]);
+
+
+  // ── 5.8  Loading and error states ─────────────────────────
 
   if (initialising) {
     return (
-      <div
-        aria-label="Loading publication editor"
-        className="flex items-center justify-center h-96 bg-[#0a0010]"
-      >
+      <div aria-label="Loading publication editor" className="flex items-center justify-center h-96 bg-[#0a0010]">
         <div className="text-center space-y-3">
-          <div
-            aria-hidden="true"
-            className="w-8 h-8 rounded-full border-2 border-yellow-400/20 border-t-yellow-400 animate-spin mx-auto"
-          />
-          <p className="text-white/40 text-sm animate-pulse">
-            Arranging your publication…
-          </p>
+          <div aria-hidden="true" className="w-8 h-8 rounded-full border-2 border-yellow-400/20 border-t-yellow-400 animate-spin mx-auto" />
+          <p className="text-white/40 text-sm animate-pulse">Arranging your publication…</p>
         </div>
       </div>
     );
@@ -428,27 +380,11 @@ export default function PublicationEditor({
 
   if (initError || !layout) {
     return (
-      <div
-        role="alert"
-        className="flex items-center justify-center h-96 bg-[#0a0010]"
-      >
+      <div role="alert" className="flex items-center justify-center h-96 bg-[#0a0010]">
         <div className="text-center space-y-3 max-w-sm px-6">
-          <p className="text-red-400/80 text-sm font-medium">
-            Could not load the Publication Editor.
-          </p>
-          <p className="text-white/30 text-xs leading-relaxed">
-            {initError ?? 'No layout configuration was returned.'}
-          </p>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="
-              mt-2 text-xs px-4 py-2 rounded-lg
-              border border-white/15 text-white/50
-              hover:text-white/80 hover:border-white/30
-              transition-colors
-            "
-          >
+          <p className="text-red-400/80 text-sm font-medium">Could not load the Publication Editor.</p>
+          <p className="text-white/30 text-xs leading-relaxed">{initError ?? 'No layout configuration was returned.'}</p>
+          <button type="button" onClick={() => window.location.reload()} className="mt-2 text-xs px-4 py-2 rounded-lg border border-white/15 text-white/50 hover:text-white/80 hover:border-white/30 transition-colors">
             Try again
           </button>
         </div>
@@ -457,7 +393,7 @@ export default function PublicationEditor({
   }
 
 
-  // ── 5.8  Active section data ──────────────────────────────
+  // ── 5.9  Active section data ──────────────────────────────
 
   const activeSecData = layout.sections.find(s => s.id === activeSection);
   const activeSectionLabel = activeSecData?.type === 'phase_photos'
@@ -465,17 +401,12 @@ export default function PublicationEditor({
     : activeSecData?.type?.replace(/_/g, ' ') ?? '';
 
 
-  // ── 5.9  Render ───────────────────────────────────────────
+  // ── 5.10  Render ──────────────────────────────────────────
 
   return (
-    <div
-      className="flex h-full min-h-0 bg-[#0a0010] text-white overflow-hidden"
-      aria-label="Publication Editor"
-    >
+    <div className="flex h-full min-h-0 bg-[#0a0010] text-white overflow-hidden" aria-label="Publication Editor">
 
-      {/* ═══════════════════════════════════════════════════
-          LEFT PANEL — Section Navigator
-      ═══════════════════════════════════════════════════ */}
+      {/* ═══ LEFT PANEL — Section Navigator ═══ */}
       <SectionNavigator
         sections={layout.sections}
         activeSection={activeSection}
@@ -484,30 +415,17 @@ export default function PublicationEditor({
         pubId={pubId ?? undefined}
       />
 
-
-      {/* ═══════════════════════════════════════════════════
-          MAIN PANEL — Active section editor
-      ═══════════════════════════════════════════════════ */}
-      <main
-        className="flex-1 overflow-y-auto min-w-0"
-        aria-label={`Editing: ${activeSectionLabel}`}
-      >
+      {/* ═══ MAIN PANEL — Active section editor ═══ */}
+      <main className="flex-1 overflow-y-auto min-w-0" aria-label={`Editing: ${activeSectionLabel}`}>
         <div className="px-6 py-5 space-y-5 max-w-3xl">
-
-          {/* Section header row */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-0.5">
-                Editing section
-              </p>
-              <h2 className="text-base font-semibold text-white/80 capitalize leading-tight">
-                {activeSectionLabel}
-              </h2>
+              <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-0.5">Editing section</p>
+              <h2 className="text-base font-semibold text-white/80 capitalize leading-tight">{activeSectionLabel}</h2>
             </div>
             <SaveStatusBadge state={saveState} />
           </div>
 
-          {/* ── Phase photos editor ───────────────────────── */}
           {activeSecData?.type === 'phase_photos' && (
             <PhotoSection
               section={activeSecData as PhasePhotosSection}
@@ -520,7 +438,6 @@ export default function PublicationEditor({
             />
           )}
 
-          {/* ── Tributes editor ───────────────────────────── */}
           {activeSecData?.type === 'tributes' && (
             <TributeSection
               section={activeSecData as TributesSection}
@@ -530,42 +447,54 @@ export default function PublicationEditor({
             />
           )}
 
-          {/* ── Auto-generated section placeholder ───────── */}
-          {activeSecData && ['cover', 'honouree_profile', 'who_attended', 'closing_message']
-            .includes(activeSecData.type) && (
+          {activeSecData && ['cover', 'honouree_profile', 'who_attended', 'closing_message'].includes(activeSecData.type) && (
             <AutoSectionPlaceholder type={activeSecData.type} />
           )}
-
         </div>
       </main>
 
-
-      {/* ═══════════════════════════════════════════════════
-          RIGHT PANEL — Generate panel
-          Fixed width, non-scrolling, always visible.
-      ═══════════════════════════════════════════════════ */}
+      {/* ═══ RIGHT PANEL — Generate panel ═══ */}
       <aside
-        className="
-          w-64 flex-shrink-0 flex flex-col
-          border-l border-yellow-400/10
-          bg-gradient-to-b from-[#100018] to-[#0a000e]
-          overflow-hidden
-        "
+        className="w-64 flex-shrink-0 flex flex-col border-l border-yellow-400/10 bg-gradient-to-b from-[#100018] to-[#0a000e] overflow-hidden"
         aria-label="PDF generation panel"
       >
-
         {/* Header */}
         <div className="px-4 py-4 border-b border-yellow-400/10">
-          <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-0.5">
-            Publication
-          </p>
-          <p className="text-sm font-bold text-yellow-100 leading-tight">
-            Generate PDF
-          </p>
+          <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-0.5">Publication</p>
+          <p className="text-sm font-bold text-yellow-100 leading-tight">Generate PDF</p>
         </div>
 
         {/* Generate button area */}
         <div className="flex-1 overflow-y-auto px-4 py-4">
+
+          {/* ── Preview & Download — works on Hobby plan ── */}
+          <div className="mb-5 pb-5 border-b border-yellow-400/10">
+            <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-3">
+              Download Now
+            </p>
+            <button
+              type="button"
+              onClick={handlePreviewPrint}
+              disabled={previewing || hasUnsavedChanges}
+              className="w-full py-2.5 px-3 rounded-lg text-xs font-bold bg-yellow-400 text-[#0a0010] hover:bg-yellow-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {previewing ? 'Opening preview…' : '⬇ Preview & Save as PDF'}
+            </button>
+            {hasUnsavedChanges && (
+              <p className="text-[10px] text-white/30 mt-2 text-center">Save changes first</p>
+            )}
+            {previewError && (
+              <p className="text-[10px] text-red-400/70 mt-2 text-center">{previewError}</p>
+            )}
+            <p className="text-[9px] text-white/20 mt-2 leading-relaxed text-center">
+              Opens in a new tab · Use browser Print → Save as PDF
+            </p>
+          </div>
+
+          {/* ── Auto-generate (Puppeteer — Vercel Pro) ── */}
+          <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-3">
+            Auto-generate
+          </p>
           <GenerateButton
             capsuleId={capsuleId}
             hasUnsavedChanges={hasUnsavedChanges}
@@ -580,16 +509,12 @@ export default function PublicationEditor({
         <div className="px-4 py-3 border-t border-yellow-400/10 flex-shrink-0">
           <a
             href={`/capsule/${capsuleSlug}/manage`}
-            className="
-              text-[10px] text-white/25 hover:text-white/50
-              transition-colors flex items-center gap-1
-            "
+            className="text-[10px] text-white/25 hover:text-white/50 transition-colors flex items-center gap-1"
           >
             <span aria-hidden="true">←</span>
             Back to Capsule
           </a>
         </div>
-
       </aside>
 
     </div>

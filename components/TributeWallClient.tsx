@@ -596,7 +596,7 @@ const [fConsent, setFConsent] = useState(false)
   const approvedCount = all.filter(c => c.status === 'approved').length
   const pins: Pin[] = all.filter(c => c.status === 'approved' && c.lat && c.lng).map(c => ({ lat: c.lat as number, lng: c.lng as number, name: c.contributor_name, country: c.country }))
   const uniqueCountries = [...new Set(all.filter(c => c.status === 'approved' && (c as any).ip_country).map(c => (c as any).ip_country as string))]
-  const capsuleUrl = typeof window !== 'undefined' ? window.location.origin + '/for/' + capsule.slug : 'https://itslegacycapsule.com/for/' + capsule.slug
+  const capsuleUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com'}/for/${capsule.slug}`
  const resolvedHero =
   heroImage ??
   featuredPhotos.find(p => p.is_hero)?.image_url ??

@@ -1437,7 +1437,13 @@ const capRes = await supabase.from('capsules')
                 </SectionCard>
               )}
 
-              <Link href={`/for/${slug}`} target="_blank" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '11px', borderRadius: '10px', border: `1px solid rgba(255,255,255,0.07)`, background: 'rgba(255,255,255,0.02)', color: textSecondary, textDecoration: 'none', fontSize: '12px', letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 600, marginBottom: '14px' }}>View Public Tribute Wall ↗</Link>
+              <Link href={`/manage/${slug}/publication`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: '12px', border: `1px solid rgba(226,195,107,0.18)`, background: 'rgba(226,195,107,0.04)', color: gold, textDecoration: 'none', fontSize: '13px', fontWeight: 600, marginBottom: '14px' }}>
+  <div>
+    <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: gold }}>Publication Editor</p>
+    <p style={{ margin: '2px 0 0', fontSize: '11px', color: textFaint }}>Arrange sections · Preview · Download PDF</p>
+  </div>
+  <span style={{ fontSize: '18px', color: goldMuted }}>→</span>
+</Link>
 
               {/* ── ADD-ONS / SERVICES TABLE ── */}
               <SectionCard title="Capsule Services" subtitle="Tap any service to learn more — contact us to activate">

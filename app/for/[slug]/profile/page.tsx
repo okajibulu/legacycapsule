@@ -75,7 +75,7 @@ export default async function ProfilePage({ params }: PageProps) {
   if (error || !capsule) return notFound()
   if (capsule.page_state === 'draft') return notFound()
 
-  const [profileRes, featuredRes, galleryRes] = await Promise.all([
+  const [profileRes, featuredRes, galleryRes, publicationRes] = await Promise.all([
     adminClient
       .from('capsule_profile_sections')
       .select('id, section_type, custom_title, content, sort_order, is_active')
@@ -96,6 +96,13 @@ export default async function ProfilePage({ params }: PageProps) {
       .eq('capsule_id', capsule.id)
       .order('section_index')
       .order('sort_order'),
+
+    adminClient
+      .from('publications')
+      .select('pdf_url, version')
+      .eq('capsule_id', capsule.id)
+      .not('pdf_url', 'is', null)
+      .maybeSingle(),
   ])
 
   // Participation summary — for conditional Legacy Room nav link
@@ -124,6 +131,8 @@ export default async function ProfilePage({ params }: PageProps) {
   const profileSections = profileRes.data ?? []
   const featuredPhotos  = featuredRes.data ?? []
   const galleryPhotos   = galleryRes.data ?? []
+  const publicationPdf  = publicationRes.data?.pdf_url ?? null
+  const publicationPdf  = publicationRes.data?.pdf_url ?? null
 
   const hasContent = (
     profileSections.length > 0 ||
@@ -356,7 +365,14 @@ export default async function ProfilePage({ params }: PageProps) {
 
 {/* Bottom navigation */}
         <div style={{ paddingTop: '32px', borderTop: `1px solid ${t.accentFaint}`, display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center', marginTop: '16px' }}>
-          <a href={`/for/${slug}`} style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentMuted, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>← Tribute Wall</a>
+        
+        <a href={`/for/${slug}`} style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentMuted, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>← Tribute Wall</a>
+        
+          {publicationPdf && (
+            <a href={publicationPdf} target="_blank" rel="noopener noreferrer" style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentPrimary, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>
+              ⬇ Download Publication
+            </a>
+          )}
           {contributorCount >= 1 && (
             <a href={`/for/${slug}/legacy`} style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentPrimary, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>Legacy Room →</a>
           )}
