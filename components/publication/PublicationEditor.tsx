@@ -344,20 +344,28 @@ export default function PublicationEditor({
   // render page in a new tab with autoPrint=1 so the browser
   // print dialog fires automatically. User saves as PDF.
 
-  const handlePreviewPrint = useCallback(async () => {
+const handlePreviewPrint = useCallback(async () => {
     if (!capsuleId) return;
     setPreviewing(true);
     setPreviewError(null);
+    // Open window immediately before async call — prevents popup blocker
+    const previewWindow = window.open('', '_blank');
+    if (!previewWindow) {
+      setPreviewError('Please allow popups for this site and try again');
+      setPreviewing(false);
+      return;
+    }
     try {
       const res = await fetch('/api/publication/preview-token', {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ capsuleId }),
+        body: JSON.stringify({ capsuleId }),
       });
       const data = await res.json();
       if (!res.ok || !data.token) throw new Error(data.error ?? 'Failed to generate preview');
-      window.open(`/publication-render/${data.token}?autoPrint=1`, '_blank');
+      previewWindow.location.href = `/publication-render/${data.token}?autoPrint=1`;
     } catch (err) {
+      previewWindow.close();
       setPreviewError(err instanceof Error ? err.message : 'Preview failed');
     } finally {
       setPreviewing(false);

@@ -46,7 +46,8 @@ export async function generateMetadata({ params }: PageProps) {
     .eq('slug', slug)
     .maybeSingle()
   if (!data) return { title: 'Profile | LegacyCapsule' }
-  const ogImageUrl = `https://itslegacycapsule.com/api/og/${slug}`
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
+  const ogImageUrl = `${appUrl}/api/og/${slug}`
   return {
     title: `${data.honouree_name} — ${data.event_tag ?? getEventTypeLabel(data.event_type)} | LegacyCapsule`,
     description: `${data.event_tag ?? getEventTypeLabel(data.event_type)} — a LegacyCapsule tribute collection.`,

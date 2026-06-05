@@ -56,7 +56,8 @@ export async function generateMetadata(
     ? `${summary.contributor_count} Tributes · ${summary.photo_count} Photos · ${summary.country_count} Countries`
     : 'A growing collection of voices'
 
-  const ogImageUrl = `https://itslegacycapsule.com/api/og/${slug}`
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
+  const ogImageUrl = `${appUrl}/api/og/${slug}`
   return {
     title: `${capsule.honouree_name} — Legacy Room · LegacyCapsule`,
     description: `${stats} — honouring ${capsule.honouree_name}. See how this collection is growing.`,

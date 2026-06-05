@@ -963,15 +963,7 @@ export default async function PublicationRenderPage({
           }
         `}} />
       </head>
-      <body dangerouslySetInnerHTML={{ __html: sectionHtml }} >
-        {shouldAutoPrint && (
-          <script dangerouslySetInnerHTML={{ __html: `
-            window.addEventListener('load', function() {
-              setTimeout(function() { window.print(); }, 800);
-            });
-          `}} />
-        )}
-      </body>
+      <body dangerouslySetInnerHTML={{ __html: sectionHtml + (shouldAutoPrint ? `<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},800);});</script>` : '') }} />
     </html>
   );
 }

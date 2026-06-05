@@ -30,7 +30,8 @@ export async function generateMetadata({
 
   if (!data) return { title: 'Tribute Wall · LegacyCapsule' }
 
-  const ogImageUrl = `https://itslegacycapsule.com/api/og/${slug}`
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
+  const ogImageUrl = `${appUrl}/api/og/${slug}`
   return {
     title: `${data.honouree_name} · Tribute Wall · LegacyCapsule`,
     description: data.event_tag
