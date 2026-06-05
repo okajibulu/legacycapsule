@@ -132,7 +132,6 @@ export default async function ProfilePage({ params }: PageProps) {
   const featuredPhotos  = featuredRes.data ?? []
   const galleryPhotos   = galleryRes.data ?? []
   const publicationPdf  = publicationRes.data?.pdf_url ?? null
-  const publicationPdf  = publicationRes.data?.pdf_url ?? null
 
   const hasContent = (
     profileSections.length > 0 ||
