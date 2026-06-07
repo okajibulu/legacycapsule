@@ -36,7 +36,7 @@ interface ProfileSection {
   id: string; section_type: string; custom_title: string | null
   content: string | null; sort_order: number; is_active: boolean
 }
-type Tab = 'overview' | 'tributes' | 'profile' | 'settings'
+type Tab = 'overview' | 'tributes' | 'profile' | 'settings' | 'exports'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -517,6 +517,7 @@ function BottomNav({ active, onChange, pendingCount }: { active: Tab; onChange: 
     { id: 'tributes', label: 'Tributes', icon: '✦' },
     { id: 'profile',  label: 'Profile',  icon: '◉' },
     { id: 'settings', label: 'Settings', icon: '⊙' },
+    { id: 'exports',  label: 'Exports',  icon: '⬇' },
   ]
   return (
     <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50, background: 'rgba(15,10,30,0.98)', backdropFilter: 'blur(20px)', borderTop: `1px solid rgba(226,195,107,0.15)`, display: 'flex', padding: '6px 8px max(8px, env(safe-area-inset-bottom))' }}>
@@ -1232,6 +1233,103 @@ function AddOnsTable({ capsuleComponents, onUpgrade }: { capsuleComponents: stri
   )
 }
 
+
+/* ── EXPORTS TAB ── */
+function ExportsTab({ contributions, slug }: {
+  contributions: Contribution[]
+  slug: string
+}) {
+  const [copiedAll,  setCopiedAll]  = useState(false)
+  const [copiedProg, setCopiedProg] = useState(false)
+
+  const programmeContribs = contributions.filter(
+    c => (c as any).include_in_programme_export === true
+  )
+
+  function formatTributes(list: Contribution[]): string {
+    return list.map(c => {
+      const location = [c.city, c.country].filter(Boolean).join(', ')
+      const relationship = c.relationship ? ` · ${c.relationship}` : ''
+      return [
+        '---',
+        c.contributor_name + (location ? `\n${location}${relationship}` : relationship ? `\n${relationship}` : ''),
+        '',
+        c.tribute_text,
+      ].join('\n')
+    }).join('\n\n') + '\n\n---'
+  }
+
+  const handleCopyAll = async () => {
+    await navigator.clipboard.writeText(formatTributes(contributions))
+    setCopiedAll(true)
+    setTimeout(() => setCopiedAll(false), 2500)
+  }
+
+  const handleCopyProgramme = async () => {
+    if (programmeContribs.length === 0) return
+    await navigator.clipboard.writeText(formatTributes(programmeContribs))
+    setCopiedProg(true)
+    setTimeout(() => setCopiedProg(false), 2500)
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+        <div style={{ flex: 1, padding: '14px 12px', borderRadius: '12px', background: cardBg, border: `1px solid ${cardBorder}`, textAlign: 'center' }}>
+          <p style={{ fontSize: '24px', fontWeight: 800, color: textPrimary, fontFamily: "'Playfair Display', serif", margin: 0 }}>{contributions.length}</p>
+          <p style={{ fontSize: '9px', color: textFaint, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Approved Tributes</p>
+        </div>
+        <div style={{ flex: 1, padding: '14px 12px', borderRadius: '12px', background: 'rgba(226,195,107,0.05)', border: `1px solid rgba(226,195,107,0.18)`, textAlign: 'center' }}>
+          <p style={{ fontSize: '24px', fontWeight: 800, color: gold, fontFamily: "'Playfair Display', serif", margin: 0 }}>{programmeContribs.length}</p>
+          <p style={{ fontSize: '9px', color: textFaint, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Programme Export</p>
+        </div>
+      </div>
+
+      <SectionCard title="Copy to Clipboard" subtitle="Paste into Word, Google Docs, Canva, InDesign or any print tool">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <button
+            onClick={handleCopyAll}
+            disabled={contributions.length === 0}
+            style={{ width: '100%', padding: '13px', borderRadius: '10px', border: `1px solid ${cardBorder}`, background: copiedAll ? 'rgba(74,222,128,0.08)' : cardBg, color: copiedAll ? 'rgba(134,239,172,0.9)' : textPrimary, fontSize: '13px', fontWeight: 700, cursor: contributions.length === 0 ? 'not-allowed' : 'pointer', opacity: contributions.length === 0 ? 0.4 : 1, transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            {copiedAll ? '✓ Copied Successfully' : `Copy All Approved Tributes (${contributions.length})`}
+          </button>
+
+          <button
+            onClick={handleCopyProgramme}
+            disabled={programmeContribs.length === 0}
+            style={{ width: '100%', padding: '13px', borderRadius: '10px', border: `1px solid ${programmeContribs.length > 0 ? 'rgba(226,195,107,0.28)' : cardBorder}`, background: copiedProg ? 'rgba(74,222,128,0.08)' : programmeContribs.length > 0 ? goldFaint : 'transparent', color: copiedProg ? 'rgba(134,239,172,0.9)' : programmeContribs.length > 0 ? gold : textFaint, fontSize: '13px', fontWeight: 700, cursor: programmeContribs.length === 0 ? 'not-allowed' : 'pointer', opacity: programmeContribs.length === 0 ? 0.4 : 1, transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            {copiedProg ? '✓ Copied Successfully' : `Copy Programme Export Tributes (${programmeContribs.length})`}
+          </button>
+
+          {programmeContribs.length === 0 && (
+            <p style={{ fontSize: '11px', color: textFaint, textAlign: 'center', fontStyle: 'italic' }}>
+              Mark tributes for Programme Export in the Tributes tab first.
+            </p>
+          )}
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Export Format" subtitle="Each tribute exports in this structure">
+        <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: `1px solid rgba(255,255,255,0.06)`, fontFamily: 'monospace', fontSize: '11px', color: textFaint, lineHeight: 1.8 }}>
+          <p style={{ margin: 0, whiteSpace: 'pre' }}>{'---\nContributor Name\nCity, Country · Relationship\n\nTribute text appears here,\nas written by the contributor.\n\n---'}</p>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Coming Soon" subtitle="Future export formats">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {['Export as DOCX', 'Export as PDF', 'Export Selected Contributors', 'Export Stories', 'Export Community Memories'].map(item => (
+            <div key={item} style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid rgba(255,255,255,0.04)`, background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '12px', color: textFaint }}>{item}</span>
+              <span style={{ fontSize: '9px', color: textFaint, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>Soon</span>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+    </div>
+  )
+}
+
+
 /* ── MAIN COMPONENT ───────────────────────────────────── */
 export default function ManagePage() {
   const params = useParams()
@@ -1285,7 +1383,7 @@ const capRes = await supabase.from('capsules')
     setCapsule(cap); setHeroImage(cap.hero_image_url)
 
     const [contribRes, sectionsRes, galleryRes] = await Promise.all([
-      supabase.from('contributions').select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, email, status, created_at').eq('capsule_id', cap.id).is('deleted_at', null).order('created_at', { ascending: false }),
+      supabase.from('contributions').select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, email, status, created_at, include_in_publication, include_in_programme_export').eq('capsule_id', cap.id).is('deleted_at', null).order('created_at', { ascending: false }),
       supabase.from('capsule_profile_sections').select('id, section_type, custom_title, content, sort_order, is_active').eq('capsule_id', cap.id).order('sort_order'),
       supabase.from('capsule_gallery').select('id, image_url, description, sort_order, section_index').eq('capsule_id', cap.id).order('section_index').order('sort_order'),
     ])
@@ -1316,6 +1414,12 @@ const capRes = await supabase.from('capsules')
     fetchAll()
   }
   const handleDecline = async (id: string) => { await supabase.from('contributions').delete().eq('id', id); fetchAll() }
+ 
+ const handleToggleFlag = async (id: string, field: 'include_in_publication' | 'include_in_programme_export', current: boolean) => {
+    await supabase.from('contributions').update({ [field]: !current }).eq('id', id)
+    fetchAll()
+  }
+
   const handleCopy = async () => { await navigator.clipboard.writeText(capsuleUrl); setCopied(true); setTimeout(() => setCopied(false), 2000) }
   const updateCapsule = async (fields: Partial<Capsule>) => { if (!capsule) return; await supabase.from('capsules').update(fields).eq('id', capsule.id); fetchAll() }
 
@@ -1474,7 +1578,20 @@ const capRes = await supabase.from('capsules')
                         <span style={{ fontSize: '10px', color: textFaint }}>{[c.city, c.country].filter(Boolean).join(' · ')}</span>
                         <span style={{ fontSize: '10px', color: textFaint, marginLeft: 'auto', whiteSpace: 'nowrap' }}>{new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
                       </div>
-                      <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.6, margin: 0 }}>{c.tribute_text.length > 180 ? c.tribute_text.slice(0, 180) + '…' : c.tribute_text}</p>
+                      <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.6, margin: '0 0 8px' }}>{c.tribute_text.length > 180 ? c.tribute_text.slice(0, 180) + '…' : c.tribute_text}</p>
+                      {/* Programme Export Flags */}
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' as const }}>
+                        <button
+                          onClick={() => handleToggleFlag(c.id, 'include_in_publication', (c as any).include_in_publication ?? true)}
+                          style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '6px', cursor: 'pointer', border: `1px solid ${(c as any).include_in_publication !== false ? 'rgba(74,222,128,0.28)' : 'rgba(255,255,255,0.08)'}`, background: (c as any).include_in_publication !== false ? 'rgba(74,222,128,0.07)' : 'transparent', color: (c as any).include_in_publication !== false ? 'rgba(134,239,172,0.9)' : textFaint }}>
+                          {(c as any).include_in_publication !== false ? '✓' : '✗'} Publication
+                        </button>
+                        <button
+                          onClick={() => handleToggleFlag(c.id, 'include_in_programme_export', (c as any).include_in_programme_export ?? false)}
+                          style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '6px', cursor: 'pointer', border: `1px solid ${(c as any).include_in_programme_export ? 'rgba(226,195,107,0.35)' : 'rgba(255,255,255,0.08)'}`, background: (c as any).include_in_programme_export ? goldFaint : 'transparent', color: (c as any).include_in_programme_export ? gold : textFaint }}>
+                          {(c as any).include_in_programme_export ? '✓' : '✗'} Programme Export
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </SectionCard>
@@ -1543,6 +1660,14 @@ const capRes = await supabase.from('capsules')
                 <SectionEditor capsuleId={capsule.id} sections={profileSections} onRefresh={fetchAll} />
               </SectionCard>
             </div>
+          )}
+
+{/* ── EXPORTS TAB ── */}
+          {activeTab === 'exports' && (
+            <ExportsTab
+              contributions={approved}
+              slug={slug}
+            />
           )}
 
           {/* ── SETTINGS TAB ── */}
