@@ -14,6 +14,7 @@ import Link from 'next/link'
 import { getAllThemes, resolveTheme } from '@/lib/themeConfig'
 import type { ThemeKey } from '@/lib/themeConfig'
 import GalleryEditor from '@/components/GalleryEditor'
+import HonoureeRevealPanel from '@/components/HonoureeRevealPanel'
 import HeroPositionPicker from '@/components/HeroPositionPicker'
 
 interface Capsule {
@@ -1702,6 +1703,24 @@ const capRes = await supabase.from('capsules')
                   initialEmail={(capsule as any).family_rep_email ?? ''}
                   sentAt={(capsule as any).rep_portal_sent_at ?? null}
                   onSaved={fetchAll}
+                />
+              </SectionCard>
+
+{/* Subject Reveal — Experience 5 */}
+              <SectionCard title="Capsule Reveal" subtitle="Send the honouree their capsule — all the voices, all for them">
+                <HonoureeRevealPanel
+                  capsuleId={capsule.id}
+                  honoureeName={capsule.honouree_name}
+                  honoureeEmail={(capsule as any).family_rep_email ?? null}
+                  revealSentAt={(capsule as any).reveal_sent_at ?? null}
+                  gold={gold}
+                  goldMuted={goldMuted}
+                  goldFaint={goldFaint}
+                  textPrimary={textPrimary}
+                  textSecondary={textSecondary}
+                  textFaint={textFaint}
+                  cardBorder={cardBorder}
+                  inp={inp}
                 />
               </SectionCard>
 

@@ -68,7 +68,7 @@ export default async function ProfilePage({ params }: PageProps) {
 
   const { data: capsule, error } = await adminClient
     .from('capsules')
-    .select('id, slug, honouree_name, honouree_title, event_type, event_tag, event_date, page_state, tier, theme, hero_image_url')
+        .select('id, slug, honouree_name, honouree_title, event_type, event_tag, event_date, page_state, tier, theme, hero_image_url, components')
     .eq('slug', slug)
     .is('deleted_at', null)
     .maybeSingle()
@@ -176,7 +176,7 @@ export default async function ProfilePage({ params }: PageProps) {
           </a>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <a href={`/for/${slug}`} style={{ fontSize: '12px', color: t.accentMuted, textDecoration: 'none', letterSpacing: '0.04em' }}>← Tribute Wall</a>
-            <a href={`/manage/${slug}`} style={{ fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '20px', background: 'rgba(226,195,107,0.1)', border: '1px solid rgba(226,195,107,0.28)', color: '#E2C36B', textDecoration: 'none', letterSpacing: '0.04em' }}>⚙ Manage</a>
+             
           </div>
         </div>
       </div>
@@ -358,7 +358,8 @@ export default async function ProfilePage({ params }: PageProps) {
           <div style={{ textAlign: 'center', padding: '48px 24px', borderRadius: '16px', border: `1px solid ${t.accentFaint}`, background: 'rgba(255,255,255,0.02)' }}>
             <p style={{ fontSize: '28px', marginBottom: '16px' }}>{eventEmoji}</p>
             <p style={{ fontSize: '15px', color: t.textMuted, lineHeight: 1.75, fontFamily: "'Playfair Display', serif" }}>
-              A life and legacy worth honouring.<br />More details coming soon.
+              
+A story worth preserving.<br />The organiser is preparing this profile — check back soon.
             </p>
           </div>
         )}
@@ -376,6 +377,9 @@ export default async function ProfilePage({ params }: PageProps) {
           {contributorCount >= 1 && (
             <a href={`/for/${slug}/legacy`} style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentPrimary, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>Legacy Room →</a>
           )}
+
+ <a href={`/for/${slug}/attire`} style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentPrimary, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>👗 Attire →</a>
+
           <a href="#top" style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentMuted, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>↑ Back to Top</a>
         </div>
       </main>
@@ -384,7 +388,7 @@ export default async function ProfilePage({ params }: PageProps) {
       <footer style={{ background: 'rgba(0,0,0,0.15)', borderTop: `1px solid ${t.accentFaint}`, padding: '28px 20px', textAlign: 'center' }}>
         <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.16em', background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LEGACY</span>
         <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.16em', color: t.textFaint, marginLeft: '0.1em' }}>CAPSULE</span>
-        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.14)', marginTop: '6px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Events end. Legacies continue.</p>
+        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.14)', marginTop: '6px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Every event. Preserved.</p>
         <p style={{ marginTop: '10px' }}>
           <a href="/book" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.18)', textDecoration: 'none' }}>Planning your own event? Start here →</a>
         </p>

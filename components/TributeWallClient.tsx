@@ -1209,7 +1209,7 @@ background:
                 </button>
 
                 {/* Share Link — right */}
-                <a href={`https://wa.me/?text=${encodeURIComponent('Leave a tribute for ' + honourName + ': ' + (myRefCode ? capsuleUrl + '?ref=' + myRefCode : capsuleUrl))}`}
+                <a href={`https://wa.me/?text=${encodeURIComponent(honourName + '\'s story is being preserved. Your voice belongs in this record: ' + (myRefCode ? capsuleUrl + '?ref=' + myRefCode : capsuleUrl))}`}
    onClick={() => { if (myRefCode) fetch('/api/share/record', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ capsuleId: capsule.id, refCode: myRefCode, channel: 'whatsapp', contributionId: null }) }).catch(() => {}) }} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '11px', padding: '12px 6px', borderRadius: '12px', border: '1px solid rgba(74,222,128,0.22)', background: t.cardBg, color: 'rgba(74,222,128,0.7)', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' as const }}>
                  💬 Share
                 </a>
@@ -1329,7 +1329,7 @@ background:
           {/* ── TRIBUTE WALL HEADER ── */}
           <div style={{ flexShrink: 0, padding: '18px 16px 10px', textAlign: 'center' }}>
             <p style={{ fontFamily: "'Playfair Display', serif", fontSize: '15px', fontWeight: 700, color: t.textHeading, letterSpacing: '0.04em', textShadow: `0 0 20px ${t.accentFaint}` }}>
-              {approvedCount > 0 ? `${approvedCount} ${approvedCount === 1 ? 'person has' : 'people have'} honoured ${honourName}` : `Be the first to honour ${honourName}`}
+              {approvedCount > 0 ? `${approvedCount} ${approvedCount === 1 ? 'voice has' : 'voices have'} joined this collection for ${honourName}` : `Be the first to add your voice for ${honourName}`}
             </p>
             <div style={{ height: '1px', marginTop: '12px', background: `linear-gradient(to right, transparent, ${t.accentFaint}, transparent)` }} />
           </div>
@@ -1347,7 +1347,7 @@ background:
                 if (type.includes('ordination') || type.includes('religious') || type.includes('thanksgiving')) return `Words of blessing and celebration will appear here.`
                 if (type.includes('chieftaincy')) return `Messages of honour and recognition will appear here.`
                 if (type.includes('anniversary')) return `Heartfelt messages celebrating this milestone will appear here.`
-                return `Tributes and messages for ${honourName} will appear here.`
+                return `Voices shared in honour of ${honourName} will appear here. Be the first to add yours.`
               })()}</p></div>}
               {visible.map(c => <TributeCard key={c.id} c={c} capsuleId={capsule.id} isAdmin={isAdmin} isOwn={visitorEmail !== '' && c.email?.toLowerCase() === visitorEmail.toLowerCase()} onApprove={handleApprove} onDelete={handleDelete} onEdit={handleEdit} t={t} />)}
               <div ref={bottomRef} />
@@ -1369,7 +1369,7 @@ background:
             {/* Card footer */}
             <div style={{ padding: '0 16px 12px', textAlign: 'center' }}>
               <span style={{ fontSize: '10px', color: t.textFaint, letterSpacing: '0.04em' }}>
-                {uniqueCountries.length > 0 ? 'Tap to explore where tributes have arrived from' : 'Pins appear as tributes are approved'}
+                {uniqueCountries.length > 0 ? 'Every pin represents someone who paused to honour this story' : 'Pins appear as tributes are approved'}
               </span>
             </div>
           </div>
@@ -1448,19 +1448,69 @@ background:
           )}
 
 {/* ── Page Navigation ── */}
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', padding: '8px 16px 20px', flexWrap: 'wrap' as const }}>
-            {approvedCount >= 1 && (
-              <a href={`/for/${capsule.slug}/legacy`} style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentPrimary, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>
-                Legacy Room →
-              </a>
-            )}
-            <a href={`/for/${capsule.slug}/profile`} style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentMuted, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>
-              View Profile →
-            </a>
-            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ padding: '10px 22px', borderRadius: '24px', border: `1px solid ${t.accentFaint}`, background: 'rgba(255,255,255,0.03)', color: t.accentMuted, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', cursor: 'pointer' }}>
-              ↑ Back to Top
-            </button>
-          </div>
+<div
+  style={{
+    display: 'flex',
+    gap: '10px',
+    justifyContent: 'center',
+    padding: '8px 16px 20px',
+    flexWrap: 'wrap' as const,
+  }}
+>
+  {approvedCount >= 1 && (
+    <a
+      href={`/for/${capsule.slug}/legacy`}
+      style={{
+        padding: '10px 22px',
+        borderRadius: '24px',
+        textDecoration: 'none',
+        border: `1px solid ${t.accentFaint}`,
+        color: t.accentPrimary,
+        fontSize: '13px',
+        fontWeight: 600,
+        letterSpacing: '0.04em',
+        background: 'rgba(255,255,255,0.03)',
+      }}
+    >
+      Legacy Room →
+    </a>
+  )}
+
+  <a
+    href={`/for/${capsule.slug}/profile`}
+    style={{
+      padding: '10px 22px',
+      borderRadius: '24px',
+      textDecoration: 'none',
+      border: `1px solid ${t.accentFaint}`,
+      color: t.accentMuted,
+      fontSize: '13px',
+      fontWeight: 600,
+      letterSpacing: '0.04em',
+      background: 'rgba(255,255,255,0.03)',
+    }}
+  >
+    View Profile →
+  </a>
+
+  <button
+    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+    style={{
+      padding: '10px 22px',
+      borderRadius: '24px',
+      border: `1px solid ${t.accentFaint}`,
+      background: 'rgba(255,255,255,0.03)',
+      color: t.accentMuted,
+      fontSize: '13px',
+      fontWeight: 600,
+      letterSpacing: '0.04em',
+      cursor: 'pointer',
+    }}
+  >
+    ↑ Back to Top
+  </button>
+</div>
+           
 
   {/* ── FOOTER ── */}
           <div style={{ padding: '28px 16px 24px', textAlign: 'center' }}>

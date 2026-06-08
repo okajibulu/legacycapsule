@@ -283,7 +283,7 @@ const STEPS = [
   {
     number: "01",
     title:  "Create your Capsule",
-    body:   "Set up in minutes. Add the honouree's photo, event details, and context. Share your link or QR code to start gathering tributes from anywhere in the world — before the event happens. Your page goes live immediately.",
+    body:   "Set up in minutes. Add a photo, the event details, and context. Share your link or QR code to start gathering voices from anywhere in the world — before the event happens. Your tribute wall goes live immediately.",
     cta:    null,
   },
   {
@@ -533,9 +533,9 @@ background: "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",    
             lineHeight:   1.55,
             letterSpacing: "-0.01em",
           }}>
-            Every significant event deserves more than photographs and memories that fade.
+            Every significant event creates a story worth preserving. But stories fade. Voices are forgotten. Memories scatter.
             LegacyCapsule gathers every voice — from everyone who matters, wherever they are
-            in the world — and preserves them in one beautifully produced record that lasts forever.
+            in the world — and preserves them in one permanent record that lasts for generations.
           </p>
           <div className="gold-rule" style={{ marginTop: "var(--space-8)" }}>
             <div className="gold-rule-diamond" />
