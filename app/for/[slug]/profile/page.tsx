@@ -18,6 +18,7 @@ import { getEventTypeLabel, getEventTypeEmoji } from '@/lib/eventLabels'
 import SectionReactions from '@/components/SectionReactions'
 import GalleryLightbox from '@/components/GalleryLightbox'
 import SectionTextClamp from '@/components/SectionTextClamp'
+import CapsuleBottomNav from '@/components/CapsuleBottomNav'
 
 /* ── Client setup ──────────────────────────────────────── */
 const adminClient = createClient(

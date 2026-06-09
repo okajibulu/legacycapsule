@@ -13,6 +13,7 @@ import { resolveTheme } from '@/lib/themeConfig'
 import type { ThemeKey } from '@/lib/themeConfig'
 import LegacyRoomClient from '@/components/LegacyRoomClient'
 import type { Metadata } from 'next'
+import CapsuleBottomNav from '@/components/CapsuleBottomNav'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 1 — ISR config
@@ -136,6 +137,13 @@ export default async function LegacyRoomPage(
     .order('section_index')
     .order('sort_order')
 
+  // ── Fetch phase count for bottom nav ──────────────────────────────────
+  const { count: phaseCount } = await supabase
+    .from('capsule_phases')
+    .select('id', { count: 'exact' })
+    .eq('capsule_id', capsule.id)
+    .is('deleted_at', null)
+
   // ── Resolve theme ─────────────────────────────────────────────────────
   const themeKey: ThemeKey = resolveTheme(
     (capsule.theme as ThemeKey | 'classic') ?? 'classic',
@@ -148,7 +156,8 @@ export default async function LegacyRoomPage(
   const showBuilders = attributedCount >= threshold && (builders?.length ?? 0) > 0
 
   return (
-    <LegacyRoomClient
+    <>
+      <LegacyRoomClient
       capsule={{
         id: capsule.id,
         slug: capsule.slug,
@@ -179,5 +188,14 @@ export default async function LegacyRoomPage(
       galleryPhotos={galleryPhotos ?? []}
       themeKey={themeKey}
     />
+    <CapsuleBottomNav
+      slug={slug}
+      currentPage="legacy"
+      components={capsule.components ?? []}
+      contributorCount={summary?.contributor_count ?? 0}
+      hasPhases={(phaseCount ?? 0) > 0}
+      themeKey={themeKey}
+    />
+    </>
   )
 }

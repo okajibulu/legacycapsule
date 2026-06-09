@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import { resolveTheme } from '@/lib/themeConfig'
 import TributeWallClient from '@/components/TributeWallClient'
+import CapsuleBottomNav from '@/components/CapsuleBottomNav'
 
 /* =========================================================
    GENERATE METADATA

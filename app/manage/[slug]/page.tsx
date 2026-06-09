@@ -13,8 +13,9 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { getAllThemes, resolveTheme } from '@/lib/themeConfig'
 import type { ThemeKey } from '@/lib/themeConfig'
-import GalleryEditor from '@/components/GalleryEditor'
+  import GalleryEditor from '@/components/GalleryEditor'
 import HonoureeRevealPanel from '@/components/HonoureeRevealPanel'
+import ServicesTab from '@/components/manage/ServicesTab'
 import HeroPositionPicker from '@/components/HeroPositionPicker'
 
 interface Capsule {
@@ -37,7 +38,7 @@ interface ProfileSection {
   id: string; section_type: string; custom_title: string | null
   content: string | null; sort_order: number; is_active: boolean
 }
-type Tab = 'overview' | 'tributes' | 'profile' | 'settings' | 'exports'
+type Tab = 'overview' | 'tributes' | 'profile' | 'settings' | 'services'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -454,30 +455,30 @@ function StylePicker({ currentTheme, eventType, onSave }: { currentTheme: string
   const autoKey = resolveTheme('classic', eventType)
   const [saving, setSaving] = useState(false)
   const handleSelect = async (key: ThemeKey | 'classic') => { setSaving(true); await onSave(key); setSaving(false) }
+  const currentLabel = (!currentTheme || currentTheme === 'classic')
+    ? `Auto — ${themes.find(t => t.key === autoKey)?.label ?? 'Classic'}`
+    : themes.find(t => t.key === currentTheme)?.label ?? currentTheme
+
   return (
     <div>
-      <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.65, marginBottom: '14px' }}>Choose the visual mood for your capsule. Auto uses the best theme for your event type (<span style={{ color: goldMuted }}>{themes.find(t => t.key === autoKey)?.label}</span>).</p>
-      <button onClick={() => handleSelect('classic')} style={{ width: '100%', textAlign: 'left', padding: '12px 14px', borderRadius: '10px', border: `1px solid ${(!currentTheme || currentTheme === 'classic') ? 'rgba(226,195,107,0.45)' : cardBorder}`, background: (!currentTheme || currentTheme === 'classic') ? 'rgba(226,195,107,0.07)' : 'transparent', cursor: 'pointer', marginBottom: '8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div><p style={{ fontSize: '12px', fontWeight: 600, color: textPrimary, margin: 0 }}>Auto (Recommended)</p><p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0' }}>Uses {themes.find(t => t.key === autoKey)?.label} based on your event type</p></div>
-          {(!currentTheme || currentTheme === 'classic') && <span style={{ color: gold, fontSize: '14px' }}>✓</span>}
-        </div>
-      </button>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.65, marginBottom: '12px' }}>
+        Auto uses the best theme for your event type.
+      </p>
+      <select
+        value={currentTheme ?? 'classic'}
+        onChange={e => handleSelect(e.target.value as ThemeKey | 'classic')}
+        disabled={saving}
+        style={{ ...inp, cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(226,195,107,0.6)' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center', paddingRight: '36px' }}
+      >
+        <option value="classic">Auto — {themes.find(t => t.key === autoKey)?.label} (Recommended)</option>
         {themes.map(t => (
-          <button key={t.key} onClick={() => handleSelect(t.key)} style={{ textAlign: 'left', padding: '12px 14px', borderRadius: '10px', border: `1px solid ${currentTheme === t.key ? 'rgba(226,195,107,0.45)' : cardBorder}`, background: currentTheme === t.key ? 'rgba(226,195,107,0.07)' : 'transparent', cursor: 'pointer' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div><p style={{ fontSize: '12px', fontWeight: 600, color: textPrimary, margin: 0 }}>{t.label}</p><p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0' }}>{t.description}</p></div>
-              {currentTheme === t.key && <span style={{ color: gold, fontSize: '14px' }}>✓</span>}
-            </div>
-          </button>
+          <option key={t.key} value={t.key}>{t.label} — {t.description}</option>
         ))}
-      </div>
-      {saving && <p style={{ fontSize: '11px', color: goldMuted, marginTop: '8px', textAlign: 'center' }}>Saving…</p>}
+      </select>
+      {saving && <p style={{ fontSize: '11px', color: goldMuted, marginTop: '8px' }}>Saving…</p>}
     </div>
   )
 }
-
 /* ── UPGRADE CARD ─────────────────────────────────────── */
 function UpgradeCard({ capsuleName }: { capsuleName: string }) {
   const [name, setName] = useState(''); const [email, setEmail] = useState(''); const [message, setMessage] = useState('')
@@ -514,11 +515,11 @@ function UpgradeCard({ capsuleName }: { capsuleName: string }) {
 /* ── BOTTOM NAV ───────────────────────────────────────── */
 function BottomNav({ active, onChange, pendingCount }: { active: Tab; onChange: (t: Tab) => void; pendingCount: number }) {
   const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: 'overview', label: 'Overview', icon: '◈' },
-    { id: 'tributes', label: 'Tributes', icon: '✦' },
-    { id: 'profile',  label: 'Profile',  icon: '◉' },
-    { id: 'settings', label: 'Settings', icon: '⊙' },
-    { id: 'exports',  label: 'Exports',  icon: '⬇' },
+    { id: 'overview',  label: 'Overview',  icon: '◈' },
+    { id: 'tributes',  label: 'Tributes',  icon: '✦' },
+    { id: 'profile',   label: 'Profile',   icon: '◉' },
+    { id: 'settings',  label: 'Settings',  icon: '⊙' },
+    { id: 'services',  label: 'Services',  icon: '◎' },
   ]
   return (
     <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50, background: 'rgba(15,10,30,0.98)', backdropFilter: 'blur(20px)', borderTop: `1px solid rgba(226,195,107,0.15)`, display: 'flex', padding: '6px 8px max(8px, env(safe-area-inset-bottom))' }}>
@@ -1542,13 +1543,7 @@ const capRes = await supabase.from('capsules')
                 </SectionCard>
               )}
 
-              <Link href={`/manage/${slug}/publication`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: '12px', border: `1px solid rgba(226,195,107,0.18)`, background: 'rgba(226,195,107,0.04)', color: gold, textDecoration: 'none', fontSize: '13px', fontWeight: 600, marginBottom: '14px' }}>
-  <div>
-    <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: gold }}>Publication Editor</p>
-    <p style={{ margin: '2px 0 0', fontSize: '11px', color: textFaint }}>Arrange sections · Preview · Download PDF</p>
-  </div>
-  <span style={{ fontSize: '18px', color: goldMuted }}>→</span>
-</Link>
+                
 
               {/* ── ADD-ONS / SERVICES TABLE ── */}
               <SectionCard title="Capsule Services" subtitle="Tap any service to learn more — contact us to activate">
@@ -1663,11 +1658,21 @@ const capRes = await supabase.from('capsules')
             </div>
           )}
 
-{/* ── EXPORTS TAB ── */}
-          {activeTab === 'exports' && (
-            <ExportsTab
-              contributions={approved}
-              slug={slug}
+  {/* ── SERVICES TAB ── */}
+          {activeTab === 'services' && (
+            <ServicesTab
+              capsule={capsule}
+              approvedContributions={approved}
+              supabase={supabase}
+              eohEditor={capsule.components?.includes('ways_to_honour')
+                ? <WaysToHonourEditor capsuleId={capsule.id} supabase={supabase} />
+                : undefined}
+              onUpgrade={() => {
+                setActiveTab('settings')
+                setTimeout(() => {
+                  document.getElementById('upgrade-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }, 150)
+              }}
             />
           )}
 
@@ -1724,10 +1729,7 @@ const capRes = await supabase.from('capsules')
                 />
               </SectionCard>
 
-              {/* Ways to Honour */}
-              <SectionCard title="Ways to Honour" subtitle="Premium · Add bank accounts for guests to send support">
-                <WaysToHonourEditor capsuleId={capsule.id} supabase={supabase} />
-              </SectionCard>
+              
 
               <div id="upgrade-form">
                 <UpgradeCard capsuleName={capsule.honouree_name} />
