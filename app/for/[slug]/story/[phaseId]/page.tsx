@@ -252,7 +252,7 @@ export default async function EventPhasePage({ params }: PageProps) {
       {/* The main tribute wall at /for/[slug] shows all contributions */}
       {/* Phase-specific filtering is a Phase 3 enhancement */}
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 16px 16px' }}>
-        <Link href={`/for/${slug}`} style={{ display: 'block', padding: '14px', borderRadius: '12px', border: `1px solid ${t.accentFaint}`, background: t.cardBg, textDecoration: 'none', textAlign: 'center' as const }}>
+        <Link href={`/for/${slug}?phase=${phase.id}`} style={{ display: 'block', padding: '14px', borderRadius: '12px', border: `1px solid ${t.accentFaint}`, background: t.cardBg, textDecoration: 'none', textAlign: 'center' as const }}>
           <p style={{ fontSize: '13px', color: t.accentPrimary, fontWeight: 600, margin: 0 }}>View All Tributes →</p>
           <p style={{ fontSize: '11px', color: t.textFaint, margin: '3px 0 0' }}>See the full tribute wall for this capsule</p>
         </Link>

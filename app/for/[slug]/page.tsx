@@ -120,16 +120,33 @@ supabase
 .order('sort_order', { ascending: true }),
   ])
 
+   // Fetch phase count for bottom nav
+  const { count: phaseCount } = await supabase
+    .from('capsule_phases')
+    .select('id', { count: 'exact' })
+    .eq('capsule_id', capsule.id)
+    .is('deleted_at', null)
+
   // Resolve theme — auto from event type, or manual override
   const themeKey = resolveTheme(capsule.theme, capsule.event_type)
   return (
-    <TributeWallClient
-      capsule={capsule}
-      initialContributions={contribRes.data ?? []}
-      profileSections={profileRes.data ?? []}
-      featuredPhotos={featuredRes.data ?? []}
-      supportAccounts={supportRes.data ?? []}
-      themeKey={themeKey}
-    />
+    <>
+      <TributeWallClient
+        capsule={capsule}
+        initialContributions={contribRes.data ?? []}
+        profileSections={profileRes.data ?? []}
+        featuredPhotos={featuredRes.data ?? []}
+        supportAccounts={supportRes.data ?? []}
+        themeKey={themeKey}
+      />
+      <CapsuleBottomNav
+        slug={slug}
+        currentPage="tribute"
+        components={capsule.components ?? []}
+        contributorCount={capsule.approved_contrib_count ?? 0}
+        hasPhases={(phaseCount ?? 0) > 0}
+        themeKey={themeKey}
+      />
+    </>
   )
 }

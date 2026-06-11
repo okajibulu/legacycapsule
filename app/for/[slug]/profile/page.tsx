@@ -385,6 +385,15 @@ A story worth preserving.<br />The organiser is preparing this profile — check
         </div>
       </main>
 
+<CapsuleBottomNav
+        slug={slug}
+        currentPage="profile"
+        components={capsule.components ?? []}
+        contributorCount={contributorCount}
+        hasPhases={false}
+        themeKey={themeKey}
+      />
+      
       {/* FOOTER */}
       <footer style={{ background: 'rgba(0,0,0,0.15)', borderTop: `1px solid ${t.accentFaint}`, padding: '28px 20px', textAlign: 'center' }}>
         <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.16em', background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LEGACY</span>
