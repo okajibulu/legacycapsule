@@ -24,22 +24,22 @@ import AnimatedWorldMap from "@/components/AnimatedWorldMap"
    ============================================================ */
 
 const ROTATING_LINES = [
-  'Free Tribute Wall — Live in Minutes',
+  'Bring Family & Friends Together',
+  'Collect Tributes From Anywhere',
+  'Capture Stories That Would Otherwise Be Lost',
   'Worldwide Tribute Collection',
   'Live World Map of Your Guests',
-  'Guests from Every Corner of the World',
-  'Live Tribute Wall on Event Day',
+  'Every Memory Has A Place',
   'Guest Video Moments — Captured Live',
-  'Real-Time D-Day Tribute Collection',
+  'Turn Memories Into A Lasting Publication',
+  'Live Tribute Wall On Event Day',
+  'Celebrate Life\'s Most Meaningful Moments',
   'Full Guest List & RSVP Management',
-  'Regular and VIP Guest Tiers',
+  'Regular & VIP Guest Tiers',
   'Access Codes & Table Seating Plans',
   'Fabric & Attire Coordination',
-  'Post-Event Digital Publication',
-  'Publication Shared with Every Guest',
+  'Publication Shared With Every Guest',
   'Permanent Digital Memory Archive',
-  'Event Planner Portfolio & Showcase',
-  'Reseller Programme & White Label',
 ]
 
 function RotatingEventType() {
@@ -71,9 +71,9 @@ function RotatingEventType() {
       <p style={{
         fontFamily: 'var(--font-display, "Cormorant Garamond", serif)',
         fontStyle: 'italic',
-        fontWeight: 700,
+        fontWeight: 600,
         fontSize: 'clamp(1.1rem, 2.6vw, 1.6rem)',
-        letterSpacing: '0.06em',
+        letterSpacing: '0.02em',
         color: '#D4AE2A',
         margin: 0,
         display: 'flex',
@@ -244,23 +244,23 @@ function RoutingCard({ card, index }: { card: typeof ROUTING_CARDS[0]; index: nu
    ============================================================ */
 const PILLARS = [
   {
-    label:    "Coordinate",
-    headline: "Everything before and during",
-    body:     "Guest management, RSVP, fabric and attire coordination, seating, access control, multi-planner collaboration, and the client portal — all from one dashboard.",
+    label:    "PLAN",
+    headline: "Plan & coordinate every event detail",
+    body:     "Guest invitations, RSVP management, VIP coordination, Access codes, seating plans, attire/fabric coordination & event communications - all in one place.",
     color:    "#8B9FD4",
     number:   "01",
   },
   {
-    label:    "Capture",
-    headline: "Every voice from everywhere",
-    body:     "Worldwide tribute collection, D-day photo and video contributions, voice tributes, live streaming display, and a dynamic world map that grows as voices arrive from across the globe.",
+    label:    "CAPTURE",
+    headline: "Capture every memory from friends & family",
+    body:     "Collect worldwide tributes, stories, photos, videos & live event moments from event d-day guests and family members.",
     color:    "var(--lc-gold)",
     number:   "02",
   },
   {
-    label:    "Preserve",
+    label:    "PRESERVE",
     headline: "A permanent record, beautifully made",
-    body:     "The Event Digital Publication — a curated commemorative document carrying every tribute, every face, and every coordination detail. Distributed to contributors. Accessible forever.",
+    body:     "The Event Premium Digital Publication — a curated commemorative documentation of all moments & memories, generated & sent to every contributor.",
     color:    "#7EC8A4",
     number:   "03",
   },
@@ -270,10 +270,10 @@ const PILLARS = [
    SOCIAL PROOF STRIP
    ============================================================ */
 const STATS = [
-  { value: "12,400+", label: "Tributes Collected"   },
-  { value: "68",      label: "Countries Reached"    },
-  { value: "340+",    label: "Events Preserved"     },
-  { value: "4.9",     label: "Average Rating"       },
+  { value: "...soon", label: "Tributes Collected"   },
+  { value: "...soon",      label: "Countries Reached"    },
+  { value: "...soon",    label: "Events Preserved"     },
+  { value: "...soon",     label: "Average Rating"       },
 ]
 
 /* ============================================================
@@ -361,7 +361,7 @@ background: "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",    
       {/* Gold label */}
       <p style={{
         fontFamily: 'var(--font-accent, "Cormorant SC", serif)',
-        fontSize: '11px',
+        fontSize: '12px',
         letterSpacing: '0.35em',
         color: '#D4AE2A',
         textTransform: 'uppercase',
@@ -371,55 +371,70 @@ background: "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",    
         alignItems: 'center',
         gap: '0.45em',
       }}>
-        <span style={{ color: '#B8960C', fontSize: '12px' }}>•</span>
-        EVERY EVENT · PRESERVED
-        <span style={{ color: '#B8960C', fontSize: '12px' }}>•</span>
+        <span style={{ color: '#B8960C', fontSize: '14px' }}>•</span>
+        PLAN
+     <span style={{ color: '#B8960C', fontSize: '14px' }}>•</span>
+         CAPTURE
+        <span style={{ color: '#B8960C', fontSize: '14px' }}>•</span>
+          PRESERVE
+        <span style={{ color: '#B8960C', fontSize: '14px' }}>•</span>
       </p>
 
-      {/* Main headline */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15em' }}>
-        <span style={{
-          fontFamily: 'var(--font-display, "Cormorant Garamond", serif)',
-          fontSize: 'clamp(2.6rem, 6vw, 5rem)',
-          fontWeight: 700,
-          color: 'rgba(255,255,255,0.74)',
-          letterSpacing: '0.02em',
-          lineHeight: 1.05,
-          textShadow: '0 2px 12px rgba(0,0,0,0.9)',
-        }}>
-          Events end.
-        </span>
-        <span style={{
-          fontFamily: 'var(--font-display, "Cormorant Garamond", serif)',
-          fontSize: 'clamp(2.6rem, 6vw, 5rem)',
-          fontWeight: 700,
-          letterSpacing: '0.02em',
-          lineHeight: 1.05,
-          textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
-        }}>
-          <span style={{ color: '#D4AE2A' }}>Legacies</span>
-          <span style={{ color: '#FFFFFF' }}> don't.</span>
-        </span>
-      </div>
+{/* Main headline */}
 
-      {/* Rotating capability line */}
-      <div style={{ height: '2.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <RotatingEventType />
-      </div>
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15em' }}>
+  <span style={{
+    fontFamily: 'var(--font-display, "Cormorant Garamond", serif)',
+    fontSize: 'clamp(2.6rem, 6vw, 5rem)',
+    fontWeight: 700,
+    color: 'rgba(255,255,255,0.74)',
+    letterSpacing: '0.02em',
+    lineHeight: 1.05,
+    textShadow: '0 2px 12px rgba(0,0,0,0.9)',
+  }}>
+    Events end.
+  </span><span style={{
+fontFamily: 'var(--font-display, "Cormorant Garamond", serif)',
+fontSize: 'clamp(2.6rem, 6vw, 5rem)',
+fontWeight: 700,
+letterSpacing: '0.02em',
+lineHeight: 1.05,
+textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
+}}>
+<span style={{ color: '#D4AE2A' }}>Legacies</span>
+<span style={{ color: '#FFFFFF' }}> don't.</span>
+</span>
 
-      {/* Subline */}
-      <p style={{
-        fontFamily: 'var(--font-body, "DM Sans", sans-serif)',
-        fontSize: 'clamp(0.85rem, 1.5vw, 1rem)',
-        color: 'rgba(255,255,255,0.75)',
-        fontWeight: 500,
-        letterSpacing: '0.04em',
-        maxWidth: '480px',
-        lineHeight: 1.6,
-        margin: 0,
-      }}>
-        captured, preserved, and digitally shared
-      </p>
+</div>{/* Hero explanation */}
+
+<p style={{
+  fontFamily: 'var(--font-body, "DM Sans", sans-serif)',
+  fontSize: 'clamp(0.95rem, 1.7vw, 1.08rem)',
+  color: 'rgba(255,255,255,0.82)',
+  fontWeight: 400,
+  letterSpacing: '0.01em',
+  maxWidth: '620px',
+  lineHeight: 1.8,
+  margin: '18px auto 0',
+  textAlign: 'center',
+}}>
+  From planning of events to preserving the memories they create, 
+  LegacyCapsule gives the edge your premium event deserves.
+</p>{/* Rotating capability / outcome line */}
+
+<div style={{
+  height: '2.8rem',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginTop: '18px',
+}}>
+  <RotatingEventType />
+</div>
+
+
+
+
 
       {/* CTAs — pointer-events-auto so they remain clickable */}
       <div style={{ display: 'flex', gap: '1rem', pointerEvents: 'auto', marginTop: '0.5rem' }}>
@@ -432,7 +447,7 @@ background: "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",    
             display:       "inline-flex",
             alignItems:    "center",
             justifyContent:"center",
-            padding:       "14px 36px",
+            padding:       "12px 28px",
             background:    "rgba(255,255,255,0.06)",
             backdropFilter:"blur(12px)",
             color:         "rgba(254,252,232,0.85)",
@@ -463,13 +478,13 @@ background: "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",    
         fontFamily: 'var(--font-body, "DM Sans", sans-serif)',
         fontSize: '10px',
         letterSpacing: '0.2em',
-        padding: '0 1.5rem',
+        padding: '0 1.0rem',
         color: 'rgba(255,255,255,0.75)',
         textTransform: 'uppercase',
         textAlign: 'center',
         margin: 0,
       }}>
-        NO TECHNICAL EXPERIENCE REQUIRED
+        FOR EVENT PROFESSIONALS & FAMILIES
         <span style={{
           color: '#B8960C',
           fontSize: '18px',
@@ -526,16 +541,15 @@ background: "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",    
           </div>
           <p style={{
             fontFamily:   "var(--font-heading)",
-            fontSize:     "clamp(var(--text-xl), 2.5vw, var(--text-3xl))",
-            fontWeight:   400,
+            fontSize:     "clamp(var(--text-xl), 2.0vw, var(--text-3xl))",
+            fontWeight:   300,
             fontStyle:    "italic",
             color:        "var(--lc-charcoal)",
             lineHeight:   1.55,
             letterSpacing: "-0.01em",
           }}>
-            Every significant event creates a story worth preserving. But stories fade. Voices are forgotten. Memories scatter.
-            LegacyCapsule gathers every voice — from everyone who matters, wherever they are
-            in the world — and preserves them in one permanent record that lasts for generations.
+            LegacyCapsule serves as a one-stop centre to help event organisers deliver a premium event. By providing various coordinative services, in addition to 
+            capturing every voice, every story and every meaningful moment of friends and family members - transforming the event into a lasting legacy through a beautiful digital publication sent to everyone at the end of the event.
           </p>
           <div className="gold-rule" style={{ marginTop: "var(--space-8)" }}>
             <div className="gold-rule-diamond" />
@@ -659,7 +673,7 @@ background: "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",    
                 <div style={{
                   fontFamily:    "var(--font-display)",
                   fontSize:      "clamp(var(--text-2xl), 3vw, var(--text-4xl))",
-                  fontWeight:    600,
+                  fontWeight:    200,
                   color:         "var(--lc-gold)",
                   letterSpacing: "var(--tracking-tight)",
                   marginBottom:  "var(--space-2)",

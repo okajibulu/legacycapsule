@@ -150,22 +150,7 @@ export async function GET(
           fontFamily: 'DM Sans',
         }}
       >
-        {/* ── Background layer ── */}
-        {heroUrl ? (
-          <img
-            src={heroUrl}
-            width={WIDTH}
-            height={HEIGHT}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: WIDTH,
-              height: HEIGHT,
-              objectFit: 'cover',
-            }}
-          />
-        ) : null}
+{/* Hero temporarily disabled for debugging */}
 
         {/* Background gradient — always rendered (overlay on hero, full bg if no hero) */}
         <div

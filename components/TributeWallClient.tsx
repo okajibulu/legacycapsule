@@ -19,6 +19,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import WaysToHonourSection from '@/components/WaysToHonourSection'
 import { createClient } from '@supabase/supabase-js'
+import { useSearchParams } from 'next/navigation'
 import { getTributePageTitle } from '@/lib/eventLabels'
 import { COUNTRIES } from '@/lib/tributeWallHelpers'
 import { getThemeConfig } from '@/lib/themeConfig'
@@ -547,7 +548,8 @@ function RelationshipSelect({ selected, onChange, error, t }: {
 export default function TributeWallClient({ capsule, initialContributions, profileSections, featuredPhotos, supportAccounts, themeKey }: Props) {
   const t = getThemeConfig(themeKey)
   const supabaseClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
-
+const searchParams = useSearchParams()
+const phaseId = searchParams.get('phase')
   /* ── STATE ── */
   const [all, setAll] = useState<Contribution[]>(initialContributions)
   const [visitorEmail, setVisitorEmail] = useState('')
@@ -714,7 +716,7 @@ const handleCopy = async () => {
       let photoUrl: string | null = null
       if (fPhoto) { const ext = fPhoto.name.split('.').pop() ?? 'jpg'; const path = capsule.id + '/' + Date.now() + '.' + ext; const { error: ue } = await supabaseClient.storage.from(BUCKET).upload(path, fPhoto, { upsert: false }); if (!ue) photoUrl = supabaseClient.storage.from(BUCKET).getPublicUrl(path).data.publicUrl }
       const coords = await getIPCoords()
-      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, contributor_name: fName.trim(), city: fCity.trim(), country: fCountry, relationship: fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review', legacy_builder_consent: fConsent }).select('id').single()
+      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, phase_id: phaseId || null, contributor_name: fName.trim(), city: fCity.trim(), country: fCountry, relationship: fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review', legacy_builder_consent: fConsent }).select('id').single()
       if (ie) { setSubmitErr(ie.message); setSubmitting(false); return }
       if (nc) { fetch('/api/email/submission-confirmation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contributionId: nc.id, capsuleSlug: capsule.slug, contributorName: fName.trim(), contributorEmail: fEmail.trim(), subjectName: honourName, eventType: capsule.event_type, tributeText: fMsg.trim() }) }).catch(() => {}) }
      
