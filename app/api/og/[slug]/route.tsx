@@ -136,17 +136,15 @@ const dmSansData = undefined
   // ── Render card ────────────────────────────────────────────────────────
   return new ImageResponse(
     (
-      <div
-        style={{
-          width: WIDTH,
-          height: HEIGHT,
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'relative',
-          overflow: 'hidden',
-          fontFamily: 'DM Sans',
-        }}
-      >
+<div
+  style={{
+    color: '#ffffff',
+    fontSize: 72,
+    display: 'flex',
+  }}
+>
+  TEST IMAGE
+
 {/* Hero temporarily disabled for debugging */}
 
         {/* Background gradient — always rendered (overlay on hero, full bg if no hero) */}
