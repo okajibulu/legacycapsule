@@ -17,7 +17,7 @@ import { createClient } from '@supabase/supabase-js'
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const dynamic = 'force-dynamic'
-
+export const runtime = 'edge'
 const WIDTH = 1200
 const HEIGHT = 630
 
@@ -131,11 +131,8 @@ export async function GET(
   // ── Load fonts ─────────────────────────────────────────────────────────
   // Playfair Display Bold for honouree name
   // DM Sans for body text
-  const [playfairData, dmSansData] = await Promise.all([
-    fetch('https://fonts.gstatic.com/s/playfairdisplay/v37/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKd3vXDXbtXK-F2qC0s.woff').then(r => r.arrayBuffer()),
-    fetch('https://fonts.gstatic.com/s/dmsans/v15/rP2Hp2ywxg089UriCZOIHTWEBlwu8Q.woff').then(r => r.arrayBuffer()),
-  ])
-
+const playfairData = undefined
+const dmSansData = undefined
   // ── Render card ────────────────────────────────────────────────────────
   return new ImageResponse(
     (
@@ -379,10 +376,7 @@ export async function GET(
     {
       width: WIDTH,
       height: HEIGHT,
-      fonts: [
-        { name: 'Playfair Display', data: playfairData, weight: 800 as const, style: 'normal' as const },
-        { name: 'DM Sans', data: dmSansData, weight: 600 as const, style: 'normal' as const },
-      ],
+ fonts: [],
     }
   )
 }
