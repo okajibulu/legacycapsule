@@ -191,15 +191,7 @@ return new ImageResponse(
             padding: '48px 60px',
           }}
         >
-         <div
-  style={{
-    display: 'flex',
-    color: '#ffffff',
-    fontSize: '72px',
-  }}
->
-  TEST IMAGE
-</div>
+
  {/* Event type badge */}
           <div
             style={{
