@@ -131,24 +131,24 @@ export async function GET(
   // ── Load fonts ─────────────────────────────────────────────────────────
   // Playfair Display Bold for honouree name
   // DM Sans for body text
-const playfairData = new ArrayBuffer(0)
-const dmSansData = new ArrayBuffer(0)
-
+const playfairData = undefined
+const dmSansData = undefined
   // ── Render card ────────────────────────────────────────────────────────
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: WIDTH,
-          height: HEIGHT,
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'relative',
-          overflow: 'hidden',
-          fontFamily: 'DM Sans',
-        }}
-      >
-{/* ── Background layer temporarily disabled for diagnosis ── */}
+return new ImageResponse(
+  (
+    <div
+      style={{
+        width: WIDTH,
+        height: HEIGHT,
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        overflow: 'hidden',
+        fontFamily: 'DM Sans',
+      }}
+    >
+
+      {/* Hero temporarily disabled for debugging */}
 
         {/* Background gradient — always rendered (overlay on hero, full bg if no hero) */}
         <div
@@ -191,7 +191,16 @@ const dmSansData = new ArrayBuffer(0)
             padding: '48px 60px',
           }}
         >
-          {/* Event type badge */}
+         <div
+  style={{
+    display: 'flex',
+    color: '#ffffff',
+    fontSize: '72px',
+  }}
+>
+  TEST IMAGE
+</div>
+ {/* Event type badge */}
           <div
             style={{
               display: 'flex',
@@ -377,7 +386,7 @@ const dmSansData = new ArrayBuffer(0)
     {
       width: WIDTH,
       height: HEIGHT,
-fonts: [],
+// fonts temporarily disabled
     }
   )
 }
