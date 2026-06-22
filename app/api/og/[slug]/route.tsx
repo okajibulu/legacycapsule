@@ -148,22 +148,7 @@ const dmSansData = new ArrayBuffer(0)
           fontFamily: 'DM Sans',
         }}
       >
-        {/* ── Background layer ── */}
-        {heroUrl ? (
-          <img
-            src={heroUrl}
-            width={WIDTH}
-            height={HEIGHT}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: WIDTH,
-              height: HEIGHT,
-              objectFit: 'cover',
-            }}
-          />
-        ) : null}
+{/* ── Background layer temporarily disabled for diagnosis ── */}
 
         {/* Background gradient — always rendered (overlay on hero, full bg if no hero) */}
         <div
