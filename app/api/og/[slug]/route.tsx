@@ -134,18 +134,21 @@ export async function GET(
 const playfairData = undefined
 const dmSansData = undefined
   // ── Render card ────────────────────────────────────────────────────────
-  return new ImageResponse(
-    (
-<div
-  style={{
-    color: '#ffffff',
-    fontSize: 72,
-    display: 'flex',
-  }}
->
-  TEST IMAGE
+return new ImageResponse(
+  (
+    <div
+      style={{
+        width: WIDTH,
+        height: HEIGHT,
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        overflow: 'hidden',
+        fontFamily: 'DM Sans',
+      }}
+    >
 
-{/* Hero temporarily disabled for debugging */}
+      {/* Hero temporarily disabled for debugging */}
 
         {/* Background gradient — always rendered (overlay on hero, full bg if no hero) */}
         <div
@@ -188,7 +191,16 @@ const dmSansData = undefined
             padding: '48px 60px',
           }}
         >
-          {/* Event type badge */}
+         <div
+  style={{
+    display: 'flex',
+    color: '#ffffff',
+    fontSize: '72px',
+  }}
+>
+  TEST IMAGE
+</div>
+ {/* Event type badge */}
           <div
             style={{
               display: 'flex',
@@ -374,7 +386,7 @@ const dmSansData = undefined
     {
       width: WIDTH,
       height: HEIGHT,
- fonts: [],
+// fonts temporarily disabled
     }
   )
 }
