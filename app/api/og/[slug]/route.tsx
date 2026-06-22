@@ -131,24 +131,39 @@ export async function GET(
   // ── Load fonts ─────────────────────────────────────────────────────────
   // Playfair Display Bold for honouree name
   // DM Sans for body text
-const playfairData = undefined
-const dmSansData = undefined
-  // ── Render card ────────────────────────────────────────────────────────
-return new ImageResponse(
-  (
-    <div
-      style={{
-        width: WIDTH,
-        height: HEIGHT,
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-        overflow: 'hidden',
-        fontFamily: 'DM Sans',
-      }}
-    >
+const playfairData = new ArrayBuffer(0)
+const dmSansData = new ArrayBuffer(0)
 
-      {/* Hero temporarily disabled for debugging */}
+  // ── Render card ────────────────────────────────────────────────────────
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: WIDTH,
+          height: HEIGHT,
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+          overflow: 'hidden',
+          fontFamily: 'DM Sans',
+        }}
+      >
+        {/* ── Background layer ── */}
+        {heroUrl ? (
+          <img
+            src={heroUrl}
+            width={WIDTH}
+            height={HEIGHT}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: WIDTH,
+              height: HEIGHT,
+              objectFit: 'cover',
+            }}
+          />
+        ) : null}
 
         {/* Background gradient — always rendered (overlay on hero, full bg if no hero) */}
         <div
@@ -191,16 +206,7 @@ return new ImageResponse(
             padding: '48px 60px',
           }}
         >
-         <div
-  style={{
-    display: 'flex',
-    color: '#ffffff',
-    fontSize: '72px',
-  }}
->
-  TEST IMAGE
-</div>
- {/* Event type badge */}
+          {/* Event type badge */}
           <div
             style={{
               display: 'flex',
@@ -386,7 +392,7 @@ return new ImageResponse(
     {
       width: WIDTH,
       height: HEIGHT,
-// fonts temporarily disabled
+fonts: [],
     }
   )
 }
