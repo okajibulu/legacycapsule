@@ -33,20 +33,39 @@ export async function generateMetadata({
 
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
   const ogImageUrl = `${appUrl}/api/og/${slug}`
-  return {
-    title: `${data.honouree_name} · Tribute Wall · LegacyCapsule`,
+return {
+  title: `${data.honouree_name} · LegacyCapsule`,
+
+  description: data.event_tag
+    ? `Add your voice to this ${data.event_tag.toLowerCase()} and help preserve the memories, stories and tributes that matter most.`
+    : `Add your voice and help preserve the memories, stories and tributes that matter most.`,
+
+  openGraph: {
+    title: `${data.honouree_name} · LegacyCapsule`,
+
     description: data.event_tag
-      ? `${data.event_tag} — Leave your tribute for ${data.honouree_name}`
-      : `Leave your tribute for ${data.honouree_name} on LegacyCapsule`,
-    openGraph: {
-      title: `${data.honouree_name} — LegacyCapsule`,
-      description: data.event_tag ?? `Leave a tribute for ${data.honouree_name}`,
-      url: `https://itslegacycapsule.com/for/${slug}`,
-      siteName: 'LegacyCapsule',
-      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: `${data.honouree_name} — LegacyCapsule` }],
-    },
-    twitter: { card: 'summary_large_image', images: [ogImageUrl] },
-  }
+      ? `Add your voice to this ${data.event_tag.toLowerCase()} and help preserve the memories, stories and tributes that matter most.`
+      : `Add your voice and help preserve the memories, stories and tributes that matter most.`,
+
+    url: `https://itslegacycapsule.com/for/${slug}`,
+
+    siteName: 'LegacyCapsule',
+
+    images: [
+      {
+        url: ogImageUrl,
+        width: 1200,
+        height: 630,
+        alt: `${data.honouree_name} · LegacyCapsule`,
+      },
+    ],
+  },
+
+  twitter: {
+    card: 'summary_large_image',
+    images: [ogImageUrl],
+  },
+}
 }
 
 /* =========================================================
