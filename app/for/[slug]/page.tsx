@@ -36,16 +36,14 @@ export async function generateMetadata({
 return {
   title: `${data.honouree_name} · LegacyCapsule`,
 
-  description: data.event_tag
-    ? `Add your voice to this ${data.event_tag.toLowerCase()} and help preserve the memories, stories and tributes that matter most.`
-    : `Add your voice and help preserve the memories, stories and tributes that matter most.`,
+  description:
+    `Add your voice and help preserve the memories, stories and tributes that matter most.`,
 
   openGraph: {
     title: `${data.honouree_name} · LegacyCapsule`,
 
-    description: data.event_tag
-      ? `Add your voice to this ${data.event_tag.toLowerCase()} and help preserve the memories, stories and tributes that matter most.`
-      : `Add your voice and help preserve the memories, stories and tributes that matter most.`,
+    description:
+      `Add your voice and help preserve the memories, stories and tributes that matter most.`,
 
     url: `https://itslegacycapsule.com/for/${slug}`,
 
