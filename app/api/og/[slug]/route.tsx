@@ -148,7 +148,22 @@ return new ImageResponse(
       }}
     >
 
-      {/* Hero temporarily disabled for debugging */}
+        {/* ── Background layer ── */}
+        {heroUrl ? (
+          <img
+            src={heroUrl}
+            width={WIDTH}
+            height={HEIGHT}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: WIDTH,
+              height: HEIGHT,
+              objectFit: 'cover',
+            }}
+          />
+        ) : null}
 
         {/* Background gradient — always rendered (overlay on hero, full bg if no hero) */}
         <div
@@ -191,6 +206,35 @@ return new ImageResponse(
             padding: '48px 60px',
           }}
         >
+<div
+  style={{
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    marginBottom: '24px',
+  }}
+>
+  <span
+    style={{
+      fontSize: '16px',
+      fontWeight: 800,
+      letterSpacing: '0.22em',
+      color: scheme.accent,
+    }}
+  >
+    LEGACYCAPSULE
+  </span>
+
+  <span
+    style={{
+      fontSize: '18px',
+      color: '#ffffff',
+      marginTop: '8px',
+    }}
+  >
+    Events end. Legacies don't.
+  </span>
+</div>
 
  {/* Event type badge */}
           <div
@@ -301,11 +345,12 @@ return new ImageResponse(
             <span
               style={{
                 fontSize: '16px',
-                color: 'rgba(255,255,255,0.4)',
-                letterSpacing: '0.1em',
+           fontWeight: 700,
+color: scheme.accent,
+letterSpacing: '0.08em',
               }}
             >
-              A growing collection of voices
+              Add your voice
             </span>
           )}
         </div>
