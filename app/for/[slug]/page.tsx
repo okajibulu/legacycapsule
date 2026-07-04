@@ -25,47 +25,57 @@ export async function generateMetadata({
   )
   const { data } = await supabase
     .from('capsules')
-    .select('honouree_name, event_tag, hero_image_url')
+    .select('honouree_name, event_tag, hero_image_url, cover_attributes')
     .eq('slug', slug)
     .single()
 
   if (!data) return { title: 'Tribute Wall · LegacyCapsule' }
 
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
-  const ogImageUrl = `${appUrl}/api/og/${slug}`
-return {
-  title: `${data.honouree_name} · LegacyCapsule`,
+  
+  // 1. Build authoritative parameters matching our Edge OG Engine specifications
+  const ogTitle = data.honouree_name || 'A Living Story'
+  const ogSubtitle = data.event_tag || 'Legacy Capsule'
+  const layoutMode = data.cover_attributes?.mode || 'publication' // Fallback to premium publication cover template
+  
+  // 2. Stringify the custom cover attributes payload safely to convey quotes/accents
+  const coverAttributesParam = data.cover_attributes 
+    ? encodeURIComponent(JSON.stringify(data.cover_attributes)) 
+    : ''
 
-  description:
-    `Add your voice and help preserve the memories, stories and tributes that matter most.`,
+  // 3. Assemble the query path including an absolute timestamp cache-buster parameter
+  const cacheBuster = Date.now()
+  let ogImageUrl = `${appUrl}/api/og/${slug}?title=${encodeURIComponent(ogTitle)}&subtitle=${encodeURIComponent(ogSubtitle)}&mode=${layoutMode}&t=${cacheBuster}`
+  
+  if (coverAttributesParam) {
+    ogImageUrl += `&cover_attributes=${coverAttributesParam}`
+  }
 
-  openGraph: {
+  return {
     title: `${data.honouree_name} · LegacyCapsule`,
-
-    description:
-      `Add your voice and help preserve the memories, stories and tributes that matter most.`,
-
-    url: `https://itslegacycapsule.com/for/${slug}`,
-
-    siteName: 'LegacyCapsule',
-
-    images: [
-      {
-        url: ogImageUrl,
-        width: 1200,
-        height: 630,
-        alt: `${data.honouree_name} · LegacyCapsule`,
-      },
-    ],
-  },
-
-  twitter: {
-    card: 'summary_large_image',
-    images: [ogImageUrl],
-  },
+    description: `Add your voice and help preserve the memories, stories and tributes that matter most.`,
+    openGraph: {
+      title: `${data.honouree_name} · LegacyCapsule`,
+      description: `Add your voice and help preserve the memories, stories and tributes that matter most.`,
+      url: `${appUrl}/for/${slug}`,
+      siteName: 'LegacyCapsule',
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${data.honouree_name} · LegacyCapsule`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${data.honouree_name} · LegacyCapsule`,
+      description: `Add your voice and help preserve the memories, stories and tributes that matter most.`,
+      images: [ogImageUrl],
+    },
+  }
 }
-}
-
 /* =========================================================
    PAGE COMPONENT  xxxxxxx
 ========================================================= */
