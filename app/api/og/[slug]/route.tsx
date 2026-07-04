@@ -5,10 +5,11 @@
  * - Original Edge Implementation: CG01 (Founder) — 26 June 2026
  * - Production-Grade Consolidated Engine: Worker GM01 — 04 July 2026
  * - Hotfix for Binary Font Streaming Protection: Worker GM01 — 04 July 2026
- * - Native Next.js OG Engine Alignment (Fixes missing @vercel/og module error): Worker GM01 — 04 July 2026
+ * - Native Next.js OG Engine Alignment: Worker GM01 — 04 July 2026
+ * - Next.js 16 Async Params Type Constraint Fix: Worker GM01 — 04 July 2026
  * * DESCRIPTION:
  * Authoritative dynamic Open Graph Cover engine executing on Vercel Edge Runtime.
- * Aligned with native Next.js ImageResponse (`next/og`) to eliminate external module dependency risks.
+ * Fully aligned with Next.js 16 async route params constraints (`params: Promise<{ slug: string }>`).
  * Streams binary TTF assets directly to guarantee high-gloss layout execution.
  */
 
@@ -31,10 +32,13 @@ async function fetchRawFontBinary(url: string): Promise<ArrayBuffer> {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const slug = params.slug;
+    // Next.js 16 Compliance: Await the async params object
+    const resolvedParams = await context.params;
+    const slug = resolvedParams.slug;
+    
     const { searchParams } = new URL(request.url);
     
     // Core parameters passed via request query hooks
