@@ -111,6 +111,17 @@ function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
     })
   }
 
+  // Community Stories — only when module activated
+  if ((components ?? []).includes('community_stories')) {
+    tabs.push({
+      id: 'story' as CapsulePage,
+      label: 'Stories',
+      icon: '◇',
+      href: `/for/${slug}/stories`,
+      active: true,
+    })
+  }
+
   // Attire — only when module activated
   if ((components ?? []).includes('attire')) {
     tabs.push({

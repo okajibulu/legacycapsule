@@ -13,6 +13,7 @@ const COMPONENTS = [
   { id: 'family_rep_portal', label: 'Family Rep Portal',   desc: 'Token-gated private portal for family representative' },
   { id: 'extended_validity', label: 'Extended Validity',   desc: 'Capsule validity beyond the standard 90-day free window' },
   { id: 'publication',      label: 'Digital Publication',  desc: 'PDF keepsake publication compiled from all tributes' },
+  { id: 'community_stories', label: 'Community Stories',  desc: 'Dedicated Stories room where contributors share memories organised by topic' },
 ]
 
 const gold = '#E2C36B'
