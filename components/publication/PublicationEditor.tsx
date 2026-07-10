@@ -159,6 +159,9 @@ export default function PublicationEditor({
   const [saveState,       setSaveState]        = useState<EditorSaveState>('saved');
   const [previewing,      setPreviewing]       = useState(false);
   const [previewError,    setPreviewError]     = useState<string | null>(null);
+  const [distributing,    setDistributing]     = useState(false);
+  const [distributeError, setDistributeError]  = useState<string | null>(null);
+  const [distributeResult, setDistributeResult] = useState<{ sent: number; skipped: number } | null>(null);
   const [initialising,    setInitialising]     = useState(true);
   const [initError,       setInitError]        = useState<string | null>(null);
 
@@ -372,6 +375,28 @@ const handlePreviewPrint = useCallback(async () => {
     }
   }, [capsuleId]);
 
+  // ── 5.7b  Distribute — Collective Belonging Email ─────────
+  const handleDistribute = useCallback(async () => {
+    if (!capsuleId || !existingPdfUrl) return
+    setDistributing(true)
+    setDistributeError(null)
+    setDistributeResult(null)
+    try {
+      const res = await fetch('/api/publication/distribute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ capsule_id: capsuleId, capsule_slug: capsuleSlug }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Distribution failed')
+      setDistributeResult(data)
+    } catch (err) {
+      setDistributeError(err instanceof Error ? err.message : 'Distribution failed')
+    } finally {
+      setDistributing(false)
+    }
+  }, [capsuleId, capsuleSlug, existingPdfUrl]);
+
 
   // ── 5.8  Loading and error states ─────────────────────────
 
@@ -499,6 +524,35 @@ const handlePreviewPrint = useCallback(async () => {
             </p>
           </div>
 
+          {/* ── Distribute — Collective Belonging Email ── */}
+          {existingPdfUrl && (
+            <div className="mb-5 pb-5 border-b border-yellow-400/10">
+              <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-3">
+                Distribute
+              </p>
+              <button
+                type="button"
+                onClick={handleDistribute}
+                disabled={distributing || hasUnsavedChanges}
+                className="w-full py-2.5 px-3 rounded-lg text-xs font-bold border border-yellow-400/30 text-yellow-300 hover:bg-yellow-400/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {distributing ? 'Sending…' : '✉ Send to All Contributors'}
+              </button>
+              {distributeResult && (
+                <p className="text-[10px] text-green-400/70 mt-2 text-center">
+                  ✓ Sent to {distributeResult.sent} contributor{distributeResult.sent !== 1 ? 's' : ''}
+                  {distributeResult.skipped > 0 ? ` · ${distributeResult.skipped} skipped` : ''}
+                </p>
+              )}
+              {distributeError && (
+                <p className="text-[10px] text-red-400/70 mt-2 text-center">{distributeError}</p>
+              )}
+              <p className="text-[9px] text-white/20 mt-2 leading-relaxed text-center">
+                Sends the publication to every contributor who left an email
+              </p>
+            </div>
+          )}
+
           {/* ── Auto-generate (Puppeteer — Vercel Pro) ── */}
           <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-3">
             Auto-generate
@@ -516,7 +570,7 @@ const handlePreviewPrint = useCallback(async () => {
         {/* Footer — back link */}
         <div className="px-4 py-3 border-t border-yellow-400/10 flex-shrink-0">
           <a
-            href={`/capsule/${capsuleSlug}/manage`}
+            href={`/manage/${capsuleSlug}`}
             className="text-[10px] text-white/25 hover:text-white/50 transition-colors flex items-center gap-1"
           >
             <span aria-hidden="true">←</span>
