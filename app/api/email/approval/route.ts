@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendKeepsakeCard } from '@/lib/email'
+import { assignRefCode, updateParticipationSummary, recalculateLegacyBuilders } from '@/lib/participation/refCode'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SUPABASE — service role to fetch contribution + capsule details
@@ -59,6 +60,15 @@ export async function POST(req: NextRequest) {
     if (capsuleError || !capsule) {
       return NextResponse.json({ error: 'Capsule not found' }, { status: 404 })
     }
+
+    // ── Assign ref code (generates contributor's share code) ──────────────
+    if (!contribution.ref_code) {
+      await assignRefCode(contributionId)
+    }
+
+    // ── Update participation summary + legacy builders ─────────────────────
+    await updateParticipationSummary(contribution.capsule_id)
+    await recalculateLegacyBuilders(contribution.capsule_id)
 
     // ── Send Keepsake Card — D27 ───────────────────────────────────────────
     await sendKeepsakeCard({

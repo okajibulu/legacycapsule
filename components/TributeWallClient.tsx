@@ -1198,25 +1198,69 @@ background:
 
           {/* ── COLLAPSIBLE COMPOSER ── */}
           <div style={{ flexShrink: 0, margin: '10px 12px 0' }}>
-            {!composerOpen ? (
-              /* Collapsed — three-part action row */
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch' }}>
-                {/* Copy Link — left */}
-                <button onClick={handleCopy} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '11px', padding: '12px 6px', borderRadius: '12px', border: `1px solid ${copied ? 'rgba(74,222,128,0.28)' : t.accentFaint}`, background: copied ? 'rgba(74,222,128,0.07)' : t.cardBg, color: copied ? 'rgba(134,239,172,0.9)' : t.accentMuted, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' as const, transition: 'all 0.2s' }}>
-                  {copied ? '✓' : '🔗'} {copied ? 'Copied' : 'Copy Link'}
-                </button>
-                {/* ✦ Leave a Tribute — centre primary */}
-                <button onClick={() => setComposerOpen(true)} style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '13px', padding: '12px 12px', borderRadius: '12px', border: `1px solid ${t.accentFaint}`, background: t.cardBg, color: t.accentPrimary, cursor: 'pointer', fontWeight: 700, letterSpacing: '0.03em', whiteSpace: 'nowrap' as const, transition: 'all 0.2s' }}>
-                  <span style={{ fontSize: '14px' }}>✦</span> Leave a Tribute
-                </button>
+{!composerOpen ? (
+/* Collapsed — three-part action row */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+                 {/* Primary Task Anchor */}
+  <button
+    onClick={() => setComposerOpen(true)}
+    style={{
+      width: '100%',
+      padding: '14px',
+      borderRadius: '8px',
+      backgroundColor: t.accentPrimary,
+      color: '#1a0826',
+      fontWeight: 'bold',
+      fontSize: '15px',
+      letterSpacing: '0.03em',
+      cursor: 'pointer',
+      border: 'none',
+    }}
+  >
+    ✦ Leave a Tribute
+  </button>
+  
+  {/* Secondary Amplification Row */}
+  <div style={{ display: 'flex', gap: '10px' }}>
+    <button
+      onClick={handleCopy}
+      style={{
+        flex: 1,
+        padding: '12px',
+        borderRadius: '8px',
+        border: '1px solid rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        color: t.textMuted,
+        fontSize: '13px',
+        fontWeight: 500,
+        cursor: 'pointer',
+      }}
+    >
+      {copied ? '✓ Copied' : '🔗 Copy Link'}
+    </button>
+    <button 
+      onClick={() => {
+        const text = encodeURIComponent(`Join us in honouring ${honourName}. View the Capsule here: ${capsuleUrl}`);
+        window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+      }}
+      style={{
+        flex: 1,
+        padding: '12px',
+        borderRadius: '8px',
+        border: '1px solid rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        color: t.textMuted,
+        fontSize: '13px',
+        fontWeight: 500,
+        cursor: 'pointer',
+      }}
+    >
+      💬 Share
+    </button>
+  </div>
+</div>
 
-                {/* Share Link — right */}
-                <a href={`https://wa.me/?text=${encodeURIComponent(honourName + '\'s story is being preserved. Your voice belongs in this record: ' + (myRefCode ? capsuleUrl + '?ref=' + myRefCode : capsuleUrl))}`}
-   onClick={() => { if (myRefCode) fetch('/api/share/record', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ capsuleId: capsule.id, refCode: myRefCode, channel: 'whatsapp', contributionId: null }) }).catch(() => {}) }} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '11px', padding: '12px 6px', borderRadius: '12px', border: '1px solid rgba(74,222,128,0.22)', background: t.cardBg, color: 'rgba(74,222,128,0.7)', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' as const }}>
-                 💬 Share
-                </a>
-              </div>
-            ) : (
+) : (
               /* Expanded — full form */
               <div className="composer-enter" style={{ borderRadius: '18px', padding: '18px 16px', background: t.cardBg, border: `1px solid ${t.accentFaint}`, overflow: 'hidden' }}>
                 {/* Close composer */}
@@ -1265,9 +1309,28 @@ background:
                       <span style={{ position: 'absolute', bottom: '8px', right: '10px', fontSize: '9px', color: fMsg.length > 900 ? t.accentPrimary : t.textFaint, pointerEvents: 'none' }}>{fMsg.length}/{MAX_CHARS}</span>
                       {errors.msg && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.msg}</p>}
                     </div>
-                    <button onClick={handleSubmit} disabled={submitting} style={{ flexShrink: 0, padding: '14px 20px', borderRadius: '14px', fontWeight: 700, fontSize: '13px', background: `linear-gradient(180deg, ${t.accentPrimary}, ${t.accentMuted})`, color: '#1a0826', border: 'none', cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.5 : 1, boxShadow: `0 6px 20px rgba(0,0,0,0.3)`, transition: 'all 0.2s', alignSelf: 'flex-start', marginTop: '2px' }}>
-                      {submitting ? '…' : 'Submit'}
-                    </button>
+<button 
+  onClick={handleSubmit} 
+  disabled={submitting} 
+  style={{ 
+    flexShrink: 0,
+    padding: '14px 20px', 
+    borderRadius: '14px', 
+    fontWeight: 700, 
+    fontSize: '13px', 
+    background: `linear-gradient(180deg, ${t.accentPrimary}, ${t.accentMuted})`, 
+    color: '#1a0826', 
+    border: 'none', 
+    cursor: submitting ? 'not-allowed' : 'pointer', 
+    opacity: submitting ? 0.5 : 1, 
+    boxShadow: `0 6px 20px rgba(0,0,0,0.3)`, 
+    transition: 'all 0.2s',
+    alignSelf: 'flex-start',
+    marginTop: '2px',
+  }}
+>
+  {submitting ? '…' : 'Submit'}
+</button>
                   </div>
 
                   {/* Audio/Video premium toggles */}
@@ -1518,7 +1581,7 @@ background:
           <div style={{ padding: '28px 16px 24px', textAlign: 'center' }}>
             <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.18em', background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LEGACY</span>
             <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.18em', color: t.textFaint, marginLeft: '0.18em' }}>CAPSULE</span>
-            <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.12)', marginTop: '6px', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Events end. Legacies continue.</p>
+            <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.12)', marginTop: '6px', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Events end. Legacies don't.</p>
             <p style={{ marginTop: '10px' }}>
               <button
                 onClick={() => { setRepAccessOpen(true); setRepAccessDone(false); setRepAccessEmail(''); setRepAccessError('') }}

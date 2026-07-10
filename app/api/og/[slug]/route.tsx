@@ -1,219 +1,249 @@
-/**
- * FILE PATH: app/api/og/[slug]/route.tsx
- * GOVERNING SPECIFICATION: docs/specifications/OG02_COVER_SYSTEM.md
- * * AUTHORSHIP HISTORY:
- * - Original Edge Implementation: CG01 (Founder) — 26 June 2026
- * - Production-Grade Consolidated Engine: Worker GM01 — 04 July 2026
- * - Hotfix for Binary Font Streaming Protection: Worker GM01 — 04 July 2026
- * - Native Next.js OG Engine Alignment: Worker GM01 — 04 July 2026
- * - Next.js 16 Async Params Type Constraint Fix: Worker GM01 — 04 July 2026
- * * DESCRIPTION:
- * Authoritative dynamic Open Graph Cover engine executing on Vercel Edge Runtime.
- * Fully aligned with Next.js 16 async route params constraints (`params: Promise<{ slug: string }>`).
- * Streams binary TTF assets directly to guarantee high-gloss layout execution.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE: app/api/og/[slug]/route.tsx
+// PURPOSE: OG image generation — implements OG02 Cover System
+// Mode A: Legacy Cover (no hero image) — always available
+// Mode B: Hero Cover (hero image present) — used when hero_image_url is set
+// Edge runtime — fast, globally distributed, no cold starts
+// ─────────────────────────────────────────────────────────────────────────────
 
-import { ImageResponse } from 'next/og';
-import { NextRequest } from 'next/server';
+import { ImageResponse } from 'next/og'
+import { createClient } from '@supabase/supabase-js'
+import { resolveCoverTheme, getParticipationPrompt, getLegacyStatement } from '@/lib/og/CoverThemeResolver'
+import { getLegacySnapshot } from '@/lib/og/getLegacySnapshot'
+import OpenGraphCover from '@/components/og/OpenGraphCover'
+import OpenGraphHeroCover from '@/components/og/OpenGraphHeroCover'
 
-export const runtime = 'edge';
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 1 — Edge runtime declaration
+// ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Robust Raw Binary Font Streamer
- * Fetches the absolute .ttf binary directly to avoid regex string matching failures.
- */
-async function fetchRawFontBinary(url: string): Promise<ArrayBuffer> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to stream font asset binary directly from target location: ${url}`);
+export const runtime = 'edge'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 2 — Constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+const W = 1200
+const H = 630
+
+// Cache for 1 hour — revalidates as new tributes come in without hammering DB
+// Using s-maxage + stale-while-revalidate for CDN edge caching
+const CACHE_CONTROL = 'public, s-maxage=3600, stale-while-revalidate=86400'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 3 — Font loading
+// DM Sans from Google Fonts — loaded once per edge invocation
+// Self-hosting preferred if latency becomes an issue in production
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function loadFont(): Promise<ArrayBuffer | null> {
+  try {
+    const res = await fetch(
+      'https://fonts.gstatic.com/s/dmsans/v15/rP2Hp2ywxg089UriCZOIHQ.woff2',
+      { cache: 'force-cache' }
+    )
+    if (!res.ok) return null
+    return res.arrayBuffer()
+  } catch {
+    return null
   }
-  return await response.arrayBuffer();
 }
 
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ slug: string }> }
-) {
+async function loadFontBold(): Promise<ArrayBuffer | null> {
   try {
-    // Next.js 16 Compliance: Await the async params object
-    const resolvedParams = await context.params;
-    const slug = resolvedParams.slug;
-    
-    const { searchParams } = new URL(request.url);
-    
-    // Core parameters passed via request query hooks
-    const defaultTitle = searchParams.get('title') || 'A Living Story';
-    const defaultSubtitle = searchParams.get('subtitle') || 'Legacy Capsule';
-    const layoutMode = searchParams.get('mode') || 'publication'; // 'publication' | 'hero'
+    const res = await fetch(
+      'https://fonts.gstatic.com/s/dmsans/v15/rP2Cp2ywxg089UriASitCBimCw.woff2',
+      { cache: 'force-cache' }
+    )
+    if (!res.ok) return null
+    return res.arrayBuffer()
+  } catch {
+    return null
+  }
+}
 
-    /**
-     * Dynamic Context & Feature Flag Extraction
-     * Parses custom layout settings passed via database properties.
-     */
-    let featuredQuote = '';
-    let customAccent = 'rgba(234, 179, 8, 0.3)'; // Luxury Gold accent
-    
-    const rawAttributes = searchParams.get('cover_attributes');
-    if (rawAttributes) {
-      try {
-        const attributes = JSON.parse(rawAttributes);
-        if (attributes.featuredQuote?.text) {
-          featuredQuote = attributes.featuredQuote.text;
-        }
-        if (attributes.customAccentColor) {
-          customAccent = attributes.customAccentColor;
-        }
-      } catch (e) {
-        console.error('Failed to parse injected cover_attributes context JSON structure');
-      }
-    }
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 4 — Route handler
+// ─────────────────────────────────────────────────────────────────────────────
 
-    // Direct stream arrays of fixed, immutable font binaries to ensure Satori initialization
-    const [playfairData, dmSansData] = await Promise.all([
-      fetchRawFontBinary('https://fonts.gstatic.com/s/playfairdisplay/v37/nuFiD-vYSZ24K1ACnZa50SfZc6-U_67_9t_b_Y7DGWY7btjW_b4.ttf'),
-      fetchRawFontBinary('https://fonts.gstatic.com/s/dmsans/v15/rP2Hp2ywgo0fiGC9G6C_mD1V86_c06X43_g.ttf')
-    ]);
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await params
 
-    const isHeroLayout = layoutMode === 'hero';
+  // ── 4.1 Fetch capsule data ────────────────────────────────────────────────
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
 
-    return new ImageResponse(
-      (
+  const { data: capsule } = await supabase
+    .from('capsules')
+    .select('id, honouree_name, honouree_title, event_type, event_tag, hero_image_url, page_state')
+    .eq('slug', slug)
+    .single()
+
+  // ── 4.2 Handle missing or suspended capsule — return branded fallback ─────
+  if (!capsule || capsule.page_state === 'suspended') {
+    return fallbackResponse()
+  }
+
+  // ── 4.3 Resolve cover assets in parallel ─────────────────────────────────
+  const [snapshot, fontRegular, fontBold] = await Promise.all([
+    getLegacySnapshot(capsule.id),
+    loadFont(),
+    loadFontBold(),
+  ])
+
+  // ── 4.4 Build theme tokens ────────────────────────────────────────────────
+  const theme = resolveCoverTheme(capsule.event_type)
+  const participationPrompt = getParticipationPrompt(capsule.event_type)
+  const legacyStatement = getLegacyStatement(capsule.event_type)
+
+  // ── 4.5 Build event context label (OG02 Level 4) ─────────────────────────
+  const eventContext = buildEventContext(capsule.event_type, capsule.event_tag)
+
+  // ── 4.6 Fonts config ─────────────────────────────────────────────────────
+const fonts: { name: string; data: ArrayBuffer; weight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900; style: 'normal' | 'italic' }[] = []
+  if (fontRegular) {
+    fonts.push({ name: 'DM Sans', data: fontRegular, weight: 400, style: 'normal' })
+  }
+  if (fontBold) {
+    fonts.push({ name: 'DM Sans', data: fontBold, weight: 700, style: 'normal' })
+  }
+
+  // ── 4.7 Select mode: B (Hero) if hero_image_url exists, else A (Legacy) ──
+  const useHeroMode = !!(capsule.hero_image_url && capsule.hero_image_url.trim())
+
+  const coverProps = {
+    honoureeName: capsule.honouree_name ?? 'A Legacy',
+    honoureeTitle: capsule.honouree_title ?? null,
+    eventContext,
+    snapshot,
+    theme,
+    participationPrompt,
+    legacyStatement,
+  }
+
+  try {
+    const element = useHeroMode
+      ? OpenGraphHeroCover({ ...coverProps, heroImageUrl: capsule.hero_image_url! })
+      : OpenGraphCover(coverProps)
+
+    const response = new ImageResponse(element, {
+      width: W,
+      height: H,
+      fonts: fonts.length > 0 ? fonts : undefined,
+    })
+
+    // Add cache headers
+    response.headers.set('Cache-Control', CACHE_CONTROL)
+    return response
+
+  } catch (err) {
+    console.error('[og/slug] ImageResponse error:', err)
+    return fallbackResponse()
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 5 — Event context builder (OG02 Level 4)
+// Constructs a human-readable event context line
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildEventContext(
+  eventType: string | null | undefined,
+  eventTag: string | null | undefined
+): string {
+  // If organiser provided an event tag, use it — it's more specific
+  if (eventTag && eventTag.trim()) return eventTag.trim()
+
+  // Fall back to formatted event type
+  const TYPE_LABELS: Record<string, string> = {
+    'Memorial & Funeral': 'Celebration of Life',
+    'Wedding': 'Wedding Celebration',
+    'Retirement': 'Retirement Celebration',
+    'Milestone Birthday': 'Birthday Celebration',
+    'Anniversary': 'Anniversary Celebration',
+    'Graduation': 'Graduation Celebration',
+    'Ordination': 'Ordination Service',
+    'Chieftaincy Ceremony': 'Chieftaincy Celebration',
+    'Award Ceremony': 'Award Celebration',
+    'Thanksgiving Service': 'Thanksgiving Service',
+    'Conference': 'Conference & Convention',
+    'Other': 'A Meaningful Occasion',
+  }
+
+  return TYPE_LABELS[eventType ?? ''] ?? 'A Meaningful Occasion'
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 6 — Branded fallback for errors and missing capsules
+// OG02 Premium Default Rule: never show an unfinished cover
+// ─────────────────────────────────────────────────────────────────────────────
+
+function fallbackResponse(): ImageResponse {
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          display: 'flex',
+          width: W,
+          height: H,
+          background: 'linear-gradient(160deg, #110824 0%, #1A0F3A 40%, #0E0820 100%)',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: 16,
+          fontFamily: 'system-ui, sans-serif',
+          position: 'relative',
+        }}
+      >
+        {/* Spine */}
         <div
           style={{
-            height: '100%',
-            width: '100%',
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width: 6,
+            height: H,
+            background: 'linear-gradient(to bottom, #E2C36B, #A88C48, #E2C36B)',
             display: 'flex',
-            flexDirection: 'column',
-            alignItems: isHeroLayout ? 'flex-start' : 'center',
-            justifyContent: isHeroLayout ? 'flex-end' : 'center',
-            backgroundColor: isHeroLayout ? '#0B0F19' : '#0F172A', 
-            padding: '80px',
-            position: 'relative',
+          }}
+        />
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'rgba(226,195,107,0.4)',
           }}
         >
-          {/* Framed Graphic Border Layout (Publication Cover Preset variant) */}
-          {!isHeroLayout && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '40px',
-                left: '40px',
-                right: '40px',
-                bottom: '40px',
-                border: `2px solid ${customAccent}`,
-                display: 'flex',
-              }}
-            />
-          )}
-
-          {/* Hero Mode Background Asymmetric Left Accent Stripe */}
-          {isHeroLayout && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                bottom: 0,
-                width: '12px',
-                backgroundColor: customAccent,
-              }}
-            />
-          )}
-
-          {/* Main Content Node Matrix */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: isHeroLayout ? 'flex-start' : 'center',
-              textAlign: isHeroLayout ? 'left' : 'center',
-              maxWidth: '900px',
-            }}
-          >
-            <h1
-              style={{
-                fontFamily: 'Playfair Display',
-                fontSize: isHeroLayout ? '76px' : '56px',
-                color: '#F8FAFC',
-                marginBottom: '20px',
-                lineHeight: 1.15,
-              }}
-            >
-              {defaultTitle}
-            </h1>
-            
-            <p
-              style={{
-                fontFamily: 'DM Sans',
-                fontSize: '18px',
-                color: isHeroLayout ? '#EA580C' : '#94A3B8', 
-                letterSpacing: '0.2em',
-                textTransform: 'uppercase',
-                marginBottom: featuredQuote ? '36px' : '0px',
-              }}
-            >
-              {defaultSubtitle}
-            </p>
-
-            {/* Injected Premium Focus Quote Section */}
-            {featuredQuote && (
-              <p
-                style={{
-                  fontFamily: 'Playfair Display',
-                  fontSize: '26px',
-                  fontStyle: 'italic',
-                  color: '#E2E8F0',
-                  borderTop: isHeroLayout ? 'none' : '1px solid rgba(148, 163, 184, 0.2)',
-                  borderLeft: isHeroLayout ? '4px solid rgba(255, 255, 255, 0.15)' : 'none',
-                  paddingTop: isHeroLayout ? '0px' : '20px',
-                  paddingLeft: isHeroLayout ? '24px' : '0px',
-                  marginTop: isHeroLayout ? '24px' : '0px',
-                  maxWidth: '700px',
-                }}
-              >
-                "{featuredQuote}"
-              </p>
-            )}
-          </div>
-
-          {/* Core Brand Narrative Standard Subtitle */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '40px',
-              right: '60px',
-              fontFamily: 'DM Sans',
-              fontSize: '13px',
-              color: 'rgba(148, 163, 184, 0.4)',
-              letterSpacing: '0.3em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Events End. Legacies Don’t.
-          </div>
-        </div>
-      ),
-      {
-        width: 1200,
-        height: 630,
-        fonts: [
-          {
-            name: 'Playfair Display',
-            data: playfairData,
-            style: 'normal',
-            weight: 700,
-          },
-          {
-            name: 'DM Sans',
-            data: dmSansData,
-            style: 'normal',
-            weight: 400,
-          },
-        ],
-      }
-    );
-  } catch (error: any) {
-    console.error(`Edge OG Engine Error: ${error.message}`);
-    return new Response(`Failed to generate dynamic canvas image layer: ${error.message}`, { status: 500 });
-  }
+          LEGACYCAPSULE
+        </span>
+        <span
+          style={{
+            fontSize: 13,
+            color: 'rgba(226,195,107,0.3)',
+            fontStyle: 'italic',
+          }}
+        >
+          Events end. Legacies don&apos;t.
+        </span>
+        <span
+          style={{
+            fontSize: 11,
+            color: 'rgba(255,255,255,0.15)',
+            letterSpacing: '0.12em',
+            marginTop: 8,
+          }}
+        >
+          itslegacycapsule.com
+        </span>
+      </div>
+    ),
+    { width: W, height: H }
+  )
 }
