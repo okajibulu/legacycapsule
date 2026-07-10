@@ -479,14 +479,21 @@ export default function LegacyRoomClient({
           {/* ── SECTION 1: COLLECTION OVERVIEW ── */}
           <Section title="Collection Overview" t={t}>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <StatCard value={summary.contributor_count} label="Contributors" accent t={t} />
-              <StatCard value={summary.photo_count} label="Photos" t={t} />
+              <StatCard value={summary.contributor_count} label="Voices Gathered" accent t={t} />
+              <StatCard value={summary.photo_count} label="Memories Preserved" t={t} />
               <StatCard value={summary.country_count} label="Countries" t={t} />
-              <StatCard value={summary.share_count} label="Shares" t={t} />
+              <StatCard value={summary.share_count} label="Times Shared" t={t} />
             </div>
           </Section>
 
           {/* ── SECTION 2: LEGACY BUILDERS ── */}
+          {!showBuilders && (
+            <div style={{ padding: '0 16px 8px' }}>
+              <p style={{ fontSize: '11px', color: t.textFaint, fontStyle: 'italic', textAlign: 'center', lineHeight: 1.6 }}>
+                When enough voices gather, those who helped bring others into this story will be recognised here.
+              </p>
+            </div>
+          )}
           {showBuilders && (
             <Section
               title="Legacy Builders"
@@ -503,7 +510,7 @@ export default function LegacyRoomClient({
 
           {/* ── SECTION 3: RECENT ACTIVITY ── */}
           {activity.length > 0 && (
-            <Section title="Recent Activity" t={t}>
+            <Section title="Recently Joined This Record" t={t}>
               <div style={{
                 borderRadius: '14px', overflow: 'hidden',
                 background: 'rgba(255,255,255,0.02)',
@@ -566,13 +573,13 @@ export default function LegacyRoomClient({
                 fontSize: '13px', fontWeight: 600, color: t.textHeading, margin: '0 0 6px',
                 fontFamily: "'Playfair Display', Georgia, serif",
               }}>
-                Collection in progress
+                A permanent record is being assembled
               </p>
               <p style={{
                 fontSize: '11px', color: t.textFaint, lineHeight: 1.6, margin: 0,
                 maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto',
               }}>
-                When this collection is complete, a digital publication will preserve every tribute, photo and voice for generations.
+                Every voice gathered here will be preserved in a digital publication — a lasting record for generations to come.
               </p>
             </div>
           </Section>
@@ -623,7 +630,7 @@ export default function LegacyRoomClient({
               fontSize: '9px', color: 'rgba(255,255,255,0.12)', marginTop: '6px',
               letterSpacing: '0.14em', textTransform: 'uppercase',
             }}>
-              Events end. Legacies continue.
+              Events end. Legacies don't.
             </p>
           </div>
 
