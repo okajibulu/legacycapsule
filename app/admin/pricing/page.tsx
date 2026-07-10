@@ -11,7 +11,7 @@ const textFaint = 'rgba(255,255,255,0.30)'
 const cardBg = 'rgba(255,255,255,0.03)'
 const inp: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(226,195,107,0.2)', color: textPrimary, fontSize: '13px', outline: 'none', fontFamily: "'DM Sans', sans-serif", boxSizing: 'border-box' as const }
 
-interface PricingRow { key: string; label: string; eur_price: number; ngn_price: number; safe_min_eur: number; safe_max_eur: number }
+interface PricingRow { key: string; label: string; eur_price: number; ngn_price: number; safe_min_eur: number; safe_max_eur: number; is_published: boolean }
 
 export default function PricingPage() {
   const [rows, setRows] = useState<PricingRow[]>([])
@@ -72,7 +72,15 @@ export default function PricingPage() {
                     <p style={{ fontSize: '14px', fontWeight: 700, color: gold }}>€{row.eur_price}</p>
                     <p style={{ fontSize: '10px', color: textFaint }}>₦{row.ngn_price.toLocaleString()}</p>
                   </div>
-                  <button onClick={() => { setEditing(row.key); setEurVal(String(row.eur_price)); setNgnVal(String(row.ngn_price)); setReason('') }} style={{ fontSize: '11px', padding: '5px 12px', borderRadius: '6px', border: '1px solid rgba(226,195,107,0.2)', background: 'transparent', color: 'rgba(226,195,107,0.7)', cursor: 'pointer' }}>Edit</button>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 8px', borderRadius: '5px', letterSpacing: '0.08em', background: row.is_published ? 'rgba(74,222,128,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${row.is_published ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.08)'}`, color: row.is_published ? 'rgba(134,239,172,0.8)' : textFaint }}>
+                      {row.is_published ? 'Live' : 'Draft'}
+                    </span>
+                    <button onClick={() => { setEditing(row.key); setEurVal(String(row.eur_price)); setNgnVal(String(row.ngn_price)); setReason('') }} style={{ fontSize: '11px', padding: '5px 12px', borderRadius: '6px', border: '1px solid rgba(226,195,107,0.2)', background: 'transparent', color: 'rgba(226,195,107,0.7)', cursor: 'pointer' }}>Edit</button>
+                    <button onClick={async () => { const r = prompt(row.is_published ? 'Reason for unpublishing?' : 'Reason for publishing?'); if (!r) return; await fetch('/api/admin/pricing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: row.key, action: row.is_published ? 'unpublish' : 'publish', reason: r }) }); const d = await fetch('/api/admin/pricing').then(x => x.json()); setRows(d.rows ?? []); setMsg(`✓ ${row.label} ${row.is_published ? 'unpublished' : 'published'}`); setTimeout(() => setMsg(''), 3000) }} style={{ fontSize: '11px', padding: '5px 12px', borderRadius: '6px', border: `1px solid ${row.is_published ? 'rgba(248,113,113,0.2)' : 'rgba(74,222,128,0.25)'}`, background: 'transparent', color: row.is_published ? 'rgba(248,113,113,0.6)' : 'rgba(134,239,172,0.7)', cursor: 'pointer' }}>
+                      {row.is_published ? 'Unpublish' : 'Go Live'}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

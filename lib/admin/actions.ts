@@ -139,9 +139,21 @@ export async function getAllPricing() {
 }
 
 export async function updatePrice(key: string, eurPrice: number, ngnPrice: number, reason: string) {
-  const { data: prev } = await adminClient.from('lc_pricing').select('eur_price, ngn_price').eq('key', key).single()
+  const { data: prev } = await adminClient.from('lc_pricing').select('eur_price, ngn_price, is_published').eq('key', key).single()
   await adminClient.from('lc_pricing').update({ eur_price: eurPrice, ngn_price: ngnPrice, updated_at: new Date().toISOString() }).eq('key', key)
-  await writeAuditLog({ module: 'LCAdmin', action: 'price_updated', recordId: key, prev: prev, next: { eur_price: eurPrice, ngn_price: ngnPrice }, reason })
+  await writeAuditLog({ module: 'LCAdmin', action: 'price_updated', recordId: key, prev, next: { eur_price: eurPrice, ngn_price: ngnPrice }, reason })
+}
+
+export async function publishPrice(key: string, reason: string) {
+  const { data: prev } = await adminClient.from('lc_pricing').select('is_published').eq('key', key).single()
+  await adminClient.from('lc_pricing').update({ is_published: true, updated_at: new Date().toISOString() }).eq('key', key)
+  await writeAuditLog({ module: 'LCAdmin', action: 'price_published', recordId: key, prev, next: { is_published: true }, reason })
+}
+
+export async function unpublishPrice(key: string, reason: string) {
+  const { data: prev } = await adminClient.from('lc_pricing').select('is_published').eq('key', key).single()
+  await adminClient.from('lc_pricing').update({ is_published: false, updated_at: new Date().toISOString() }).eq('key', key)
+  await writeAuditLog({ module: 'LCAdmin', action: 'price_unpublished', recordId: key, prev, next: { is_published: false }, reason })
 }
 
 /* ── FEATURE FLAG ACTIONS ── */
