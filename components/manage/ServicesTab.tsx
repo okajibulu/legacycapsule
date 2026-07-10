@@ -31,7 +31,7 @@
 // SECTION 1 — Types + imports
 // ============================================================
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
  
 import EventPhasesSection from '@/components/manage/EventPhasesSection'
@@ -79,9 +79,10 @@ interface ServiceCardProps {
   externalLink?: string
   children?: React.ReactNode
   onUnlock?: () => void
+  price?: { amount: number; symbol: string } | null
 }
 
-function ServiceCard({ id, title, description, icon, status, externalLink, children, onUnlock }: ServiceCardProps) {
+function ServiceCard({ id, title, description, icon, status, externalLink, children, onUnlock, price }: ServiceCardProps) {
   const [expanded, setExpanded] = useState(false)
 
   const isInteractive = status === 'active' || status === 'always_on'
@@ -128,9 +129,16 @@ function ServiceCard({ id, title, description, icon, status, externalLink, child
             <span style={{ fontSize: '10px', color: goldMuted }}>{expanded ? '▲' : '▼'}</span>
           )}
           {status === 'locked' && (
-            <button onClick={onUnlock} style={{ fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '20px', border: `1px solid rgba(226,195,107,0.2)`, background: 'transparent', color: goldMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              🔒 Unlock
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+              {price && (
+                <span style={{ fontSize: '12px', fontWeight: 700, color: gold }}>
+                  {price.symbol}{price.amount.toLocaleString()}
+                </span>
+              )}
+              <button onClick={onUnlock} style={{ fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '20px', border: `1px solid rgba(226,195,107,0.2)`, background: 'transparent', color: goldMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                🔒 Unlock
+              </button>
+            </div>
           )}
           {status === 'coming_soon' && (
             <span style={{ fontSize: '9px', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)', color: textFaint, letterSpacing: '0.08em' }}>Soon</span>
@@ -204,7 +212,20 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
   const [tables, setTables] = useState<any[]>([])
   const [phases, setPhases] = useState<any[]>([])
   const [unlocking, setUnlocking] = useState<string | null>(null)
+  const [featurePrices, setFeaturePrices] = useState<Record<string, { amount: number; symbol: string } | null>>({})
   const components = capsule.components ?? []
+
+  useEffect(() => {
+    const FEATURE_KEYS = [
+      'audio_tributes', 'video_tributes', 'ways_to_honour',
+      'publication', 'guest_management', 'attire',
+      'community_stories', 'extended_validity',
+    ]
+    fetch(`/api/regional-prices?features=${FEATURE_KEYS.join(',')}`)
+      .then(r => r.json())
+      .then(d => { if (d.features) setFeaturePrices(d.features) })
+      .catch(() => {})
+  }, [])
 
   const handleUnlock = async (featureId: string) => {
     setUnlocking(featureId)
@@ -263,8 +284,9 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         title="Guest Management & Access Codes"
         description="Guest list · Unique access codes · Check-in tracking · Seating"
         icon="◉"
-        status={components.includes('guest_management') ? 'active' : 'locked'}
-        onUnlock={() => handleUnlock('guest_management')}
+status={components.includes('guest_management') ? 'active' : 'locked'}
+          price={featurePrices['guest_management']}
+          onUnlock={() => handleUnlock('guest_management')}
       >
         {components.includes('guest_management') && (
           <>
@@ -282,6 +304,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         description="Bank details for guests to send support — dignified, private"
         icon="✦"
         status={components.includes('ways_to_honour') ? 'active' : 'locked'}
+        price={featurePrices['ways_to_honour']}
         onUnlock={() => handleUnlock('ways_to_honour')}
       >
         {eohEditor}
@@ -295,6 +318,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         icon="◎"
         status={components.includes('publication') ? 'active' : 'locked'}
         externalLink={`/manage/${capsule.slug}/publication`}
+        price={featurePrices['publication']}
         onUnlock={() => handleUnlock('publication')}
       />
 
@@ -306,6 +330,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         icon="◐"
         status={components.includes('attire') ? 'active' : 'locked'}
         externalLink={`/manage/${capsule.slug}/attire`}
+        price={featurePrices['attire']}
         onUnlock={() => handleUnlock('attire')}
       />
 
@@ -316,6 +341,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         description="Contributors record personal audio messages"
         icon="🎙"
         status={components.includes('audio_tributes') ? 'active' : 'locked'}
+        price={featurePrices['audio_tributes']}
         onUnlock={() => handleUnlock('audio_tributes')}
       />
 
@@ -326,6 +352,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         description="Contributors upload short video messages"
         icon="🎬"
         status={components.includes('video_tributes') ? 'active' : 'locked'}
+        price={featurePrices['video_tributes']}
         onUnlock={() => handleUnlock('video_tributes')}
       />
 

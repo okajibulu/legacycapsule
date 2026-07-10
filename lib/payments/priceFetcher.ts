@@ -38,12 +38,16 @@ export async function getRegionalPrice(
   // Fetch base price row
   const { data: pricing, error: pricingError } = await db
     .from('lc_pricing')
-    .select('eur_price, ngn_price, label')
+    .select('eur_price, ngn_price, label, is_published')
     .eq('key', pricing_key)
     .single()
 
   if (pricingError || !pricing) {
     throw new Error(`Price key not found: ${pricing_key}`)
+  }
+
+  if (!pricing.is_published) {
+    throw new Error(`Price not yet available: ${pricing_key}`)
   }
 
   // Fetch zone configuration

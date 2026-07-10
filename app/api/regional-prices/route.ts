@@ -21,13 +21,31 @@ export async function GET(req: NextRequest) {
     // ── Detect zone ───────────────────────────────────────────────────────
     const zone = await detectRegion(ip) ?? 'ROW'
 
-    // ── Fetch both tier prices for this zone ──────────────────────────────
+    // ── Feature prices request (ServicesTab) ──────────────────────────────
+    const featuresParam = req.nextUrl.searchParams.get('features')
+
+    if (featuresParam) {
+      const keys = featuresParam.split(',').map(k => k.trim()).filter(Boolean)
+      const featurePrices: Record<string, { amount: number; symbol: string; currency: string } | null> = {}
+
+      await Promise.all(keys.map(async key => {
+        try {
+          const p = await getRegionalPrice(key, zone)
+          featurePrices[key] = { amount: p.amount, symbol: p.symbol, currency: p.currency }
+        } catch {
+          featurePrices[key] = null // unpublished or not found — show nothing
+        }
+      }))
+
+      return NextResponse.json({ zone, features: featurePrices })
+    }
+
+    // ── Tier prices (booking page — kept for backward compat) ─────────────
     const [honour, premier] = await Promise.all([
       getRegionalPrice('capture_preserve_base', zone),
       getRegionalPrice('full_platform_base', zone),
     ])
 
-    // ── Return single-currency response — D12 ─────────────────────────────
     return NextResponse.json({
       zone,
       currency: honour.currency,
