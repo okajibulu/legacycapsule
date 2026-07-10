@@ -42,7 +42,7 @@
 import { getThemeConfig } from '@/lib/themeConfig'
 import type { ThemeKey } from '@/lib/themeConfig'
 
-export type CapsulePage = 'tribute' | 'story' | 'profile' | 'legacy' | 'attire'
+export type CapsulePage = 'tribute' | 'story' | 'stories' | 'profile' | 'legacy' | 'attire'
 
 interface CapsuleBottomNavProps {
   slug: string
@@ -114,7 +114,7 @@ function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
   // Community Stories — only when module activated
   if ((components ?? []).includes('community_stories')) {
     tabs.push({
-      id: 'story' as CapsulePage,
+      id: 'stories',
       label: 'Stories',
       icon: '◇',
       href: `/for/${slug}/stories`,

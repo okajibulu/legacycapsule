@@ -14,6 +14,7 @@ const COMPONENTS = [
   { id: 'extended_validity', label: 'Extended Validity',   desc: 'Capsule validity beyond the standard 90-day free window' },
   { id: 'publication',      label: 'Digital Publication',  desc: 'PDF keepsake publication compiled from all tributes' },
   { id: 'community_stories', label: 'Community Stories',  desc: 'Dedicated Stories room where contributors share memories organised by topic' },
+  { id: 'guest_management',  label: 'Guest Management',   desc: 'Guest list, access codes, RSVP tracking, check-in and table seating' },
 ]
 
 const gold = '#E2C36B'
