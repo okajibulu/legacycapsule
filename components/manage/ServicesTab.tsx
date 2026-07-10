@@ -203,7 +203,31 @@ function ExportsSection({ contributions, slug }: {
 export default function ServicesTab({ capsule, approvedContributions, supabase, onUpgrade, eohEditor }: ServicesTabProps) {
   const [tables, setTables] = useState<any[]>([])
   const [phases, setPhases] = useState<any[]>([])
+  const [unlocking, setUnlocking] = useState<string | null>(null)
   const components = capsule.components ?? []
+
+  const handleUnlock = async (featureId: string) => {
+    setUnlocking(featureId)
+    try {
+      const res = await fetch('/api/checkout/feature', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          capsule_id: capsule.id,
+          capsule_slug: capsule.slug,
+          feature_id: featureId,
+          organiser_email: '',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.checkout_url) throw new Error(data.error ?? 'Checkout failed')
+      window.location.href = data.checkout_url
+    } catch (err) {
+      console.error('[ServicesTab] Unlock failed:', err)
+      setUnlocking(null)
+      onUpgrade()
+    }
+  }
 
   return (
     <div>
@@ -240,7 +264,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         description="Guest list · Unique access codes · Check-in tracking · Seating"
         icon="◉"
         status={components.includes('guest_management') ? 'active' : 'locked'}
-        onUnlock={onUpgrade}
+        onUnlock={() => handleUnlock('guest_management')}
       >
         {components.includes('guest_management') && (
           <>
@@ -258,7 +282,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         description="Bank details for guests to send support — dignified, private"
         icon="✦"
         status={components.includes('ways_to_honour') ? 'active' : 'locked'}
-        onUnlock={onUpgrade}
+        onUnlock={() => handleUnlock('ways_to_honour')}
       >
         {eohEditor}
       </ServiceCard>
@@ -271,7 +295,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         icon="◎"
         status={components.includes('publication') ? 'active' : 'locked'}
         externalLink={`/manage/${capsule.slug}/publication`}
-        onUnlock={onUpgrade}
+        onUnlock={() => handleUnlock('publication')}
       />
 
       {/* ── Fabric & Attire — gated, external ── */}
@@ -282,7 +306,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         icon="◐"
         status={components.includes('attire') ? 'active' : 'locked'}
         externalLink={`/manage/${capsule.slug}/attire`}
-        onUnlock={onUpgrade}
+        onUnlock={() => handleUnlock('attire')}
       />
 
       {/* ── Voice Tributes — gated ── */}
@@ -292,7 +316,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         description="Contributors record personal audio messages"
         icon="🎙"
         status={components.includes('audio_tributes') ? 'active' : 'locked'}
-        onUnlock={onUpgrade}
+        onUnlock={() => handleUnlock('audio_tributes')}
       />
 
       {/* ── Video Tributes — gated ── */}
@@ -302,7 +326,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         description="Contributors upload short video messages"
         icon="🎬"
         status={components.includes('video_tributes') ? 'active' : 'locked'}
-        onUnlock={onUpgrade}
+        onUnlock={() => handleUnlock('video_tributes')}
       />
 
       {/* ── D-Day Live Wall — coming soon ── */}

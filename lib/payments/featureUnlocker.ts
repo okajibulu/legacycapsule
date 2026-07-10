@@ -1,63 +1,134 @@
-// -----------------------------------------------------------------------------
-// featureUnlocker.ts
-// THE single source of truth mapping price keys -> capsule feature fields.
-// Every price key in lc_pricing must have an entry in FEATURE_MAP.
-// Every new product or add-on: add one row here. Nowhere else.
-// Called by webhook handler after payment confirmed. Never called speculatively.
-//
-// page_state valid values (current):
-//   pending_verification  - created, email not verified
-//   pending_payment       - verified, awaiting Stripe confirmation
-//   active                - live (free tier immediate, paid tier post-webhook)
-//   expired               - Phase 2+
-//   suspended             - admin action
-// -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE: lib/payments/featureUnlocker.ts
+// PURPOSE: THE single source of truth mapping price keys → capsule activation.
+//          Every price key in lc_pricing must have an entry in FEATURE_MAP.
+//          Every new product or add-on: add one row here. Nowhere else.
+//          Called by webhook handler after payment confirmed.
+//          Never called speculatively.
+// ARCHITECTURE: LC04 Payment Engine
+// UPDATED: Claude Sonnet 4.6 · July 2026
+//   - Unified feature activation to capsule.components array
+//   - Previous implementation wrote to boolean columns that UI never read
+//   - FEATURE_MAP now defines both direct updates AND components to append
+// ─────────────────────────────────────────────────────────────────────────────
 
 import { createClient } from '@supabase/supabase-js'
 
-// -- DB CLIENT (server-only) ---------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 1 — DB client (server-only)
+// ─────────────────────────────────────────────────────────────────────────────
+
 const db = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// -- FEATURE MAP ---------------------------------------------------------------
-// Maps lc_pricing.key -> capsule column updates applied on confirmed payment.
-//
-// Base tiers set page_state: 'active'. This is the only valid live state.
-// 'tribute_collection' was a retired value, never use it.
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 2 — Feature definition type
+// updates:    direct column assignments on the capsules table
+// components: component IDs to append to capsule.components array
+// ─────────────────────────────────────────────────────────────────────────────
 
-const FEATURE_MAP: Record<string, Record<string, unknown>> = {
-  // -- BASE TIERS --------------------------------------------------------------
-  capture_preserve_base: { page_state: 'active', tier: 'capture_preserve' },
-  full_platform_base:    { page_state: 'active', tier: 'full_platform' },
-
-  // -- COORDINATE PILLAR ADD-ONS (Phase 2) ------------------------------------
-  fabric_attire:         { fabric_attire_active: true },
-  table_management:      { table_management_active: true },
-  access_code_system:    { access_codes_active: true },
-  save_the_date:         { save_the_date_active: true },
-  table_card_generation: { table_cards_active: true },
-
-  // -- CAPTURE PILLAR ADD-ONS (Phase 2/3) -------------------------------------
-  voice_tribute:         { voice_tributes_active: true },
-  video_tribute_30s:     { video_tributes_30s_active: true },
-  video_tribute_60s:     { video_tributes_60s_active: true },
-
-  // -- PRESERVE PILLAR ADD-ONS (Phase 3+) -------------------------------------
-  permanent_archive:     { permanent_archive: true },
-  white_label_branding:  { white_label_active: true },
-  custom_domain:         { custom_domain_active: true },
-
-  // -- STRUCTURAL ADD-ONS ------------------------------------------------------
-  // Note: additional_phase increments a counter, not a boolean set.
-  // Phase 2 handler will use rpc('increment') rather than direct assignment.
-  additional_phase:      { extra_phases: 1 },
+interface FeatureDefinition {
+  updates?: Record<string, unknown>
+  components?: string[]
 }
 
-// -- MAIN UNLOCK FUNCTION ------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 3 — Feature map
+// Maps lc_pricing.key → feature activation definition.
+//
+// page_state valid values (current):
+//   pending_verification  - created, email not verified
+//   pending_payment       - verified, awaiting Stripe confirmation
+//   active                - live (free immediate, paid post-webhook)
+//   expired               - Phase 2+
+//   suspended             - admin action
+//
+// RULE: 'tribute_collection' is a retired page_state. Never use it.
+// RULE: components array drives ALL UI visibility. Use it for every feature.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const FEATURE_MAP: Record<string, FeatureDefinition> = {
+
+  // ── BASE TIERS ─────────────────────────────────────────────────────────────
+  // Activates the capsule. No component additions needed — base features
+  // (tribute wall, profile, world map) are always on.
+
+  capture_preserve_base: {
+    updates: { page_state: 'active', tier: 'capture_preserve' },
+  },
+
+  full_platform_base: {
+    updates: { page_state: 'active', tier: 'full_platform' },
+  },
+
+  // ── CAPTURE PILLAR ADD-ONS ─────────────────────────────────────────────────
+
+  audio_tributes: {
+    components: ['audio_tributes'],
+  },
+
+  video_tributes: {
+    components: ['video_tributes'],
+  },
+
+  // ── COORDINATE PILLAR ADD-ONS ──────────────────────────────────────────────
+
+  guest_management: {
+    components: ['guest_management'],
+  },
+
+  attire: {
+    components: ['attire'],
+  },
+
+  // ── PRESERVE PILLAR ADD-ONS ────────────────────────────────────────────────
+
+  publication: {
+    components: ['publication'],
+  },
+
+  ways_to_honour: {
+    components: ['ways_to_honour'],
+  },
+
+  community_stories: {
+    components: ['community_stories'],
+  },
+
+  // ── VALIDITY EXTENSIONS ────────────────────────────────────────────────────
+
+  extended_validity: {
+    components: ['extended_validity'],
+  },
+
+  // ── LEGACY KEY ALIASES ─────────────────────────────────────────────────────
+  // Kept for backward compatibility with any payments already in lc_pricing.
+  // These map old price keys to the unified components system.
+
+  fabric_attire:       { components: ['attire'] },
+  voice_tribute:       { components: ['audio_tributes'] },
+  video_tribute_30s:   { components: ['video_tributes'] },
+  video_tribute_60s:   { components: ['video_tributes'] },
+  access_code_system:  { components: ['guest_management'] },
+  save_the_date:       { updates: { save_the_date_active: true } },
+  table_management:    { components: ['guest_management'] },
+  table_card_generation: { updates: { table_cards_active: true } },
+  permanent_archive:   { updates: { permanent_archive: true } },
+  white_label_branding: { updates: { white_label_active: true } },
+  custom_domain:       { updates: { custom_domain_active: true } },
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 4 — Main unlock function
+// Called by webhook after payment confirmed. Applies all features for the
+// price keys stored on the payment record.
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function unlockCapsuleFeatures(payment_id: string): Promise<void> {
-  // -- FETCH PAYMENT RECORD ----------------------------------------------------
+
+  // ── Fetch payment record ──────────────────────────────────────────────────
   const { data: payment, error } = await db
     .from('payments')
     .select('capsule_id, package_tier, status')
@@ -69,9 +140,9 @@ export async function unlockCapsuleFeatures(payment_id: string): Promise<void> {
     return
   }
 
-  // -- GUARD: only unlock on confirmed payment --------------------------------
+  // ── Guard: only unlock on confirmed payment ───────────────────────────────
   if (payment.status !== 'succeeded') {
-    console.warn(`[featureUnlocker] Skipped - payment status is: ${payment.status}`)
+    console.warn(`[featureUnlocker] Skipped — payment status is: ${payment.status}`)
     return
   }
 
@@ -80,29 +151,49 @@ export async function unlockCapsuleFeatures(payment_id: string): Promise<void> {
     return
   }
 
-  // -- BUILD FEATURE UPDATE OBJECT --------------------------------------------
-  // package_tier is comma-separated; supports single purchase and future bundles.
+  // ── Resolve price keys → feature definitions ──────────────────────────────
   const priceKeys = (payment.package_tier ?? '').split(',').map((k: string) => k.trim())
-  const updates: Record<string, unknown> = {}
+  const directUpdates: Record<string, unknown> = {}
+  const componentsToAdd: string[] = []
 
   for (const key of priceKeys) {
-    const featureUpdate = FEATURE_MAP[key]
-    if (featureUpdate) {
-      Object.assign(updates, featureUpdate)
-    } else {
+    const def = FEATURE_MAP[key]
+    if (!def) {
       console.warn(`[featureUnlocker] No FEATURE_MAP entry for price key: ${key}`)
+      continue
     }
+    if (def.updates) Object.assign(directUpdates, def.updates)
+    if (def.components) componentsToAdd.push(...def.components)
   }
 
-  if (Object.keys(updates).length === 0) {
+  if (Object.keys(directUpdates).length === 0 && componentsToAdd.length === 0) {
     console.warn(`[featureUnlocker] No features resolved for payment ${payment_id}`)
     return
   }
 
-  // -- APPLY TO CAPSULE --------------------------------------------------------
+  // ── Fetch current components array if we need to append ───────────────────
+  if (componentsToAdd.length > 0) {
+    const { data: capsule, error: fetchError } = await db
+      .from('capsules')
+      .select('components')
+      .eq('id', payment.capsule_id)
+      .single()
+
+    if (fetchError || !capsule) {
+      console.error(`[featureUnlocker] Could not fetch capsule ${payment.capsule_id}`)
+      return
+    }
+
+    const current: string[] = capsule.components ?? []
+    // Deduplicate — never add the same component twice
+    const merged = [...new Set([...current, ...componentsToAdd])]
+    directUpdates.components = merged
+  }
+
+  // ── Apply all updates to capsule in one operation ─────────────────────────
   const { error: updateError } = await db
     .from('capsules')
-    .update(updates)
+    .update(directUpdates)
     .eq('id', payment.capsule_id)
 
   if (updateError) {
@@ -111,7 +202,7 @@ export async function unlockCapsuleFeatures(payment_id: string): Promise<void> {
   }
 
   console.log(
-    `[featureUnlocker] Capsule ${payment.capsule_id} unlocked - payment ${payment_id}:`,
-    JSON.stringify(updates)
+    `[featureUnlocker] Capsule ${payment.capsule_id} unlocked — payment ${payment_id}:`,
+    JSON.stringify(directUpdates)
   )
 }

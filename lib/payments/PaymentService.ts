@@ -152,6 +152,73 @@ export async function confirmPayment(
   }
 }
 
+// -- INITIATE FEATURE CHECKOUT -------------------------------------------------
+// For individual feature purchases (audio_tributes, publication, etc.).
+// Distinct from initiateCheckout which handles base tier capsule creation.
+// On success: webhook → unlockCapsuleFeatures → component added to capsule.
+
+export interface InitiateFeatureCheckoutParams {
+  capsule_id:      string
+  capsule_slug:    string
+  feature_id:      string
+  price_key:       string
+  organiser_email: string
+  ip:              string
+}
+
+export async function initiateFeatureCheckout(
+  params: InitiateFeatureCheckoutParams
+): Promise<CheckoutResult> {
+  const zone_key  = await detectRegion(params.ip)
+  const processor = getProcessorForZone(zone_key)
+  const prices    = await getRegionalPrices([params.price_key], zone_key)
+  const primary   = prices[0]
+
+  const { data: paymentRecord, error: insertError } = await db
+    .from('payments')
+    .insert({
+      capsule_id:    params.capsule_id,
+      processor,
+      amount:        primary.amount,
+      currency:      primary.currency,
+      package_tier:  params.price_key,
+      status:        'pending',
+      region:        zone_key,
+    })
+    .select('id')
+    .single()
+
+  if (insertError || !paymentRecord) {
+    throw new Error(`Failed to create feature payment record: ${insertError?.message}`)
+  }
+
+  if (processor === 'stripe') {
+    const result = await createCheckoutSession({
+      payment_id:        paymentRecord.id,
+      capsule_id:        params.capsule_id,
+      capsule_slug:      params.capsule_slug,
+      tier:              'feature' as any,
+      pricing_key:       params.price_key,
+      amount_for_stripe: primary.amount_for_stripe,
+      stripe_currency:   primary.stripe_currency,
+      honouree_name:     params.feature_id,
+      organiser_email:   params.organiser_email,
+      success_url: `${APP_URL}/manage/${params.capsule_slug}?payment=success&feature=${params.feature_id}`,
+      cancel_url:  `${APP_URL}/manage/${params.capsule_slug}?payment=cancelled`,
+    })
+
+    return {
+      checkout_url: result.checkout_url,
+      payment_id:   paymentRecord.id,
+      processor:    'stripe',
+      amount:       primary.amount,
+      currency:     primary.currency,
+    }
+  }
+
+  throw new Error(`No adapter configured for processor: ${processor}`)
+}
+
 // -- FAIL PAYMENT --------------------------------------------------------------
 // Called by webhook on payment_intent.payment_failed.
 export async function failPayment(
