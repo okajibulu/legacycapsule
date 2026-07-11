@@ -123,7 +123,7 @@ export async function GET(
     tryLoadFont('https://fonts.gstatic.com/s/dmsans/v15/rP2Cp2ywxg089UriASitCBimCw.woff2'),
   ])
 
-  const fonts: ConstructorParameters<typeof ImageResponse>[1]['fonts'] = []
+  const fonts: { name: string; data: ArrayBuffer; weight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900; style: 'normal' | 'italic' }[] = []
   if (fontReg)  fonts.push({ name: 'DM Sans', data: fontReg,  weight: 400 as const, style: 'normal' as const })
   if (fontBold) fonts.push({ name: 'DM Sans', data: fontBold, weight: 700 as const, style: 'normal' as const })
 
