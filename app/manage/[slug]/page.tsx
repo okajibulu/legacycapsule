@@ -1503,6 +1503,59 @@ const capRes = await supabase.from('capsules')
         {/* ── FREE TIER BAR ── */}
         {isFree && <FreeTierBar approvedCount={capsule.approved_contrib_count} daysLeft={days} hasFirstTribute={hasFirstTribute} onUpgrade={() => setActiveTab('settings')} />}
 
+        {/* ── EXPIRY BANNER ── */}
+        {(() => {
+          if (!capsule.free_tier_expires_at) return null
+          const daysLeft = Math.floor((new Date(capsule.free_tier_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+          if (daysLeft > 14 || daysLeft < 0) return null
+          const lastContrib = contributions.length > 0
+            ? [...contributions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at
+            : null
+          const approvedCount = contributions.filter(c => c.status === 'approved').length
+          const recentContrib = lastContrib ? (Date.now() - new Date(lastContrib).getTime()) < 7 * 24 * 60 * 60 * 1000 : false
+          const eventDate = capsule.event_date ? new Date(capsule.event_date) : null
+          const eventDaysAgo = eventDate ? Math.floor((Date.now() - eventDate.getTime()) / (1000 * 60 * 60 * 24)) : null
+          const eventPast = eventDaysAgo !== null && eventDaysAgo > 0
+          const daysSinceContrib = lastContrib ? Math.floor((Date.now() - new Date(lastContrib).getTime()) / (1000 * 60 * 60 * 24)) : null
+
+          // Infer completion status from signals
+          let status: 'complete' | 'wrapping_up' | 'active' | 'underused' = 'active'
+          if (recentContrib) {
+            status = approvedCount < 3 ? 'underused' : 'active'
+          } else if (eventPast && eventDaysAgo! > 30 && approvedCount > 0) {
+            status = 'wrapping_up'
+          } else if (daysSinceContrib && daysSinceContrib > 45 && approvedCount > 5) {
+            status = 'wrapping_up'
+          } else if (approvedCount < 3) {
+            status = 'underused'
+          }
+
+          const banners = {
+            complete:    { tone: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.25)', heading: `${capsule.honouree_name}'s legacy is preserved`, body: `This capsule has gathered its community. It remains accessible at your link. Extended Validity is available from Services if needed.`, cta: null, href: null },
+            wrapping_up: { tone: 'rgba(147,197,253,0.08)', border: 'rgba(147,197,253,0.25)', heading: `Ready to compile the final record?`, body: `${daysLeft} days remaining. The tributes are gathered — a Digital Publication will preserve them permanently.`, cta: 'Generate Publication', href: `/manage/${slug}/publication` },
+            active:      { tone: 'rgba(226,195,107,0.07)', border: 'rgba(226,195,107,0.3)', heading: `Your capsule closes in ${daysLeft} days`, body: `Voices are still arriving. Extend your capsule to keep the tribute wall open.`, cta: 'Extend Access', href: null },
+            underused:   { tone: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.08)', heading: `Your capsule is still waiting`, body: `${capsule.honouree_name}'s tribute wall hasn't gathered many voices yet. Share the link to get started.`, cta: 'Share Your Capsule', href: `/for/${slug}` },
+          }
+          const b = banners[status]
+
+          return (
+            <div style={{ maxWidth: '640px', margin: '0 auto', padding: '12px 16px 0' }}>
+              <div style={{ padding: '14px 16px', borderRadius: '12px', background: b.tone, border: `1px solid ${b.border}`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: '0 0 3px', fontSize: '13px', fontWeight: 700, color: textPrimary }}>{b.heading}</p>
+                  <p style={{ margin: 0, fontSize: '11px', color: textFaint, lineHeight: 1.6 }}>{b.body}</p>
+                </div>
+                {b.cta && (
+                  <a href={b.href ?? '#'} onClick={!b.href ? (e) => { e.preventDefault(); setActiveTab('services') } : undefined}
+                    style={{ flexShrink: 0, padding: '7px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, textDecoration: 'none', background: 'rgba(226,195,107,0.12)', border: '1px solid rgba(226,195,107,0.28)', color: gold, whiteSpace: 'nowrap' }}>
+                    {b.cta}
+                  </a>
+                )}
+              </div>
+            </div>
+          )
+        })()}
+
         {/* ── MAIN CONTENT ── */}
         <div style={{ maxWidth: '640px', margin: '0 auto', padding: '16px 16px 0' }}>
 
