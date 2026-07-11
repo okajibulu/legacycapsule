@@ -55,6 +55,24 @@ export async function POST(req: NextRequest) {
         // Step 2: unlock purchased features on capsule
         await unlockCapsuleFeatures(payment_id)
 
+        // Step 3: send gift notification if this was a gift booking
+        if (metadata.book_mode === 'gift' && metadata.recipient_email && metadata.capsule_slug) {
+          try {
+            await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/email/gift-notification`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                recipient_email: metadata.recipient_email,
+                capsule_slug: metadata.capsule_slug,
+                capsule_id: metadata.capsule_id,
+              }),
+            })
+          } catch (giftErr) {
+            // Non-critical — log but do not fail the webhook
+            console.error('[stripe webhook] Gift notification failed:', giftErr)
+          }
+        }
+
         console.log(`[stripe webhook] Payment confirmed and features unlocked — payment ${payment_id}`)
         break
       }

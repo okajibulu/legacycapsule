@@ -51,6 +51,11 @@ interface FeatureDefinition {
 
 const FEATURE_MAP: Record<string, FeatureDefinition> = {
 
+  // ── CAPSULE ACTIVATION (used by bundle checkout to activate pending capsules) ──
+  capsule_activation: {
+    updates: { page_state: 'active' },
+  },
+
   // ── BASE TIERS ─────────────────────────────────────────────────────────────
   // Activates the capsule. No component additions needed — base features
   // (tribute wall, profile, world map) are always on.
