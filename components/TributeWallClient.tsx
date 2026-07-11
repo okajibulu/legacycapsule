@@ -1516,12 +1516,63 @@ background:
 <div
   style={{
     display: 'flex',
+    flexDirection: 'column' as const,
     gap: '10px',
-    justifyContent: 'center',
     padding: '8px 16px 20px',
-    flexWrap: 'wrap' as const,
   }}
 >
+  {/* ── SHARE STRIP ── */}
+  <div style={{
+    background: 'rgba(226,195,107,0.05)',
+    border: `1px solid rgba(226,195,107,0.15)`,
+    borderRadius: '14px',
+    padding: '14px 16px',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '8px',
+  }}>
+    <p style={{ margin: 0, fontSize: '11px', color: t.accentMuted, fontWeight: 700, letterSpacing: '0.08em' }}>
+      {myRefCode ? 'Your personal share link' : 'Share this tribute wall'}
+    </p>
+    <p style={{ margin: 0, fontSize: '10px', color: t.textFaint, lineHeight: 1.5 }}>
+      {myRefCode
+        ? 'When others visit via your link, you\'ll be recognised as a Legacy Builder.'
+        : 'Help grow this community — share with family and friends.'}
+    </p>
+    <div style={{ display: 'flex', gap: '8px' }}>
+      <button
+        onClick={handleCopy}
+        style={{
+          flex: 1, padding: '9px 12px', borderRadius: '10px',
+          border: `1px solid rgba(226,195,107,0.25)`,
+          background: 'rgba(226,195,107,0.08)',
+          color: t.accentPrimary, fontSize: '12px', fontWeight: 600,
+          cursor: 'pointer', transition: 'all 0.2s',
+        }}
+      >
+        {copied ? '✓ Copied' : '🔗 Copy Link'}
+      </button>
+      <button
+        onClick={() => {
+          const shareUrl = myRefCode ? capsuleUrl + '?ref=' + myRefCode : capsuleUrl
+          const text = encodeURIComponent(`${capsule.honouree_name}'s story is being preserved — your voice belongs in this record: ${shareUrl}`)
+          window.open(`https://wa.me/?text=${text}`, '_blank')
+        }}
+        style={{
+          flex: 1, padding: '9px 12px', borderRadius: '10px',
+          border: `1px solid rgba(255,255,255,0.08)`,
+          background: 'rgba(255,255,255,0.03)',
+          color: t.textFaint, fontSize: '12px', fontWeight: 600,
+          cursor: 'pointer', transition: 'all 0.2s',
+        }}
+      >
+        💬 WhatsApp
+      </button>
+    </div>
+  </div>
+   </div>
+  {/* ── NAV LINKS ── */}
+  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' as const }}>
   {approvedCount >= 1 && (
     <a
       href={`/for/${capsule.slug}/legacy`}
@@ -1537,7 +1588,7 @@ background:
         background: 'rgba(255,255,255,0.03)',
       }}
     >
-      Legacy Room →
+      Legacy Highlights →
     </a>
   )}
 

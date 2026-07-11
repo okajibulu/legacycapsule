@@ -1,7 +1,7 @@
 'use client'
 
 /* =========================================================
-   LEGACY ROOM CLIENT — LC-LEGACYROOM-001
+   Legacy Highlights CLIENT — LC-LEGACYROOM-001
    FILE: components/LegacyRoomClient.tsx
 
    Three-Room Model — Room 3: Community Participation & Preservation
@@ -449,7 +449,7 @@ export default function LegacyRoomClient({
                 fontSize: '9px', fontWeight: 700, letterSpacing: '0.3em',
                 textTransform: 'uppercase', color: t.accentMuted, marginBottom: '8px',
               }}>
-                Legacy Room
+                Legacy Highlights
               </p>
               <h1 style={{
                 fontFamily: "'Playfair Display', Georgia, serif",
@@ -475,6 +475,40 @@ export default function LegacyRoomClient({
               </p>
             </div>
           </div>
+
+          {/* ── SHARE STRIP ── */}
+          {(() => {
+            const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com'}/for/${capsule.slug}`
+            return (
+              <div style={{ margin: '12px 12px 0', padding: '14px 16px', borderRadius: '14px', background: 'rgba(226,195,107,0.05)', border: `1px solid rgba(226,195,107,0.15)`, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: t.accentMuted, letterSpacing: '0.08em' }}>
+                  Help grow this record
+                </p>
+                <p style={{ margin: 0, fontSize: '10px', color: t.textFaint, lineHeight: 1.5 }}>
+                  Share this page — every voice that arrives makes this record more complete.
+                </p>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(shareUrl)
+                    }}
+                    style={{ flex: 1, padding: '9px 12px', borderRadius: '10px', border: `1px solid rgba(226,195,107,0.25)`, background: 'rgba(226,195,107,0.08)', color: t.accentPrimary, fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    🔗 Copy Link
+                  </button>
+                  <button
+                    onClick={() => {
+                      const text = encodeURIComponent(`${capsule.honouree_name}'s legacy is being preserved — voices are gathering from around the world: ${shareUrl}`)
+                      window.open(`https://wa.me/?text=${text}`, '_blank')
+                    }}
+                    style={{ flex: 1, padding: '9px 12px', borderRadius: '10px', border: `1px solid rgba(255,255,255,0.08)`, background: 'rgba(255,255,255,0.03)', color: t.textFaint, fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    💬 WhatsApp
+                  </button>
+                </div>
+              </div>
+            )
+          })()}
 
           {/* ── SECTION 1: COLLECTION OVERVIEW ── */}
           <Section title="Collection Overview" t={t}>

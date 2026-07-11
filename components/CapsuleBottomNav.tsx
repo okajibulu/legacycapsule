@@ -104,7 +104,7 @@ function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
   if (contributorCount >= 1) {
     tabs.push({
       id: 'legacy',
-      label: 'Legacy',
+      label: 'Highlights',
       icon: '◎',
       href: `/for/${slug}/legacy`,
       active: true,
