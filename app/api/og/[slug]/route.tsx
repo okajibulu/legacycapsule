@@ -118,14 +118,7 @@ export async function GET(
   if (!capsule) return fallback()
 
   // ── Load fonts optionally ────────────────────────────────────────────────
-  const [fontReg, fontBold] = await Promise.all([
-    tryLoadFont('https://fonts.gstatic.com/s/dmsans/v15/rP2Hp2ywxg089UriCZOIHQ.woff2'),
-    tryLoadFont('https://fonts.gstatic.com/s/dmsans/v15/rP2Cp2ywxg089UriASitCBimCw.woff2'),
-  ])
-
   const fonts: { name: string; data: ArrayBuffer; weight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900; style: 'normal' | 'italic' }[] = []
-  if (fontReg)  fonts.push({ name: 'DM Sans', data: fontReg,  weight: 400 as const, style: 'normal' as const })
-  if (fontBold) fonts.push({ name: 'DM Sans', data: fontBold, weight: 700 as const, style: 'normal' as const })
 
   const t = getTheme(capsule.event_type)
   const orn = getOrn(capsule.event_type)
@@ -144,7 +137,7 @@ export async function GET(
 
     return new ImageResponse(el, {
       width: W, height: H,
-      fonts: fonts.length > 0 ? fonts : undefined,
+      fonts: undefined,
       headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' },
     })
   } catch (err) {
