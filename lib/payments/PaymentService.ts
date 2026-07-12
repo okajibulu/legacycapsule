@@ -17,7 +17,8 @@
 import { createClient }          from '@supabase/supabase-js'
 import { detectRegion }          from './regionDetector'
 import { getPrices, getRegionalPrice, convertToRegionalAmount, PriceRecord } from './priceFetcher'
-import { createCheckoutSession } from './adapters/StripeAdapter'
+import { createCheckoutSession }   from './adapters/StripeAdapter'
+import { createPaystackCheckout }  from './adapters/PaystackAdapter'
 
 // ─── DB CLIENT (server-only) ──────────────────────────────────────────────────
 const db = createClient(
@@ -78,9 +79,9 @@ function buildRegionalPrice(record: PriceRecord, zone: string): RegionalPriceRes
 // ─── PROCESSOR ROUTING ────────────────────────────────────────────────────────
 // Phase 1: all zones → Stripe.
 // Phase 2: NG, GH, KE → Paystack. Uncomment when PaystackAdapter is ready.
-function getProcessorForZone(zone_key: string): 'stripe' /* | 'paystack' */ {
-  // const africanZones = ['NG', 'GH', 'KE']
-  // if (africanZones.includes(zone_key)) return 'paystack'
+function getProcessorForZone(zone_key: string): 'stripe' | 'paystack' {
+  const africanZones = ['NG', 'GH', 'KE']
+  if (africanZones.includes(zone_key)) return 'paystack'
   return 'stripe'
 }
 
@@ -164,6 +165,29 @@ export async function initiateCheckout(
       checkout_url: result.checkout_url,
       payment_id:   paymentRecord.id,
       processor:    'stripe',
+      amount:       primary.amount,
+      currency:     primary.currency,
+    }
+  }
+
+  if (processor === 'paystack') {
+    const result = await createPaystackCheckout({
+      payment_id:        paymentRecord.id,
+      capsule_id:        params.capsule_id,
+      capsule_slug:      params.capsule_slug,
+      tier:              params.tier,
+      pricing_key:       params.pricing_keys[0],
+      amount_for_stripe: primary.amount_for_stripe,
+      stripe_currency:   primary.stripe_currency,
+      honouree_name:     params.honouree_name,
+      organiser_email:   params.organiser_email,
+      success_url: `${APP_URL}/manage/${params.capsule_slug}?payment=success`,
+      cancel_url:  `${APP_URL}/book?payment=cancelled&slug=${params.capsule_slug}&pid=${paymentRecord.id}`,
+    })
+    return {
+      checkout_url: result.checkout_url,
+      payment_id:   paymentRecord.id,
+      processor:    'paystack',
       amount:       primary.amount,
       currency:     primary.currency,
     }
@@ -271,6 +295,29 @@ export async function initiateFeatureCheckout(
       checkout_url: result.checkout_url,
       payment_id:   paymentRecord.id,
       processor:    'stripe',
+      amount:       primary.amount,
+      currency:     primary.currency,
+    }
+  }
+
+  if (processor === 'paystack') {
+    const result = await createPaystackCheckout({
+      payment_id:        paymentRecord.id,
+      capsule_id:        params.capsule_id,
+      capsule_slug:      params.capsule_slug,
+      tier:              'feature',
+      pricing_key:       params.price_key,
+      amount_for_stripe: primary.amount_for_stripe,
+      stripe_currency:   primary.stripe_currency,
+      honouree_name:     params.feature_id,
+      organiser_email:   params.organiser_email,
+      success_url: `${APP_URL}/manage/${params.capsule_slug}?payment=success&feature=${params.feature_id}`,
+      cancel_url:  `${APP_URL}/manage/${params.capsule_slug}?payment=cancelled`,
+    })
+    return {
+      checkout_url: result.checkout_url,
+      payment_id:   paymentRecord.id,
+      processor:    'paystack',
       amount:       primary.amount,
       currency:     primary.currency,
     }
