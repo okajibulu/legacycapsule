@@ -80,13 +80,17 @@ interface ServiceCardProps {
   children?: React.ReactNode
   onUnlock?: () => void
   price?: { amount: number; symbol: string } | null
+  detailSummary?: string
+  detailPoints?: string[]
+  learnMoreUrl?: string
 }
 
-function ServiceCard({ id, title, description, icon, status, externalLink, children, onUnlock, price }: ServiceCardProps) {
+function ServiceCard({ id, title, description, icon, status, externalLink, children, onUnlock, price, detailSummary, detailPoints, learnMoreUrl }: ServiceCardProps) {
   const [expanded, setExpanded] = useState(false)
 
   const isInteractive = status === 'active' || status === 'always_on'
-  const isExpandable = isInteractive && !!children && !externalLink
+  const isLocked = status === 'locked'
+  const isExpandable = (isInteractive && !!children && !externalLink) || (isLocked && !!detailSummary)
 
   const handleClick = () => {
     if (isExpandable) setExpanded(e => !e)
@@ -135,9 +139,14 @@ function ServiceCard({ id, title, description, icon, status, externalLink, child
                   {price.symbol}{price.amount.toLocaleString()}
                 </span>
               )}
-              <button onClick={onUnlock} style={{ fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '20px', border: `1px solid rgba(226,195,107,0.2)`, background: 'transparent', color: goldMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                🔒 Unlock
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button onClick={onUnlock} style={{ fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '20px', border: `1px solid rgba(226,195,107,0.2)`, background: 'transparent', color: goldMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  🔒 Unlock
+                </button>
+                {detailSummary && (
+                  <span style={{ fontSize: '10px', color: goldMuted }}>{expanded ? '▲' : '▼'}</span>
+                )}
+              </div>
             </div>
           )}
           {status === 'coming_soon' && (
@@ -146,10 +155,46 @@ function ServiceCard({ id, title, description, icon, status, externalLink, child
         </div>
       </div>
 
-      {/* Expandable content */}
-      {expanded && children && (
+      {/* Expandable content — active services */}
+      {expanded && children && !isLocked && (
         <div style={{ padding: '0 16px 16px', borderTop: `1px solid rgba(255,255,255,0.04)`, paddingTop: '14px' }}>
           {children}
+        </div>
+      )}
+
+      {/* Expandable detail panel — locked services */}
+      {expanded && isLocked && detailSummary && (
+        <div style={{ padding: '14px 16px 16px', borderTop: `1px solid rgba(255,255,255,0.04)` }}>
+          <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.7, margin: '0 0 12px' }}>
+            {detailSummary}
+          </p>
+          {detailPoints && detailPoints.length > 0 && (
+            <ul style={{ margin: '0 0 14px', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {detailPoints.slice(0, 4).map((point, i) => (
+                <li key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <span style={{ color: gold, fontSize: '10px', marginTop: '3px', flexShrink: 0 }}>✦</span>
+                  <span style={{ fontSize: '11px', color: textFaint, lineHeight: 1.6 }}>{point}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={onUnlock}
+              style={{ flex: 1, padding: '10px', borderRadius: '10px', background: `linear-gradient(135deg, rgba(226,195,107,0.2), rgba(226,195,107,0.1))`, border: `1px solid rgba(226,195,107,0.3)`, color: gold, fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+            >
+              🔒 Unlock Now
+            </button>
+            {learnMoreUrl && (
+              <Link
+                href={learnMoreUrl}
+                target="_blank"
+                style={{ flexShrink: 0, padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: textFaint, fontSize: '12px', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}
+              >
+                Full details →
+              </Link>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -284,9 +329,12 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         title="Guest Management & Access Codes"
         description="Guest list · Unique access codes · Check-in tracking · Seating"
         icon="◉"
-status={components.includes('guest_management') ? 'active' : 'locked'}
-          price={featurePrices['guest_management']}
-          onUnlock={() => handleUnlock('guest_management')}
+        status={components.includes('guest_management') ? 'active' : 'locked'}
+        price={featurePrices['guest_management']}
+        onUnlock={() => handleUnlock('guest_management')}
+        detailSummary="A complete guest coordination system — build your list, send access codes, track RSVPs, manage check-in on the day, and assign seating. All from your phone."
+        detailPoints={['Unique QR access codes generated per guest', 'Real-time check-in dashboard on event day', 'Table management and seating assignment', 'Bulk invite sending to your entire guest list']}
+        learnMoreUrl="/features/guest_management"
       >
         {components.includes('guest_management') && (
           <>
@@ -306,6 +354,9 @@ status={components.includes('guest_management') ? 'active' : 'locked'}
         status={components.includes('ways_to_honour') ? 'active' : 'locked'}
         price={featurePrices['ways_to_honour']}
         onUnlock={() => handleUnlock('ways_to_honour')}
+        detailSummary="A dignified, private channel for guests to send financial support — bank details presented tastefully on your tribute wall. A daily midnight digest keeps the family informed."
+        detailPoints={['Full privacy — amounts never shown publicly', 'Multiple payment channels supported', 'Daily digest email to family representative at midnight', 'No transaction fees — LegacyCapsule handles no funds']}
+        learnMoreUrl="/features/ways_to_honour"
       >
         {eohEditor}
       </ServiceCard>
@@ -320,6 +371,9 @@ status={components.includes('guest_management') ? 'active' : 'locked'}
         externalLink={`/manage/${capsule.slug}/publication`}
         price={featurePrices['publication']}
         onUnlock={() => handleUnlock('publication')}
+        detailSummary="Every tribute compiled into a beautifully designed keepsake PDF — arranged by you, distributed to all contributors in one click. A permanent record designed to be kept."
+        detailPoints={['Full drag-and-drop arrangement in Publication Editor', 'Five professional design themes', 'One-click distribution to all contributors', 'Permanent download link for every recipient']}
+        learnMoreUrl="/features/publication"
       />
 
       {/* ── Fabric & Attire — gated, external ── */}
@@ -332,6 +386,9 @@ status={components.includes('guest_management') ? 'active' : 'locked'}
         externalLink={`/manage/${capsule.slug}/attire`}
         price={featurePrices['attire']}
         onUnlock={() => handleUnlock('attire')}
+        detailSummary="Complete dress code coordination — showcase fabric options, collect orders, track payments, manage collection. Designed for Aso-Ebi and coordinated event attire."
+        detailPoints={['Showcase multiple fabric options with photos and pricing', 'Order and payment tracking in one dashboard', 'Collection management and dispatch reminders', 'Guest-facing order page on your tribute wall']}
+        learnMoreUrl="/features/attire"
       />
 
       {/* ── Voice Tributes — gated ── */}
@@ -343,6 +400,9 @@ status={components.includes('guest_management') ? 'active' : 'locked'}
         status={components.includes('audio_tributes') ? 'active' : 'locked'}
         price={featurePrices['audio_tributes']}
         onUnlock={() => handleUnlock('audio_tributes')}
+        detailSummary="Contributors record personal audio messages directly from their phone — no app needed. The sound of a familiar voice carries meaning that text alone cannot."
+        detailPoints={['Works on any smartphone or computer with a microphone', 'Up to 2 minutes per recording', 'Plays inline in the tribute card — no download required', 'Same moderation queue as written tributes']}
+        learnMoreUrl="/features/audio_tributes"
       />
 
       {/* ── Video Tributes — gated ── */}
@@ -354,6 +414,9 @@ status={components.includes('guest_management') ? 'active' : 'locked'}
         status={components.includes('video_tributes') ? 'active' : 'locked'}
         price={featurePrices['video_tributes']}
         onUnlock={() => handleUnlock('video_tributes')}
+        detailSummary="Contributors upload short video messages that play directly in their tribute card. A face, a voice, an expression — the most personal tribute of all."
+        detailPoints={['Record on phone camera, upload directly in the form', 'Up to 60 seconds per video', 'Plays inline — no external links or redirects', 'Works on any device, no app required']}
+        learnMoreUrl="/features/video_tributes"
       />
 
       {/* ── D-Day Live Wall — coming soon ── */}
