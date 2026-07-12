@@ -94,9 +94,8 @@ const FEATURE_MAP: Record<string, FeatureDefinition> = {
     components: ['publication'],
   },
 
-  ways_to_honour: {
-    components: ['ways_to_honour'],
-  },
+  ways_to_honour:       { components: ['ways_to_honour'] },
+  expression_of_honour: { components: ['ways_to_honour'] },
 
   community_stories: {
     components: ['community_stories'],

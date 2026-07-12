@@ -22,6 +22,7 @@ const FEATURE_PRICE_KEYS: Record<string, string> = {
   audio_tributes:    'audio_tributes',
   video_tributes:    'video_tributes',
   ways_to_honour:    'ways_to_honour',
+  expression_of_honour:    'ways_to_honour',
   publication:       'publication',
   guest_management:  'guest_management',
   attire:            'attire',
