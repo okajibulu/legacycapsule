@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------------
-// PaymentService.ts
+// lib/payments/PaymentService.ts
 // Unified payment orchestrator. All API routes call this, never an adapter
 // directly. Handles: region detection, price fetching, payment record creation,
 // processor routing, and payment status updates.
@@ -13,12 +13,13 @@
 // Phase 2: add 'paystack' case to createCheckout() for NG/GH/KE zones.
 // -----------------------------------------------------------------------------
 
-import { createClient } from '@supabase/supabase-js'
+// ─── IMPORTS ──────────────────────────────────────────────────────────────────
+import { createClient }          from '@supabase/supabase-js'
 import { detectRegion }          from './regionDetector'
-import { getRegionalPrices }     from './priceFetcher'
+import { getPrices, getRegionalPrice, convertToRegionalAmount, PriceRecord } from './priceFetcher'
 import { createCheckoutSession } from './adapters/StripeAdapter'
 
-// -- DB CLIENT (server-only) ---------------------------------------------------
+// ─── DB CLIENT (server-only) ──────────────────────────────────────────────────
 const db = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -26,22 +27,69 @@ const db = createClient(
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
-// -- PROCESSOR ROUTING ---------------------------------------------------------
-// Phase 1: all zones -> Stripe.
-// Phase 2: NG, GH, KE -> Paystack. Uncomment when PaystackAdapter is ready.
+// ─── REGIONAL HELPERS ─────────────────────────────────────────────────────────
+function getCurrencyForRegion(zone: string): string {
+  const map: Record<string, string> = {
+    UK: 'GBP', US: 'USD', CA: 'CAD',
+    NG: 'NGN', GH: 'GHS', KE: 'KES',
+  }
+  return map[zone] ?? 'EUR'
+}
+
+function getCurrencySymbol(zone: string): string {
+  const map: Record<string, string> = {
+    UK: '£', US: '$', CA: 'CA$',
+    NG: '₦', GH: '₵', KE: 'KSh',
+  }
+  return map[zone] ?? '€'
+}
+
+// Stripe requires amount in smallest currency unit (cents/kobo/pence)
+// NGN is not a zero-decimal currency — use kobo (× 100)
+function toStripeAmount(amount: number, currency: string): number {
+  const zeroDecimal = ['JPY', 'KRW', 'VND']
+  return zeroDecimal.includes(currency) ? amount : Math.round(amount * 100)
+}
+
+function toStripeCurrency(currency: string): string {
+  return currency.toLowerCase()
+}
+
+interface RegionalPriceResult {
+  amount:            number
+  currency:          string
+  symbol:            string
+  amount_for_stripe: number
+  stripe_currency:   string
+}
+
+function buildRegionalPrice(record: PriceRecord, zone: string): RegionalPriceResult {
+  const amount   = convertToRegionalAmount(record, zone)
+  const currency = getCurrencyForRegion(zone)
+  return {
+    amount,
+    currency,
+    symbol:            getCurrencySymbol(zone),
+    amount_for_stripe: toStripeAmount(amount, currency),
+    stripe_currency:   toStripeCurrency(currency),
+  }
+}
+
+// ─── PROCESSOR ROUTING ────────────────────────────────────────────────────────
+// Phase 1: all zones → Stripe.
+// Phase 2: NG, GH, KE → Paystack. Uncomment when PaystackAdapter is ready.
 function getProcessorForZone(zone_key: string): 'stripe' /* | 'paystack' */ {
-  // Phase 2:
   // const africanZones = ['NG', 'GH', 'KE']
   // if (africanZones.includes(zone_key)) return 'paystack'
   return 'stripe'
 }
 
-// -- TYPES ---------------------------------------------------------------------
+// ─── TYPES ────────────────────────────────────────────────────────────────────
 export interface InitiateCheckoutParams {
   capsule_id:      string
   capsule_slug:    string
   tier:            'honour' | 'premier'
-  pricing_keys:    string[]   // e.g. ['full_platform_base'] or with add-ons
+  pricing_keys:    string[]
   honouree_name:   string
   organiser_email: string
   reseller_code?:  string
@@ -57,20 +105,25 @@ export interface CheckoutResult {
   currency:     string
 }
 
-// -- CREATE CHECKOUT -----------------------------------------------------------
+// ─── INITIATE CHECKOUT ────────────────────────────────────────────────────────
 export async function initiateCheckout(
   params: InitiateCheckoutParams
 ): Promise<CheckoutResult> {
+
   // Step 1: detect region from IP
   const zone_key  = await detectRegion(params.ip)
   const processor = getProcessorForZone(zone_key)
 
-  // Step 2: fetch all regional prices (supports bundles for Phase 2 add-ons)
-  const prices  = await getRegionalPrices(params.pricing_keys, zone_key)
-  const primary = prices[0]
+  // Step 2: fetch all regional prices
+  const priceRecords = await getPrices(params.pricing_keys)
+  if (!priceRecords.length) {
+    throw new Error(`No prices found for keys: ${params.pricing_keys.join(', ')}`)
+  }
 
-  // Step 3: create payment record in Supabase BEFORE redirecting to Stripe.
-  // Ensures a record exists even for abandoned checkouts, so recovery is possible.
+  const primary = buildRegionalPrice(priceRecords[0], zone_key)
+
+  // Step 3: create payment record BEFORE redirecting — allows recovery of
+  // abandoned checkouts without duplicate capsule creation
   const { data: paymentRecord, error: insertError } = await db
     .from('payments')
     .insert({
@@ -91,8 +144,7 @@ export async function initiateCheckout(
     throw new Error(`Failed to create payment record: ${insertError?.message}`)
   }
 
-  // Step 4: route to correct processor adapter
-  // Phase 2: add 'paystack' case here
+  // Step 4: route to processor adapter
   if (processor === 'stripe') {
     const result = await createCheckoutSession({
       payment_id:        paymentRecord.id,
@@ -104,10 +156,6 @@ export async function initiateCheckout(
       stripe_currency:   primary.stripe_currency,
       honouree_name:     params.honouree_name,
       organiser_email:   params.organiser_email,
-      // -- URLS: current route map -------------------------------------------
-      // Success: organiser manage page at /manage/[slug]
-      // Cancel: booking flow with cancelled flag, including slug + payment_id
-      // for retry flow that reuses existing capsule without duplicate creation.
       success_url: `${APP_URL}/manage/${params.capsule_slug}?payment=success`,
       cancel_url:  `${APP_URL}/book?payment=cancelled&slug=${params.capsule_slug}&pid=${paymentRecord.id}`,
     })
@@ -124,7 +172,7 @@ export async function initiateCheckout(
   throw new Error(`No adapter configured for processor: ${processor}`)
 }
 
-// -- CONFIRM PAYMENT -----------------------------------------------------------
+// ─── CONFIRM PAYMENT ─────────────────────────────────────────────────────────
 // Called by webhook handler after signature verified.
 // Updates payment record to succeeded. featureUnlocker then sets page_state: active.
 export async function confirmPayment(
@@ -152,7 +200,7 @@ export async function confirmPayment(
   }
 }
 
-// -- INITIATE FEATURE CHECKOUT -------------------------------------------------
+// ─── INITIATE FEATURE CHECKOUT ───────────────────────────────────────────────
 // For individual feature purchases (audio_tributes, publication, etc.).
 // Distinct from initiateCheckout which handles base tier capsule creation.
 // On success: webhook → unlockCapsuleFeatures → component added to capsule.
@@ -169,10 +217,22 @@ export interface InitiateFeatureCheckoutParams {
 export async function initiateFeatureCheckout(
   params: InitiateFeatureCheckoutParams
 ): Promise<CheckoutResult> {
-  const zone_key  = await detectRegion(params.ip)
-  const processor = getProcessorForZone(zone_key)
-  const prices    = await getRegionalPrices([params.price_key], zone_key)
-  const primary   = prices[0]
+
+  const zone_key    = await detectRegion(params.ip)
+  const processor   = getProcessorForZone(zone_key)
+
+  const priceRecord = await getRegionalPrice(params.price_key, zone_key)
+  if (!priceRecord) {
+    throw new Error(`Price not found for key: ${params.price_key}`)
+  }
+
+  const primary = {
+    amount:            priceRecord.amount,
+    currency:          priceRecord.currency,
+    symbol:            priceRecord.symbol,
+    amount_for_stripe: toStripeAmount(priceRecord.amount, priceRecord.currency),
+    stripe_currency:   toStripeCurrency(priceRecord.currency),
+  }
 
   const { data: paymentRecord, error: insertError } = await db
     .from('payments')
@@ -219,7 +279,7 @@ export async function initiateFeatureCheckout(
   throw new Error(`No adapter configured for processor: ${processor}`)
 }
 
-// -- FAIL PAYMENT --------------------------------------------------------------
+// ─── FAIL PAYMENT ─────────────────────────────────────────────────────────────
 // Called by webhook on payment_intent.payment_failed.
 export async function failPayment(
   payment_id: string,

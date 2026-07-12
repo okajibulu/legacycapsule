@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
       await Promise.all(keys.map(async key => {
         try {
           const p = await getRegionalPrice(key, zone)
-          featurePrices[key] = { amount: p.amount, symbol: p.symbol, currency: p.currency }
+          featurePrices[key] = p ? { amount: p.amount, symbol: p.symbol, currency: p.currency } : null
         } catch {
           featurePrices[key] = null // unpublished or not found — show nothing
         }
@@ -46,12 +46,12 @@ export async function GET(req: NextRequest) {
       getRegionalPrice('full_platform_base', zone),
     ])
 
-    return NextResponse.json({
+return NextResponse.json({
       zone,
-      currency: honour.currency,
-      symbol: honour.symbol,
-      honourPrice: honour.amount,
-      premierPrice: premier.amount,
+      currency:    honour?.currency  ?? 'EUR',
+      symbol:      honour?.symbol    ?? '€',
+      honourPrice: honour?.amount    ?? null,
+      premierPrice: premier?.amount  ?? null,
     })
 
   } catch (err) {
