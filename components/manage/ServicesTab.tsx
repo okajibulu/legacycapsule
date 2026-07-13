@@ -340,7 +340,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           <>
             <TableManagementSection capsuleId={capsule.id} onTablesChange={setTables} />
             <div style={{ height: '1px', background: 'rgba(255,255,255,0.04)', margin: '12px 0' }} />
-            <GuestManagementSection capsuleId={capsule.id} tables={tables} phases={phases} />
+            <GuestManagementSection capsuleId={capsule.id} capsuleSlug={capsule.slug} tables={tables} phases={phases} />
           </>
         )}
       </ServiceCard>
