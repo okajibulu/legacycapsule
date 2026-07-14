@@ -4,24 +4,22 @@
  * LEGACYCAPSULE — VALNEX, UNIPESSOAL LDA · RevoWorldTech
  * ============================================================
  * Built by: AI11 · June 2026
+ * Updated: Claude Sonnet 4.6 · July 2026
+ *   — Phase limit now reads from capsule tier + purchased additional phases
+ *   — Free capsule: 1 phase
+ *   — Paid/booked capsule: 2 phases
+ *   — Each 'additional_phase' purchase in capsule.components adds 1 more
+ *   — override_limit flag retained for LCAdmin use
  *
- * Event Phases — Full CRUD
- * DB table: capsule_phases (confirmed existing)
- *
+ * DB table: capsule_phases
  * Columns: id, capsule_id, community_id, name, event_date,
  *   location, sort_order, programme (jsonb),
- *   capture_window_closes_at, qr_token,
- *   created_at, deleted_at
- *
- * Business rules:
- *   - Free tier: max 2 phases per capsule
- *   - Extra phases: purchasable via upgrade
- *   - qr_token: auto-generated UUID on creation
+ *   capture_window_closes_at, qr_token, created_at, deleted_at
  *
  * Sub-sections:
- *   1. Admin client + constants
+ *   1. Admin client + helpers
  *   2. GET — list phases for capsule
- *   3. POST — create phase (enforces 2-phase limit)
+ *   3. POST — create phase (tier-aware limit)
  *   4. PUT — update phase
  *   5. DELETE — soft-delete phase
  * ============================================================
@@ -31,7 +29,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 // ============================================================
-// SECTION 1 — Admin client + constants
+// SECTION 1 — Admin client + helpers
 // ============================================================
 
 const adminClient = createClient(
@@ -39,14 +37,29 @@ const adminClient = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const FREE_PHASE_LIMIT = 2
-
 function generateQrToken(): string {
-  // UUID v4 format
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = Math.random() * 16 | 0
     return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
   })
+}
+
+/**
+ * Compute the phase limit for a capsule.
+ *
+ * Rules:
+ *   - Free (tier = null / 'free' / unpaid): 1 phase
+ *   - Paid / booked (any other tier):        2 phases
+ *   - Each 'additional_phase' in components: +1 per occurrence
+ *
+ * 'additional_phase' can appear multiple times in the components array
+ * (one per purchase), so we count occurrences rather than checking inclusion.
+ */
+function computePhaseLimit(tier: string | null, components: string[]): number {
+  const isFree  = !tier || tier === 'free' || tier === 'Free'
+  const base    = isFree ? 1 : 2
+  const extras  = components.filter(c => c === 'additional_phase').length
+  return base + extras
 }
 
 // ============================================================
@@ -76,7 +89,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 }
 
 // ============================================================
-// SECTION 3 — POST: Create a phase (enforces 2-phase free limit)
+// SECTION 3 — POST: Create a phase (tier-aware limit)
 // ============================================================
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -87,7 +100,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     location?: string
     programme?: any
     capture_window_closes_at?: string
-    override_limit?: boolean // set by LCAdmin to allow extra paid phases
+    override_limit?: boolean
   }
 
   try {
@@ -103,28 +116,45 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     )
   }
 
-  // ── Check phase limit unless override ──────────────────
+  // ── Fetch capsule tier + components for limit computation ─────────────────
   if (!body.override_limit) {
+    const { data: capsule } = await adminClient
+      .from('capsules')
+      .select('tier, components')
+      .eq('id', body.capsule_id)
+      .maybeSingle()
+
+    const tier       = capsule?.tier ?? null
+    const components: string[] = capsule?.components ?? []
+    const limit      = computePhaseLimit(tier, components)
+
+    // Count existing active phases
     const { count } = await adminClient
       .from('capsule_phases')
       .select('id', { count: 'exact' })
       .eq('capsule_id', body.capsule_id)
       .is('deleted_at', null)
 
-    if ((count ?? 0) >= FREE_PHASE_LIMIT) {
+    const currentCount = count ?? 0
+
+    if (currentCount >= limit) {
+      const isFree = !tier || tier === 'free' || tier === 'Free'
       return NextResponse.json(
         {
-          error: 'phase_limit_reached',
-          message: `Free capsules include ${FREE_PHASE_LIMIT} event phases. Contact us to add more.`,
-          current_count: count,
-          limit: FREE_PHASE_LIMIT,
+          error:         'phase_limit_reached',
+          message:       isFree
+            ? `Free capsules include 1 event phase. Upgrade your capsule or purchase an Additional Event Phase to add more.`
+            : `Your capsule includes ${limit} event phase${limit !== 1 ? 's' : ''}. Purchase an Additional Event Phase from the Services tab to add more.`,
+          current_count: currentCount,
+          limit,
+          is_free:       isFree,
         },
         { status: 403 }
       )
     }
   }
 
-  // ── Get next sort order ────────────────────────────────
+  // ── Get next sort order ───────────────────────────────────────────────────
   const { data: existing } = await adminClient
     .from('capsule_phases')
     .select('sort_order')
@@ -135,18 +165,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const nextSort = (existing?.[0]?.sort_order ?? -1) + 1
 
-  // ── Insert ─────────────────────────────────────────────
+  // ── Insert ────────────────────────────────────────────────────────────────
   const { data, error } = await adminClient
     .from('capsule_phases')
     .insert({
-      capsule_id: body.capsule_id,
-      name: body.name.trim(),
-      event_date: body.event_date || null,
-      location: body.location?.trim() || null,
-      sort_order: nextSort,
-      programme: body.programme ?? null,
+      capsule_id:               body.capsule_id,
+      name:                     body.name.trim(),
+      event_date:               body.event_date || null,
+      location:                 body.location?.trim() || null,
+      sort_order:               nextSort,
+      programme:                body.programme ?? null,
       capture_window_closes_at: body.capture_window_closes_at || null,
-      qr_token: generateQrToken(),
+      qr_token:                 generateQrToken(),
     })
     .select('id, qr_token')
     .single()
@@ -185,12 +215,12 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
   }
 
   const updates: Record<string, any> = {}
-  if (body.name !== undefined) updates.name = body.name.trim()
-  if (body.event_date !== undefined) updates.event_date = body.event_date || null
-  if (body.location !== undefined) updates.location = body.location?.trim() || null
-  if (body.programme !== undefined) updates.programme = body.programme
+  if (body.name                     !== undefined) updates.name                     = body.name.trim()
+  if (body.event_date               !== undefined) updates.event_date               = body.event_date || null
+  if (body.location                 !== undefined) updates.location                 = body.location?.trim() || null
+  if (body.programme                !== undefined) updates.programme                = body.programme
   if (body.capture_window_closes_at !== undefined) updates.capture_window_closes_at = body.capture_window_closes_at || null
-  if (body.sort_order !== undefined) updates.sort_order = body.sort_order
+  if (body.sort_order               !== undefined) updates.sort_order               = body.sort_order
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'No fields to update.' }, { status: 400 })

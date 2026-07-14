@@ -186,12 +186,24 @@ export default function EventPhasesSection({ capsuleId, capsuleSlug }: Props) {
   const [adding, setAdding] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  const [phaseLimit, setPhaseLimit] = useState(2)
+
   const fetchPhases = async () => {
     const res = await fetch(`/api/phases?capsule_id=${capsuleId}`)
     const data = await res.json()
     setPhases(data.phases ?? [])
     setLoading(false)
   }
+
+  // Fetch real limit from capsule
+  useEffect(() => {
+    fetch(`/api/capsule-by-slug?capsule_id=${capsuleId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.phase_limit) setPhaseLimit(d.phase_limit)
+      })
+      .catch(() => {})
+  }, [capsuleId])
 
   useEffect(() => { fetchPhases() }, [capsuleId])
 
@@ -230,19 +242,15 @@ export default function EventPhasesSection({ capsuleId, capsuleSlug }: Props) {
           ) : (
             <button
               onClick={() => setAdding(true)}
-              disabled={phases.length >= 2}
               style={{
                 width: '100%', padding: '10px', borderRadius: '10px',
-                border: `1px dashed ${phases.length >= 2 ? 'rgba(255,255,255,0.06)' : 'rgba(226,195,107,0.2)'}`,
+                border: `1px dashed rgba(226,195,107,0.2)`,
                 background: 'transparent',
-                color: phases.length >= 2 ? textFaint : goldMuted,
-                fontSize: '12px', fontWeight: 600, cursor: phases.length >= 2 ? 'not-allowed' : 'pointer',
+                color: goldMuted,
+                fontSize: '12px', fontWeight: 600, cursor: 'pointer',
               }}
             >
-              {phases.length >= 2
-                ? `✦ Phase limit reached — unlock Additional Phase from Services`
-                : `+ Add Event Phase (${phases.length}/2 used)`
-              }
+              {`+ Add Event Phase (${phases.length} used)`}
             </button>
           )}
         </>
