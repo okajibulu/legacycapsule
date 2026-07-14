@@ -44,8 +44,40 @@ function extractValue(raw: any): number {
   return 0
 }
 
+// ─── LC SUPABASE CLIENT (direct lc_pricing reads) ────────────────────────────
+import { createClient } from '@supabase/supabase-js'
+const lcClient = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
 // ─── FETCH SINGLE PRICE ───────────────────────────────────────────────────────
+// Reads from lc_pricing first (canonical for all add-ons).
+// Falls back to KEY_MAP / platform_config for legacy tier keys only.
 export async function getPrice(key: string): Promise<PriceRecord | null> {
+
+  // ── Primary: lc_pricing (all published add-ons) ───────────────────────────
+  try {
+    const { data } = await lcClient
+      .from('lc_pricing')
+      .select('key, label, eur_price, ngn_price, safe_min_eur, safe_max_eur')
+      .eq('key', key)
+      .eq('is_published', true)
+      .maybeSingle()
+
+    if (data) {
+      return {
+        key:          data.key,
+        label:        data.label,
+        eur_price:    data.eur_price,
+        ngn_price:    data.ngn_price,
+        safe_min_eur: data.safe_min_eur ?? 5,
+        safe_max_eur: data.safe_max_eur ?? 200,
+      }
+    }
+  } catch {}
+
+  // ── Fallback: KEY_MAP / platform_config (legacy tier keys) ────────────────
   const mapping = KEY_MAP[key]
   if (!mapping) return null
 
