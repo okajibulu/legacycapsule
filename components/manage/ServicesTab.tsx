@@ -302,7 +302,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
       <ServiceCard
         id="exports"
         title="Programme Exports"
-        description="Copy tributes to clipboard for programme booklets"
+        description="Unlocked with Digital Publication — export selected tributes and Community Stories to clipboard for printed programme booklets"
         icon="⬇"
         status="always_on"
       >
@@ -348,8 +348,8 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
       {/* ── Expression of Honour — gated ── */}
       <ServiceCard
         id="eoh"
-        title="Expression of Honour"
-        description="Bank details for guests to send support — dignified, private"
+        title="Gift of Honour"
+        description="A dignified channel for guests to express financial support — private, tasteful"
         icon="✦"
         status={components.includes('ways_to_honour') ? 'active' : 'locked'}
         price={featurePrices['ways_to_honour']}

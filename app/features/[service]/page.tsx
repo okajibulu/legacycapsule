@@ -163,10 +163,10 @@ export default async function FeatureDetailPage({ params }: { params: Promise<{ 
             Activate it directly from your manage dashboard under Services.
           </p>
           <Link
-            href="/manage"
+            href="/"
             style={{ display: 'inline-block', padding: '13px 32px', borderRadius: '12px', background: 'linear-gradient(135deg, #E2C36B, #C8A84A)', color: '#1a0845', fontSize: '14px', fontWeight: 700, textDecoration: 'none', letterSpacing: '0.04em' }}
           >
-            Go to My Dashboard →
+            ← Back to LegacyCapsule
           </Link>
         </div>
 

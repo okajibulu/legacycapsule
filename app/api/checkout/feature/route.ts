@@ -27,6 +27,8 @@ const FEATURE_PRICE_KEYS: Record<string, string> = {
   guest_management:  'guest_management',
   attire:            'attire',
   community_stories: 'community_stories',
+  access_codes:      'access_codes',
+  additional_phase:  'additional_phase',
   extended_validity: 'extended_validity',
 }
 

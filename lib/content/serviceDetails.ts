@@ -67,9 +67,9 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
   // ── Expression of Honour ───────────────────────────────────────────────────
   ways_to_honour: {
     id:      'ways_to_honour',
-    title:   'Expression of Honour',
+    title:   'Gift of Honour',
     icon:    '✦',
-    tagline: 'A dignified, private channel for guests to send financial support.',
+    tagline: 'A dignified, private channel for guests to express financial support.',
     summary: 'Expression of Honour adds a tasteful, private section to your tribute wall where guests can see your preferred payment channels and acknowledge their contribution. It is designed specifically for the African cultural context — where supporting a family financially during a significant event is an important part of the occasion — presented with the dignity the moment deserves.',
     whatYouGet: [
       'A dedicated section on the tribute wall showing your bank details or payment channels',
@@ -93,7 +93,7 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
       { q: 'How does the family know when someone has expressed honour?', a: 'A daily digest email is sent at midnight to the family representative, listing every new expression received that day and the cumulative total. No real-time alerts — one clear summary per day.' },
       { q: 'Does LegacyCapsule handle the actual money transfer?', a: 'No — LegacyCapsule displays your payment details and records acknowledgements. The actual transfer happens directly between the contributor and your bank or payment account. LegacyCapsule takes no transaction fee and handles no funds.' },
     ],
-    refundNote: 'Expression of Honour is activated immediately on payment and is non-refundable. The service can be deactivated from your dashboard if needed, but the activation fee is not returned.',
+    refundNote: 'Gift of Honour is activated immediately on payment and is non-refundable. The service can be deactivated from your dashboard if needed, but the activation fee is not returned.',
   },
 
   // ── Guest Management ────────────────────────────────────────────────────────

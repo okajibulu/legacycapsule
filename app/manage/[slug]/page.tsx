@@ -1113,27 +1113,25 @@ body: JSON.stringify({ email, confirmation, capsuleId }),
 
 /* ── ADD-ONS TABLE ────────────────────────────────────── */
 const LC_SERVICES = [
-  // ── Free — always on ────────────────────────────────
-  { id: 'tribute_wall',        label: 'Text Tributes',            desc: 'Guests leave written tributes on the public wall, visible to all visitors. Included on every capsule at no cost.', alwaysOn: true, phase: 1, autoActivated: false },
-  { id: 'world_map',           label: 'World Tribute Map',        desc: 'Interactive map showing where in the world tributes came from. Included on every capsule.', alwaysOn: true, phase: 1, autoActivated: false },
-  { id: 'event_profile',       label: 'Event Profile Canvas',     desc: 'Full profile page with biography, sections, timeline and photo gallery — the permanent identity layer for the honouree.', alwaysOn: true, phase: 1, autoActivated: false },
-  { id: 'photo_tributes',      label: 'Photo Tributes',           desc: 'Contributors can attach a photo to their tribute message. Included on every capsule.', alwaysOn: true, phase: 1, autoActivated: false },
-  { id: 'family_rep_portal',   label: 'Family Rep Portal',        desc: 'Private token-gated portal for the Family Representative to view all tributes and acknowledgements. Free on all capsules.', alwaysOn: true, phase: 1, autoActivated: false },
-  { id: 'capsule_90days',      label: '90-Day Capsule Access',    desc: 'Every capsule includes 90 days of active tribute collection counted from the date the first tribute is received.', alwaysOn: true, phase: 1, autoActivated: false },
-  // ── Premium — paid unlock ────────────────────────────
-  { id: 'ways_to_honour',      label: 'Ways to Honour',           desc: 'Tasteful bank transfer details and acknowledgement flow — a dignified private channel for guests to support the honouree.', alwaysOn: false, phase: 1, autoActivated: false },
-  { id: 'audio_tributes',      label: 'Voice Tributes',           desc: 'Contributors record personal audio messages up to 2 minutes. Hearing a voice adds a dimension text cannot replicate.', alwaysOn: false, phase: 1, autoActivated: false },
-  { id: 'video_tributes',      label: 'Video Tributes',           desc: 'Contributors upload short video messages shown directly in their tribute card on the wall.', alwaysOn: false, phase: 1, autoActivated: false },
-  { id: 'capsule_3month_ext',  label: '3-Month Capsule Extension', desc: 'Extends the free tribute wall service for an additional 3 months after the standard 90-day period expires.', alwaysOn: false, phase: 1, autoActivated: false },
-  { id: 'capsule_6month',      label: '6-Month Capsule Span',     desc: 'Automatically applied when any premium service is unlocked. Capsule runs for 6 months from the date of the first tribute received.', alwaysOn: false, phase: 1, autoActivated: true },
-  { id: 'publication',         label: 'Digital Publication',      desc: 'A beautifully designed keepsake PDF compiled from all tributes and sent to every contributor after the event.', alwaysOn: false, phase: 1, autoActivated: false },
-  // ── Coming soon ──────────────────────────────────────
-  { id: 'rsvp',                label: 'Guest Management & RSVP',  desc: 'Collect RSVPs, manage guest lists and coordinate event attendance.', alwaysOn: false, phase: 2, autoActivated: false },
-  { id: 'attire',              label: 'Fabric & Attire',          desc: 'Coordinate event dress code, fabric choices and attire instructions for guests.', alwaysOn: false, phase: 2, autoActivated: false },
-  { id: 'gift_capsule',        label: 'Gift a Capsule',           desc: 'Commission a capsule as a ceremonial gift for someone with a milestone event.', alwaysOn: false, phase: 2, autoActivated: false },
+  // ── Free — always on ──────────────────────────────────────────────────────
+  { id: 'tribute_wall',      label: 'Text Tributes',              desc: 'Guests leave written tributes on the public wall, visible to all visitors. Included on every capsule at no cost.', alwaysOn: true, phase: 1 },
+  { id: 'world_map',         label: 'World Tribute Map',          desc: 'Interactive map showing where in the world tributes came from. Included on every capsule.', alwaysOn: true, phase: 1 },
+  { id: 'event_profile',     label: 'Event Profile Canvas',       desc: 'Full profile page with biography, sections, timeline and photo gallery.', alwaysOn: true, phase: 1 },
+  { id: 'photo_tributes',    label: 'Photo Tributes',             desc: 'Contributors can attach a photo to their tribute message. Included on every capsule.', alwaysOn: true, phase: 1 },
+  { id: 'family_rep_portal', label: 'Family Rep Portal',          desc: 'Private portal for the Family Representative to view tributes and acknowledgements.', alwaysOn: true, phase: 1 },
+  { id: 'community_stories', label: 'Community Memories & Stories', desc: 'A dedicated room for contributors to share memories and stories, organised by topic.', alwaysOn: true, phase: 1 },
+  // ── Premium — activate from Services tab ──────────────────────────────────
+  { id: 'ways_to_honour',    label: 'Gift of Honour',             desc: 'A dignified private channel for guests to express financial support for the honouree.', alwaysOn: false, phase: 1 },
+  { id: 'audio_tributes',    label: 'Voice Tributes',             desc: 'Contributors record personal audio messages. Hearing a voice adds a dimension text cannot replicate.', alwaysOn: false, phase: 1 },
+  { id: 'video_tributes',    label: 'Video Tributes',             desc: 'Contributors upload short video messages shown directly in their tribute card.', alwaysOn: false, phase: 1 },
+  { id: 'publication',       label: 'Digital Publication',        desc: 'A beautifully designed keepsake PDF compiled from all capsule content and sent to every contributor.', alwaysOn: false, phase: 1 },
+  { id: 'guest_management',  label: 'Guest Management & Seating', desc: 'Guest list, RSVP tracking, table management, seat assignment, and printable access cards.', alwaysOn: false, phase: 1 },
+  { id: 'access_codes',      label: 'Access Code System',         desc: 'Unique entry codes per guest, usher interface, real-time check-in dashboard and arrival metrics.', alwaysOn: false, phase: 1 },
+  { id: 'attire',            label: 'Fabric & Attire',            desc: 'Coordinate event dress code, fabric choices and attire orders for guests.', alwaysOn: false, phase: 1 },
+  { id: 'extended_validity', label: 'Extended Validity',          desc: 'Extend your capsule beyond the standard validity period to keep collecting tributes.', alwaysOn: false, phase: 1 },
 ]
 
-function AddOnsTable({ capsuleComponents, onUpgrade }: { capsuleComponents: string[]; onUpgrade: () => void }) {
+function AddOnsTable({ capsuleComponents, onServicesTab }: { capsuleComponents: string[]; onServicesTab: () => void }) {
   const [tooltip, setTooltip] = useState<string | null>(null)
 
   return (
@@ -1158,7 +1156,7 @@ function AddOnsTable({ capsuleComponents, onUpgrade }: { capsuleComponents: stri
       <div style={{ borderRadius: '12px', border: `1px solid ${cardBorder}`, overflow: 'hidden' }}>
         {LC_SERVICES.map((svc, idx) => {
           const isActivated = svc.alwaysOn || capsuleComponents.includes(svc.id)
-          const isAutoActivated = svc.autoActivated && capsuleComponents.some(c => !['tribute_wall','world_map','event_profile','photo_tributes','family_rep_portal','capsule_90days'].includes(c))
+          const isAutoActivated = false
           const isFree = svc.alwaysOn
           const isComingSoon = svc.phase > 1
           const isHovered = tooltip === svc.id
@@ -1185,7 +1183,7 @@ function AddOnsTable({ capsuleComponents, onUpgrade }: { capsuleComponents: stri
               {/* Label */}
               <span style={{ flex: 1, fontSize: '12px', color: isActivated || isFree ? textPrimary : isComingSoon ? textFaint : textSecondary, fontWeight: isActivated || isFree ? 600 : 400 }}>
                 {svc.label}
-                {svc.autoActivated && <span style={{ fontSize: '9px', color: textFaint, marginLeft: '6px', fontStyle: 'italic' }}>auto</span>}
+                {false && <span style={{ fontSize: '9px', color: textFaint, marginLeft: '6px', fontStyle: 'italic' }}>auto</span>}
               </span>
 
               {/* Phase badge for coming soon */}
@@ -1200,21 +1198,9 @@ function AddOnsTable({ capsuleComponents, onUpgrade }: { capsuleComponents: stri
                 <span style={{ fontSize: '12px', color: 'rgba(74,222,128,0.7)', flexShrink: 0 }}>✓</span>
               )}
 
-              {/* Premium unlock button */}
-              {!isFree && !isActivated && !isComingSoon && !svc.autoActivated && (
-                <button
-                  onClick={onUpgrade}
-                  title="This is a paid add-on. Click to enquire about unlocking."
-                  style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '8px', border: '1px solid rgba(226,195,107,0.25)', background: 'rgba(226,195,107,0.05)', color: goldMuted, flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
-                  🔒 Unlock
-                </button>
-              )}
-
-              {/* Auto-activated — not clickable */}
-              {svc.autoActivated && !isActivated && !isComingSoon && (
-                <span style={{ fontSize: '9px', padding: '2px 8px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', color: textFaint, flexShrink: 0 }}>
-                  With any unlock
-                </span>
+              {/* Locked — show lock icon only, no button */}
+              {!svc.alwaysOn && !isActivated && !isAutoActivated && !isComingSoon && (
+                <span style={{ fontSize: '11px', color: 'rgba(226,195,107,0.35)', flexShrink: 0 }}>🔒</span>
               )}
 
               {/* Hover tooltip */}
@@ -1228,9 +1214,12 @@ function AddOnsTable({ capsuleComponents, onUpgrade }: { capsuleComponents: stri
         })}
       </div>
 
-      <p style={{ fontSize: '10px', color: textFaint, marginTop: '10px', textAlign: 'center', fontStyle: 'italic' }}>
-        🔒 Locked services require a paid add-on. Contact us or use the Expand Capsule form to unlock.
-      </p>
+      <button
+        onClick={onServicesTab}
+        style={{ width: '100%', marginTop: '12px', padding: '10px', borderRadius: '10px', border: '1px solid rgba(226,195,107,0.2)', background: 'rgba(226,195,107,0.05)', color: goldMuted, fontSize: '12px', fontWeight: 600, cursor: 'pointer', letterSpacing: '0.04em' }}
+      >
+        Manage & Unlock Services →
+      </button>
     </div>
   )
 }
@@ -1600,7 +1589,7 @@ const capRes = await supabase.from('capsules')
 
               {/* ── ADD-ONS / SERVICES TABLE ── */}
               <SectionCard title="Capsule Services" subtitle="Tap any service to learn more — contact us to activate">
-                <AddOnsTable capsuleComponents={capsule.components ?? []} onUpgrade={() => {
+                <AddOnsTable capsuleComponents={capsule.components ?? []} onServicesTab={() => {
                   setActiveTab('settings')
                   setTimeout(() => {
                     document.getElementById('upgrade-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
