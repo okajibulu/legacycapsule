@@ -119,6 +119,10 @@ function AutoSectionPlaceholder({ type }: { type: string }) {
       title:  'Who Attended is generated from your guest check-in list.',
       detail: 'Guests marked as checked in will appear in this section.',
     },
+    community_stories: {
+      title:  'Community Memories & Stories are included automatically.',
+      detail: 'All approved stories from the Stories room are organised by topic and included as a chapter.',
+    },
     closing_message: {
       title:  'The closing message is a fixed LegacyCapsule colophon.',
       detail: 'It appears at the end of every publication.',
@@ -480,7 +484,7 @@ const handlePreviewPrint = useCallback(async () => {
             />
           )}
 
-          {activeSecData && ['cover', 'honouree_profile', 'who_attended', 'closing_message'].includes(activeSecData.type) && (
+          {activeSecData && ['cover', 'honouree_profile', 'who_attended', 'closing_message', 'community_stories'].includes(activeSecData.type) && (
             <AutoSectionPlaceholder type={activeSecData.type} />
           )}
         </div>
@@ -571,10 +575,9 @@ const handlePreviewPrint = useCallback(async () => {
         <div className="px-4 py-3 border-t border-yellow-400/10 flex-shrink-0">
           <a
             href={`/manage/${capsuleSlug}`}
-            className="text-[10px] text-white/25 hover:text-white/50 transition-colors flex items-center gap-1"
+            style={{ fontSize: '11px', color: 'rgba(226,195,107,0.4)', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
           >
-            <span aria-hidden="true">←</span>
-            Back to Capsule
+            ← Back to Capsule
           </a>
         </div>
       </aside>

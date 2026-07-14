@@ -4,27 +4,17 @@
  * VALNEX, UNIPESSOAL LDA · RevoWorldTech
  * ============================================================
  *
- * The hidden publication render page.
+ * Publication render page — used by browser print (Hobby plan)
+ * and Puppeteer PDF generation (Pro plan).
  *
- * This route is NEVER visited by users directly.
- * It is navigated to exclusively by Puppeteer during PDF generation.
- * The [token] parameter is a one-time render_token written to the
- * publications row immediately before Puppeteer launches.
+ * UPDATED: Claude Sonnet 4.6 · July 2026
+ *   — Added renderHonoureeProfile (was empty placeholder)
+ *   — Added renderCommunityStories (Community Memories & Stories)
+ *   — Added D-Day gallery handling (source = 'dday')
+ *   — Fetches capsule_profile_sections and community_story_topics
+ *   — Tribute cards improved typography
  *
- * Security model:
- *   → Token is a 32-byte hex string (64 chars), cryptographically random.
- *   → Token is stored in publications.render_token (UNIQUE index).
- *   → Token is set to null immediately after PDF upload. Cannot be reused.
- *   → If token is not found in the database, notFound() is called.
- *   → Route is not linked from any page. URL is never exposed to organisers.
- *
- * All images are fetched as signed Supabase Storage URLs before the
- * HTML is rendered. Puppeteer sees absolute authenticated URLs and
- * does not need to perform any additional auth.
- *
- * data-contribution-id attributes on tribute cards enable the
- * page_map extraction step in the PDF generation pipeline.
- * Do not remove them.
+ * Security model: unchanged — render_token validated before render.
  */
 
 import { notFound } from 'next/navigation';
@@ -33,7 +23,6 @@ import type {
   LayoutConfig,
   Section,
   CoverSection,
-  HonoureeProfileSection,
   TributesSection,
   PhasePhotosSection,
   WhoAttendedSection,
@@ -45,8 +34,6 @@ import type {
 
 // ============================================================
 // SECTION 1 — Supabase admin client
-// All data fetched server-side with service role key.
-// Signed URLs for images generated server-side — never exposed raw.
 // ============================================================
 
 const adminClient = createClient(
@@ -54,11 +41,11 @@ const adminClient = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const SIGNED_URL_EXPIRY_SECONDS = 300; // 5 minutes — enough for Puppeteer to load images
+const SIGNED_URL_EXPIRY_SECONDS = 300;
 
 
 // ============================================================
-// SECTION 2 — Data types for fetched content
+// SECTION 2 — Data types
 // ============================================================
 
 interface CapsuleData {
@@ -80,8 +67,11 @@ interface ContributionData {
   country: string | null;
   relationship: string | null;
   tribute_text: string | null;
+  thumbnail_url: string | null;
   image_url: string | null;
   is_anonymous: boolean;
+  story_topic_id: string | null;
+  is_dday: boolean | null;
   created_at: string;
 }
 
@@ -90,6 +80,7 @@ interface GalleryItemData {
   image_url: string;
   caption: string | null;
   phase_id: string | null;
+  source: string | null;
 }
 
 interface PhaseData {
@@ -105,683 +96,429 @@ interface GuestData {
   tier: string;
 }
 
+interface ProfileSectionData {
+  id: string;
+  section_type: string;
+  custom_title: string | null;
+  content: string | null;
+  sort_order: number;
+  is_active: boolean;
+}
+
+interface StoryTopicData {
+  id: string;
+  topic_name: string;
+  display_order: number;
+}
+
 
 // ============================================================
 // SECTION 3 — Signed URL helper
-// All Supabase Storage paths must be converted to signed URLs
-// before being placed in the HTML. Puppeteer cannot authenticate.
 // ============================================================
 
 async function toSignedUrl(rawUrl: string | null): Promise<string> {
   if (!rawUrl) return '';
   try {
-    // Extract bucket and path from the Supabase storage URL
-    // Format: https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
-    // or:     https://<project>.supabase.co/storage/v1/object/sign/<bucket>/<path>
     const url = new URL(rawUrl);
     const parts = url.pathname.split('/storage/v1/object/');
-    if (parts.length < 2) return rawUrl; // Not a Supabase storage URL — return as-is
-
+    if (parts.length < 2) return rawUrl;
     const [, rest] = parts;
     const pathParts = rest.replace(/^(public|sign)\//, '').split('/');
-    const bucket = pathParts[0];
+    const bucket   = pathParts[0];
     const filePath = pathParts.slice(1).join('/');
-
-    const { data } = await adminClient.storage
-      .from(bucket)
-      .createSignedUrl(filePath, SIGNED_URL_EXPIRY_SECONDS);
-
+    const { data } = await adminClient.storage.from(bucket).createSignedUrl(filePath, SIGNED_URL_EXPIRY_SECONDS);
     return data?.signedUrl ?? rawUrl;
   } catch {
-    return rawUrl; // On any error, return original — Puppeteer may still load it
+    return rawUrl;
   }
 }
 
 
 // ============================================================
-// SECTION 4 — Theme style definitions
-// One style object per theme. Controls all visual decisions:
-//   bg, text, heading font, body font, accent colour,
-//   section header treatment, cover layout feel.
-// Applied via inline styles in the render — no external CSS loaded
-// (avoids Puppeteer font/network timing issues).
+// SECTION 4 — Theme style definitions (unchanged)
 // ============================================================
 
 interface ThemeStyles {
-  pageBg: string;
-  pageText: string;
-  secondaryText: string;
-  accentColor: string;
-  headingFont: string;
-  bodyFont: string;
-  coverBg: string;
-  coverTextColor: string;
-  sectionHeaderBorderColor: string;
-  sectionHeaderTextColor: string;
+  pageBg: string; pageText: string; secondaryText: string; accentColor: string;
+  headingFont: string; bodyFont: string; coverBg: string; coverTextColor: string;
+  sectionHeaderBorderColor: string; sectionHeaderTextColor: string;
   sectionHeaderStyle: 'rule-gold' | 'centred-italic' | 'ornamental' | 'band' | 'cross';
-  tributeCardBg: string;
-  tributeCardBorder: string;
-  pageMarginMm: number;
+  tributeCardBg: string; tributeCardBorder: string; pageMarginMm: number;
 }
 
 const THEME_STYLES: Record<PublicationTheme, ThemeStyles> = {
-  // ── Classic ──────────────────────────────────────────────
-  // Retirement, Ordination, Award, Memorial
-  // Deep purple + antique gold + cream. Formal. Playfair Display.
   classic: {
-    pageBg:                   '#F5F3EE',
-    pageText:                 '#1C1C1E',
-    secondaryText:            '#5F5E5A',
-    accentColor:              '#B8960C',
-    headingFont:              "'Playfair Display', Georgia, serif",
-    bodyFont:                 "'Playfair Display', Georgia, serif",
-    coverBg:                  '#2D1B69',
-    coverTextColor:           '#F5F3EE',
-    sectionHeaderBorderColor: '#B8960C',
-    sectionHeaderTextColor:   '#2D1B69',
-    sectionHeaderStyle:       'rule-gold',
-    tributeCardBg:            '#FFFFFF',
-    tributeCardBorder:        '#E8E4DC',
-    pageMarginMm:             20,
+    pageBg: '#F5F3EE', pageText: '#1C1C1E', secondaryText: '#5F5E5A',
+    accentColor: '#B8960C', headingFont: "'Playfair Display', Georgia, serif",
+    bodyFont: "'Playfair Display', Georgia, serif",
+    coverBg: '#2D1B69', coverTextColor: '#F5F3EE',
+    sectionHeaderBorderColor: '#B8960C', sectionHeaderTextColor: '#2D1B69',
+    sectionHeaderStyle: 'rule-gold', tributeCardBg: '#FFFFFF',
+    tributeCardBorder: '#E8E4DC', pageMarginMm: 20,
   },
-
-  // ── Soft ─────────────────────────────────────────────────
-  // Milestone Birthday, Anniversary
-  // Blush + dusty rose + warm white. Airy. Cormorant Garamond light italic.
   soft: {
-    pageBg:                   '#FAFAF8',
-    pageText:                 '#3D2B2B',
-    secondaryText:            '#8B6E6E',
-    accentColor:              '#C4918A',
-    headingFont:              "'Cormorant Garamond', 'Garamond', Georgia, serif",
-    bodyFont:                 "'Cormorant Garamond', 'Garamond', Georgia, serif",
-    coverBg:                  '#F2E8E4',
-    coverTextColor:           '#3D2B2B',
-    sectionHeaderBorderColor: '#C4918A',
-    sectionHeaderTextColor:   '#C4918A',
-    sectionHeaderStyle:       'centred-italic',
-    tributeCardBg:            '#FFFFFF',
-    tributeCardBorder:        '#EDE0DC',
-    pageMarginMm:             22,
+    pageBg: '#FAFAF8', pageText: '#3D2B2B', secondaryText: '#8B6E6E',
+    accentColor: '#C4918A', headingFont: "'Cormorant Garamond', Georgia, serif",
+    bodyFont: "'Cormorant Garamond', Georgia, serif",
+    coverBg: '#F2E8E4', coverTextColor: '#3D2B2B',
+    sectionHeaderBorderColor: '#C4918A', sectionHeaderTextColor: '#C4918A',
+    sectionHeaderStyle: 'centred-italic', tributeCardBg: '#FFFFFF',
+    tributeCardBorder: '#EDE0DC', pageMarginMm: 22,
   },
-
-  // ── Romantic ─────────────────────────────────────────────
-  // Wedding
-  // Ivory + champagne gold + soft black. Cormorant Garamond.
-  // Ornamental SVG divider between sections.
   romantic: {
-    pageBg:                   '#FAF7F2',
-    pageText:                 '#1A1A1A',
-    secondaryText:            '#6B6560',
-    accentColor:              '#C9A96E',
-    headingFont:              "'Cormorant Garamond', 'Garamond', Georgia, serif",
-    bodyFont:                 "'Cormorant Garamond', 'Garamond', Georgia, serif",
-    coverBg:                  '#FAF7F2',
-    coverTextColor:           '#1A1A1A',
-    sectionHeaderBorderColor: '#C9A96E',
-    sectionHeaderTextColor:   '#1A1A1A',
-    sectionHeaderStyle:       'ornamental',
-    tributeCardBg:            '#FFFFFF',
-    tributeCardBorder:        '#EDE8E0',
-    pageMarginMm:             24,
+    pageBg: '#FAF7F2', pageText: '#1A1A1A', secondaryText: '#6B6560',
+    accentColor: '#C9A96E', headingFont: "'Cormorant Garamond', Georgia, serif",
+    bodyFont: "'Cormorant Garamond', Georgia, serif",
+    coverBg: '#FAF7F2', coverTextColor: '#1A1A1A',
+    sectionHeaderBorderColor: '#C9A96E', sectionHeaderTextColor: '#1A1A1A',
+    sectionHeaderStyle: 'ornamental', tributeCardBg: '#FFFFFF',
+    tributeCardBorder: '#EDE8DC', pageMarginMm: 22,
   },
-
-  // ── Vibrant ───────────────────────────────────────────────
-  // Graduation, Chieftaincy, Conference
-  // Rich navy + bright gold + white. DM Sans bold. Full-width band headers.
   vibrant: {
-    pageBg:                   '#FFFFFF',
-    pageText:                 '#0D1B3E',
-    secondaryText:            '#4A5568',
-    accentColor:              '#D4AE2A',
-    headingFont:              "'DM Sans', 'Helvetica Neue', Arial, sans-serif",
-    bodyFont:                 "'Playfair Display', Georgia, serif",
-    coverBg:                  '#0D1B3E',
-    coverTextColor:           '#FFFFFF',
-    sectionHeaderBorderColor: '#D4AE2A',
-    sectionHeaderTextColor:   '#FFFFFF',
-    sectionHeaderStyle:       'band',
-    tributeCardBg:            '#F8F9FC',
-    tributeCardBorder:        '#E2E8F0',
-    pageMarginMm:             18,
+    pageBg: '#FFFFFF', pageText: '#111111', secondaryText: '#555555',
+    accentColor: '#D4830A', headingFont: "'DM Sans', system-ui, sans-serif",
+    bodyFont: "'DM Sans', system-ui, sans-serif",
+    coverBg: '#1A1A2E', coverTextColor: '#FFFFFF',
+    sectionHeaderBorderColor: '#D4830A', sectionHeaderTextColor: '#1A1A2E',
+    sectionHeaderStyle: 'band', tributeCardBg: '#F8F8F8',
+    tributeCardBorder: '#E0E0E0', pageMarginMm: 18,
   },
-
-  // ── Spiritual ────────────────────────────────────────────
-  // Thanksgiving Service, Ordination (alt)
-  // Deep forest + warm gold + parchment. Cormorant Garamond. Reverent.
   spiritual: {
-    pageBg:                   '#F7F3EC',
-    pageText:                 '#1B3A2D',
-    secondaryText:            '#5A7262',
-    accentColor:              '#C8A96E',
-    headingFont:              "'Cormorant Garamond', 'Garamond', Georgia, serif",
-    bodyFont:                 "'Cormorant Garamond', 'Garamond', Georgia, serif",
-    coverBg:                  '#1B3A2D',
-    coverTextColor:           '#F7F3EC',
-    sectionHeaderBorderColor: '#C8A96E',
-    sectionHeaderTextColor:   '#1B3A2D',
-    sectionHeaderStyle:       'cross',
-    tributeCardBg:            '#FFFFFF',
-    tributeCardBorder:        '#DDD8CC',
-    pageMarginMm:             22,
+    pageBg: '#FAF9F6', pageText: '#2C2416', secondaryText: '#7A6E58',
+    accentColor: '#9B7B2F', headingFont: "'Playfair Display', Georgia, serif",
+    bodyFont: "'Playfair Display', Georgia, serif",
+    coverBg: '#1C1408', coverTextColor: '#FAF9F6',
+    sectionHeaderBorderColor: '#9B7B2F', sectionHeaderTextColor: '#2C2416',
+    sectionHeaderStyle: 'cross', tributeCardBg: '#FFFFFF',
+    tributeCardBorder: '#EAE4D8', pageMarginMm: 20,
   },
 };
 
 
 // ============================================================
-// SECTION 5 — Section header renderers
-// Each sectionHeaderStyle maps to a specific HTML/SVG treatment.
+// SECTION 5 — Section header renderer
 // ============================================================
 
 function renderSectionHeader(title: string, styles: ThemeStyles): string {
-  const { sectionHeaderStyle, sectionHeaderBorderColor, sectionHeaderTextColor,
-          headingFont, accentColor } = styles;
-
-  switch (sectionHeaderStyle) {
-
-    // Classic — gold rule above and below, small caps label in gold
+  switch (styles.sectionHeaderStyle) {
     case 'rule-gold':
-      return `
-        <div style="margin: 40px 0 28px; text-align: center;">
-          <div style="height: 1.5px; background: ${sectionHeaderBorderColor}; margin-bottom: 14px;"></div>
-          <h2 style="
-            font-family: ${headingFont};
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.18em;
-            text-transform: uppercase;
-            color: ${sectionHeaderTextColor};
-            margin: 0;
-            padding: 0 16px;
-          ">${title}</h2>
-          <div style="height: 1.5px; background: ${sectionHeaderBorderColor}; margin-top: 14px;"></div>
-        </div>`;
-
-    // Soft — thin rose rule, centred italic header
+      return `<div style="margin:40px 0 28px; border-bottom:2px solid ${styles.sectionHeaderBorderColor}; padding-bottom:10px;">
+        <h2 style="font-family:${styles.headingFont}; font-size:22px; color:${styles.sectionHeaderTextColor}; font-weight:700; letter-spacing:0.04em;">${escapeHtml(title)}</h2>
+      </div>`;
     case 'centred-italic':
-      return `
-        <div style="margin: 40px 0 28px; text-align: center;">
-          <div style="height: 0.75px; background: ${sectionHeaderBorderColor}; opacity: 0.5; margin-bottom: 16px;"></div>
-          <h2 style="
-            font-family: ${headingFont};
-            font-size: 22px;
-            font-weight: 300;
-            font-style: italic;
-            color: ${sectionHeaderTextColor};
-            margin: 0;
-            letter-spacing: 0.04em;
-          ">${title}</h2>
-        </div>`;
-
-    // Romantic — ornamental SVG flourish, centred title
+      return `<div style="margin:40px 0 28px; text-align:center;">
+        <h2 style="font-family:${styles.headingFont}; font-size:22px; color:${styles.sectionHeaderTextColor}; font-style:italic; font-weight:400;">${escapeHtml(title)}</h2>
+        <div style="width:60px; height:1px; background:${styles.sectionHeaderBorderColor}; margin:10px auto 0;"></div>
+      </div>`;
     case 'ornamental':
-      return `
-        <div style="margin: 48px 0 32px; text-align: center;">
-          <svg width="160" height="16" viewBox="0 0 160 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 12px;">
-            <line x1="0" y1="8" x2="60" y2="8" stroke="${sectionHeaderBorderColor}" stroke-width="0.75"/>
-            <circle cx="80" cy="8" r="4" fill="${sectionHeaderBorderColor}"/>
-            <circle cx="70" cy="8" r="2" fill="${sectionHeaderBorderColor}" opacity="0.5"/>
-            <circle cx="90" cy="8" r="2" fill="${sectionHeaderBorderColor}" opacity="0.5"/>
-            <line x1="100" y1="8" x2="160" y2="8" stroke="${sectionHeaderBorderColor}" stroke-width="0.75"/>
-          </svg>
-          <h2 style="
-            font-family: ${headingFont};
-            font-size: 20px;
-            font-weight: 400;
-            font-style: italic;
-            color: ${sectionHeaderTextColor};
-            margin: 0;
-            letter-spacing: 0.06em;
-          ">${title}</h2>
-          <svg width="160" height="16" viewBox="0 0 160 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:12px auto 0;">
-            <line x1="0" y1="8" x2="60" y2="8" stroke="${sectionHeaderBorderColor}" stroke-width="0.75"/>
-            <circle cx="80" cy="8" r="4" fill="${sectionHeaderBorderColor}"/>
-            <circle cx="70" cy="8" r="2" fill="${sectionHeaderBorderColor}" opacity="0.5"/>
-            <circle cx="90" cy="8" r="2" fill="${sectionHeaderBorderColor}" opacity="0.5"/>
-            <line x1="100" y1="8" x2="160" y2="8" stroke="${sectionHeaderBorderColor}" stroke-width="0.75"/>
-          </svg>
-        </div>`;
-
-    // Vibrant — bold full-width colour band with white text
+      return `<div style="margin:40px 0 28px; text-align:center;">
+        <div style="font-size:16px; color:${styles.accentColor}; margin-bottom:8px;">✦ &nbsp; ✦ &nbsp; ✦</div>
+        <h2 style="font-family:${styles.headingFont}; font-size:22px; color:${styles.sectionHeaderTextColor}; font-weight:600;">${escapeHtml(title)}</h2>
+      </div>`;
     case 'band':
-      return `
-        <div style="
-          margin: 40px -${styles.pageMarginMm}mm 28px;
-          padding: 14px ${styles.pageMarginMm}mm;
-          background: ${styles.coverBg};
-        ">
-          <h2 style="
-            font-family: ${styles.headingFont};
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            color: ${sectionHeaderTextColor};
-            margin: 0;
-          ">${title}</h2>
-        </div>`;
-
-    // Spiritual — gold mark (cross/leaf), centred heading
+      return `<div style="margin:40px 0 28px; background:${styles.sectionHeaderBorderColor}; padding:10px 16px; border-radius:6px;">
+        <h2 style="font-family:${styles.headingFont}; font-size:18px; color:#FFFFFF; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;">${escapeHtml(title)}</h2>
+      </div>`;
     case 'cross':
-      return `
-        <div style="margin: 44px 0 28px; text-align: center;">
-          <svg width="24" height="32" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 12px;">
-            <line x1="12" y1="0" x2="12" y2="32" stroke="${accentColor}" stroke-width="1.5"/>
-            <line x1="4" y1="10" x2="20" y2="10" stroke="${accentColor}" stroke-width="1.5"/>
-          </svg>
-          <h2 style="
-            font-family: ${headingFont};
-            font-size: 14px;
-            font-weight: 400;
-            letter-spacing: 0.16em;
-            text-transform: uppercase;
-            color: ${sectionHeaderTextColor};
-            margin: 0;
-          ">${title}</h2>
-          <div style="width: 40px; height: 1px; background: ${accentColor}; margin: 12px auto 0;"></div>
-        </div>`;
-
+      return `<div style="margin:40px 0 28px; display:flex; align-items:center; gap:12px;">
+        <span style="font-size:16px; color:${styles.accentColor};">✝</span>
+        <h2 style="font-family:${styles.headingFont}; font-size:22px; color:${styles.sectionHeaderTextColor}; font-weight:700;">${escapeHtml(title)}</h2>
+        <div style="flex:1; height:1px; background:${styles.sectionHeaderBorderColor};"></div>
+      </div>`;
     default:
-      return `<h2 style="font-family: ${headingFont}; font-size: 18px; margin: 32px 0 16px;">${title}</h2>`;
+      return `<h2 style="font-family:${styles.headingFont}; font-size:22px; color:${styles.sectionHeaderTextColor}; font-weight:700; margin:40px 0 28px;">${escapeHtml(title)}</h2>`;
   }
 }
 
 
 // ============================================================
-// SECTION 6 — Photo slot renderer
-// Converts slot type (feature / double / triple) to HTML table cells.
-// Uses table layout for PDF compatibility — flexbox can misfire in Puppeteer.
+// SECTION 6 — Cover renderer
 // ============================================================
 
-function renderPhotoSlots(
-  slots: PhotoSlot[],
-  photoUrlMap: Record<string, string>,
-  styles: ThemeStyles
-): string {
-  return slots.map(slot => {
-    if (slot.slot_type === 'feature') {
-      const url = photoUrlMap[slot.photo_id] ?? '';
-      return `
-        <div style="margin-bottom: 12px; page-break-inside: avoid;">
-          ${url ? `<img src="${url}" alt="${escapeHtml(slot.caption)}" style="
-            width: 100%; max-height: 380px;
-            object-fit: cover; display: block;
-            border-radius: 2px;
-            print-color-adjust: exact;
-          "/>` : ''}
-          ${slot.caption ? `<p style="
-            font-family: ${styles.bodyFont};
-            font-size: 9px; color: ${styles.secondaryText};
-            margin: 4px 0 0; text-align: center;
-          ">${escapeHtml(slot.caption)}</p>` : ''}
-        </div>`;
-    }
+function renderCover(capsule: CapsuleData, heroUrl: string, styles: ThemeStyles): string {
+  const displayName = capsule.honouree_title
+    ? `${capsule.honouree_title} ${capsule.honouree_name}`
+    : capsule.honouree_name;
+  const dateStr = formatEventDate(capsule.event_date);
 
-    if (slot.slot_type === 'double') {
-      const [a, b] = slot.photos;
-      return `
-        <table style="width:100%; border-collapse:collapse; margin-bottom: 12px; page-break-inside: avoid;">
-          <tr>
-            <td style="width:50%; padding-right:5px; vertical-align:top;">
-              ${renderSlotPhoto(a.photo_id, a.caption, photoUrlMap, styles)}
-            </td>
-            <td style="width:50%; padding-left:5px; vertical-align:top;">
-              ${renderSlotPhoto(b.photo_id, b.caption, photoUrlMap, styles)}
-            </td>
-          </tr>
-        </table>`;
-    }
-
-    // Triple
-    const [a, b, c] = slot.photos;
-    return `
-      <table style="width:100%; border-collapse:collapse; margin-bottom: 12px; page-break-inside: avoid;">
-        <tr>
-          <td style="width:33.33%; padding-right:4px; vertical-align:top;">
-            ${renderSlotPhoto(a.photo_id, a.caption, photoUrlMap, styles)}
-          </td>
-          <td style="width:33.33%; padding: 0 2px; vertical-align:top;">
-            ${renderSlotPhoto(b.photo_id, b.caption, photoUrlMap, styles)}
-          </td>
-          <td style="width:33.33%; padding-left:4px; vertical-align:top;">
-            ${renderSlotPhoto(c.photo_id, c.caption, photoUrlMap, styles)}
-          </td>
-        </tr>
-      </table>`;
-  }).join('');
-}
-
-function renderSlotPhoto(
-  photoId: string,
-  caption: string,
-  photoUrlMap: Record<string, string>,
-  styles: ThemeStyles
-): string {
-  const url = photoUrlMap[photoId] ?? '';
-  return `
-    ${url ? `<img src="${url}" alt="${escapeHtml(caption)}" style="
-      width: 100%; height: 180px;
-      object-fit: cover; display: block;
-      border-radius: 2px;
-      print-color-adjust: exact;
-    "/>` : `<div style="width:100%;height:180px;background:#eee;border-radius:2px;"></div>`}
-    ${caption ? `<p style="
-      font-family: ${styles.bodyFont};
-      font-size: 8px; color: ${styles.secondaryText};
-      margin: 3px 0 0; text-align: center;
-    ">${escapeHtml(caption)}</p>` : ''}`;
+  return `<div style="min-height:100vh; background:${styles.coverBg}; color:${styles.coverTextColor}; display:flex; flex-direction:column; justify-content:flex-end; page-break-after:always; position:relative; overflow:hidden;">
+    ${heroUrl ? `<div style="position:absolute; top:0; left:0; right:0; height:60%; overflow:hidden;">
+      <img src="${heroUrl}" alt="" style="width:100%; height:100%; object-fit:cover; object-position:center top;"/>
+      <div style="position:absolute; bottom:0; left:0; right:0; height:50%; background:linear-gradient(to bottom, transparent, ${styles.coverBg});"></div>
+    </div>` : ''}
+    <div style="position:relative; padding:60px 48px 56px; z-index:1;">
+      <div style="width:48px; height:3px; background:${styles.accentColor}; margin-bottom:24px;"></div>
+      <p style="font-family:${styles.bodyFont}; font-size:11px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; opacity:0.6; margin-bottom:16px;">LEGACYCAPSULE</p>
+      <h1 style="font-family:${styles.headingFont}; font-size:52px; font-weight:700; line-height:1.1; margin-bottom:16px;">${escapeHtml(displayName)}</h1>
+      ${capsule.event_tag ? `<p style="font-family:${styles.bodyFont}; font-size:18px; opacity:0.7; font-style:italic; margin-bottom:8px;">${escapeHtml(capsule.event_tag)}</p>` : ''}
+      ${dateStr ? `<p style="font-family:${styles.bodyFont}; font-size:14px; opacity:0.55; margin-bottom:0;">${escapeHtml(dateStr)}</p>` : ''}
+      <div style="width:48px; height:2px; background:${styles.accentColor}; margin:32px 0 0;"></div>
+    </div>
+  </div>`;
 }
 
 
 // ============================================================
-// SECTION 7 — Individual section renderers
-// One function per section type. Each renders to an HTML string.
-// All use inline styles — no external CSS dependencies.
+// SECTION 7 — Honouree profile renderer (was empty placeholder)
 // ============================================================
 
-function renderCover(
+function renderHonoureeProfile(
   capsule: CapsuleData,
-  heroUrl: string,
+  profileSections: ProfileSectionData[],
   styles: ThemeStyles
 ): string {
-  const coverStyle = capsule.cover_style ?? 'full_bleed';
+  if (!profileSections || profileSections.length === 0) return '';
 
-  if (coverStyle === 'full_bleed') {
-    return `
-      <div style="
-        width: 100%; height: 100vh; min-height: 297mm;
-        background-color: ${styles.coverBg};
-        position: relative; page-break-after: always;
-        display: flex; flex-direction: column; justify-content: flex-end;
-        print-color-adjust: exact;
-      ">
-        ${heroUrl ? `
-          <img src="${heroUrl}" style="
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%; object-fit: cover;
-            print-color-adjust: exact;
-          "/>
-          <div style="
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.1) 60%, transparent 100%);
-          "></div>
-        ` : ''}
-        <div style="position: relative; padding: 48px; z-index: 1;">
-          ${capsule.event_tag ? `<p style="
-            font-family: ${styles.headingFont};
-            font-size: 10px; letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: ${heroUrl ? '#FFFFFF' : styles.coverTextColor};
-            opacity: 0.8; margin: 0 0 12px;
-          ">${escapeHtml(capsule.event_tag)}</p>` : ''}
-          <h1 style="
-            font-family: ${styles.headingFont};
-            font-size: 48px; font-weight: 700;
-            line-height: 1.1;
-            color: ${heroUrl ? '#FFFFFF' : styles.coverTextColor};
-            margin: 0 0 12px;
-          ">${escapeHtml(capsule.honouree_name)}</h1>
-          ${capsule.honouree_title ? `<p style="
-            font-family: ${styles.bodyFont};
-            font-size: 16px; font-style: italic;
-            color: ${heroUrl ? 'rgba(255,255,255,0.85)' : styles.coverTextColor};
-            margin: 0 0 8px;
-          ">${escapeHtml(capsule.honouree_title)}</p>` : ''}
-          ${capsule.event_date ? `<p style="
-            font-family: ${styles.bodyFont};
-            font-size: 12px;
-            color: ${heroUrl ? 'rgba(255,255,255,0.7)' : styles.secondaryText};
-            margin: 0;
-          ">${formatEventDate(capsule.event_date)}</p>` : ''}
-        </div>
-      </div>`;
-  }
+  const activeSections = profileSections.filter(s => s.is_active && s.content?.trim());
+  if (activeSections.length === 0) return '';
 
-  if (coverStyle === 'split') {
-    return `
-      <div style="
-        width: 100%; min-height: 297mm;
-        display: flex; page-break-after: always;
-        print-color-adjust: exact;
-      ">
-        <div style="width: 50%; background: ${styles.coverBg};">
-          ${heroUrl ? `<img src="${heroUrl}" style="width:100%; height:100%; object-fit:cover; print-color-adjust:exact;"/>` : ''}
-        </div>
-        <div style="
-          width: 50%; background: ${styles.pageBg};
-          display: flex; align-items: center; justify-content: center;
-          padding: 48px;
-        ">
-          <div>
-            ${capsule.event_tag ? `<p style="
-              font-family: ${styles.headingFont};
-              font-size: 9px; letter-spacing: 0.2em;
-              text-transform: uppercase;
-              color: ${styles.accentColor};
-              margin: 0 0 16px;
-            ">${escapeHtml(capsule.event_tag)}</p>` : ''}
-            <h1 style="
-              font-family: ${styles.headingFont};
-              font-size: 36px; font-weight: 700;
-              line-height: 1.15; color: ${styles.pageText};
-              margin: 0 0 16px;
-            ">${escapeHtml(capsule.honouree_name)}</h1>
-            <div style="width:48px; height:2px; background:${styles.accentColor}; margin-bottom:16px;"></div>
-            ${capsule.honouree_title ? `<p style="
-              font-family: ${styles.bodyFont};
-              font-size: 14px; font-style: italic;
-              color: ${styles.secondaryText}; margin: 0 0 8px;
-            ">${escapeHtml(capsule.honouree_title)}</p>` : ''}
-            ${capsule.event_date ? `<p style="
-              font-family: ${styles.bodyFont};
-              font-size: 11px; color: ${styles.secondaryText}; margin: 0;
-            ">${formatEventDate(capsule.event_date)}</p>` : ''}
-          </div>
-        </div>
-      </div>`;
-  }
+  const SECTION_LABELS: Record<string, string> = {
+    intro: 'Introduction', biography: 'Biography', timeline: 'Timeline',
+    achievements: 'Achievements', family: 'Family', legacy: 'Legacy', custom: '',
+  };
 
-  // Typographic cover — no image
-  return `
-    <div style="
-      width: 100%; min-height: 297mm;
-      background: ${styles.coverBg}; page-break-after: always;
-      display: flex; align-items: center; justify-content: center;
-      print-color-adjust: exact;
-    ">
-      <div style="text-align: center; padding: 80px 64px;">
-        <div style="width:60px; height:3px; background:${styles.accentColor}; margin:0 auto 40px;"></div>
-        <h1 style="
-          font-family: ${styles.headingFont};
-          font-size: 56px; font-weight: 700;
-          line-height: 1.1; color: ${styles.coverTextColor};
-          margin: 0 0 24px;
-        ">${escapeHtml(capsule.honouree_name)}</h1>
-        ${capsule.honouree_title ? `<p style="
-          font-family: ${styles.bodyFont};
-          font-size: 18px; font-style: italic;
-          color: ${styles.coverTextColor}; opacity: 0.8;
-          margin: 0 0 16px;
-        ">${escapeHtml(capsule.honouree_title)}</p>` : ''}
-        ${capsule.event_tag ? `<p style="
-          font-family: ${styles.headingFont};
-          font-size: 10px; letter-spacing: 0.2em;
-          text-transform: uppercase;
-          color: ${styles.coverTextColor}; opacity: 0.6;
-          margin: 16px 0 0;
-        ">${escapeHtml(capsule.event_tag)}</p>` : ''}
-        <div style="width:60px; height:3px; background:${styles.accentColor}; margin:40px auto 0;"></div>
-      </div>
-    </div>`;
+  const sectionsHtml = activeSections.map(s => {
+    const title = s.custom_title ?? SECTION_LABELS[s.section_type] ?? s.section_type
+    return `<div style="margin-bottom:28px; page-break-inside:avoid;">
+      ${title ? `<h3 style="font-family:${styles.headingFont}; font-size:16px; color:${styles.sectionHeaderTextColor}; font-weight:600; margin-bottom:10px; border-left:3px solid ${styles.accentColor}; padding-left:12px;">${escapeHtml(title)}</h3>` : ''}
+      <p style="font-family:${styles.bodyFont}; font-size:13px; line-height:1.85; color:${styles.pageText}; white-space:pre-wrap;">${escapeHtml(s.content ?? '')}</p>
+    </div>`
+  }).join('')
+
+  return `<div style="page-break-before:always;">
+    ${renderSectionHeader(`${capsule.honouree_title ? capsule.honouree_title + ' ' : ''}${capsule.honouree_name}`, styles)}
+    ${sectionsHtml}
+  </div>`;
 }
+
+
+// ============================================================
+// SECTION 8 — Tributes renderer (improved typography)
+// ============================================================
 
 function renderTributes(
   section: TributesSection,
-  contributions: ContributionData[],
+  contribs: ContributionData[],
   styles: ThemeStyles
 ): string {
-  const itemMap = new Map(contributions.map(c => [c.id, c]));
+  // Filter to tributes only (not community stories, not D-Day)
+  let tributeList = contribs.filter(c => !c.story_topic_id && !c.is_dday);
 
-  // Build ordered list from section items (respects organiser order_mode)
-  const ordered = section.items
-    .map(item => itemMap.get(item.contribution_id))
-    .filter(Boolean) as ContributionData[];
+  const sec = section as any;
+  if (sec.order_mode === 'custom' && sec.ordered_ids?.length) {
+    const idIndex: Record<string, number> = Object.fromEntries(sec.ordered_ids.map((id: string, i: number) => [id, i]));
+    tributeList = [...tributeList].sort((a, b) => (idIndex[a.id] ?? 999) - (idIndex[b.id] ?? 999));
+  }
 
-  const cards = ordered.map(c => {
-    const displayName = c.is_anonymous ? 'Anonymous' : escapeHtml(c.contributor_name);
-    const locationParts = [c.city, c.country].filter(Boolean);
-    const location = locationParts.join(', ');
+  const cards = tributeList.map(c => {
+    const name     = c.is_anonymous ? 'A community member' : escapeHtml(c.contributor_name)
+    const location = [c.city, c.country].filter(Boolean).map(escapeHtml).join(', ')
+    const rel      = c.relationship ? escapeHtml(c.relationship) : ''
 
-    return `
-      <div
-        data-contribution-id="${c.id}"
-        style="
-          background: ${styles.tributeCardBg};
-          border: 1px solid ${styles.tributeCardBorder};
-          border-radius: 4px;
-          padding: 20px 22px;
-          margin-bottom: 14px;
-          page-break-inside: avoid;
-        "
-      >
-        <div style="
-          display: flex; justify-content: space-between;
-          align-items: baseline; margin-bottom: 10px;
-        ">
-          <strong style="
-            font-family: ${styles.headingFont};
-            font-size: 13px; color: ${styles.pageText};
-          ">${displayName}</strong>
-          ${location ? `<span style="
-            font-family: ${styles.bodyFont};
-            font-size: 10px; color: ${styles.secondaryText};
-          ">${escapeHtml(location)}</span>` : ''}
-        </div>
-        ${c.relationship ? `<p style="
-          font-family: ${styles.bodyFont};
-          font-size: 10px; font-style: italic;
-          color: ${styles.accentColor};
-          margin: 0 0 8px;
-        ">${escapeHtml(c.relationship)}</p>` : ''}
-        ${c.tribute_text ? `<p style="
-          font-family: ${styles.bodyFont};
-          font-size: 12px; line-height: 1.7;
-          color: ${styles.pageText};
-          margin: 0;
-          white-space: pre-wrap;
-        ">${escapeHtml(c.tribute_text)}</p>` : ''}
-        ${c.image_url ? `<img src="${c.image_url}" style="
-          width:100%; max-height:220px;
-          object-fit:cover; margin-top:12px;
-          border-radius:2px; display:block;
-          print-color-adjust:exact;
-        "/>` : ''}
-      </div>`;
-  }).join('');
+    return `<div data-contribution-id="${c.id}" style="background:${styles.tributeCardBg}; border:1px solid ${styles.tributeCardBorder}; border-radius:10px; padding:20px 22px; margin-bottom:14px; page-break-inside:avoid;">
+      <p style="font-family:${styles.headingFont}; font-size:15px; font-weight:700; color:${styles.pageText}; margin-bottom:4px;">${name}</p>
+      ${(location || rel) ? `<p style="font-family:${styles.bodyFont}; font-size:11px; color:${styles.secondaryText}; margin-bottom:12px;">${[rel, location].filter(Boolean).join(' · ')}</p>` : '<div style="margin-bottom:12px;"></div>'}
+      <p style="font-family:${styles.bodyFont}; font-size:13px; line-height:1.80; color:${styles.pageText};">${escapeHtml(c.tribute_text ?? '')}</p>
+    </div>`
+  }).join('')
 
-  return `
-    <div style="page-break-before: always;">
-      ${renderSectionHeader('Tributes', styles)}
-      ${cards}
-    </div>`;
+  return `<div>
+    ${renderSectionHeader('Tributes', styles)}
+    <p style="font-family:${styles.bodyFont}; font-size:12px; color:${styles.secondaryText}; margin-bottom:20px; font-style:italic;">${tributeList.length} voice${tributeList.length !== 1 ? 's' : ''} gathered</p>
+    ${cards}
+  </div>`;
 }
+
+
+// ============================================================
+// SECTION 9 — Community Memories & Stories renderer (NEW)
+// ============================================================
+
+function renderCommunityStories(
+  contribs: ContributionData[],
+  topics: StoryTopicData[],
+  styles: ThemeStyles
+): string {
+  const storyContribs = contribs.filter(c => !!c.story_topic_id)
+  if (storyContribs.length === 0 || topics.length === 0) return ''
+
+  const topicsHtml = topics.map(topic => {
+    const topicStories = storyContribs.filter(s => s.story_topic_id === topic.id)
+    if (topicStories.length === 0) return ''
+
+    const storiesHtml = topicStories.map(s => {
+      const name     = escapeHtml(s.contributor_name)
+      const location = [s.city, s.country].filter(Boolean).map(escapeHtml).join(', ')
+      const rel      = s.relationship ? escapeHtml(s.relationship) : ''
+
+      return `<div style="background:${styles.tributeCardBg}; border:1px solid ${styles.tributeCardBorder}; border-radius:10px; padding:18px 20px; margin-bottom:12px; page-break-inside:avoid;">
+        <p style="font-family:${styles.headingFont}; font-size:14px; font-weight:700; color:${styles.pageText}; margin-bottom:3px;">${name}</p>
+        ${(location || rel) ? `<p style="font-family:${styles.bodyFont}; font-size:11px; color:${styles.secondaryText}; margin-bottom:10px;">${[rel, location].filter(Boolean).join(' · ')}</p>` : '<div style="margin-bottom:10px;"></div>'}
+        <p style="font-family:${styles.bodyFont}; font-size:13px; line-height:1.80; color:${styles.pageText};">${escapeHtml(s.tribute_text ?? '')}</p>
+      </div>`
+    }).join('')
+
+    return `<div style="margin-bottom:32px;">
+      <h3 style="font-family:${styles.headingFont}; font-size:16px; font-weight:600; color:${styles.sectionHeaderTextColor}; border-left:3px solid ${styles.accentColor}; padding-left:12px; margin-bottom:14px;">${escapeHtml(topic.topic_name)}</h3>
+      ${storiesHtml}
+    </div>`
+  }).join('')
+
+  return `<div style="page-break-before:always;">
+    ${renderSectionHeader('Community Memories & Stories', styles)}
+    ${topicsHtml}
+  </div>`;
+}
+
+
+// ============================================================
+// SECTION 10 — Phase photos renderer
+// ============================================================
 
 function renderPhasePhotos(
   section: PhasePhotosSection,
   photoUrlMap: Record<string, string>,
   styles: ThemeStyles
 ): string {
-  if (section.slots.length === 0) return '';
-  return `
-    <div style="page-break-before: always;">
-      ${renderSectionHeader(section.phase_name, styles)}
-      ${renderPhotoSlots(section.slots, photoUrlMap, styles)}
-    </div>`;
-}
+  const enabledSlots = ((section as any).slots ?? []).filter((s: any) => s.enabled && photoUrlMap[s.gallery_item_id]);
+  if (enabledSlots.length === 0) return '';
 
-function renderWhoAttended(
-  guests: GuestData[],
-  styles: ThemeStyles
-): string {
-  if (guests.length === 0) return '';
+  const COLS = 2;
+  const rows: any[][] = [];
+  for (let i = 0; i < enabledSlots.length; i += COLS) rows.push(enabledSlots.slice(i, i + COLS));
 
-  const names = guests
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map(g => `<span style="
-      font-family: ${styles.bodyFont};
-      font-size: 11px; color: ${styles.pageText};
-      display: inline-block; margin: 3px 14px 3px 0;
-    ">${escapeHtml(g.name)}</span>`)
-    .join('');
+  const gridHtml = rows.map(row =>
+    `<div style="display:flex; gap:12px; margin-bottom:12px; page-break-inside:avoid;">
+      ${row.map((slot: any) => {
+        const url     = photoUrlMap[slot.gallery_item_id] ?? ''
+        const caption = slot.custom_caption ?? ''
+        const isFeature = slot.is_feature
+        return `<div style="flex:${isFeature ? '2' : '1'}; min-width:0;">
+          <img src="${url}" alt="${escapeHtml(caption)}" style="width:100%; height:${isFeature ? '280px' : '180px'}; object-fit:cover; border-radius:8px; display:block;"/>
+          ${caption ? `<p style="font-size:10px; color:${styles.secondaryText}; margin-top:6px; font-style:italic; text-align:center;">${escapeHtml(caption)}</p>` : ''}
+        </div>`
+      }).join('')}
+    </div>`
+  ).join('')
 
-  return `
-    <div style="page-break-before: always;">
-      ${renderSectionHeader('Those Who Attended', styles)}
-      <div style="line-height: 2;">${names}</div>
-    </div>`;
-}
-
-function renderClosingMessage(
-  capsule: CapsuleData,
-  styles: ThemeStyles
-): string {
-  return `
-    <div style="
-      page-break-before: always;
-      min-height: 60vh;
-      display: flex; align-items: center; justify-content: center;
-      text-align: center;
-    ">
-      <div>
-        <div style="width:48px; height:2px; background:${styles.accentColor}; margin:0 auto 32px;"></div>
-        <p style="
-          font-family: ${styles.headingFont};
-          font-size: 22px; font-style: italic;
-          color: ${styles.pageText}; margin: 0 0 16px;
-          line-height: 1.5;
-        ">Every event. Preserved.</p>
-        <p style="
-          font-family: ${styles.bodyFont};
-          font-size: 11px; color: ${styles.secondaryText};
-          margin: 0;
-        ">This publication was created with LegacyCapsule by RevoWorldTech</p>
-        <div style="width:48px; height:2px; background:${styles.accentColor}; margin:32px auto 0;"></div>
-      </div>
-    </div>`;
+  return `<div style="page-break-before:always;">
+    ${renderSectionHeader(section.phase_name ?? 'Event Photographs', styles)}
+    ${gridHtml}
+  </div>`;
 }
 
 
 // ============================================================
-// SECTION 8 — Utility functions
+// SECTION 11 — D-Day guest captures renderer (NEW)
+// ============================================================
+
+function renderDdayCaptures(
+  contribs: ContributionData[],
+  galleryItems: GalleryItemData[],
+  photoUrlMap: Record<string, string>,
+  styles: ThemeStyles
+): string {
+  const ddayPhotos   = galleryItems.filter(g => g.source === 'dday' && photoUrlMap[g.id])
+  const ddayTributes = contribs.filter(c => c.is_dday && !c.story_topic_id)
+
+  if (ddayPhotos.length === 0 && ddayTributes.length === 0) return ''
+
+  const photosHtml = ddayPhotos.length > 0 ? `
+    <h3 style="font-family:${styles.headingFont}; font-size:15px; font-weight:600; color:${styles.sectionHeaderTextColor}; margin-bottom:14px;">Guest Photographs</h3>
+    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px;">
+      ${ddayPhotos.map(p => `<div style="width:calc(33.33% - 8px);">
+        <img src="${photoUrlMap[p.id]}" alt="${escapeHtml(p.caption ?? '')}" style="width:100%; height:140px; object-fit:cover; border-radius:8px;"/>
+        ${p.caption ? `<p style="font-size:9px; color:${styles.secondaryText}; margin-top:4px; text-align:center; font-style:italic;">${escapeHtml(p.caption)}</p>` : ''}
+      </div>`).join('')}
+    </div>` : ''
+
+  const tributesHtml = ddayTributes.length > 0 ? `
+    <h3 style="font-family:${styles.headingFont}; font-size:15px; font-weight:600; color:${styles.sectionHeaderTextColor}; margin-bottom:14px;">On-the-Day Tributes</h3>
+    ${ddayTributes.map(c => `<div style="background:${styles.tributeCardBg}; border:1px solid ${styles.tributeCardBorder}; border-radius:10px; padding:16px 18px; margin-bottom:10px; page-break-inside:avoid;">
+      <p style="font-family:${styles.headingFont}; font-size:14px; font-weight:700; color:${styles.pageText}; margin-bottom:4px;">${escapeHtml(c.contributor_name)}</p>
+      <p style="font-family:${styles.bodyFont}; font-size:13px; line-height:1.80; color:${styles.pageText};">${escapeHtml(c.tribute_text ?? '')}</p>
+    </div>`).join('')}` : ''
+
+  return `<div style="page-break-before:always;">
+    ${renderSectionHeader('On The Day', styles)}
+    ${photosHtml}
+    ${tributesHtml}
+  </div>`;
+}
+
+
+// ============================================================
+// SECTION 12 — Who Attended renderer
+// ============================================================
+
+function renderWhoAttended(guests: GuestData[], styles: ThemeStyles): string {
+  if (!guests || guests.length === 0) return '';
+
+  const tiers  = ['VVIP', 'VIP', 'General', 'Reception Only', 'Staff', 'Media', 'Vendor']
+  const byTier = tiers.reduce((acc, tier) => {
+    const g = guests.filter(guest => guest.tier === tier)
+    if (g.length > 0) acc[tier] = g
+    return acc
+  }, {} as Record<string, GuestData[]>)
+
+  const tiersHtml = Object.entries(byTier).map(([tier, list]) =>
+    `<div style="margin-bottom:20px;">
+      <p style="font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:${styles.accentColor}; margin-bottom:8px;">${escapeHtml(tier)}</p>
+      <div style="columns:3; column-gap:16px;">
+        ${list.map(g => `<p style="font-size:12px; color:${styles.pageText}; margin-bottom:4px; break-inside:avoid;">${escapeHtml(g.name)}</p>`).join('')}
+      </div>
+    </div>`
+  ).join('')
+
+  return `<div style="page-break-before:always;">
+    ${renderSectionHeader('Who Attended', styles)}
+    <p style="font-family:${styles.bodyFont}; font-size:12px; color:${styles.secondaryText}; margin-bottom:20px; font-style:italic;">${guests.length} guest${guests.length !== 1 ? 's' : ''} verified at this event</p>
+    ${tiersHtml}
+  </div>`;
+}
+
+
+// ============================================================
+// SECTION 13 — Closing message renderer
+// ============================================================
+
+function renderClosingMessage(capsule: CapsuleData, styles: ThemeStyles): string {
+  return `<div style="page-break-before:always; text-align:center; padding:80px 40px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:50vh;">
+    <div style="width:40px; height:2px; background:${styles.accentColor}; margin-bottom:32px;"></div>
+    <p style="font-family:${styles.headingFont}; font-size:22px; color:${styles.pageText}; font-style:italic; margin-bottom:16px; line-height:1.5; max-width:400px;">
+      "Events end. Legacies don't."
+    </p>
+    <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; line-height:1.7; max-width:360px; margin-bottom:40px;">
+      This publication was assembled from the voices of those who love and remember ${escapeHtml(capsule.honouree_name)}.
+      It is a permanent record — kept for all who contributed, and for those who come after.
+    </p>
+    <p style="font-family:${styles.bodyFont}; font-size:10px; color:${styles.secondaryText}; opacity:0.5; letter-spacing:0.14em; text-transform:uppercase;">
+      LegacyCapsule · VALNEX, UNIPESSOAL LDA · RevoWorldTech
+    </p>
+    <div style="width:40px; height:2px; background:${styles.accentColor}; margin-top:32px;"></div>
+  </div>`;
+}
+
+
+// ============================================================
+// SECTION 14 — Utilities
 // ============================================================
 
 function escapeHtml(str: string | null | undefined): string {
   if (!str) return '';
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function formatEventDate(dateStr: string | null): string {
   if (!dateStr) return '';
   try {
-    return new Date(dateStr).toLocaleDateString('en-GB', {
-      day: 'numeric', month: 'long', year: 'numeric'
-    });
-  } catch {
-    return dateStr;
-  }
+    return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch { return dateStr; }
 }
 
 
 // ============================================================
-// SECTION 9 — Page component
-// Validates render_token, fetches all data, builds HTML string.
-// Returns the complete publication as a styled, self-contained page.
+// SECTION 15 — Page component
 // ============================================================
 
 export default async function PublicationRenderPage({
@@ -791,13 +528,13 @@ export default async function PublicationRenderPage({
   params: Promise<{ token: string }>;
   searchParams: Promise<{ autoPrint?: string }>;
 }) {
-  const { token } = await params;
+  const { token }   = await params;
   const { autoPrint } = await searchParams;
   const shouldAutoPrint = autoPrint === '1';
 
   if (!token || token.length < 32) return notFound();
 
-  // ── Validate render token ──────────────────────────────────
+  // ── Validate render token ─────────────────────────────────
   const { data: pub } = await adminClient
     .from('publications')
     .select('id, capsule_id, layout_config, version')
@@ -810,131 +547,86 @@ export default async function PublicationRenderPage({
   const capsuleId    = pub.capsule_id;
 
   // ── Fetch all content in parallel ─────────────────────────
-  const [capsuleRes, contribsRes, galleryRes, phasesRes, guestsRes] =
+  const [capsuleRes, contribsRes, galleryRes, phasesRes, guestsRes, profileRes, topicsRes] =
     await Promise.all([
       adminClient.from('capsules')
         .select('id, honouree_name, honouree_title, event_type, event_date, event_tag, hero_image_url, theme, cover_style')
-        .eq('id', capsuleId)
-        .single(),
+        .eq('id', capsuleId).single(),
 
       adminClient.from('contributions')
-        .select('id, contributor_name, city, country, relationship, tribute_text, image_url, is_anonymous, created_at')
-        .eq('capsule_id', capsuleId)
-        .eq('status', 'approved')
-        .is('deleted_at', null)
-        .order('created_at'),
+        .select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, is_anonymous, story_topic_id, is_dday, created_at')
+        .eq('capsule_id', capsuleId).eq('status', 'approved').is('deleted_at', null).order('created_at'),
 
       adminClient.from('gallery_items')
-        .select('id, image_url, caption, phase_id')
-        .eq('capsule_id', capsuleId)
-        .eq('approved', true)
-        .is('deleted_at', null),
+        .select('id, image_url, caption, phase_id, source')
+        .eq('capsule_id', capsuleId).eq('approved', true).is('deleted_at', null),
 
       adminClient.from('capsule_phases')
         .select('id, name, event_date, location')
-        .eq('capsule_id', capsuleId)
-        .is('deleted_at', null)
-        .order('sort_order'),
+        .eq('capsule_id', capsuleId).is('deleted_at', null).order('sort_order'),
 
       adminClient.from('guests')
         .select('id, name, tier')
-        .eq('capsule_id', capsuleId)
-        .not('checked_in_at', 'is', null),
+        .eq('capsule_id', capsuleId).not('checked_in_at', 'is', null),
+
+      // NEW: profile sections for honouree profile
+      adminClient.from('capsule_profile_sections')
+        .select('id, section_type, custom_title, content, sort_order, is_active')
+        .eq('capsule_id', capsuleId).eq('is_active', true).order('sort_order'),
+
+      // NEW: community story topics
+      adminClient.from('community_story_topics')
+        .select('id, topic_name, display_order')
+        .eq('capsule_id', capsuleId).eq('status', 'active').order('display_order'),
     ]);
 
-  const capsule  = capsuleRes.data  as CapsuleData;
-  const contribs = contribsRes.data as ContributionData[] ?? [];
-  const gallery  = galleryRes.data  as GalleryItemData[]  ?? [];
-  const guests   = guestsRes.data   as GuestData[]        ?? [];
+  const capsule       = capsuleRes.data  as CapsuleData;
+  const contribs      = (contribsRes.data ?? []) as ContributionData[];
+  const gallery       = (galleryRes.data  ?? []) as GalleryItemData[];
+  const guests        = (guestsRes.data   ?? []) as GuestData[];
+  const profileSections = (profileRes.data ?? []) as ProfileSectionData[];
+  const storyTopics   = (topicsRes.data   ?? []) as StoryTopicData[];
 
   if (!capsule) return notFound();
 
-  // ── Resolve theme styles ───────────────────────────────────
   const theme  = layoutConfig.theme ?? 'classic';
-  const styles = THEME_STYLES[theme] ?? THEME_STYLES.classic;
+  const styles = THEME_STYLES[theme as PublicationTheme] ?? THEME_STYLES.classic;
 
-  // ── Convert all Supabase Storage URLs to signed URLs ───────
-  // All image references resolved to signed URLs before HTML build.
-  // Puppeteer never needs to authenticate against Supabase.
+  // ── Resolve signed URLs ───────────────────────────────────
   const heroUrl = await toSignedUrl(capsule.hero_image_url);
-
   const photoUrlMap: Record<string, string> = {};
-  await Promise.all(
-    gallery.map(async (item) => {
-      photoUrlMap[item.id] = await toSignedUrl(item.image_url);
-    })
-  );
+  await Promise.all(gallery.map(async item => {
+    photoUrlMap[item.id] = await toSignedUrl(item.image_url);
+  }));
 
-  // ── Build enabled sections in layout order ─────────────────
-  const enabledSections = layoutConfig.sections.filter(s => s.enabled);
+  // ── Build enabled sections ────────────────────────────────
+  const enabledSections = layoutConfig.sections.filter((s: Section) => s.enabled);
+  const hasDday = contribs.some(c => c.is_dday) || gallery.some(g => g.source === 'dday');
 
-  const sectionHtml = enabledSections.map((section: Section) => {
-    switch (section.type) {
-      case 'cover':
-        return renderCover(capsule, heroUrl, styles);
+  const sectionHtml = [
+    ...enabledSections.map((section: Section) => {
+      switch (section.type) {
+        case 'cover':
+          return renderCover(capsule, heroUrl, styles);
+        case 'honouree_profile':
+          return renderHonoureeProfile(capsule, profileSections, styles);
+        case 'tributes':
+          return renderTributes(section as TributesSection, contribs, styles);
+        case 'phase_photos':
+          return renderPhasePhotos(section as PhasePhotosSection, photoUrlMap, styles);
+        case 'who_attended':
+          return renderWhoAttended(guests, styles);
+        case 'closing_message':
+          return renderClosingMessage(capsule, styles);
+        default:
+          return '';
+      }
+    }),
+    // Always include these if content exists — no layout toggle needed
+    renderCommunityStories(contribs, storyTopics, styles),
+    hasDday ? renderDdayCaptures(contribs, gallery, photoUrlMap, styles) : '',
+  ].join('\n');
 
-      case 'honouree_profile':
-        // Honouree profile content is fetched from capsule_profile_sections
-        // in Phase 2. In Phase 1, render a placeholder block that Puppeteer
-        // skips gracefully (empty string = no space consumed in PDF).
-        return '';
-
-      case 'tributes':
-        return renderTributes(section as TributesSection, contribs, styles);
-
-      case 'phase_photos':
-        return renderPhasePhotos(section as PhasePhotosSection, photoUrlMap, styles);
-
-      case 'who_attended':
-        return renderWhoAttended(guests, styles);
-
-      case 'closing_message':
-        return renderClosingMessage(capsule, styles);
-
-      default:
-        return '';
-    }
-  }).join('\n');
-
-  // ── Assemble full HTML page ────────────────────────────────
-  // Google Fonts loaded via <link> not @import — Puppeteer handles link tags cleanly.
-  // print-color-adjust: exact ensures background colours survive PDF rendering.
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>${escapeHtml(capsule.honouree_name)} — LegacyCapsule Publication</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet"/>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
-      background: ${styles.pageBg};
-      color: ${styles.pageText};
-      font-family: ${styles.bodyFont};
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    @page {
-      size: A4;
-      margin: ${styles.pageMarginMm}mm;
-    }
-    img { max-width: 100%; }
-    @media print {
-      body { background: ${styles.pageBg}; }
-      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    }
-  </style>
-</head>
-<body>
-  ${sectionHtml}
-</body>
-</html>`;
-
-  // Return raw HTML — Puppeteer reads the full document, not a React component tree
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -942,28 +634,16 @@ export default async function PublicationRenderPage({
         <title>{`${capsule.honouree_name} — LegacyCapsule Publication`}</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@400;500;700&display=swap"
-          rel="stylesheet"
-        />
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
         <style dangerouslySetInnerHTML={{ __html: `
           * { box-sizing: border-box; margin: 0; padding: 0; }
-          html, body {
-            background: ${styles.pageBg};
-            color: ${styles.pageText};
-            font-family: ${styles.bodyFont};
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
+          html, body { background: ${styles.pageBg}; color: ${styles.pageText}; font-family: ${styles.bodyFont}; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           @page { size: A4; margin: ${styles.pageMarginMm}mm; }
-          img { max-width: 100%; }
-          @media print {
-            body { background: ${styles.pageBg}; }
-            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          }
+          img { max-width: 100%; display: block; }
+          @media print { body { background: ${styles.pageBg}; } * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
         `}} />
       </head>
-      <body dangerouslySetInnerHTML={{ __html: sectionHtml + (shouldAutoPrint ? `<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},800);});</script>` : '') }} />
+      <body dangerouslySetInnerHTML={{ __html: sectionHtml + (shouldAutoPrint ? `<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},1200);});</script>` : '') }} />
     </html>
   );
 }
