@@ -230,6 +230,55 @@ function ExportsSection({ contributions, slug }: { contributions: Contribution[]
 }
 
 // ============================================================
+// SECTION 3B — LiveWallSection
+// ============================================================
+
+function LiveWallSection({ capsuleSlug }: { capsuleSlug: string }) {
+  const [copied, setCopied] = useState(false)
+  const APP_URL   = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
+  const displayUrl = `${APP_URL}/for/${capsuleSlug}/display`
+  const qrUrl      = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(displayUrl)}&bgcolor=0f0a1e&color=E2C36B&margin=8`
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(displayUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2500)
+  }
+
+  return (
+    <div>
+      <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.65, marginBottom: '16px' }}>
+        Open the Live Wall on your venue screen or projector. Approved tributes appear in real time as guests submit them. Share the QR code or URL with your AV team before the event.
+      </p>
+
+      <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+        {/* QR code */}
+        <div style={{ flexShrink: 0, textAlign: 'center' as const }}>
+          <img src={qrUrl} alt="Live Wall QR" width={80} height={80} style={{ borderRadius: '8px', display: 'block' }} />
+          <p style={{ fontSize: '8px', color: textFaint, margin: '4px 0 0', letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>Scan to open</p>
+        </div>
+
+        {/* URL + actions */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: '9px', color: goldMuted, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em', margin: '0 0 6px' }}>Display URL</p>
+          <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontFamily: 'monospace', wordBreak: 'break-all' as const, margin: '0 0 10px', lineHeight: 1.5 }}>{displayUrl}</p>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button onClick={handleCopy}
+              style={{ flex: 1, padding: '7px', borderRadius: '8px', border: `1px solid rgba(226,195,107,0.2)`, background: copied ? 'rgba(74,222,128,0.08)' : 'rgba(226,195,107,0.06)', color: copied ? 'rgba(134,239,172,0.9)' : goldMuted, fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>
+              {copied ? '✓ Copied' : '🔗 Copy URL'}
+            </button>
+            <a href={displayUrl} target="_blank" rel="noopener noreferrer"
+              style={{ flex: 1, padding: '7px', borderRadius: '8px', border: `1px solid rgba(226,195,107,0.2)`, background: 'transparent', color: goldMuted, fontSize: '11px', fontWeight: 600, textDecoration: 'none', textAlign: 'center' as const, display: 'block' }}>
+              Preview ↗
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================
 // SECTION 4 — PriceColumn
 // Sticky right panel. One row per purchasable service,
 // in the same order as the left ServiceCards.
@@ -432,7 +481,6 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
     { id: 'attire',           label: 'Fabric & Attire',   status: components.includes('attire') ? 'active' : 'locked',           price: featurePrices['attire'] },
     { id: 'audio_tributes',   label: 'Voice Tributes',    status: components.includes('audio_tributes') ? 'active' : 'locked',   price: featurePrices['audio_tributes'] },
     { id: 'video_tributes',   label: 'Video Tributes',    status: components.includes('video_tributes') ? 'active' : 'locked',   price: featurePrices['video_tributes'] },
-    { id: 'live_wall',        label: 'Live Wall',          status: 'coming_soon' },
     { id: 'access_cards',     label: 'Access Cards',       status: 'coming_soon' },
   ]
 
@@ -554,14 +602,16 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           learnMoreUrl="/features/video_tributes"
         />
 
-        {/* D-Day Live Wall — priceRows[6] — coming soon */}
+        {/* D-Day Live Wall — always on — display URL + QR */}
         <ServiceCard
           id="live_wall"
           title="D-Day Live Wall"
-          description="Real-time tribute display at your venue"
+          description="Full-screen real-time tribute display for your venue screen or projector"
           icon="◇"
-          status="coming_soon"
-        />
+          status="always_on"
+        >
+          <LiveWallSection capsuleSlug={capsule.slug} />
+        </ServiceCard>
 
         {/* Access Card Printing — priceRows[7] — coming soon */}
         <ServiceCard
