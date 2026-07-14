@@ -1,46 +1,56 @@
+// ─────────────────────────────────────────────────────────────────────────────
 // FILE: app/for/[slug]/stories/page.tsx
-// Purpose: Community Stories room — public page
+// PURPOSE: Community Memories & Stories room — public server component
 // Route: /for/[slug]/stories
-// Type: Server Component
-// AI10 · June 2026
+// UPDATED: Claude Sonnet 4.6 · July 2026
+//   — Fixed: event_name → honouree_name, tagline → event_tag (schema alignment)
+//   — Renamed: Community Stories → Community Memories & Stories (UI only)
+//   — Added: CapsuleBottomNav, admin_response field
+// ─────────────────────────────────────────────────────────────────────────────
 
-import { createClient } from '@supabase/supabase-js'
-import { notFound } from 'next/navigation'
-import CommunityStoriesClient from '@/components/CommunityStoriesClient'
+import { createClient }            from '@supabase/supabase-js'
+import { notFound }                from 'next/navigation'
+import CommunityStoriesClient      from '@/components/CommunityStoriesClient'
+import CapsuleBottomNav            from '@/components/CapsuleBottomNav'
 
-// ── SECTION: Types ───────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 1 — Types
+// ─────────────────────────────────────────────────────────────────────────────
 
 export interface StoryTopic {
-  id: string
-  topic_name: string
-  topic_source: 'system' | 'organiser' | 'community'
-  status: string
+  id:            string
+  topic_name:    string
+  topic_source:  'system' | 'organiser' | 'community'
+  status:        string
   display_order: number
-  story_count: number
+  story_count:   number
 }
 
 export interface CommunityStory {
-  id: string
-  story_topic_id: string
+  id:               string
+  story_topic_id:   string
   contributor_name: string
-  tribute_text: string
-  relationship: string | null
-  city: string | null
-  country: string | null
-  thumbnail_url: string | null
-  created_at: string
+  tribute_text:     string
+  relationship:     string | null
+  city:             string | null
+  country:          string | null
+  thumbnail_url:    string | null
+  admin_response:   string | null
+  created_at:       string
 }
 
 export interface CapsuleInfo {
-  id: string
-  slug: string
-  event_name: string
-  event_type: string
-  tagline: string | null
-  components: string[]
+  id:            string
+  slug:          string
+  honouree_name: string
+  event_type:    string
+  event_tag:     string | null
+  components:    string[]
 }
 
-// ── SECTION: Metadata ────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 2 — Metadata
+// ─────────────────────────────────────────────────────────────────────────────
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -50,16 +60,18 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   )
   const { data: capsule } = await supabase
     .from('capsules')
-    .select('event_name')
+    .select('honouree_name')
     .eq('slug', slug)
     .single()
 
   return {
-    title: capsule ? `Community Stories — ${capsule.event_name}` : 'Community Stories',
+    title: capsule ? `Community Memories & Stories — ${capsule.honouree_name}` : 'Community Memories & Stories',
   }
 }
 
-// ── SECTION: Page ────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 3 — Page
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default async function CommunityStoriesPage({
   params,
@@ -73,21 +85,21 @@ export default async function CommunityStoriesPage({
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  // ── Fetch capsule ──────────────────────────────────────────
+  // ── Fetch capsule ─────────────────────────────────────────────────────────
   const { data: capsule, error: capsuleError } = await supabase
     .from('capsules')
-    .select('id, slug, event_name, event_type, tagline, components, page_state')
+    .select('id, slug, honouree_name, event_type, event_tag, components, page_state')
     .eq('slug', slug)
     .single()
 
   if (capsuleError || !capsule) return notFound()
   if (capsule.page_state !== 'active') return notFound()
 
-  // ── Check Community Stories is activated ──────────────────
+  // ── Check Community Stories is activated ──────────────────────────────────
   const components: string[] = capsule.components ?? []
   if (!components.includes('community_stories')) return notFound()
 
-  // ── Fetch active topics with story counts ─────────────────
+  // ── Fetch active topics ───────────────────────────────────────────────────
   const { data: topicsRaw } = await supabase
     .from('community_story_topics')
     .select('id, topic_name, topic_source, status, display_order')
@@ -95,10 +107,10 @@ export default async function CommunityStoriesPage({
     .eq('status', 'active')
     .order('display_order', { ascending: true })
 
-  // ── Fetch all approved community stories ──────────────────
+  // ── Fetch approved community stories ─────────────────────────────────────
   const { data: storiesRaw } = await supabase
     .from('contributions')
-    .select('id, story_topic_id, contributor_name, tribute_text, relationship, city, country, thumbnail_url, created_at')
+    .select('id, story_topic_id, contributor_name, tribute_text, relationship, city, country, thumbnail_url, admin_response, created_at')
     .eq('capsule_id', capsule.id)
     .eq('status', 'approved')
     .not('story_topic_id', 'is', null)
@@ -106,28 +118,53 @@ export default async function CommunityStoriesPage({
 
   const stories: CommunityStory[] = storiesRaw ?? []
 
-  // ── Enrich topics with story counts, filter to topics with stories ──
-  const topicsWithCounts: StoryTopic[] = (topicsRaw ?? [])
-    .map(t => ({
-      ...t,
-      story_count: stories.filter(s => s.story_topic_id === t.id).length,
-    }))
-    .filter(t => t.story_count > 0)
+  // ── Enrich topics with story counts ──────────────────────────────────────
+  const topicsWithCounts: StoryTopic[] = (topicsRaw ?? []).map(t => ({
+    ...t,
+    story_count: stories.filter(s => s.story_topic_id === t.id).length,
+  }))
 
   const capsuleInfo: CapsuleInfo = {
-    id: capsule.id,
-    slug: capsule.slug,
-    event_name: capsule.event_name,
-    event_type: capsule.event_type,
-    tagline: capsule.tagline,
+    id:            capsule.id,
+    slug:          capsule.slug,
+    honouree_name: capsule.honouree_name,
+    event_type:    capsule.event_type,
+    event_tag:     capsule.event_tag ?? null,
     components,
   }
 
+  // ── Fetch EOH accounts if Gift of Honour is active ───────────────────────
+  let eohAccounts: { method_label: string; account_holder: string; reference_guide: string | null }[] = []
+  if (components.includes('ways_to_honour')) {
+    const { data: accounts } = await supabase
+      .from('capsule_support_accounts')
+      .select('method_label, account_holder, reference_guide')
+      .eq('capsule_id', capsule.id)
+      .eq('is_active', true)
+    eohAccounts = accounts ?? []
+  }
+
   return (
-    <CommunityStoriesClient
-      capsule={capsuleInfo}
-      topics={topicsWithCounts}
-      stories={stories}
-    />
+    <>
+      <CommunityStoriesClient
+        capsule={capsuleInfo}
+        topics={topicsWithCounts}
+        stories={stories}
+        eohAccounts={eohAccounts}
+      />
+      {(() => {
+        const themeKey = 'classic' as any
+        return (
+          <CapsuleBottomNav
+            slug={slug}
+            currentPage="stories"
+            components={components}
+            contributorCount={stories.length}
+            hasPhases={false}
+            themeKey={themeKey}
+          />
+        )
+      })()}
+    </>
   )
 }
