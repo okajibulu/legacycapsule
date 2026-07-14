@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     // contributor_name — not name. Gotcha #3.
     const { data: contribution, error: contribError } = await adminClient
       .from('contributions')
-      .select('id, capsule_id, contributor_name, city, country, tribute_text, email, ref_code, edit_token')
+      .select('id, capsule_id, contributor_name, city, country, tribute_text, thumbnail_url, email, ref_code, edit_token')
       .eq('id', contributionId)
       .single()
 
@@ -79,6 +79,27 @@ export async function POST(req: NextRequest) {
     // ── Update participation summary + legacy builders ─────────────────────
     await updateParticipationSummary(contribution.capsule_id)
     await recalculateLegacyBuilders(contribution.capsule_id)
+
+    // ── Broadcast to Live Wall via Supabase Realtime ───────────────────────
+    // Fires whenever a tribute is approved — powers the live display wall
+    try {
+      await adminClient.channel(`capsule-${contribution.capsule_id}`).send({
+        type:    'broadcast',
+        event:   'new_contribution',
+        payload: {
+          id:               contribution.id,
+          contributor_name: contribution.contributor_name,
+          city:             contribution.city,
+          country:          contribution.country,
+          tribute_text:     contribution.tribute_text,
+          thumbnail_url:    contribution.thumbnail_url ?? null,
+          is_dday:          false,
+        },
+      })
+    } catch (broadcastErr) {
+      // Non-blocking — broadcast failure must never break approval flow
+      console.error('[approval] Realtime broadcast failed:', broadcastErr)
+    }
 
     // ── Send Keepsake Card — D27 ───────────────────────────────────────────
     await sendKeepsakeCard({
