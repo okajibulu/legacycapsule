@@ -15,8 +15,15 @@ interface Contribution {
   id: string; capsule_id: string; contributor_name: string
   city: string; country: string; tribute_text: string
   email: string | null; status: string; created_at: string
-  thumbnail_url: string | null
+  thumbnail_url: string | null; correction_count?: number
 }
+
+const CORRECTION_TEMPLATES = [
+  { key: 'minor_edit',        label: 'Minor edit needed' },
+  { key: 'length_adjustment', label: 'Length adjustment' },
+  { key: 'clarity_request',   label: 'Clarity request' },
+  { key: 'photo_quality',     label: 'Photo quality' },
+]
 
 export default function ModerationPage() {
   const [items, setItems] = useState<Contribution[]>([])
@@ -40,6 +47,20 @@ export default function ModerationPage() {
   const remove = async (id: string) => {
     await fetch('/api/admin/moderation/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, reason: 'Admin removal' }) })
     setItems(prev => prev.filter(i => i.id !== id))
+  }
+
+  const requestCorrection = async (id: string, templateKey: string) => {
+    const res  = await fetch('/api/email/correction-request', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ contribution_id: id, template_key: templateKey }),
+    })
+    const data = await res.json()
+    if (data.flagged) {
+      setItems(prev => prev.map(i => i.id === id ? { ...i, status: 'flagged' } : i))
+    } else {
+      setItems(prev => prev.map(i => i.id === id ? { ...i, status: 'pending_correction' } : i))
+    }
   }
 
   return (
@@ -70,9 +91,24 @@ export default function ModerationPage() {
                 <span style={{ fontSize: '10px', color: textFaint, marginLeft: 'auto', whiteSpace: 'nowrap' as const }}>{new Date(item.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
               </div>
               <p style={{ fontSize: '13px', color: textPrimary, lineHeight: 1.7, marginBottom: '12px', fontStyle: 'italic' }}>"{item.tribute_text}"</p>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => approve(item.id)} style={{ flex: 1, padding: '8px', borderRadius: '8px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', color: 'rgba(134,239,172,0.9)', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>✓ Approve</button>
-                <button onClick={() => remove(item.id)} style={{ flex: 1, padding: '8px', borderRadius: '8px', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)', color: 'rgba(248,113,113,0.8)', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Remove</button>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' as const }}>
+                <button onClick={() => approve(item.id)} style={{ flex: 1, minWidth: '80px', padding: '8px', borderRadius: '8px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', color: 'rgba(134,239,172,0.9)', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>✓ Approve</button>
+                <button onClick={() => remove(item.id)} style={{ flex: 1, minWidth: '80px', padding: '8px', borderRadius: '8px', background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.2)', color: 'rgba(248,113,113,0.8)', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>Remove</button>
+                {item.email && item.status !== 'pending_correction' && item.status !== 'flagged' && (
+                  <select
+                    onChange={e => { if (e.target.value) { requestCorrection(item.id, e.target.value); e.target.value = '' } }}
+                    defaultValue=""
+                    style={{ flex: 1, minWidth: '120px', padding: '8px', borderRadius: '8px', background: '#1a0845', border: '1px solid rgba(226,195,107,0.2)', color: 'rgba(226,195,107,0.7)', fontSize: '11px', cursor: 'pointer' }}
+                  >
+                    <option value="" disabled>Request correction…</option>
+                    {CORRECTION_TEMPLATES.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+                  </select>
+                )}
+                {(item.status === 'pending_correction' || item.status === 'flagged') && (
+                  <span style={{ fontSize: '10px', padding: '8px 10px', borderRadius: '8px', background: item.status === 'flagged' ? 'rgba(248,113,113,0.06)' : 'rgba(248,191,113,0.06)', border: `1px solid ${item.status === 'flagged' ? 'rgba(248,113,113,0.2)' : 'rgba(248,191,113,0.2)'}`, color: item.status === 'flagged' ? 'rgba(248,113,113,0.7)' : 'rgba(248,191,113,0.7)' }}>
+                    {item.status === 'flagged' ? '⚑ Flagged' : '⟳ Correction sent'}
+                  </span>
+                )}
               </div>
             </div>
           ))}

@@ -29,6 +29,7 @@ interface ApprovalEmailParams {
   city: string
   country: string
   refCode?: string | null
+  editLink?: string | null
 }
 
 interface OrganisingWelcomeParams {
@@ -58,8 +59,9 @@ function buildKeepsakeCardHtml(params: ApprovalEmailParams): string {
     country,
   } = params
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com'
+  const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com'
   const capsuleUrl = appUrl + '/for/' + capsuleSlug
+  const editUrl   = params.editLink ?? null
 
   const isMemorial = eventType === 'Memorial & Funeral'
   const isWedding = eventType === 'Wedding'
@@ -275,6 +277,7 @@ function buildKeepsakeCardHtml(params: ApprovalEmailParams): string {
                 Share the link below — every tribute you bring in
                 helps build something lasting.
               </p>
+              ${editUrl ? `<p style="font-family:Arial,sans-serif;font-size:12px;color:rgba(255,255,255,0.4);text-align:center;margin:0 0 10px;">Want to make a change? <a href="${editUrl}" style="color:rgba(226,195,107,0.7);text-decoration:underline;">Edit your tribute</a></p>` : ''}
               <a href="${params.refCode ? capsuleUrl + '?ref=' + params.refCode : capsuleUrl}"
                 style="display:inline-block;padding:10px 24px;
                   border-radius:8px;

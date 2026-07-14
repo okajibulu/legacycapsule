@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     // contributor_name — not name. Gotcha #3.
     const { data: contribution, error: contribError } = await adminClient
       .from('contributions')
-      .select('id, capsule_id, contributor_name, city, country, tribute_text, email, ref_code')
+      .select('id, capsule_id, contributor_name, city, country, tribute_text, email, ref_code, edit_token')
       .eq('id', contributionId)
       .single()
 
@@ -61,6 +61,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Capsule not found' }, { status: 404 })
     }
 
+    // ── Generate edit_token if not already set ────────────────────────────
+    let editToken = contribution.edit_token
+    if (!editToken) {
+      editToken = crypto.randomUUID()
+      await adminClient
+        .from('contributions')
+        .update({ edit_token: editToken })
+        .eq('id', contributionId)
+    }
+
     // ── Assign ref code (generates contributor's share code) ──────────────
     if (!contribution.ref_code) {
       await assignRefCode(contributionId)
@@ -73,14 +83,15 @@ export async function POST(req: NextRequest) {
     // ── Send Keepsake Card — D27 ───────────────────────────────────────────
     await sendKeepsakeCard({
       contributorEmail: contribution.email,
-      contributorName: contribution.contributor_name,
-      subjectName: capsule.honouree_name,
-      eventType: capsule.event_type,
-      tributeText: contribution.tribute_text,
-      capsuleSlug: capsule.slug,
-      city: contribution.city,
-      country: contribution.country,
-    refCode: contribution.ref_code ?? null,
+      contributorName:  contribution.contributor_name,
+      subjectName:      capsule.honouree_name,
+      eventType:        capsule.event_type,
+      tributeText:      contribution.tribute_text,
+      capsuleSlug:      capsule.slug,
+      city:             contribution.city,
+      country:          contribution.country,
+      refCode:          contribution.ref_code ?? null,
+      editLink:         editToken ? `${process.env.NEXT_PUBLIC_APP_URL}/for/${capsule.slug}/edit/${editToken}` : null,
     })
 
     return NextResponse.json({ ok: true })
