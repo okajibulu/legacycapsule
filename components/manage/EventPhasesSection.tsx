@@ -68,8 +68,8 @@ function PhaseCard({ phase, slug, onEdit, onDelete }: {
     new Date(phase.capture_window_closes_at) > new Date()
   const isToday = phase.event_date === new Date().toISOString().split('T')[0]
 
-  const phaseUrl = `${APP_URL}/for/${slug}/story/${phase.id}`
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(phaseUrl)}&bgcolor=0f0a1e&color=D4AE2A&margin=8`
+  const qrData   = phase.qr_token ? `${APP_URL}/api/qr/${phase.qr_token}` : `${APP_URL}/for/${slug}/story/${phase.id}`
+  const qrUrl    = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(qrData)}&bgcolor=0f0a1e&color=D4AE2A&margin=8`
 
   return (
     <div style={{ padding: '14px 16px', borderRadius: '12px', border: `1px solid ${isToday ? gold : cardBorder}`, background: isToday ? 'rgba(226,195,107,0.05)' : cardBg, marginBottom: '10px' }}>
@@ -240,7 +240,7 @@ export default function EventPhasesSection({ capsuleId, capsuleSlug }: Props) {
               }}
             >
               {phases.length >= 2
-                ? `✦ 2 phases included (contact us to add more)`
+                ? `✦ Phase limit reached — unlock Additional Phase from Services`
                 : `+ Add Event Phase (${phases.length}/2 used)`
               }
             </button>
