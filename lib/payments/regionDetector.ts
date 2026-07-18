@@ -37,7 +37,7 @@ const COUNTRY_ZONE_MAP: Record<string, string> = {
 }
 
 const FALLBACK_ZONE = 'ROW'
-const IP_API_TIMEOUT_MS = 2000
+const IP_API_TIMEOUT_MS = 5000
 
 // â”€â”€ IP â†’ COUNTRY LOOKUP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Uses ipapi.co free tier. Replace with ipinfo.io or MaxMind for higher volume.

@@ -29,7 +29,7 @@ const supabase = createClient(
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
 const MIN_CHARS = 20
-const MAX_CHARS = 1000
+const MAX_CHARS = 500
 const MAX_PHOTO_MB = 1
 const TRIBUTE_PHOTOS_BUCKET = 'tribute-photos'
 
@@ -334,8 +334,9 @@ export default function EditTributePage() {
     if (!country) errors.country = 'Country is required'
     if (message.trim().length < MIN_CHARS)
       errors.message = 'Tribute must be at least ' + MIN_CHARS + ' characters'
+    // Note: existing tributes may exceed 500 chars — warn but don't block
     if (message.trim().length > MAX_CHARS)
-      errors.message = 'Tribute must be under ' + MAX_CHARS + ' characters'
+      errors.message = `Tribute is over ${MAX_CHARS} characters. Please shorten before saving.`
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -699,6 +700,11 @@ export default function EditTributePage() {
               <p style={{ color: '#f87171', fontSize: '12px', marginTop: '4px' }}>{fieldErrors.country}</p>
             )}
           </div>
+
+<p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', lineHeight: 1.65, margin: '0 0 6px', fontStyle: 'italic' }}>
+  Tributes are limited to 500 characters — keep it personal and concise.{' '}
+  <span style={{ color: 'rgba(226,195,107,0.6)' }}>Have a longer story or photos? Share them in the Community Memories &amp; Stories room.</span>
+</p>
 
           {/* Tribute message */}
           <div>

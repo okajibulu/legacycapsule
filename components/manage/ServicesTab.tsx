@@ -485,10 +485,10 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
   ]
 
   return (
-    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+    <div>
 
-      {/* ── LEFT: Service cards ── */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      {/* ── FULL WIDTH: Always-on service cards (no price column) ── */}
+      <div style={{ marginBottom: '4px' }}>
 
         {/* Programme Exports — always on */}
         <ServiceCard
@@ -511,6 +511,12 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         >
           <EventPhasesSection capsuleId={capsule.id} capsuleSlug={capsule.slug} />
         </ServiceCard>
+
+        </div>{/* end always-on full-width section */}
+
+      {/* ── TWO-COLUMN: Purchasable services + price column ── */}
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
 
         {/* Guest Management — priceRows[0] */}
         <ServiceCard
@@ -602,6 +608,24 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           learnMoreUrl="/features/video_tributes"
         />
 
+        </div>{/* end left paid services column */}
+
+        {/* ── RIGHT: Price column — aligned to paid service rows only ── */}
+        <div style={{ position: 'sticky' as const, top: '80px', alignSelf: 'flex-start' }}>
+          <PriceColumn
+            rows={priceRows}
+            cart={cart}
+            onToggle={toggleCart}
+            onCheckout={handleCartCheckout}
+            unlocking={unlocking}
+          />
+        </div>
+
+      </div>{/* end two-column section */}
+
+      {/* ── FULL WIDTH: Always-on operational cards ── */}
+      <div style={{ marginTop: '4px' }}>
+
         {/* D-Day Live Wall — always on — display URL + QR */}
         <ServiceCard
           id="live_wall"
@@ -623,18 +647,6 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         />
       </div>
 
-      {/* ── RIGHT: Price column — aligned to paid service rows only ── */}
-      {/* Offset top to align with Guest Management (first paid row, after 2 always-on cards) */}
-      <div style={{ paddingTop: `${2 * 76}px`, position: 'sticky' as const, top: '80px', alignSelf: 'flex-start' }}>
-        <PriceColumn
-          rows={priceRows}
-          cart={cart}
-          onToggle={toggleCart}
-          onCheckout={handleCartCheckout}
-          unlocking={unlocking}
-        />
       </div>
-
-    </div>
   )
 }

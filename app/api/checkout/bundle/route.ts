@@ -107,8 +107,11 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Detect region ─────────────────────────────────────────────────────────
-    const forwarded = req.headers.get('x-forwarded-for')
-    const ip        = forwarded ? forwarded.split(',')[0].trim() : '0.0.0.0'
+    const ip =
+      req.headers.get('cf-connecting-ip') ??
+      req.headers.get('x-real-ip') ??
+      (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() ??
+      '0.0.0.0'
     const zone      = await detectRegion(ip) ?? 'ROW'
 
     // ── Fetch prices for all selected features ────────────────────────────────

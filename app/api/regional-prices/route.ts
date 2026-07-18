@@ -15,8 +15,13 @@ export async function GET(req: NextRequest) {
     // ── Detect IP from request headers ────────────────────────────────────
     // Vercel sets x-forwarded-for. Fallback to 0.0.0.0 → detectRegion
     // returns EU for local dev.
-    const forwarded = req.headers.get('x-forwarded-for')
-    const ip = forwarded ? forwarded.split(',')[0].trim() : '0.0.0.0'
+    // Cloudflare sets cf-connecting-ip as the real client IP.
+    // x-forwarded-for may contain Cloudflare edge IPs instead.
+    const ip =
+      req.headers.get('cf-connecting-ip') ??
+      req.headers.get('x-real-ip') ??
+      (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() ??
+      '0.0.0.0'
 
     // ── Detect zone ───────────────────────────────────────────────────────
     const zone = await detectRegion(ip) ?? 'ROW'

@@ -34,7 +34,7 @@ const supabase = createClient(
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
 const MIN_CHARS = 20
-const MAX_CHARS = 1000
+const MAX_CHARS = 500
 const MAX_PHOTO_MB = 1
 const TRIBUTE_PHOTOS_BUCKET = 'tribute-photos'
 
@@ -720,12 +720,12 @@ const [consent, setConsent] = useState(false)
                 {message.length} / {MAX_CHARS}
               </span>
             </div>
-            <textarea
+<textarea
               rows={6}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder={'Write your tribute for ' + subjectName + '…'}
               style={{ ...inputStyle, resize: 'vertical', lineHeight: '1.6' }}
+              placeholder={`Share a tribute (up to 500 characters). For longer stories and memories, use the Community Memories & Stories room.`}
             />
             {fieldErrors.message && (
               <p style={{ color: '#f87171', fontSize: '12px', marginTop: '4px' }}>{fieldErrors.message}</p>
