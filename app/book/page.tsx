@@ -79,8 +79,8 @@ const ALL_SERVICES = [
   },
   {
     id: 'ways_to_honour',
-    label: 'Expression of Honour',
-    description: 'A dignified, private channel for guests to send support — bank details presented tastefully on the tribute wall.',
+  label: 'Gift of Honour',
+    description: 'A dignified, private channel for guests to express financial support — presented tastefully on the tribute wall.',
     icon: '✦',
   },
   {
@@ -107,27 +107,22 @@ const ALL_SERVICES = [
     description: 'Coordinate dress code, fabric choices and attire orders from one dashboard.',
     icon: '◐',
   },
-  {
-    id: 'community_stories',
-    label: 'Community Stories',
-    description: 'A dedicated room where contributors share memories organised by topic — the story behind the story.',
-    icon: '◇',
-  },
+ 
 ]
 
 // Suggested service IDs pre-selected per event type
 const SUGGESTED_BY_EVENT: Record<string, string[]> = {
-  'Retirement':           ['publication', 'ways_to_honour', 'community_stories'],
-  'Memorial & Funeral':   ['publication', 'ways_to_honour', 'community_stories'],
+  'Retirement':           ['publication', 'ways_to_honour', 'audio_tributes'],
+  'Memorial & Funeral':   ['publication', 'ways_to_honour'],
   'Wedding':              ['publication', 'ways_to_honour', 'attire', 'guest_management'],
   'Milestone Birthday':   ['publication', 'ways_to_honour', 'audio_tributes'],
-  'Anniversary':          ['publication', 'community_stories'],
-  'Graduation':           ['publication', 'audio_tributes', 'community_stories'],
+  'Anniversary':          ['publication', 'ways_to_honour'],
+  'Graduation':           ['publication', 'audio_tributes'],
   'Ordination':           ['publication', 'ways_to_honour'],
   'Chieftaincy':          ['publication', 'ways_to_honour', 'guest_management', 'attire'],
   'Award Ceremony':       ['publication', 'guest_management'],
   'Thanksgiving Service': ['publication', 'ways_to_honour'],
-  'Conference':           ['publication', 'guest_management', 'community_stories'],
+  'Conference':           ['publication', 'guest_management'],
   'Other Event':          ['publication'],
 }
 
@@ -280,7 +275,9 @@ function BookPage() {
   const [path, setPath] = useState<Path>('')
   const [bookMode, setBookMode] = useState<BookMode>('own')
   const [eventType, setEventType] = useState('')
+  const [otherEventLabel, setOtherEventLabel] = useState('')
   const [honoureeName, setHonoureeName] = useState('')
+
   const [eventTag, setEventTag] = useState('')
   const [organiserEmail, setOrganiserEmail] = useState('')
   const [recipientName, setRecipientName] = useState('')
@@ -342,15 +339,19 @@ function BookPage() {
         .insert({
           honouree_name: honoureeName.trim(),
           event_tag: eventTag.trim() || null,
-          event_type: eventType,
+          event_type: eventType === 'Other Event' && otherEventLabel.trim()
+            ? otherEventLabel.trim()
+            : eventType,
+
           organiser_email: organiserEmail.trim().toLowerCase(),
           slug: slug.trim(),
           tier: 'free',
           pricing_key: '',
           visitor_type: bookMode === 'gift' ? 'gift' : 'personal',
           // Free path: active immediately. Book path: pending until payment.
-          page_state: path === 'book' ? 'pending_payment' : 'active',
+           page_state: path === 'book' ? 'pending_payment' : 'pending',
           theme: 'classic',
+          components: ['community_stories'],
           free_tier_expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
         })
         .select('id, slug').single()
@@ -557,16 +558,34 @@ function BookPage() {
                 {EVENT_TYPES.map(e => (<option key={e.label} value={e.label} style={{ background: '#1a0845', color: '#fff' }}>{e.emoji} {e.label}</option>))}
               </select>
             </div>
-            {eventType && (
-              <div style={{ marginTop: '12px', padding: '12px 16px', borderRadius: '10px', background: 'rgba(226,195,107,0.05)', border: '1px solid rgba(226,195,107,0.12)' }}>
+{eventType && (
+              <div style={{ marginTop: '10px' }}>
                 <p style={{ fontSize: '12px', color: 'rgba(226,195,107,0.65)', margin: 0, lineHeight: 1.6 }}>{getEventDescription(eventType)}</p>
+              </div>
+            )}
+            {eventType === 'Other Event' && (
+              <div style={{ marginTop: '12px' }}>
+                <label style={{ display: 'block', fontSize: '10px', textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: 'rgba(226,195,107,0.55)', marginBottom: '8px' }}>
+                  What is the occasion?
+                </label>
+                <input
+                  style={inputStyle}
+                  placeholder="e.g. Product Launch, Baby Shower, Housewarming…"
+                  maxLength={60}
+                  value={otherEventLabel}
+                  onChange={e => setOtherEventLabel(e.target.value)}
+                  autoFocus
+                />
+                <p style={{ fontSize: '11px', color: textFaint, marginTop: '5px' }}>
+                  This will appear on your capsule in place of "Other Event".
+                </p>
               </div>
             )}
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <GhostBtn onClick={() => setScreen(0)}>← Back</GhostBtn>
-            <div style={{ flex: 1 }}><PrimaryBtn onClick={() => { if (eventType) setScreen(2) }} disabled={!eventType}>Continue →</PrimaryBtn></div>
+            <div style={{ flex: 1 }}><PrimaryBtn onClick={() => { if (eventType) setScreen(2) }} disabled={!eventType || (eventType === 'Other Event' && !otherEventLabel.trim())}>Continue →</PrimaryBtn></div>
           </div>
           <Footer />
         </div>
@@ -702,6 +721,33 @@ function BookPage() {
           </div>
           <GoldRule />
 
+           {/* Free services — always included */}
+          <div style={{ marginBottom: '20px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(74,222,128,0.7)', letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginBottom: '10px' }}>
+              ✓ Always included — free
+            </p>
+            {[
+              { icon: '◈', label: 'Tribute Wall', desc: 'Written and photo tributes from guests anywhere in the world.' },
+              { icon: '🗺', label: 'World Tribute Map', desc: 'Interactive map showing where tributes came from.' },
+              { icon: '◎', label: 'Event Profile', desc: 'A full profile page for the honouree with biography and gallery.' },
+              { icon: '◇', label: 'Community Memories & Stories', desc: 'A dedicated room for contributors to share stories by topic.' },
+              { icon: '◉', label: 'Family Rep Portal', desc: 'Private portal for the family representative.' },
+            ].map(s => (
+              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '10px', background: 'rgba(74,222,128,0.04)', border: '1px solid rgba(74,222,128,0.1)', marginBottom: '6px' }}>
+                <span style={{ fontSize: '14px', flexShrink: 0 }}>{s.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>{s.label}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: textFaint, lineHeight: 1.5 }}>{s.desc}</p>
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(74,222,128,0.8)', flexShrink: 0 }}>FREE</span>
+              </div>
+            ))}
+          </div>
+
+          <p style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(226,195,107,0.55)', letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginBottom: '10px' }}>
+            Premium add-ons — choose what you need
+          </p>
+
           {pricesLoading ? (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '2px solid rgba(226,195,107,0.2)', borderTopColor: gold, animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
@@ -782,8 +828,8 @@ function BookPage() {
             {checkingOut ? 'Preparing checkout…' : total ? `Proceed to Payment · ${total.symbol}${total.amount.toLocaleString()} →` : 'Select at least one service'}
           </PrimaryBtn>
 
-          <p style={{ fontSize: '11px', color: textFaint, marginTop: '12px', textAlign: 'center', lineHeight: 1.65 }}>
-            Secure checkout via Stripe. Services activate instantly on payment.
+         <p style={{ fontSize: '11px', color: textFaint, marginTop: '12px', textAlign: 'center', lineHeight: 1.65 }}>
+            Secure checkout via Stripe. Your capsule and selected services will be ready when you choose to activate it.
           </p>
           <Footer />
         </div>
@@ -802,13 +848,15 @@ function BookPage() {
         <div style={{ width: '88px', height: '88px', margin: '24px auto 32px', borderRadius: '50%', border: '1px solid rgba(226,195,107,0.4)', background: 'radial-gradient(circle, rgba(226,195,107,0.12) 0%, transparent 70%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', lineHeight: 1, boxShadow: '0 0 40px rgba(226,195,107,0.2)' }}>✦</div>
 
         <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(22px, 6vw, 30px)', fontWeight: 800, color: textPrimary, marginBottom: '12px', textShadow: '0 0 32px rgba(226,195,107,0.2)' }}>
-          {bookMode === 'gift' ? 'Your gift is on its way' : 'Your capsule is live'}
+          {bookMode === 'gift' ? 'Your gift capsule is reserved' : path === 'book' ? 'Your capsule is reserved' : 'Your capsule is ready'}
         </h1>
 
         <p style={{ fontSize: '14px', color: textSecondary, lineHeight: 1.75, marginBottom: '28px', maxWidth: '340px', margin: '0 auto 28px' }}>
           {bookMode === 'gift'
-            ? <>We have created a LegacyCapsule for <span style={{ color: textPrimary, fontWeight: 600 }}>{honoureeName}</span> and sent access to <span style={{ color: gold, fontWeight: 600 }}>{recipientEmail}</span>.</>
-            : <>We have created your LegacyCapsule for <span style={{ color: textPrimary, fontWeight: 600 }}>{honoureeName}</span>. Share the link below and the tributes will begin to arrive.</>
+            ? <>A LegacyCapsule has been reserved for <span style={{ color: textPrimary, fontWeight: 600 }}>{honoureeName}</span>. Access details will be sent to <span style={{ color: gold, fontWeight: 600 }}>{recipientEmail}</span> when you are ready to activate it.</>
+            : path === 'book'
+            ? <>Your LegacyCapsule for <span style={{ color: textPrimary, fontWeight: 600 }}>{honoureeName}</span> has been reserved with your selected services. Share the link when you are ready — your capsule goes live when the first tribute arrives.</>
+            : <>Your LegacyCapsule for <span style={{ color: textPrimary, fontWeight: 600 }}>{honoureeName}</span> is set up and ready. Share the link below — your capsule goes live when the first tribute arrives.</>
           }
         </p>
 
