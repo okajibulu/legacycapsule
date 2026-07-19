@@ -174,9 +174,10 @@ function ServiceCard({
             <Link
               href={learnMoreUrl}
               target="_blank"
+              rel="noopener noreferrer"
               style={{ display: 'inline-block', padding: '8px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: textFaint, fontSize: '12px', fontWeight: 600, textDecoration: 'none' }}
             >
-              Full details →
+              Full details
             </Link>
           )}
         </div>
@@ -528,7 +529,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           price={featurePrices['guest_management']}
           detailSummary="A complete guest coordination system — guest list, unique QR access codes, RSVP tracking, table management, seating assignment, and check-in on event day."
           detailPoints={['Unique QR access codes per guest', 'Real-time check-in dashboard on event day', 'Table management and seating assignment', 'Printable table cards with context-aware QR']}
-          learnMoreUrl="/features/guest_management"
+          learnMoreUrl="/help?section=guest_management&ref=dashboard"
         >
           {components.includes('guest_management') && (
             <>
@@ -549,7 +550,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           price={featurePrices['ways_to_honour']}
           detailSummary="A dignified, private channel for guests to send financial support — bank details presented tastefully on your tribute wall. No transaction fees, no fund handling."
           detailPoints={['Full privacy — amounts never shown publicly', 'Multiple payment channels supported', 'Daily digest email to family representative', 'No transaction fees']}
-          learnMoreUrl="/features/ways_to_honour"
+          learnMoreUrl="/help?section=ways_to_honour&ref=dashboard"
         >
           {eohEditor}
         </ServiceCard>
@@ -565,7 +566,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           price={featurePrices['publication']}
           detailSummary="Every tribute compiled into a beautifully designed keepsake PDF — arranged by you, distributed to all contributors in one click. A permanent record designed to be kept."
           detailPoints={['Drag-and-drop arrangement in Publication Editor', 'Five professional design themes', 'One-click distribution to all contributors', 'Permanent download link for every recipient']}
-          learnMoreUrl="/features/publication"
+          learnMoreUrl="/help?section=publication&ref=dashboard"
         />
 
         {/* Fabric & Attire — priceRows[3] */}
@@ -579,7 +580,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           price={featurePrices['attire']}
           detailSummary="Complete dress code coordination — showcase fabric options, collect orders, track payments, manage collection. Designed for Aso-Ebi and coordinated event attire."
           detailPoints={['Showcase fabric options with photos and pricing', 'Order and payment tracking', 'Collection management and dispatch reminders', 'Guest-facing order page on your tribute wall']}
-          learnMoreUrl="/features/attire"
+          learnMoreUrl="/help?section=attire&ref=dashboard"
         />
 
         {/* Voice Tributes — priceRows[4] */}
@@ -592,7 +593,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           price={featurePrices['audio_tributes']}
           detailSummary="Contributors record personal audio messages directly from their phone — no app needed. The sound of a familiar voice carries meaning that text alone cannot."
           detailPoints={['Works on any smartphone with a microphone', 'Up to 30 seconds per recording', 'Plays inline in the tribute card', 'Same moderation queue as written tributes']}
-          learnMoreUrl="/features/audio_tributes"
+          learnMoreUrl="/help?section=audio_tributes&ref=dashboard"
         />
 
         {/* Video Tributes — priceRows[5] */}
@@ -605,7 +606,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           price={featurePrices['video_tributes']}
           detailSummary="Contributors upload short video messages that play directly in their tribute card. A face, a voice, an expression — the most personal tribute of all."
           detailPoints={['Record on phone camera, upload directly', 'Up to 30 seconds per video', 'Plays inline — no external links', 'Works on any device, no app required']}
-          learnMoreUrl="/features/video_tributes"
+          learnMoreUrl="/help?section=video_tributes&ref=dashboard"
         />
 
         </div>{/* end left paid services column */}

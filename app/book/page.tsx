@@ -385,7 +385,7 @@ function BookPage() {
       const res = await fetch('/api/email/verify-code', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ capsuleId, code: verifyCode.trim().toUpperCase() }),
+        body: JSON.stringify({ capsuleId, code: verifyCode.trim().toUpperCase(), path }),
       })
       const data = await res.json()
       if (!res.ok || !data.valid) {
@@ -761,49 +761,61 @@ function BookPage() {
                 const unavailable = price === null
 
                 return (
-                  <button
+                  <div
                     key={svc.id}
-                    onClick={() => !unavailable && toggleService(svc.id)}
-                    disabled={unavailable}
                     style={{
-                      width: '100%', textAlign: 'left', padding: '14px 16px', borderRadius: '12px',
+                      width: '100%', borderRadius: '12px',
                       border: `1px solid ${selected ? 'rgba(226,195,107,0.5)' : unavailable ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.08)'}`,
                       background: selected ? 'rgba(226,195,107,0.07)' : unavailable ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)',
-                      cursor: unavailable ? 'not-allowed' : 'pointer',
                       opacity: unavailable ? 0.4 : 1,
                       transition: 'all 0.2s',
-                      display: 'flex', alignItems: 'center', gap: '12px',
+                      overflow: 'hidden',
                     }}
                   >
-                    {/* Checkbox */}
-                    <div style={{ width: '20px', height: '20px', borderRadius: '6px', border: `2px solid ${selected ? gold : 'rgba(255,255,255,0.18)'}`, background: selected ? 'rgba(226,195,107,0.15)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
-                      {selected && <span style={{ fontSize: '11px', color: gold, fontWeight: 800 }}>✓</span>}
+                    {/* Selectable row */}
+                    <div
+                      onClick={() => !unavailable && toggleService(svc.id)}
+                      style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: unavailable ? 'not-allowed' : 'pointer' }}
+                    >
+                      {/* Checkbox */}
+                      <div style={{ width: '20px', height: '20px', borderRadius: '6px', border: `2px solid ${selected ? gold : 'rgba(255,255,255,0.18)'}`, background: selected ? 'rgba(226,195,107,0.15)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+                        {selected && <span style={{ fontSize: '11px', color: gold, fontWeight: 800 }}>✓</span>}
+                      </div>
+
+                      {/* Icon + content */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px', flexWrap: 'wrap' as const }}>
+                          <span style={{ fontSize: '14px' }}>{svc.icon}</span>
+                          <span style={{ fontSize: '13px', fontWeight: 700, color: selected ? textPrimary : textSecondary }}>{svc.label}</span>
+                          {SUGGESTED_BY_EVENT[eventType]?.includes(svc.id) && (
+                            <span style={{ fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em', padding: '2px 6px', borderRadius: '4px', background: 'rgba(226,195,107,0.1)', border: '1px solid rgba(226,195,107,0.2)', color: 'rgba(226,195,107,0.7)', textTransform: 'uppercase' as const }}>Suggested</span>
+                          )}
+                        </div>
+                        <p style={{ fontSize: '11px', color: textFaint, margin: 0, lineHeight: 1.5 }}>{svc.description}</p>
+                      </div>
+
+                      {/* Price */}
+                      {price && (
+                        <div style={{ flexShrink: 0, textAlign: 'right' as const }}>
+                          <span style={{ fontSize: '13px', fontWeight: 700, color: selected ? gold : textFaint }}>
+                            {price.symbol}{price.amount.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      {unavailable && (
+                        <span style={{ fontSize: '9px', color: textFaint, flexShrink: 0 }}>Coming soon</span>
+                      )}
                     </div>
 
-                    {/* Icon + content */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-                        <span style={{ fontSize: '14px' }}>{svc.icon}</span>
-                        <span style={{ fontSize: '13px', fontWeight: 700, color: selected ? textPrimary : textSecondary }}>{svc.label}</span>
-                        {SUGGESTED_BY_EVENT[eventType]?.includes(svc.id) && (
-                          <span style={{ fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em', padding: '2px 6px', borderRadius: '4px', background: 'rgba(226,195,107,0.1)', border: '1px solid rgba(226,195,107,0.2)', color: 'rgba(226,195,107,0.7)', textTransform: 'uppercase' }}>Suggested</span>
-                        )}
-                      </div>
-                      <p style={{ fontSize: '11px', color: textFaint, margin: 0, lineHeight: 1.5 }}>{svc.description}</p>
-                    </div>
-
-                    {/* Price */}
-                    {price && (
-                      <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 700, color: selected ? gold : textFaint }}>
-                          {price.symbol}{price.amount.toLocaleString()}
-                        </span>
+                    {/* Learn more link */}
+                    {!unavailable && (
+                      <div style={{ padding: '0 16px 10px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex' }}>
+                        <a href={'/help?section=' + svc.id + '&ref=booking'} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: 'rgba(226,195,107,0.5)', textDecoration: 'none', fontWeight: 600 }}>
+                          Learn more about this service
+                        </a>
                       </div>
                     )}
-                    {unavailable && (
-                      <span style={{ fontSize: '9px', color: textFaint, flexShrink: 0 }}>Coming soon</span>
-                    )}
-                  </button>
+                  </div>
                 )
               })}
             </div>
