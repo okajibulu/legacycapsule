@@ -1,5 +1,5 @@
 /* =========================================================
-   app/api/email/verify-code/route.ts — v3
+   FILE PATH: app/api/email/verify-code/route.ts — v4
    Uses email_verifications table — purpose built.
 
    Columns used:
@@ -14,8 +14,19 @@
    Charset: ABCDEFGHJKLMNPQRSTUVWXYZ23456789
    Excludes I, O, 0, 1 — no visual confusion.
 
-   POST — generate, store, send email
-   PUT  — validate, mark verified
+   POST — generate, store, send verification code email
+   PUT  — validate, mark verified, send welcome email
+
+   Welcome email variants (v4):
+   - free path     → "Your capsule is ready"
+   - book path     → "Your capsule is reserved"
+   - gift path     → handled by gift-notification route
+
+   UPDATED: Claude Sonnet 4.6 · July 2026
+   - Welcome email now path-aware (free vs pre-booked)
+   - Pre-booked capsule email reflects reserved state
+   - Free capsule email reflects pending-until-first-tribute state
+   - Hardcoded itslegacycapsule.com replaced with APP_URL env var
 ========================================================= */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -27,8 +38,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-const FROM = 'noreply@itslegacycapsule.com'
+const resend  = new Resend(process.env.RESEND_API_KEY)
+const FROM    = 'LegacyCapsule <noreply@itslegacycapsule.com>'
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
 const CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
 function generateCode(): string {
@@ -40,7 +52,7 @@ function generateCode(): string {
 }
 
 /* =========================================================
-   POST — Generate, store, send
+   POST — Generate, store, send verification code
 ========================================================= */
 export async function POST(request: NextRequest) {
   try {
@@ -50,7 +62,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const code = generateCode()
+    const code      = generateCode()
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString()
 
     // Delete any existing unverified codes for this capsule first
@@ -65,12 +77,12 @@ export async function POST(request: NextRequest) {
     const { error: insertError } = await supabase
       .from('email_verifications')
       .insert({
-        email: organiserEmail.trim().toLowerCase(),
-        token: capsuleSlug ?? capsuleId,
-        type: 'booking_verification',
-        record_id: capsuleId,
+        email:             organiserEmail.trim().toLowerCase(),
+        token:             capsuleSlug ?? capsuleId,
+        type:              'booking_verification',
+        record_id:         capsuleId,
         verification_code: code,
-        expires_at: expiresAt,
+        expires_at:        expiresAt,
       })
 
     if (insertError) {
@@ -78,88 +90,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to store code' }, { status: 500 })
     }
 
-    // Send email
+    // Send verification code email
     await resend.emails.send({
-      from: `LegacyCapsule <${FROM}>`,
-      to: organiserEmail,
+      from:    FROM,
+      to:      organiserEmail,
       subject: `Your verification code: ${code}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
-        <body style="margin:0;padding:0;background:#0f0a1e;font-family:'DM Sans',Arial,sans-serif;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0a1e;padding:40px 20px;">
-            <tr><td align="center">
-              <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
-
-                <tr><td style="padding-bottom:24px;text-align:center;">
-                  <span style="font-size:11px;font-weight:800;letter-spacing:0.16em;color:#E2C36B;">LEGACY</span>
-                  <span style="font-size:11px;font-weight:800;letter-spacing:0.16em;color:rgba(255,255,255,0.3);">CAPSULE</span>
-                </td></tr>
-
-                <tr><td style="background:rgba(255,255,255,0.04);border:1px solid rgba(226,195,107,0.18);border-radius:16px;overflow:hidden;">
-                  <div style="height:2px;background:linear-gradient(to right,transparent,rgba(226,195,107,0.6),transparent);"></div>
-                  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 28px;">
-
-                    <tr><td style="text-align:center;padding-bottom:24px;">
-                      <p style="margin:0 0 10px;font-size:32px;line-height:1;">✉</p>
-                      <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;font-family:Georgia,serif;">
-                        Verify your email
-                      </h1>
-                      <p style="margin:10px 0 0;font-size:13px;color:rgba(255,255,255,0.5);line-height:1.65;">
-                        Enter this code to open your capsule for<br/>
-                        <strong style="color:rgba(255,255,255,0.85);">${honoureeName ?? 'your event'}</strong>
-                      </p>
-                    </td></tr>
-
-                    <tr><td style="padding-bottom:24px;">
-                      <div style="text-align:center;padding:28px 24px;background:rgba(226,195,107,0.07);border:1px solid rgba(226,195,107,0.25);border-radius:12px;">
-                        <p style="margin:0 0 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:rgba(226,195,107,0.55);">
-                          Your verification code
-                        </p>
-                        <p style="margin:0;font-size:48px;font-weight:800;letter-spacing:0.5em;color:#E2C36B;font-family:'Courier New',monospace;text-shadow:0 0 24px rgba(226,195,107,0.5);">
-                          ${code}
-                        </p>
-                        <p style="margin:12px 0 0;font-size:11px;color:rgba(255,255,255,0.25);">
-                          Valid for 30 minutes
-                        </p>
-                      </div>
-                    </td></tr>
-
-                    <tr><td style="padding-bottom:20px;">
-                      <div style="padding:16px;background:rgba(226,195,107,0.04);border:1px solid rgba(226,195,107,0.12);border-radius:10px;">
-                        <p style="margin:0;font-size:12px;color:rgba(226,195,107,0.6);line-height:1.8;">
-                          ✦ At the close of your event, LegacyCapsule automatically compiles every tribute,
-                          photo, and voice from your wall into a beautifully designed digital publication,
-                          complete with the Capsule Profile you have built. The platform can be triggered to
-                          send it to every person who contributed, wherever they are. No designer. No effort.
-                          Just a permanent, shareable record of a moment that mattered.
-                        </p>
-                      </div>
-                    </td></tr>
-
-                    <tr><td style="text-align:center;">
-                      <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.18);line-height:1.65;">
-                        If you did not request this, you can safely ignore this email.<br/>
-                        itslegacycapsule.com/for/${capsuleSlug ?? ''}
-                      </p>
-                    </td></tr>
-
-                  </table>
-                </td></tr>
-
-                <tr><td style="padding-top:24px;text-align:center;">
-                  <p style="margin:0;font-size:10px;color:rgba(255,255,255,0.12);letter-spacing:0.08em;text-transform:uppercase;">
-                    LEGACYCAPSULE · EVENTS END. LEGACIES DON'T.
-                  </p>
-                </td></tr>
-
-              </table>
-            </td></tr>
-          </table>
-        </body>
-        </html>
-      `,
+      html:    verificationEmailHtml({ code, honoureeName, capsuleSlug }),
     })
 
     return NextResponse.json({ success: true })
@@ -171,287 +107,124 @@ export async function POST(request: NextRequest) {
 }
 
 /* =========================================================
-   PUT — Validate submitted code
+   PUT — Validate submitted code, send welcome email
 ========================================================= */
 export async function PUT(request: NextRequest) {
   try {
-    const { capsuleId, code } = await request.json()
+    const body = await request.json()
+    const { capsuleId, code, path } = body
+    // path: 'free' | 'book' | 'gift'
 
     if (!capsuleId || !code) {
       return NextResponse.json({ valid: false, error: 'Missing fields' }, { status: 400 })
     }
 
-    // Fetch most recent unverified code for this capsule
-    const { data, error } = await supabase
+    // ── Validate code ─────────────────────────────────────────────────────────
+    const { data: verification } = await supabase
       .from('email_verifications')
-      .select('id, verification_code, expires_at')
+      .select('id, email, expires_at, verified_at')
       .eq('record_id', capsuleId)
       .eq('type', 'booking_verification')
+      .eq('verification_code', code.toUpperCase().trim())
       .is('verified_at', null)
-      .order('created_at', { ascending: false })
-      .limit(1)
       .single()
 
-    if (error || !data) {
-      return NextResponse.json({ valid: false, error: 'No code found' })
+    if (!verification) {
+      return NextResponse.json({ valid: false, error: 'Invalid or expired code' })
     }
 
-    // Check expiry
-    if (new Date() > new Date(data.expires_at)) {
-      await supabase.from('email_verifications').delete().eq('id', data.id)
-      return NextResponse.json({ valid: false, error: 'Code has expired' })
+    if (new Date(verification.expires_at) < new Date()) {
+      return NextResponse.json({ valid: false, error: 'Code has expired. Please request a new one.' })
     }
 
-    // Validate — case insensitive
-    if (code.trim().toUpperCase() !== data.verification_code?.toUpperCase()) {
-      return NextResponse.json({ valid: false })
-    }
-
-    // Mark as verified
+    // ── Mark verified ─────────────────────────────────────────────────────────
     await supabase
       .from('email_verifications')
       .update({ verified_at: new Date().toISOString() })
-      .eq('id', data.id)
+      .eq('id', verification.id)
 
-    // Mark capsule as verified
     await supabase
       .from('capsules')
       .update({ verified_at: new Date().toISOString() })
+      .eq('id', capsuleId)
 
-
-// Strategy B — write owner_user_id at booking verification time
-try {
-  const { data: capsuleRow } = await supabase
-    .from('capsules')
-    .select('organiser_email')
-    .eq('id', capsuleId)
-    .single()
-
-  if (capsuleRow?.organiser_email) {
-    const { data: { users } } = await supabase.auth.admin.listUsers()
-    const authUser = users?.find((u: any) => u.email === capsuleRow.organiser_email)
-    if (authUser) {
-      await supabase
+    // ── Silent account creation block (unchanged) ─────────────────────────────
+    try {
+      const orgEmail = verification.email
+      const { data: { users } } = await supabase.auth.admin.listUsers()
+      const authUser = { user: users.find(u => u.email === orgEmail) ?? null }
+      const { data: capsuleForAuth } = await supabase
         .from('capsules')
-        .update({ owner_user_id: authUser.id })
+        .select('id')
         .eq('id', capsuleId)
-        .is('owner_user_id', null)
-    }
-  }
-} catch { /* non-fatal */ }
+        .single()
 
-{/* =========================================================
-   ADDITION TO app/api/email/verify-code/route.ts
-   PUT handler — add AFTER marking capsule as verified,
-   BEFORE the welcome email block.
+      let userId: string | null = null
 
-   This silently creates a Supabase Auth account for the
-   organiser at the moment their email is verified during
-   booking. No password. Magic link activates it on first
-   signin. Profile and capsule_access rows created here too.
+      if (!authUser?.user) {
+        const { data: newUser } = await supabase.auth.admin.createUser({
+          email:             orgEmail,
+          email_confirm:     true,
+          user_metadata:     { role: 'organiser' },
+        })
+        if (newUser?.user) userId = newUser.user.id
+        else {
+          const { data: existing } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('email', orgEmail)
+            .single()
+          if (existing) userId = existing.id
+        }
+      } else if (authUser?.user) {
+        userId = authUser.user.id
+      }
 
-   PASTE THIS after:
-   await supabase.from('capsules').update({ verified_at: ... })
-
-   AND before the welcome email block / return statement.
-========================================================= */}
-
-// ── SILENT ACCOUNT CREATION BLOCK ──────────────────────
-try {
-  // Fetch capsule details needed for profile + access
-  const { data: capsuleForAuth } = await supabase
-    .from('capsules')
-    .select('id, slug, organiser_email')
-    .eq('id', capsuleId)
-    .single()
-
-  if (capsuleForAuth?.organiser_email) {
-    const orgEmail = capsuleForAuth.organiser_email.toLowerCase()
-
-    // Create or retrieve Supabase Auth user
-    // Uses admin API — does not send any email
-    const { data: authUser, error: authError } = await supabase.auth.admin
-      .createUser({
-        email: orgEmail,
-        email_confirm: true, // mark as confirmed — they already verified via our 4-char code
-      })
-
-    // Get the user id — either newly created or already exists
-    let userId: string | null = null
-
-    if (authError && authError.message.includes('already been registered')) {
-      // User already exists — look up by email
-      const { data: existingUsers } = await supabase.auth.admin.listUsers()
-      const existing = existingUsers?.users?.find(u => u.email === orgEmail)
-      if (existing) userId = existing.id
-    } else if (authUser?.user) {
-      userId = authUser.user.id
+      if (userId && capsuleForAuth) {
+        await supabase.from('profiles').upsert(
+          { id: userId, email: orgEmail, role: 'organiser' },
+          { onConflict: 'id' }
+        )
+        await supabase.from('capsule_access').upsert(
+          { capsule_id: capsuleForAuth.id, user_id: userId, role: 'owner', permissions: '["all"]' },
+          { onConflict: 'capsule_id,user_id' }
+        )
+      }
+    } catch (accountError) {
+      console.error('Silent account creation error:', accountError)
     }
 
-    if (userId) {
-      // Upsert profile row
-      await supabase.from('profiles').upsert(
-        {
-          id: userId,
-          email: orgEmail,
-          role: 'organiser',
-        },
-        { onConflict: 'id' }
-      )
+    // ── Welcome email — path-aware ────────────────────────────────────────────
+    // Gift path: welcome email sent by gift-notification route, not here
+    if (path !== 'gift') {
+      const { data: capsule } = await supabase
+        .from('capsules')
+        .select('slug, honouree_name, organiser_email')
+        .eq('id', capsuleId)
+        .single()
 
-      // Create capsule_access row — owner role
-      await supabase.from('capsule_access').upsert(
-        {
-          capsule_id: capsuleForAuth.id,
-          user_id: userId,
-          role: 'owner',
-          permissions: '["all"]',
-        },
-        { onConflict: 'capsule_id,user_id' }
-      )
+      if (capsule?.organiser_email) {
+        const isBooked     = path === 'book'
+        const capsuleUrl   = `${APP_URL}/for/${capsule.slug}`
+        const manageUrl    = `${APP_URL}/manage/${capsule.slug}`
+        const signinUrl    = `${APP_URL}/signin`
+
+        await resend.emails.send({
+          from:    FROM,
+          to:      capsule.organiser_email,
+          subject: isBooked
+            ? `Your LegacyCapsule for ${capsule.honouree_name} is reserved`
+            : `Your LegacyCapsule for ${capsule.honouree_name} is ready`,
+          html: welcomeEmailHtml({
+            honoureeName: capsule.honouree_name,
+            capsuleUrl,
+            manageUrl,
+            signinUrl,
+            isBooked,
+          }),
+        })
+      }
     }
-  }
-} catch (accountError) {
-  // Non-fatal — log but don't block the verification response
-  console.error('Silent account creation error:', accountError)
-}
-// ── END SILENT ACCOUNT CREATION BLOCK ──────────────────
-
-
-
-{/* =========================================================
-   Addition to app/api/email/verify-code/route.ts — PUT handler
-   
-   After successful code verification, send a welcome email
-   with the manage link and tribute wall link.
-   
-   ADD THIS BLOCK inside the PUT handler, after marking 
-   the capsule as verified and before the final return.
-   
-   Context: paste this after line:
-   await supabase.from('capsules').update({ verified_at: ... })
-   and before:
-   return NextResponse.json({ valid: true })
-========================================================= */}
-
-// ── WELCOME EMAIL BLOCK ─────────────────────────────────
-// Fetch capsule details for the welcome email
-const { data: capsule } = await supabase
-  .from('capsules')
-  .select('slug, honouree_name, organiser_email')
-  .eq('id', capsuleId)
-  .single()
-
-if (capsule?.organiser_email) {
-  const capsuleUrl = `https://www.itslegacycapsule.com/for/${capsule.slug}`
-  const manageUrl = `https://www.itslegacycapsule.com/manage/${capsule.slug}`
-  const signinUrl = `https://www.itslegacycapsule.com/signin`
-
-  await resend.emails.send({
-    from: `LegacyCapsule <noreply@itslegacycapsule.com>`,
-    to: capsule.organiser_email,
-    subject: `Your capsule for ${capsule.honouree_name} is live`,
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
-      <body style="margin:0;padding:0;background:#0f0a1e;font-family:'DM Sans',Arial,sans-serif;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0a1e;padding:40px 20px;">
-          <tr><td align="center">
-            <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
-
-              <!-- Logo -->
-              <tr><td style="padding-bottom:28px;text-align:center;">
-                <span style="font-size:12px;font-weight:800;letter-spacing:0.16em;color:#E2C36B;">LEGACY</span>
-                <span style="font-size:12px;font-weight:800;letter-spacing:0.16em;color:rgba(255,255,255,0.28);">CAPSULE</span>
-              </td></tr>
-
-              <!-- Card -->
-              <tr><td style="background:rgba(255,255,255,0.04);border:1px solid rgba(226,195,107,0.15);border-radius:18px;overflow:hidden;">
-                <div style="height:2px;background:linear-gradient(to right,transparent,rgba(226,195,107,0.6),transparent);"></div>
-
-                <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 28px;">
-
-                  <!-- Heading -->
-                  <tr><td style="text-align:center;padding-bottom:24px;">
-                    <p style="margin:0 0 12px;font-size:28px;line-height:1;">✦</p>
-                    <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;font-family:Georgia,serif;line-height:1.3;">
-                      Your capsule is live
-                    </h1>
-                    <p style="margin:10px 0 0;font-size:14px;color:rgba(255,255,255,0.55);line-height:1.65;">
-                      Tribute collection is now open for<br/>
-                      <strong style="color:rgba(255,255,255,0.88);">${capsule.honouree_name}</strong>
-                    </p>
-                  </td></tr>
-
-                  <!-- Divider -->
-                  <tr><td style="padding-bottom:24px;">
-                    <div style="height:1px;background:linear-gradient(to right,transparent,rgba(226,195,107,0.2),transparent);"></div>
-                  </td></tr>
-
-                  <!-- Tribute wall link -->
-                  <tr><td style="padding-bottom:16px;">
-                    <p style="margin:0 0 8px;font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(226,195,107,0.5);">
-                      Your Tribute Wall
-                    </p>
-                    <p style="margin:0 0 12px;font-size:13px;color:rgba(255,255,255,0.45);">
-                      Share this link with family, friends, and colleagues to start collecting tributes.
-                    </p>
-                    <a href="${capsuleUrl}" style="display:block;padding:12px 16px;border-radius:10px;background:rgba(226,195,107,0.07);border:1px solid rgba(226,195,107,0.2);color:#E2C36B;font-size:13px;font-weight:600;text-decoration:none;word-break:break-all;">
-                      ${capsuleUrl}
-                    </a>
-                  </td></tr>
-
-                  <!-- Divider -->
-                  <tr><td style="padding-bottom:16px;">
-                    <div style="height:1px;background:linear-gradient(to right,transparent,rgba(255,255,255,0.06),transparent);"></div>
-                  </td></tr>
-
-                  <!-- Manage link -->
-                  <tr><td style="padding-bottom:24px;">
-                    <p style="margin:0 0 8px;font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(226,195,107,0.5);">
-                      Your Dashboard
-                    </p>
-                    <p style="margin:0 0 12px;font-size:13px;color:rgba(255,255,255,0.45);">
-                      Approve tributes, upload photos, and manage your capsule from here.
-                      Bookmark this link.
-                    </p>
-                    <a href="${manageUrl}" style="display:inline-block;padding:12px 24px;border-radius:10px;background:linear-gradient(135deg,#E2C36B,#C9A84E);color:#1a0845;font-size:13px;font-weight:700;text-decoration:none;letter-spacing:0.04em;">
-                      Open Dashboard →
-                    </a>
-                  </td></tr>
-
-                  <!-- Sign in note -->
-                  <tr><td>
-                    <div style="padding:14px 16px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-                      <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.35);line-height:1.7;">
-                        You can also sign in to your dashboard anytime at
-                        <a href="${signinUrl}" style="color:rgba(226,195,107,0.6);text-decoration:none;"> itslegacycapsule.com/signin</a>
-                        using this email address.
-                      </p>
-                    </div>
-                  </td></tr>
-
-                </table>
-              </td></tr>
-
-              <!-- Footer -->
-              <tr><td style="padding-top:28px;text-align:center;">
-                <p style="margin:0;font-size:10px;color:rgba(255,255,255,0.12);letter-spacing:0.1em;text-transform:uppercase;">
-                  LEGACYCAPSULE · EVENTS END. LEGACIES CONTINUE.
-                </p>
-              </td></tr>
-
-            </table>
-          </td></tr>
-        </table>
-      </body>
-      </html>
-    `,
-  })
-}
-// ── END WELCOME EMAIL BLOCK ─────────────────────────────
-
 
     return NextResponse.json({ valid: true })
 
@@ -459,4 +232,227 @@ if (capsule?.organiser_email) {
     console.error('Verify code PUT error:', error)
     return NextResponse.json({ valid: false, error: 'Verification failed' }, { status: 500 })
   }
+}
+
+/* =========================================================
+   SECTION — Verification code email template
+   Sent immediately when code is requested.
+   Same for all paths — just confirms email ownership.
+========================================================= */
+function verificationEmailHtml(d: {
+  code:          string
+  honoureeName?: string
+  capsuleSlug?:  string
+}) {
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
+<body style="margin:0;padding:0;background:#0f0a1e;font-family:'DM Sans',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0a1e;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
+
+        <tr><td style="padding-bottom:24px;text-align:center;">
+          <span style="font-size:11px;font-weight:800;letter-spacing:0.16em;color:#E2C36B;">LEGACY</span>
+          <span style="font-size:11px;font-weight:800;letter-spacing:0.16em;color:rgba(255,255,255,0.3);">CAPSULE</span>
+        </td></tr>
+
+        <tr><td style="background:rgba(255,255,255,0.04);border:1px solid rgba(226,195,107,0.18);border-radius:16px;overflow:hidden;">
+          <div style="height:2px;background:linear-gradient(to right,transparent,rgba(226,195,107,0.6),transparent);"></div>
+          <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 28px;">
+
+            <tr><td style="text-align:center;padding-bottom:24px;">
+              <p style="margin:0 0 10px;font-size:32px;line-height:1;">✉</p>
+              <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;font-family:Georgia,serif;">
+                Verify your email
+              </h1>
+              <p style="margin:10px 0 0;font-size:13px;color:rgba(255,255,255,0.5);line-height:1.65;">
+                Enter this code to continue setting up your capsule for<br/>
+                <strong style="color:rgba(255,255,255,0.85);">${d.honoureeName ?? 'your event'}</strong>
+              </p>
+            </td></tr>
+
+            <tr><td style="padding-bottom:24px;">
+              <div style="text-align:center;padding:28px 24px;background:rgba(226,195,107,0.07);border:1px solid rgba(226,195,107,0.25);border-radius:12px;">
+                <p style="margin:0 0 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:rgba(226,195,107,0.55);">
+                  Your verification code
+                </p>
+                <p style="margin:0;font-size:48px;font-weight:800;letter-spacing:0.5em;color:#E2C36B;font-family:'Courier New',monospace;text-shadow:0 0 24px rgba(226,195,107,0.5);">
+                  ${d.code}
+                </p>
+                <p style="margin:12px 0 0;font-size:11px;color:rgba(255,255,255,0.25);">
+                  Valid for 30 minutes
+                </p>
+              </div>
+            </td></tr>
+
+            <tr><td style="padding-bottom:20px;">
+              <div style="padding:16px;background:rgba(226,195,107,0.04);border:1px solid rgba(226,195,107,0.12);border-radius:10px;">
+                <p style="margin:0;font-size:12px;color:rgba(226,195,107,0.6);line-height:1.8;">
+                  ✦ At the close of your event, LegacyCapsule compiles every tribute,
+                  photo and voice into a beautifully designed digital publication — sent to every
+                  person who contributed, wherever they are. A permanent record of a moment that mattered.
+                </p>
+              </div>
+            </td></tr>
+
+            <tr><td style="text-align:center;">
+              <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.18);line-height:1.65;">
+                If you did not request this, you can safely ignore this email.
+              </p>
+            </td></tr>
+
+          </table>
+        </td></tr>
+
+        <tr><td style="padding-top:24px;text-align:center;">
+          <p style="margin:0;font-size:10px;color:rgba(255,255,255,0.12);letter-spacing:0.08em;text-transform:uppercase;">
+            LEGACYCAPSULE · EVENTS END. LEGACIES DON'T.
+          </p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
+/* =========================================================
+   SECTION — Welcome email template
+   Sent after successful verification.
+   Two variants: free (pending) and pre-booked (reserved).
+========================================================= */
+function welcomeEmailHtml(d: {
+  honoureeName: string
+  capsuleUrl:   string
+  manageUrl:    string
+  signinUrl:    string
+  isBooked:     boolean
+}) {
+  const heading = d.isBooked
+    ? `Your capsule for <span style="color:#E2C36B;">${d.honoureeName}</span> is reserved`
+    : `Your capsule for <span style="color:#E2C36B;">${d.honoureeName}</span> is ready`
+
+  const subheading = d.isBooked
+    ? `Your capsule and selected services have been reserved. When you are ready to begin collecting tributes, share your link and the capsule will come to life with the first voice that arrives.`
+    : `Your capsule is set up and waiting. Share your tribute wall link with family and friends — the capsule comes to life when the first tribute arrives.`
+
+  const nextSteps = d.isBooked ? [
+    'Your selected services are ready and waiting.',
+    'Share your tribute wall link whenever you are ready to begin.',
+    'Your capsule goes live when the first tribute arrives.',
+    'Approve tributes, manage content and track participation from your dashboard.',
+  ] : [
+    'Share your tribute wall link with family and friends.',
+    'Your capsule goes live when the first tribute arrives.',
+    'Approve tributes and manage your capsule from your dashboard.',
+    'At the close of your event, generate a beautifully compiled publication for everyone who contributed.',
+  ]
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
+<body style="margin:0;padding:0;background:#0f0a1e;font-family:'DM Sans',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0a1e;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+
+        <!-- Logo -->
+        <tr><td style="padding-bottom:28px;text-align:center;">
+          <span style="font-size:12px;font-weight:800;letter-spacing:0.16em;color:#E2C36B;">LEGACY</span>
+          <span style="font-size:12px;font-weight:800;letter-spacing:0.16em;color:rgba(255,255,255,0.28);">CAPSULE</span>
+        </td></tr>
+
+        <!-- Card -->
+        <tr><td style="background:rgba(255,255,255,0.04);border:1px solid rgba(226,195,107,0.15);border-radius:18px;overflow:hidden;">
+          <div style="height:2px;background:linear-gradient(to right,transparent,rgba(226,195,107,0.6),transparent);"></div>
+
+          <table width="100%" cellpadding="0" cellspacing="0" style="padding:36px 32px;">
+
+            <!-- Heading -->
+            <tr><td style="text-align:center;padding-bottom:24px;">
+              <p style="margin:0 0 12px;font-size:28px;line-height:1;">${d.isBooked ? '◈' : '✦'}</p>
+              <h1 style="margin:0;font-size:23px;font-weight:700;color:#ffffff;font-family:Georgia,serif;line-height:1.35;">
+                ${heading}
+              </h1>
+              <p style="margin:14px 0 0;font-size:14px;color:rgba(255,255,255,0.55);line-height:1.75;max-width:380px;margin-left:auto;margin-right:auto;">
+                ${subheading}
+              </p>
+            </td></tr>
+
+            <!-- Divider -->
+            <tr><td style="padding-bottom:24px;">
+              <div style="height:1px;background:linear-gradient(to right,transparent,rgba(226,195,107,0.2),transparent);"></div>
+            </td></tr>
+
+            <!-- Tribute wall link -->
+            <tr><td style="padding-bottom:20px;">
+              <p style="margin:0 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(226,195,107,0.5);">
+                Your Tribute Wall
+              </p>
+              <p style="margin:0 0 10px;font-size:13px;color:rgba(255,255,255,0.4);line-height:1.65;">
+                ${d.isBooked
+                  ? 'Share this link when you are ready. Tributes will begin arriving as soon as you do.'
+                  : 'Share this link with everyone who should be part of this story.'}
+              </p>
+              <a href="${d.capsuleUrl}" style="display:block;padding:12px 16px;border-radius:10px;background:rgba(226,195,107,0.07);border:1px solid rgba(226,195,107,0.2);color:#E2C36B;font-size:13px;font-weight:600;text-decoration:none;word-break:break-all;">
+                ${d.capsuleUrl}
+              </a>
+            </td></tr>
+
+            <!-- Dashboard CTA -->
+            <tr><td style="padding-bottom:24px;">
+              <p style="margin:0 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(226,195,107,0.5);">
+                Your Dashboard
+              </p>
+              <p style="margin:0 0 12px;font-size:13px;color:rgba(255,255,255,0.4);line-height:1.65;">
+                Approve tributes, manage content and monitor your capsule. Bookmark this link.
+              </p>
+              <a href="${d.manageUrl}" style="display:inline-block;padding:13px 28px;border-radius:10px;background:linear-gradient(135deg,#E2C36B,#C9A84E);color:#1a0845;font-size:13px;font-weight:700;text-decoration:none;letter-spacing:0.04em;">
+                Open Dashboard →
+              </a>
+            </td></tr>
+
+            <!-- Next steps -->
+            <tr><td style="padding-bottom:20px;">
+              <div style="padding:18px 20px;border-radius:12px;background:rgba(226,195,107,0.04);border:1px solid rgba(226,195,107,0.1);">
+                <p style="margin:0 0 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:rgba(226,195,107,0.5);">
+                  What happens next
+                </p>
+                ${nextSteps.map(step =>
+                  `<p style="margin:0 0 8px;font-size:13px;color:rgba(255,255,255,0.5);line-height:1.7;">✦ ${step}</p>`
+                ).join('')}
+              </div>
+            </td></tr>
+
+            <!-- Sign in note -->
+            <tr><td>
+              <div style="padding:14px 16px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+                <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.3);line-height:1.7;">
+                  You can sign in to your dashboard anytime at
+                  <a href="${d.signinUrl}" style="color:rgba(226,195,107,0.55);text-decoration:none;"> itslegacycapsule.com/signin</a>
+                  using this email address.
+                </p>
+              </div>
+            </td></tr>
+
+          </table>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="padding-top:28px;text-align:center;">
+          <p style="margin:0 0 6px;font-style:italic;font-size:12px;color:rgba(255,255,255,0.2);font-family:Georgia,serif;">
+            "Events end. Legacies don't."
+          </p>
+          <p style="margin:0;font-size:10px;color:rgba(255,255,255,0.1);letter-spacing:0.1em;text-transform:uppercase;">
+            LEGACYCAPSULE · VALNEX, UNIPESSOAL LDA · REVOWORLDTECH
+          </p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
 }

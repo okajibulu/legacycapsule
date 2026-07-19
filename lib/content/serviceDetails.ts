@@ -64,18 +64,18 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
     refundNote: 'Publication is a digital service activated immediately on payment. As with all LegacyCapsule add-ons, it is non-refundable once activated.',
   },
 
-  // ── Expression of Honour ───────────────────────────────────────────────────
+  // ── Gift of Honour ─────────────────────────────────────────────────────────
   ways_to_honour: {
     id:      'ways_to_honour',
     title:   'Gift of Honour',
     icon:    '✦',
     tagline: 'A dignified, private channel for guests to express financial support.',
-    summary: 'Expression of Honour adds a tasteful, private section to your tribute wall where guests can see your preferred payment channels and acknowledge their contribution. It is designed specifically for the African cultural context — where supporting a family financially during a significant event is an important part of the occasion — presented with the dignity the moment deserves.',
+    summary: 'Gift of Honour adds a tasteful, private section to your tribute wall where guests can see your preferred payment channels and express their support. It is designed specifically for the African cultural context — where supporting a family financially during a significant event is an important part of the occasion — presented with the dignity the moment deserves.',
     whatYouGet: [
       'A dedicated section on the tribute wall showing your bank details or payment channels',
       'Full control over which payment methods to display — bank transfer, mobile money, or others',
       'A private acknowledgement flow — contributors note their support discreetly',
-      'A daily digest email summarising new expressions of honour, delivered to the family representative each midnight',
+       
       'A running year-to-date total so the family always knows the cumulative position',
       'Full privacy — amounts and details are never shown publicly on the tribute wall',
     ],
@@ -86,9 +86,9 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
       'No amounts are displayed publicly — only the family sees the details',
     ],
     bestFor: ['Retirement', 'Memorial & Funeral', 'Chieftaincy', 'Thanksgiving Service', 'Ordination', 'Milestone Birthday'],
-    exampleUseCase: 'A family hosting a traditional chieftaincy installation adds Expression of Honour to their capsule. Guests from the UK, Nigeria and the US see the family\'s Zenith Bank account and UK bank details presented tastefully alongside the tribute wall. Over the three days of the ceremony, 47 guests acknowledge their support. The family representative receives a midnight digest each day summarising who contributed and the running total — without needing to monitor the capsule manually.',
+    exampleUseCase: "A family hosting a traditional chieftaincy installation adds Gift of Honour to their capsule. Guests from the UK, Nigeria and the US see the family\'s Zenith Bank account and UK bank details presented tastefully alongside the tribute wall. Over the three days of the ceremony, 47 guests acknowledge their support. The family representative receives a midnight digest each day summarising who contributed and the running total — without needing to monitor the capsule manually.",
     faqs: [
-      { q: 'Are the payment amounts shown publicly on the tribute wall?', a: 'No. Amounts are completely private. Only the family representative and organiser can see the acknowledgement records. The public tribute wall shows only that an Expression of Honour section exists.' },
+      { q: 'Are the payment amounts shown publicly on the tribute wall?', a: 'No. Amounts are completely private. Only the family representative and organiser can see the acknowledgement records. The public tribute wall shows only that a Gift of Honour section exists.' },
       { q: 'Can I add multiple payment channels?', a: 'Yes — you can add as many payment methods as needed: bank transfer, mobile money (MTN, Airtel), PayPal, or any other channel you choose to display.' },
       { q: 'How does the family know when someone has expressed honour?', a: 'A daily digest email is sent at midnight to the family representative, listing every new expression received that day and the cumulative total. No real-time alerts — one clear summary per day.' },
       { q: 'Does LegacyCapsule handle the actual money transfer?', a: 'No — LegacyCapsule displays your payment details and records acknowledgements. The actual transfer happens directly between the contributor and your bank or payment account. LegacyCapsule takes no transaction fee and handles no funds.' },
