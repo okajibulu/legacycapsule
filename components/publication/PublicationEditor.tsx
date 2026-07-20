@@ -166,6 +166,11 @@ export default function PublicationEditor({
   const [distributing,    setDistributing]     = useState(false);
   const [distributeError, setDistributeError]  = useState<string | null>(null);
   const [distributeResult, setDistributeResult] = useState<{ sent: number; skipped: number } | null>(null);
+  const [recipientPreview, setRecipientPreview] = useState<{
+    contributors: number; dday: number; subscribers: number; total: number; no_email: number
+  } | null>(null);
+  const [previewLoading,  setPreviewLoading]   = useState(false);
+  const [showConfirm,     setShowConfirm]      = useState(false);
   const [initialising,    setInitialising]     = useState(true);
   const [initError,       setInitError]        = useState<string | null>(null);
 
@@ -379,21 +384,40 @@ const handlePreviewPrint = useCallback(async () => {
     }
   }, [capsuleId]);
 
-  // ── 5.7b  Distribute — Collective Belonging Email ─────────
+  // ── 5.7b  Distribute — two-step: preview recipients then confirm send ──
+  const handlePreviewRecipients = useCallback(async () => {
+    if (!capsuleId) return
+    setPreviewLoading(true)
+    setDistributeError(null)
+    try {
+      const res  = await fetch(`/api/publication/distribute?capsule_id=${capsuleId}&preview=1`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to load recipients')
+      setRecipientPreview(data)
+      setShowConfirm(true)
+    } catch (err) {
+      setDistributeError(err instanceof Error ? err.message : 'Failed to load recipients')
+    } finally {
+      setPreviewLoading(false)
+    }
+  }, [capsuleId])
+
   const handleDistribute = useCallback(async () => {
     if (!capsuleId || !existingPdfUrl) return
     setDistributing(true)
     setDistributeError(null)
     setDistributeResult(null)
+    setShowConfirm(false)
     try {
-      const res = await fetch('/api/publication/distribute', {
-        method: 'POST',
+      const res  = await fetch('/api/publication/distribute', {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ capsule_id: capsuleId, capsule_slug: capsuleSlug }),
+        body:    JSON.stringify({ capsule_id: capsuleId, capsule_slug: capsuleSlug }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Distribution failed')
       setDistributeResult(data)
+      setRecipientPreview(null)
     } catch (err) {
       setDistributeError(err instanceof Error ? err.message : 'Distribution failed')
     } finally {
@@ -528,32 +552,99 @@ const handlePreviewPrint = useCallback(async () => {
             </p>
           </div>
 
-          {/* ── Distribute — Collective Belonging Email ── */}
+          {/* ── Distribute — two-step: preview then confirm ── */}
           {existingPdfUrl && (
             <div className="mb-5 pb-5 border-b border-yellow-400/10">
               <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-3">
                 Distribute
               </p>
-              <button
-                type="button"
-                onClick={handleDistribute}
-                disabled={distributing || hasUnsavedChanges}
-                className="w-full py-2.5 px-3 rounded-lg text-xs font-bold border border-yellow-400/30 text-yellow-300 hover:bg-yellow-400/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {distributing ? 'Sending…' : '✉ Send to All Contributors'}
-              </button>
-              {distributeResult && (
-                <p className="text-[10px] text-green-400/70 mt-2 text-center">
-                  ✓ Sent to {distributeResult.sent} contributor{distributeResult.sent !== 1 ? 's' : ''}
-                  {distributeResult.skipped > 0 ? ` · ${distributeResult.skipped} skipped` : ''}
-                </p>
+
+              {/* Step 1 — success state */}
+              {distributeResult ? (
+                <div className="rounded-lg bg-green-400/8 border border-green-400/20 p-3 text-center">
+                  <p className="text-[11px] text-green-400/80 font-bold mb-1">
+                    ✓ Publication sent
+                  </p>
+                  <p className="text-[10px] text-white/30">
+                    {distributeResult.sent} recipient{distributeResult.sent !== 1 ? 's' : ''}
+                    {distributeResult.skipped > 0 ? ` · ${distributeResult.skipped} had no email` : ''}
+                  </p>
+                </div>
+
+              ) : showConfirm && recipientPreview ? (
+                /* Step 2 — confirm panel */
+                <div className="rounded-lg border border-yellow-400/20 bg-yellow-400/5 p-3">
+                  <p className="text-[10px] text-yellow-400/60 uppercase tracking-wider mb-2">
+                    Publication will be sent to:
+                  </p>
+                  <div className="space-y-1 mb-3">
+                    {recipientPreview.contributors > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-[10px] text-white/50">Tribute contributors</span>
+                        <span className="text-[10px] text-white/70 font-bold">{recipientPreview.contributors}</span>
+                      </div>
+                    )}
+                    {recipientPreview.dday > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-[10px] text-white/50">D-Day photo contributors</span>
+                        <span className="text-[10px] text-white/70 font-bold">{recipientPreview.dday}</span>
+                      </div>
+                    )}
+                    {recipientPreview.subscribers > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-[10px] text-white/50">Publication subscribers</span>
+                        <span className="text-[10px] text-white/70 font-bold">{recipientPreview.subscribers}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between pt-1 border-t border-white/10 mt-1">
+                      <span className="text-[10px] text-yellow-400/60 font-bold">Total recipients</span>
+                      <span className="text-[10px] text-yellow-400 font-bold">{recipientPreview.total}</span>
+                    </div>
+                    {recipientPreview.no_email > 0 && (
+                      <p className="text-[9px] text-white/25 mt-1">
+                        {recipientPreview.no_email} contributor{recipientPreview.no_email !== 1 ? 's' : ''} have no email — not included
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleDistribute}
+                      disabled={distributing || recipientPreview.total === 0}
+                      className="flex-1 py-2 rounded-lg text-[11px] font-bold bg-yellow-400 text-[#0a0010] disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {distributing ? 'Sending…' : `Send to ${recipientPreview.total}`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowConfirm(false); setRecipientPreview(null) }}
+                      className="px-3 py-2 rounded-lg text-[11px] border border-white/10 text-white/40"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+
+              ) : (
+                /* Step 1 — initial button */
+                <>
+                  <button
+                    type="button"
+                    onClick={handlePreviewRecipients}
+                    disabled={previewLoading || hasUnsavedChanges}
+                    className="w-full py-2.5 px-3 rounded-lg text-xs font-bold border border-yellow-400/30 text-yellow-300 hover:bg-yellow-400/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {previewLoading ? 'Checking recipients…' : '✉ Send Publication'}
+                  </button>
+                  <p className="text-[9px] text-white/20 mt-2 leading-relaxed text-center">
+                    Preview who will receive it before sending
+                  </p>
+                </>
               )}
+
               {distributeError && (
                 <p className="text-[10px] text-red-400/70 mt-2 text-center">{distributeError}</p>
               )}
-              <p className="text-[9px] text-white/20 mt-2 leading-relaxed text-center">
-                Sends the publication to every contributor who left an email
-              </p>
             </div>
           )}
 
