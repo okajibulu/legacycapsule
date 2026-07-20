@@ -14,6 +14,7 @@ import type { ThemeKey } from '@/lib/themeConfig'
 import LegacyRoomClient from '@/components/LegacyRoomClient'
 import type { Metadata } from 'next'
 import CapsuleBottomNav from '@/components/CapsuleBottomNav'
+import PublicationSubscribePanel from '@/components/capsule/PublicationSubscribePanel'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 1 — ISR config
@@ -137,12 +138,31 @@ export default async function LegacyRoomPage(
     .order('section_index')
     .order('sort_order')
 
-  // ── Fetch phase count for bottom nav ──────────────────────────────────
-  const { count: phaseCount } = await supabase
-    .from('capsule_phases')
-    .select('id', { count: 'exact' })
-    .eq('capsule_id', capsule.id)
-    .is('deleted_at', null)
+  // ── Fetch phases with D-Day photo counts ────────────────────────────────
+  let phases: Array<{ id: string; name: string; event_date: string | null; photo_count: number }> = []
+  let phaseCount = 0
+  try {
+    const { data: pData } = await supabase
+      .from('capsule_phases')
+      .select('id, name, event_date')
+      .eq('capsule_id', capsule.id)
+      .is('deleted_at', null)
+      .order('sort_order', { ascending: true })
+    if (pData && pData.length > 0) {
+      phaseCount = pData.length
+      const counts = await Promise.all(pData.map(async p => {
+        const { count } = await supabase
+          .from('gallery_items')
+          .select('id', { count: 'exact', head: true })
+          .eq('capsule_id', capsule.id)
+          .eq('phase_id', p.id)
+          .eq('source', 'dday')
+          .eq('approved', true)
+        return { ...p, photo_count: count ?? 0 }
+      }))
+      phases = counts
+    }
+  } catch { phases = []; phaseCount = 0 }
 
   // ── Resolve theme ─────────────────────────────────────────────────────
   const themeKey: ThemeKey = resolveTheme(
@@ -188,6 +208,49 @@ export default async function LegacyRoomPage(
       galleryPhotos={galleryPhotos ?? []}
       themeKey={themeKey}
     />
+    {/* ── Event Phases strip ── */}
+    {phases.length > 0 && (
+      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 24px', fontFamily: "'DM Sans', sans-serif" }}>
+        <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(226,195,107,0.55)', marginBottom: '10px' }}>
+          Event Phases
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {phases.map(phase => (
+            <div key={phase.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(226,195,107,0.12)' }}>
+              <div>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: 'rgba(255,255,255,0.92)', margin: '0 0 2px' }}>{phase.name}</p>
+                {phase.event_date && (
+                  <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', margin: 0 }}>
+                    {new Date(phase.event_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                )}
+              </div>
+              {phase.photo_count > 0 ? (
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(226,195,107,0.55)', flexShrink: 0 }}>
+                  📸 {phase.photo_count} photo{phase.photo_count !== 1 ? 's' : ''}
+                </span>
+              ) : (
+                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>
+                  Photos on event day
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.28)', marginTop: '10px', lineHeight: 1.65 }}>
+          On event day, guests can share their own photos and memories from each phase. Scan the QR code at the venue or visit the tribute wall link.
+        </p>
+      </div>
+    )}
+
+    {/* ── Publication subscribe panel ── */}
+    <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 16px' }}>
+      <PublicationSubscribePanel
+        capsuleId={capsule.id}
+        honoureeName={capsule.honouree_name}
+      />
+    </div>
+
     <CapsuleBottomNav
       slug={slug}
       currentPage="legacy"
