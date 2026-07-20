@@ -1,9 +1,9 @@
 'use client'
 
 /* =========================================================
+   FILE PATH: app/book/page.tsx
    BOOKING FLOW — /book
-   Premium rebuild v2. Three paths. Purple/gold theme.
-   Tiers removed. Free path + Book a Capsule path (with gift toggle).
+   Premium rebuild v3. Three paths. Purple/gold theme.
 
    SCREENS:
    0  — Path chooser (Free / Book a Capsule)
@@ -15,8 +15,8 @@
 
    SECTION MAP:
    1.  Imports & types
-   2.  Constants — event types, services, design tokens
-   3.  Helpers — slug, labels, placeholders, suggested services
+   2.  Constants — event types, design tokens, suggested services
+   3.  Helpers — slug, labels, placeholders, descriptions
    4.  Shared primitives
    5.  Main component
    6.  — State
@@ -31,12 +31,16 @@
        9f. Screen 5 — Confirmed
    10. Suspense wrapper export
 
-   UPDATED: Claude Sonnet 4.6 · July 2026
-   — Removed honour/premier tier packages (scrapped)
-   — Added Book a Capsule path with gift toggle
-   — Screen 3 rebuilt as services selector with regional pricing
-   — Suggested services pre-selected by event type
-   — Bundle checkout via /api/checkout/bundle
+   UPDATED: AI12 · Claude Opus 4.6 · 20 July 2026
+   — Services now read from lib/content/serviceDetails.ts (single source of truth)
+   — Always Included strip is path-aware (free vs pre-booked)
+   — Free items include "Find out more" links to help page
+   — Services grouped by category with visual dividers (no headers)
+   — Access Codes and Additional Phase added to service selector
+   — Extended Validity NOT shown at booking (ServicesTab only)
+   — Voice/Video durations corrected to 60 seconds
+   — Guest Management copy updated with RSVP, VVIP, full participant types
+   — All copy written from organiser's mental model
 ========================================================= */
 
 /* =========================================================
@@ -46,6 +50,11 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase-browser'
+import {
+  SERVICE_DETAILS,
+  BOOKING_SERVICE_ORDER,
+  CATEGORY_BREAKS,
+} from '../../lib/content/serviceDetails'
 
 interface ContentMap { [key: string]: string }
 type Path = 'free' | 'book' | ''
@@ -54,6 +63,8 @@ type BookMode = 'own' | 'gift'
 /* =========================================================
    SECTION 2 — CONSTANTS
 ========================================================= */
+
+// ═══ Event Types ═══
 const EVENT_TYPES = [
   { emoji: '🏆', label: 'Retirement' },
   { emoji: '🕊️', label: 'Memorial & Funeral' },
@@ -69,64 +80,23 @@ const EVENT_TYPES = [
   { emoji: '✨', label: 'Other Event' },
 ]
 
-// Services available for selection
-const ALL_SERVICES = [
-  {
-    id: 'publication',
-    label: 'Digital Publication',
-    description: 'Every tribute compiled into a beautifully designed keepsake PDF — sent to all contributors after the event.',
-    icon: '◎',
-  },
-  {
-    id: 'ways_to_honour',
-  label: 'Gift of Honour',
-    description: 'A dignified, private channel for guests to express financial support — presented tastefully on the tribute wall.',
-    icon: '✦',
-  },
-  {
-    id: 'guest_management',
-    label: 'Guest Management',
-    description: 'Full guest list with unique access codes, RSVP tracking, check-in and seating management.',
-    icon: '◉',
-  },
-  {
-    id: 'audio_tributes',
-    label: 'Voice Tributes',
-    description: 'Contributors record personal audio messages. Hearing a voice adds a dimension text cannot replicate.',
-    icon: '🎙',
-  },
-  {
-    id: 'video_tributes',
-    label: 'Video Tributes',
-    description: 'Contributors upload short video messages displayed directly in their tribute card.',
-    icon: '🎬',
-  },
-  {
-    id: 'attire',
-    label: 'Fabric & Attire',
-    description: 'Coordinate dress code, fabric choices and attire orders from one dashboard.',
-    icon: '◐',
-  },
- 
-]
-
-// Suggested service IDs pre-selected per event type
+// ═══ Suggested services pre-selected per event type ═══
 const SUGGESTED_BY_EVENT: Record<string, string[]> = {
   'Retirement':           ['publication', 'ways_to_honour', 'audio_tributes'],
   'Memorial & Funeral':   ['publication', 'ways_to_honour'],
-  'Wedding':              ['publication', 'ways_to_honour', 'attire', 'guest_management'],
+  'Wedding':              ['publication', 'ways_to_honour', 'attire', 'guest_management', 'access_codes'],
   'Milestone Birthday':   ['publication', 'ways_to_honour', 'audio_tributes'],
   'Anniversary':          ['publication', 'ways_to_honour'],
   'Graduation':           ['publication', 'audio_tributes'],
   'Ordination':           ['publication', 'ways_to_honour'],
-  'Chieftaincy':          ['publication', 'ways_to_honour', 'guest_management', 'attire'],
-  'Award Ceremony':       ['publication', 'guest_management'],
+  'Chieftaincy':          ['publication', 'ways_to_honour', 'guest_management', 'attire', 'access_codes'],
+  'Award Ceremony':       ['publication', 'guest_management', 'access_codes'],
   'Thanksgiving Service': ['publication', 'ways_to_honour'],
-  'Conference':           ['publication', 'guest_management'],
+  'Conference':           ['publication', 'guest_management', 'access_codes'],
   'Other Event':          ['publication'],
 }
 
-// Design tokens
+// ═══ Design tokens ═══
 const pageBg = 'linear-gradient(160deg, #0f0a1e 0%, #1a0845 45%, #120630 100%)'
 const gold = '#E2C36B'
 const goldBtn = 'linear-gradient(135deg, #E2C36B 0%, #C9A84E 100%)'
@@ -134,6 +104,9 @@ const cardBorder = 'rgba(226,195,107,0.15)'
 const textPrimary = 'rgba(255,255,255,0.92)'
 const textSecondary = 'rgba(255,255,255,0.50)'
 const textFaint = 'rgba(255,255,255,0.28)'
+const greenAccent = 'rgba(74,222,128,0.8)'
+const greenBg = 'rgba(74,222,128,0.04)'
+const greenBorder = 'rgba(74,222,128,0.1)'
 
 /* =========================================================
    SECTION 3 — HELPERS
@@ -317,7 +290,7 @@ function BookPage() {
   useEffect(() => {
     if (screen !== 3) return
     setPricesLoading(true)
-    const keys = ALL_SERVICES.map(s => s.id).join(',')
+    const keys = BOOKING_SERVICE_ORDER.join(',')
     fetch(`/api/regional-prices?features=${keys}`)
       .then(r => r.json())
       .then(d => { if (d.features) setFeaturePrices(d.features) })
@@ -329,7 +302,7 @@ function BookPage() {
      SECTION 8 — HANDLERS
   ========================================================= */
 
-  // Create capsule + send verification code
+  // ═══ Create capsule + send verification code ═══
   async function handleCreateAndVerify() {
     if (!honoureeName.trim() || !organiserEmail.trim() || !slug.trim()) return
     setCreating(true); setError('')
@@ -377,7 +350,7 @@ function BookPage() {
     setCreating(false)
   }
 
-  // Verify the 4-char code
+  // ═══ Verify the 4-char code ═══
   async function handleVerifyCode() {
     if (verifyCode.trim().length < 4) return
     setVerifying(true); setVerifyError('')
@@ -400,14 +373,14 @@ function BookPage() {
     setVerifying(false)
   }
 
-  // Toggle a service on/off
+  // ═══ Toggle a service on/off ═══
   function toggleService(id: string) {
     setSelectedServices(prev =>
       prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
     )
   }
 
-  // Calculate total from selected services
+  // ═══ Calculate total from selected services ═══
   function getTotal(): { amount: number; symbol: string; currency: string } | null {
     let total = 0
     let symbol = ''
@@ -423,7 +396,7 @@ function BookPage() {
     return { amount: total, symbol, currency }
   }
 
-  // Proceed to bundle checkout
+  // ═══ Proceed to bundle checkout ═══
   async function handleCheckout() {
     if (selectedServices.length === 0 || !capsuleId) return
     setCheckingOut(true); setError('')
@@ -558,7 +531,7 @@ function BookPage() {
                 {EVENT_TYPES.map(e => (<option key={e.label} value={e.label} style={{ background: '#1a0845', color: '#fff' }}>{e.emoji} {e.label}</option>))}
               </select>
             </div>
-{eventType && (
+            {eventType && (
               <div style={{ marginTop: '10px' }}>
                 <p style={{ fontSize: '12px', color: 'rgba(226,195,107,0.65)', margin: 0, lineHeight: 1.6 }}>{getEventDescription(eventType)}</p>
               </div>
@@ -708,44 +681,88 @@ function BookPage() {
     const total = getTotal()
     const hasUnpublished = selectedServices.some(id => featurePrices[id] === null)
 
+    // ═══ Always Included — Free (path-aware) ═══
+    const isPreBooked = path === 'book'
+    const freeItems = [
+      {
+        icon: '◈',
+        label: 'Tribute Wall & World Map',
+        desc: 'Your guests leave messages and memories — and every voice is marked on a live world map showing where love came from.',
+        helpKey: 'tribute_wall',
+      },
+      {
+        icon: '◇',
+        label: 'Community Memories & Stories',
+        desc: 'A dedicated space for guests to share fuller stories and personal memories, organised by theme.',
+        helpKey: 'community_stories',
+      },
+      {
+        icon: '◎',
+        label: 'Your Digital Capsule',
+        desc: 'A permanent online home for this event — collecting every tribute, memory, photo and story in one place.',
+        helpKey: 'getting-started',
+      },
+      {
+        icon: '📅',
+        label: isPreBooked ? '2 Event Phases' : '1 Event Phase',
+        desc: isPreBooked
+          ? 'Two chapters in your event story — perfect for occasions that unfold across more than one day or setting.'
+          : 'One chapter in your event story, with its own tribute collection window and QR code.',
+        helpKey: 'additional_phase',
+      },
+      {
+        icon: '⏳',
+        label: isPreBooked ? '6 Months Online' : '3 Months Online',
+        desc: isPreBooked
+          ? 'Your capsule stays online and active for 6 months from when the first tribute arrives.'
+          : 'Your capsule stays online and active for 3 months from when the first tribute arrives.',
+        helpKey: 'extended_validity',
+      },
+    ]
+
     return (
       <Shell>
         <div style={{ width: '100%', maxWidth: '480px' }}>
           <BookLogo />
           <StepBar step={3} total={4} />
           <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-            <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 5vw, 26px)', fontWeight: 800, color: textPrimary, marginBottom: '8px' }}>Choose your services</h1>
+            <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 5vw, 26px)', fontWeight: 800, color: textPrimary, marginBottom: '8px' }}>Choose what you'd like to include</h1>
             <p style={{ fontSize: '13px', color: textSecondary, lineHeight: 1.6 }}>
-              We've pre-selected services that typically work best for a {eventType}. Adjust freely.
+              Your capsule already comes with everything below — at no charge. Add anything extra that fits your occasion.
             </p>
           </div>
           <GoldRule />
 
-           {/* Free services — always included */}
-          <div style={{ marginBottom: '20px' }}>
-            <p style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(74,222,128,0.7)', letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginBottom: '10px' }}>
-              ✓ Always included — free
+          {/* ═══ Always Included — Free Strip ═══ */}
+          <div style={{ marginBottom: '24px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 700, color: greenAccent, letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginBottom: '10px' }}>
+              ✓ Included with every capsule
             </p>
-            {[
-              { icon: '◈', label: 'Tribute Wall', desc: 'Written and photo tributes from guests anywhere in the world.' },
-              { icon: '🗺', label: 'World Tribute Map', desc: 'Interactive map showing where tributes came from.' },
-              { icon: '◎', label: 'Event Profile', desc: 'A full profile page for the honouree with biography and gallery.' },
-              { icon: '◇', label: 'Community Memories & Stories', desc: 'A dedicated room for contributors to share stories by topic.' },
-              { icon: '◉', label: 'Family Rep Portal', desc: 'Private portal for the family representative.' },
-            ].map(s => (
-              <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '10px', background: 'rgba(74,222,128,0.04)', border: '1px solid rgba(74,222,128,0.1)', marginBottom: '6px' }}>
-                <span style={{ fontSize: '14px', flexShrink: 0 }}>{s.icon}</span>
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>{s.label}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: textFaint, lineHeight: 1.5 }}>{s.desc}</p>
+            {freeItems.map(item => (
+              <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '10px', background: greenBg, border: `1px solid ${greenBorder}`, marginBottom: '6px' }}>
+                <span style={{ fontSize: '14px', flexShrink: 0 }}>{item.icon}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>{item.label}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '10px', color: textFaint, lineHeight: 1.5 }}>{item.desc}</p>
                 </div>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(74,222,128,0.8)', flexShrink: 0 }}>FREE</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0, gap: '2px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: greenAccent }}>FREE</span>
+                  <a
+                    href={`/help?section=${item.helpKey}&ref=booking`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: '9px', color: 'rgba(74,222,128,0.5)', textDecoration: 'none', fontWeight: 600 }}
+                  >
+                    Find out more
+                  </a>
+                </div>
               </div>
             ))}
           </div>
 
+          {/* ═══ Paid Add-ons ═══ */}
           <p style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(226,195,107,0.55)', letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginBottom: '10px' }}>
-            Premium add-ons — choose what you need
+            Add to your capsule
           </p>
 
           {pricesLoading ? (
@@ -754,93 +771,109 @@ function BookPage() {
               <p style={{ fontSize: '12px', color: textFaint }}>Fetching prices for your region…</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '16px 0 24px' }}>
-              {ALL_SERVICES.map(svc => {
-                const selected = selectedServices.includes(svc.id)
-                const price = featurePrices[svc.id]
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0', margin: '16px 0 24px' }}>
+              {BOOKING_SERVICE_ORDER.map((svcId, idx) => {
+                const svc = SERVICE_DETAILS[svcId]
+                if (!svc) return null
+
+                const selected = selectedServices.includes(svcId)
+                const price = featurePrices[svcId]
                 const unavailable = price === null
+                const breakIndex = CATEGORY_BREAKS[svcId]
+                const showDivider = breakIndex !== undefined && breakIndex > 0
 
                 return (
-                  <div
-                    key={svc.id}
-                    style={{
-                      width: '100%', borderRadius: '12px',
-                      border: `1px solid ${selected ? 'rgba(226,195,107,0.5)' : unavailable ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.08)'}`,
-                      background: selected ? 'rgba(226,195,107,0.07)' : unavailable ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)',
-                      opacity: unavailable ? 0.4 : 1,
-                      transition: 'all 0.2s',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {/* Selectable row */}
+                  <div key={svcId}>
+                    {/* Category divider — thin rule between groups */}
+                    {showDivider && (
+                      <div style={{ height: '1px', background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.15), transparent)', margin: '14px 0' }} />
+                    )}
+
                     <div
-                      onClick={() => !unavailable && toggleService(svc.id)}
-                      style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: unavailable ? 'not-allowed' : 'pointer' }}
+                      style={{
+                        width: '100%', borderRadius: '12px',
+                        border: `1px solid ${selected ? 'rgba(226,195,107,0.5)' : unavailable ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.08)'}`,
+                        background: selected ? 'rgba(226,195,107,0.07)' : unavailable ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)',
+                        opacity: unavailable ? 0.4 : 1,
+                        transition: 'all 0.2s',
+                        overflow: 'hidden',
+                        marginBottom: '8px',
+                      }}
                     >
-                      {/* Checkbox */}
-                      <div style={{ width: '20px', height: '20px', borderRadius: '6px', border: `2px solid ${selected ? gold : 'rgba(255,255,255,0.18)'}`, background: selected ? 'rgba(226,195,107,0.15)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
-                        {selected && <span style={{ fontSize: '11px', color: gold, fontWeight: 800 }}>✓</span>}
+                      {/* Selectable row */}
+                      <div
+                        onClick={() => !unavailable && toggleService(svcId)}
+                        style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: unavailable ? 'not-allowed' : 'pointer' }}
+                      >
+                        {/* Checkbox */}
+                        <div style={{ width: '20px', height: '20px', borderRadius: '6px', border: `2px solid ${selected ? gold : 'rgba(255,255,255,0.18)'}`, background: selected ? 'rgba(226,195,107,0.15)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+                          {selected && <span style={{ fontSize: '11px', color: gold, fontWeight: 800 }}>✓</span>}
+                        </div>
+
+                        {/* Icon + content */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px', flexWrap: 'wrap' as const }}>
+                            <span style={{ fontSize: '14px' }}>{svc.icon}</span>
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: selected ? textPrimary : textSecondary }}>{svc.title}</span>
+                            {SUGGESTED_BY_EVENT[eventType]?.includes(svcId) && (
+                              <span style={{ fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em', padding: '2px 6px', borderRadius: '4px', background: 'rgba(226,195,107,0.1)', border: '1px solid rgba(226,195,107,0.2)', color: 'rgba(226,195,107,0.7)', textTransform: 'uppercase' as const }}>Suggested</span>
+                            )}
+                          </div>
+                          <p style={{ fontSize: '11px', color: textFaint, margin: 0, lineHeight: 1.5 }}>{svc.tagline}</p>
+                        </div>
+
+                        {/* Price */}
+                        {price && (
+                          <div style={{ flexShrink: 0, textAlign: 'right' as const }}>
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: selected ? gold : textFaint }}>
+                              {price.symbol}{price.amount.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                        {unavailable && (
+                          <span style={{ fontSize: '9px', color: textFaint, flexShrink: 0 }}>Available soon</span>
+                        )}
                       </div>
 
-                      {/* Icon + content */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px', flexWrap: 'wrap' as const }}>
-                          <span style={{ fontSize: '14px' }}>{svc.icon}</span>
-                          <span style={{ fontSize: '13px', fontWeight: 700, color: selected ? textPrimary : textSecondary }}>{svc.label}</span>
-                          {SUGGESTED_BY_EVENT[eventType]?.includes(svc.id) && (
-                            <span style={{ fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em', padding: '2px 6px', borderRadius: '4px', background: 'rgba(226,195,107,0.1)', border: '1px solid rgba(226,195,107,0.2)', color: 'rgba(226,195,107,0.7)', textTransform: 'uppercase' as const }}>Suggested</span>
-                          )}
+                      {/* Find out more link */}
+                      {!unavailable && (
+                        <div style={{ padding: '0 16px 10px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex' }}>
+                          <a href={`/help?section=${svcId}&ref=booking`} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: 'rgba(226,195,107,0.5)', textDecoration: 'none', fontWeight: 600 }}>
+                            Find out more
+                          </a>
                         </div>
-                        <p style={{ fontSize: '11px', color: textFaint, margin: 0, lineHeight: 1.5 }}>{svc.description}</p>
-                      </div>
-
-                      {/* Price */}
-                      {price && (
-                        <div style={{ flexShrink: 0, textAlign: 'right' as const }}>
-                          <span style={{ fontSize: '13px', fontWeight: 700, color: selected ? gold : textFaint }}>
-                            {price.symbol}{price.amount.toLocaleString()}
-                          </span>
-                        </div>
-                      )}
-                      {unavailable && (
-                        <span style={{ fontSize: '9px', color: textFaint, flexShrink: 0 }}>Coming soon</span>
                       )}
                     </div>
-
-                    {/* Learn more link */}
-                    {!unavailable && (
-                      <div style={{ padding: '0 16px 10px', borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex' }}>
-                        <a href={'/help?section=' + svc.id + '&ref=booking'} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: 'rgba(226,195,107,0.5)', textDecoration: 'none', fontWeight: 600 }}>
-                          Learn more about this service
-                        </a>
-                      </div>
-                    )}
                   </div>
                 )
               })}
             </div>
           )}
 
-          {/* Running total */}
-          {total && (
+          {/* ═══ Running total ═══ */}
+          {total ? (
             <div style={{ padding: '14px 18px', borderRadius: '12px', border: '1px solid rgba(226,195,107,0.25)', background: 'rgba(226,195,107,0.06)', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <p style={{ fontSize: '10px', color: 'rgba(226,195,107,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px' }}>Total</p>
-                <p style={{ fontSize: '10px', color: textFaint }}>{selectedServices.length} service{selectedServices.length !== 1 ? 's' : ''} selected</p>
+                <p style={{ fontSize: '10px', color: 'rgba(226,195,107,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px' }}>Your total</p>
+                <p style={{ fontSize: '10px', color: textFaint }}>{selectedServices.length} service{selectedServices.length !== 1 ? 's' : ''} added</p>
               </div>
               <p style={{ fontSize: '22px', fontWeight: 800, color: gold, fontFamily: "'Playfair Display', serif" }}>
                 {total.symbol}{total.amount.toLocaleString()}
               </p>
+            </div>
+          ) : (
+            <div style={{ padding: '14px 18px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', marginBottom: '20px', textAlign: 'center' }}>
+              <p style={{ fontSize: '11px', color: textFaint, margin: 0 }}>Nothing added yet — your capsule is free to create</p>
             </div>
           )}
 
           {error && <p style={{ fontSize: '12px', color: 'rgba(248,113,113,0.8)', marginBottom: '12px', textAlign: 'center' }}>{error}</p>}
 
           <PrimaryBtn onClick={handleCheckout} disabled={selectedServices.length === 0 || checkingOut || hasUnpublished} loading={checkingOut}>
-            {checkingOut ? 'Preparing checkout…' : total ? `Proceed to Payment · ${total.symbol}${total.amount.toLocaleString()} →` : 'Select at least one service'}
+            {checkingOut ? 'Preparing checkout…' : total ? `Continue to Payment · ${total.symbol}${total.amount.toLocaleString()} →` : 'Select at least one service'}
           </PrimaryBtn>
 
-         <p style={{ fontSize: '11px', color: textFaint, marginTop: '12px', textAlign: 'center', lineHeight: 1.65 }}>
+          <p style={{ fontSize: '11px', color: textFaint, marginTop: '12px', textAlign: 'center', lineHeight: 1.65 }}>
             Secure checkout via Stripe. Your capsule and selected services will be ready when you choose to activate it.
           </p>
           <Footer />
