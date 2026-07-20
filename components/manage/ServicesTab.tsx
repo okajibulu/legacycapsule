@@ -10,11 +10,22 @@
  *   — Selection and checkout live in the price column only
  *   — Add to Cart buttons removed from ServiceCard (cleaner)
  *   — Cart bar replaced by sticky price column footer
+ * Updated: AI12 · Claude Opus 4.6 · 20 July 2026
+ *   — event_tag added to capsule interface
+ *   — honoureeName and eventTag props passed to GuestManagementSection
+ *   — Voice Tributes detail: corrected to 60 seconds (was 30)
+ *   — Video Tributes detail: corrected to 60 seconds (was 30)
+ *   — Access Card Printing coming_soon removed — ticket generation
+ *     now lives inside Guest Management section (M6.6 built)
+ *   — access_codes added to priceRows and as a ServiceCard
+ *   — Access Codes ServiceCard renders GuestManagementSection
+ *     (which contains codes, ushers, metrics)
  *
  * Sub-sections:
  *   1. Types + imports
  *   2. ServiceCard — expandable service card (no cart buttons)
  *   3. ExportsSection — inline exports
+ *   3B. LiveWallSection — display URL + QR
  *   4. PriceColumn — checkbox + price aligned to service rows
  *   5. Main ServicesTab component
  * ============================================================
@@ -22,14 +33,12 @@
 
 'use client'
 
-// ============================================================
-// SECTION 1 — Types + imports
-// ============================================================
+// ═══ SECTION 1 — Types + imports ═══
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 
-import EventPhasesSection    from '@/components/manage/EventPhasesSection'
+import EventPhasesSection     from '@/components/manage/EventPhasesSection'
 import GuestManagementSection from '@/components/manage/GuestManagementSection'
 import TableManagementSection from '@/components/manage/TableManagementSection'
 
@@ -51,19 +60,16 @@ interface ServicesTabProps {
   eohEditor?: React.ReactNode
 }
 
-// Style constants
-const gold         = '#E2C36B'
-const goldMuted    = 'rgba(226,195,107,0.55)'
-const goldFaint    = 'rgba(226,195,107,0.12)'
-const cardBg       = 'rgba(255,255,255,0.04)'
-const cardBorder   = 'rgba(226,195,107,0.12)'
-const textPrimary  = 'rgba(255,255,255,0.92)'
+const gold          = '#E2C36B'
+const goldMuted     = 'rgba(226,195,107,0.55)'
+const goldFaint     = 'rgba(226,195,107,0.12)'
+const cardBg        = 'rgba(255,255,255,0.04)'
+const cardBorder    = 'rgba(226,195,107,0.12)'
+const textPrimary   = 'rgba(255,255,255,0.92)'
 const textSecondary = 'rgba(255,255,255,0.50)'
-const textFaint    = 'rgba(255,255,255,0.28)'
+const textFaint     = 'rgba(255,255,255,0.28)'
 
-// ============================================================
-// SECTION 2 — ServiceCard (no cart buttons — selection in PriceColumn)
-// ============================================================
+// ═══ SECTION 2 — ServiceCard ═══
 
 interface ServiceCardProps {
   id: string
@@ -91,7 +97,6 @@ function ServiceCard({
   const isLocked      = status === 'locked'
   const isExpandable  = (isInteractive && !!children && !externalLink) || (isLocked && !!detailSummary)
 
-  // Report height changes to parent for price column alignment
   useEffect(() => {
     if (!cardRef.current || !onHeightChange) return
     const observer = new ResizeObserver(() => {
@@ -177,7 +182,7 @@ function ServiceCard({
               rel="noopener noreferrer"
               style={{ display: 'inline-block', padding: '8px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: textFaint, fontSize: '12px', fontWeight: 600, textDecoration: 'none' }}
             >
-              Full details
+              Find out more
             </Link>
           )}
         </div>
@@ -186,9 +191,7 @@ function ServiceCard({
   )
 }
 
-// ============================================================
-// SECTION 3 — ExportsSection
-// ============================================================
+// ═══ SECTION 3 — ExportsSection ═══
 
 function ExportsSection({ contributions, slug }: { contributions: Contribution[]; slug: string }) {
   const [copiedAll, setCopiedAll] = useState(false)
@@ -230,13 +233,11 @@ function ExportsSection({ contributions, slug }: { contributions: Contribution[]
   )
 }
 
-// ============================================================
-// SECTION 3B — LiveWallSection
-// ============================================================
+// ═══ SECTION 3B — LiveWallSection ═══
 
 function LiveWallSection({ capsuleSlug }: { capsuleSlug: string }) {
   const [copied, setCopied] = useState(false)
-  const APP_URL   = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
+  const APP_URL    = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
   const displayUrl = `${APP_URL}/for/${capsuleSlug}/display`
   const qrUrl      = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(displayUrl)}&bgcolor=0f0a1e&color=E2C36B&margin=8`
 
@@ -253,13 +254,11 @@ function LiveWallSection({ capsuleSlug }: { capsuleSlug: string }) {
       </p>
 
       <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-        {/* QR code */}
         <div style={{ flexShrink: 0, textAlign: 'center' as const }}>
           <img src={qrUrl} alt="Live Wall QR" width={80} height={80} style={{ borderRadius: '8px', display: 'block' }} />
           <p style={{ fontSize: '8px', color: textFaint, margin: '4px 0 0', letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>Scan to open</p>
         </div>
 
-        {/* URL + actions */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: '9px', color: goldMuted, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em', margin: '0 0 6px' }}>Display URL</p>
           <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontFamily: 'monospace', wordBreak: 'break-all' as const, margin: '0 0 10px', lineHeight: 1.5 }}>{displayUrl}</p>
@@ -279,26 +278,17 @@ function LiveWallSection({ capsuleSlug }: { capsuleSlug: string }) {
   )
 }
 
-// ============================================================
-// SECTION 4 — PriceColumn
-// Sticky right panel. One row per purchasable service,
-// in the same order as the left ServiceCards.
-// Checkbox + price only — no service name repeated.
-// ============================================================
+// ═══ SECTION 4 — PriceColumn ═══
 
 interface PriceRow {
-  id:        string
-  label:     string   // short label for the total breakdown tooltip
-  status:    'active' | 'locked' | 'coming_soon'
-  price?:    { amount: number; symbol: string } | null
+  id:     string
+  label:  string
+  status: 'active' | 'locked' | 'coming_soon'
+  price?: { amount: number; symbol: string } | null
 }
 
 function PriceColumn({
-  rows,
-  cart,
-  onToggle,
-  onCheckout,
-  unlocking,
+  rows, cart, onToggle, onCheckout, unlocking,
 }: {
   rows:       PriceRow[]
   cart:       string[]
@@ -319,17 +309,16 @@ function PriceColumn({
       alignItems: 'center',
       gap: '10px',
     }}>
-      {/* ── Price + checkbox rows ── */}
       {rows.map(row => {
-        const isActive    = row.status === 'active'
+        const isActive     = row.status === 'active'
         const isComingSoon = row.status === 'coming_soon'
-        const inCart      = cart.includes(row.id)
+        const inCart       = cart.includes(row.id)
 
         return (
           <div
             key={row.id}
             style={{
-              height: '66px', // matches collapsed ServiceCard min-height
+              height: '66px',
               width: '100%',
               display: 'flex',
               flexDirection: 'column' as const,
@@ -339,15 +328,12 @@ function PriceColumn({
             }}
           >
             {isActive ? (
-              // Already activated — show green tick, no checkbox
               <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ fontSize: '11px', color: 'rgba(134,239,172,0.9)' }}>✓</span>
               </div>
             ) : isComingSoon ? (
-              // Coming soon — empty cell
               <div style={{ width: '22px', height: '22px' }} />
             ) : (
-              // Locked — checkbox + price
               <>
                 <button
                   onClick={() => onToggle(row.id)}
@@ -359,7 +345,7 @@ function PriceColumn({
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     transition: 'all 0.15s',
                   }}
-                  title={inCart ? `Remove ${row.label} from selection` : `Add ${row.label} to selection`}
+                  title={inCart ? `Remove ${row.label}` : `Add ${row.label}`}
                 >
                   {inCart && <span style={{ fontSize: '12px', color: gold, fontWeight: 700, lineHeight: 1 }}>✓</span>}
                 </button>
@@ -376,10 +362,8 @@ function PriceColumn({
         )
       })}
 
-      {/* ── Divider ── */}
       <div style={{ width: '100%', height: '1px', background: 'rgba(226,195,107,0.12)', margin: '4px 0' }} />
 
-      {/* ── Total + checkout ── */}
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: '6px' }}>
         {cartTotal > 0 ? (
           <div style={{ textAlign: 'center' as const }}>
@@ -403,27 +387,25 @@ function PriceColumn({
             transition: 'all 0.2s',
           }}
         >
-          {unlocking === 'cart' ? '…' : cart.length > 0 ? `GO →` : 'Cart'}
+          {unlocking === 'cart' ? '…' : cart.length > 0 ? 'GO →' : 'Cart'}
         </button>
       </div>
     </div>
   )
 }
 
-// ============================================================
-// SECTION 5 — Main ServicesTab component
-// ============================================================
+// ═══ SECTION 5 — Main ServicesTab component ═══
 
 export default function ServicesTab({ capsule, approvedContributions, supabase, onUpgrade, eohEditor }: ServicesTabProps) {
-  const [tables,       setTables]       = useState<any[]>([])
-  const [phases,       setPhases]       = useState<any[]>([])
-  const [unlocking,    setUnlocking]    = useState<string | null>(null)
+  const [tables,        setTables]        = useState<any[]>([])
+  const [phases,        setPhases]        = useState<any[]>([])
+  const [unlocking,     setUnlocking]     = useState<string | null>(null)
   const [featurePrices, setFeaturePrices] = useState<Record<string, { amount: number; symbol: string } | null>>({})
-  const [cart,         setCart]         = useState<string[]>([])
+  const [cart,          setCart]          = useState<string[]>([])
 
   const components = capsule.components ?? []
 
-  // ── Price fetch ───────────────────────────────────────────────────────────
+  // ── Price fetch ──────────────────────────────────────────────────────────
   useEffect(() => {
     const FEATURE_KEYS = [
       'audio_tributes', 'video_tributes', 'ways_to_honour',
@@ -438,15 +420,12 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
   }, [])
 
   const toggleCart = (featureId: string) => {
-    // Only allow toggling locked (not yet purchased) services
     if (components.includes(featureId)) return
     setCart(prev => prev.includes(featureId)
       ? prev.filter(f => f !== featureId)
       : [...prev, featureId]
     )
   }
-
-  const cartTotal  = cart.reduce((sum, id) => sum + (featurePrices[id]?.amount ?? 0), 0)
 
   const handleCartCheckout = async () => {
     if (cart.length === 0) return
@@ -473,36 +452,80 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
     }
   }
 
-  // ── Price column rows — same order as ServiceCards below ─────────────────
-  // Only paid add-ons appear here (not always_on, not coming_soon)
+  // ── Whether both guest services are active ───────────────────────────────
+  // Guest Management and Access Codes are separate purchases.
+  // When guest_management is active, the ServiceCard expands to show
+  // TableManagement + GuestManagementSection (which contains the
+  // Codes, Ushers and Metrics tabs when access_codes is also active).
+  const guestMgmtActive = components.includes('guest_management')
+  const accessCodesActive = components.includes('access_codes')
+
+  // ── Price column rows — same order as ServiceCards ───────────────────────
   const priceRows: PriceRow[] = [
-    { id: 'guest_management', label: 'Guest Management', status: components.includes('guest_management') ? 'active' : 'locked', price: featurePrices['guest_management'] },
-    { id: 'ways_to_honour',   label: 'Gift of Honour',   status: components.includes('ways_to_honour') ? 'active' : 'locked',   price: featurePrices['ways_to_honour'] },
-    { id: 'publication',      label: 'Publication',       status: components.includes('publication') ? 'active' : 'locked',       price: featurePrices['publication'] },
-    { id: 'attire',           label: 'Fabric & Attire',   status: components.includes('attire') ? 'active' : 'locked',           price: featurePrices['attire'] },
-    { id: 'audio_tributes',   label: 'Voice Tributes',    status: components.includes('audio_tributes') ? 'active' : 'locked',   price: featurePrices['audio_tributes'] },
-    { id: 'video_tributes',   label: 'Video Tributes',    status: components.includes('video_tributes') ? 'active' : 'locked',   price: featurePrices['video_tributes'] },
-    { id: 'access_cards',     label: 'Access Cards',       status: 'coming_soon' },
+    {
+      id:     'guest_management',
+      label:  'Guest Management',
+      status: guestMgmtActive ? 'active' : 'locked',
+      price:  featurePrices['guest_management'],
+    },
+    {
+      id:     'access_codes',
+      label:  'Access Codes',
+      status: accessCodesActive ? 'active' : 'locked',
+      price:  featurePrices['access_codes'],
+    },
+    {
+      id:     'ways_to_honour',
+      label:  'Gift of Honour',
+      status: components.includes('ways_to_honour') ? 'active' : 'locked',
+      price:  featurePrices['ways_to_honour'],
+    },
+    {
+      id:     'publication',
+      label:  'Publication',
+      status: components.includes('publication') ? 'active' : 'locked',
+      price:  featurePrices['publication'],
+    },
+    {
+      id:     'attire',
+      label:  'Fabric & Attire',
+      status: components.includes('attire') ? 'active' : 'locked',
+      price:  featurePrices['attire'],
+    },
+    {
+      id:     'audio_tributes',
+      label:  'Voice Tributes',
+      status: components.includes('audio_tributes') ? 'active' : 'locked',
+      price:  featurePrices['audio_tributes'],
+    },
+    {
+      id:     'video_tributes',
+      label:  'Video Tributes',
+      status: components.includes('video_tributes') ? 'active' : 'locked',
+      price:  featurePrices['video_tributes'],
+    },
   ]
 
   return (
     <div>
 
-      {/* ── FULL WIDTH: Always-on service cards (no price column) ── */}
+      {/* ════════════════════════════════════════════
+          FULL WIDTH — Always-on cards (no price column)
+      ════════════════════════════════════════════ */}
       <div style={{ marginBottom: '4px' }}>
 
-        {/* Programme Exports — always on */}
+        {/* Programme Exports */}
         <ServiceCard
           id="exports"
           title="Programme Exports"
-          description="Unlocked with Digital Publication — export tributes and Community Stories to clipboard"
+          description="Export tributes and Community Stories to clipboard"
           icon="⬇"
           status="always_on"
         >
           <ExportsSection contributions={approvedContributions} slug={capsule.slug} />
         </ServiceCard>
 
-        {/* Event Phases — always on */}
+        {/* Event Phases */}
         <ServiceCard
           id="phases"
           title="Event Phases"
@@ -513,105 +536,182 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           <EventPhasesSection capsuleId={capsule.id} capsuleSlug={capsule.slug} />
         </ServiceCard>
 
-        </div>{/* end always-on full-width section */}
+      </div>
 
-      {/* ── TWO-COLUMN: Purchasable services + price column ── */}
+      {/* ════════════════════════════════════════════
+          TWO-COLUMN — Purchasable services + price column
+      ════════════════════════════════════════════ */}
       <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
 
-        {/* Guest Management — priceRows[0] */}
-        <ServiceCard
-          id="guests"
-          title="Guest Management & Seating"
-          description="Guest list · Access codes · Check-in tracking · Seating"
-          icon="◉"
-          status={components.includes('guest_management') ? 'active' : 'locked'}
-          price={featurePrices['guest_management']}
-          detailSummary="A complete guest coordination system — guest list, unique QR access codes, RSVP tracking, table management, seating assignment, and check-in on event day."
-          detailPoints={['Unique QR access codes per guest', 'Real-time check-in dashboard on event day', 'Table management and seating assignment', 'Printable table cards with context-aware QR']}
-          learnMoreUrl="/help?section=guest_management&ref=dashboard"
-        >
-          {components.includes('guest_management') && (
-            <>
-              <TableManagementSection capsuleId={capsule.id} onTablesChange={setTables} />
-              <div style={{ height: '1px', background: 'rgba(255,255,255,0.04)', margin: '12px 0' }} />
-              <GuestManagementSection capsuleId={capsule.id} capsuleSlug={capsule.slug} honoureeName={capsule.honouree_name} eventTag={capsule.event_tag ?? null} tables={tables} phases={phases} />
-            </>
-          )}
-        </ServiceCard>
+          {/* ── Guest Management — priceRows[0] ── */}
+          <ServiceCard
+            id="guests"
+            title="Guest Management & Seating"
+            description="Guest list · RSVP · Table assignment · Seating"
+            icon="◉"
+            status={guestMgmtActive ? 'active' : 'locked'}
+            price={featurePrices['guest_management']}
+            detailSummary="Everyone at your event in one place — guests, family, VIPs, vendors, media. Collect RSVPs, manage seating, and know exactly who is expected and where they'll be."
+            detailPoints={[
+              'Full participant registry — guests, VIPs, vendors, media, volunteers',
+              'RSVP tracking with event-type-aware segments (Bride\'s / Groom\'s guests etc)',
+              'Table and seating assignment',
+              'VIP and VVIP protocol — PA contacts, entourage, arrival protocol notes',
+            ]}
+            learnMoreUrl="/help?section=guest_management&ref=dashboard"
+          >
+            {guestMgmtActive && (
+              <>
+                <TableManagementSection capsuleId={capsule.id} onTablesChange={setTables} />
+                <div style={{ height: '1px', background: 'rgba(255,255,255,0.04)', margin: '12px 0' }} />
+                <GuestManagementSection
+                  capsuleId={capsule.id}
+                  capsuleSlug={capsule.slug}
+                  honoureeName={capsule.honouree_name}
+                  eventTag={capsule.event_tag ?? null}
+                  tables={tables}
+                  phases={phases}
+                />
+              </>
+            )}
+          </ServiceCard>
 
-        {/* Gift of Honour — priceRows[1] */}
-        <ServiceCard
-          id="eoh"
-          title="Gift of Honour"
-          description="A dignified channel for guests to express financial support — private, tasteful"
-          icon="✦"
-          status={components.includes('ways_to_honour') ? 'active' : 'locked'}
-          price={featurePrices['ways_to_honour']}
-          detailSummary="A dignified, private channel for guests to send financial support — bank details presented tastefully on your tribute wall. No transaction fees, no fund handling."
-          detailPoints={['Full privacy — amounts never shown publicly', 'Multiple payment channels supported', 'Daily digest email to family representative', 'No transaction fees']}
-          learnMoreUrl="/help?section=ways_to_honour&ref=dashboard"
-        >
-          {eohEditor}
-        </ServiceCard>
+          {/* ── Access Codes — priceRows[1] ── */}
+          <ServiceCard
+            id="access_codes"
+            title="Access Code System"
+            description="Personal entry codes · Usher check-in · Live arrivals"
+            icon="🔐"
+            status={accessCodesActive ? 'active' : 'locked'}
+            price={featurePrices['access_codes']}
+            detailSummary="Give every guest a personal entry code. Your team checks guests in on the day with a simple scan on any phone. When a VIP arrives, you know immediately."
+            detailPoints={[
+              'Unique QR and numeric code per guest',
+              'Auto-email codes directly to guests — one click to send all',
+              'Print access passes for guests who prefer a physical card',
+              'Live arrivals dashboard with VVIP outstanding list',
+            ]}
+            learnMoreUrl="/help?section=access_codes&ref=dashboard"
+          >
+            {/* Access Codes tab lives inside GuestManagementSection.
+                When access_codes is active but guest_management is not,
+                render a standalone GuestManagementSection so the
+                Codes, Ushers, and Metrics tabs are accessible. */}
+            {accessCodesActive && !guestMgmtActive && (
+              <GuestManagementSection
+                capsuleId={capsule.id}
+                capsuleSlug={capsule.slug}
+                honoureeName={capsule.honouree_name}
+                eventTag={capsule.event_tag ?? null}
+                tables={[]}
+                phases={phases}
+              />
+            )}
+            {accessCodesActive && guestMgmtActive && (
+              <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.65, padding: '4px 0' }}>
+                Access codes are managed inside Guest Management above — including code generation, usher PINs, access passes, and live arrival metrics.
+              </p>
+            )}
+          </ServiceCard>
 
-        {/* Digital Publication — priceRows[2] */}
-        <ServiceCard
-          id="publication"
-          title="Digital Publication"
-          description="Curated commemorative PDF — arrange, preview, generate"
-          icon="◎"
-          status={components.includes('publication') ? 'active' : 'locked'}
-          externalLink={`/manage/${capsule.slug}/publication`}
-          price={featurePrices['publication']}
-          detailSummary="Every tribute compiled into a beautifully designed keepsake PDF — arranged by you, distributed to all contributors in one click. A permanent record designed to be kept."
-          detailPoints={['Drag-and-drop arrangement in Publication Editor', 'Five professional design themes', 'One-click distribution to all contributors', 'Permanent download link for every recipient']}
-          learnMoreUrl="/help?section=publication&ref=dashboard"
-        />
+          {/* ── Gift of Honour — priceRows[2] ── */}
+          <ServiceCard
+            id="eoh"
+            title="Gift of Honour"
+            description="A dignified channel for guests to express financial support — private, tasteful"
+            icon="✦"
+            status={components.includes('ways_to_honour') ? 'active' : 'locked'}
+            price={featurePrices['ways_to_honour']}
+            detailSummary="A dignified, private channel for guests to send financial support — bank details presented tastefully on your tribute wall. No transaction fees, no fund handling."
+            detailPoints={[
+              'Full privacy — amounts never shown publicly',
+              'Multiple payment channels and currencies supported',
+              'Daily digest email to family representative',
+              'No transaction fees — LegacyCapsule handles no funds',
+            ]}
+            learnMoreUrl="/help?section=ways_to_honour&ref=dashboard"
+          >
+            {eohEditor}
+          </ServiceCard>
 
-        {/* Fabric & Attire — priceRows[3] */}
-        <ServiceCard
-          id="attire"
-          title="Fabric & Attire"
-          description="Showcase, orders, payments, dispatch lifecycle"
-          icon="◐"
-          status={components.includes('attire') ? 'active' : 'locked'}
-          externalLink={`/manage/${capsule.slug}/attire`}
-          price={featurePrices['attire']}
-          detailSummary="Complete dress code coordination — showcase fabric options, collect orders, track payments, manage collection. Designed for Aso-Ebi and coordinated event attire."
-          detailPoints={['Showcase fabric options with photos and pricing', 'Order and payment tracking', 'Collection management and dispatch reminders', 'Guest-facing order page on your tribute wall']}
-          learnMoreUrl="/help?section=attire&ref=dashboard"
-        />
+          {/* ── Digital Publication — priceRows[3] ── */}
+          <ServiceCard
+            id="publication"
+            title="Digital Publication"
+            description="Curated commemorative PDF — arrange, preview, generate"
+            icon="◎"
+            status={components.includes('publication') ? 'active' : 'locked'}
+            externalLink={`/manage/${capsule.slug}/publication`}
+            price={featurePrices['publication']}
+            detailSummary="Every tribute compiled into a beautifully designed keepsake PDF — arranged by you, distributed to all contributors in one click. A permanent record designed to be kept."
+            detailPoints={[
+              'Drag-and-drop arrangement in Publication Editor',
+              'Five professional design themes',
+              'One-click distribution to all contributors',
+              'Permanent download link for every recipient',
+            ]}
+            learnMoreUrl="/help?section=publication&ref=dashboard"
+          />
 
-        {/* Voice Tributes — priceRows[4] */}
-        <ServiceCard
-          id="audio_tributes"
-          title="Voice Tributes"
-          description="Contributors record personal audio messages"
-          icon="🎙"
-          status={components.includes('audio_tributes') ? 'active' : 'locked'}
-          price={featurePrices['audio_tributes']}
-          detailSummary="Contributors record personal audio messages directly from their phone — no app needed. The sound of a familiar voice carries meaning that text alone cannot."
-          detailPoints={['Works on any smartphone with a microphone', 'Up to 30 seconds per recording', 'Plays inline in the tribute card', 'Same moderation queue as written tributes']}
-          learnMoreUrl="/help?section=audio_tributes&ref=dashboard"
-        />
+          {/* ── Fabric & Attire — priceRows[4] ── */}
+          <ServiceCard
+            id="attire"
+            title="Fabric & Attire"
+            description="Showcase, orders, payments, dispatch lifecycle"
+            icon="◐"
+            status={components.includes('attire') ? 'active' : 'locked'}
+            externalLink={`/manage/${capsule.slug}/attire`}
+            price={featurePrices['attire']}
+            detailSummary="Complete dress code coordination — showcase fabric options, collect orders, track payments, manage collection. Designed for Aso-Ebi and coordinated event attire."
+            detailPoints={[
+              'Showcase fabric options with photos and pricing',
+              'Order and payment tracking per guest',
+              'Collection management — VIP exceptions surfaced separately',
+              'Guest-facing attire page on your tribute wall',
+            ]}
+            learnMoreUrl="/help?section=attire&ref=dashboard"
+          />
 
-        {/* Video Tributes — priceRows[5] */}
-        <ServiceCard
-          id="video_tributes"
-          title="Video Tributes"
-          description="Contributors upload short video messages"
-          icon="🎬"
-          status={components.includes('video_tributes') ? 'active' : 'locked'}
-          price={featurePrices['video_tributes']}
-          detailSummary="Contributors upload short video messages that play directly in their tribute card. A face, a voice, an expression — the most personal tribute of all."
-          detailPoints={['Record on phone camera, upload directly', 'Up to 30 seconds per video', 'Plays inline — no external links', 'Works on any device, no app required']}
-          learnMoreUrl="/help?section=video_tributes&ref=dashboard"
-        />
+          {/* ── Voice Tributes — priceRows[5] ── */}
+          <ServiceCard
+            id="audio_tributes"
+            title="Voice Tributes"
+            description="Contributors record personal audio messages"
+            icon="🎙"
+            status={components.includes('audio_tributes') ? 'active' : 'locked'}
+            price={featurePrices['audio_tributes']}
+            detailSummary="Contributors record personal audio messages directly from their phone — no app needed. The sound of a familiar voice carries meaning that text alone cannot."
+            detailPoints={[
+              'Works on any smartphone with a microphone',
+              'Up to 60 seconds per recording',
+              'Plays inline in the tribute card — no download needed',
+              'Same moderation queue as written tributes',
+            ]}
+            learnMoreUrl="/help?section=audio_tributes&ref=dashboard"
+          />
 
-        </div>{/* end left paid services column */}
+          {/* ── Video Tributes — priceRows[6] ── */}
+          <ServiceCard
+            id="video_tributes"
+            title="Video Tributes"
+            description="Contributors upload short video messages"
+            icon="🎬"
+            status={components.includes('video_tributes') ? 'active' : 'locked'}
+            price={featurePrices['video_tributes']}
+            detailSummary="Contributors upload short video messages that play directly in their tribute card. A face, a voice, an expression — the most personal tribute of all."
+            detailPoints={[
+              'Record on phone camera, upload directly',
+              'Up to 60 seconds per video',
+              'Plays inline in tribute card — no external links',
+              'Works on any device, no app required',
+            ]}
+            learnMoreUrl="/help?section=video_tributes&ref=dashboard"
+          />
 
-        {/* ── RIGHT: Price column — aligned to paid service rows only ── */}
+        </div>
+
+        {/* ── RIGHT: Price column ── */}
         <div style={{ position: 'sticky' as const, top: '80px', alignSelf: 'flex-start' }}>
           <PriceColumn
             rows={priceRows}
@@ -622,12 +722,14 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           />
         </div>
 
-      </div>{/* end two-column section */}
+      </div>
 
-      {/* ── FULL WIDTH: Always-on operational cards ── */}
+      {/* ════════════════════════════════════════════
+          FULL WIDTH — Always-on operational cards
+      ════════════════════════════════════════════ */}
       <div style={{ marginTop: '4px' }}>
 
-        {/* D-Day Live Wall — always on — display URL + QR */}
+        {/* D-Day Live Wall */}
         <ServiceCard
           id="live_wall"
           title="D-Day Live Wall"
@@ -638,16 +740,8 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           <LiveWallSection capsuleSlug={capsule.slug} />
         </ServiceCard>
 
-        {/* Access Card Printing — priceRows[7] — coming soon */}
-        <ServiceCard
-          id="access_cards"
-          title="Access Card Printing"
-          description="Branded physical access cards with embedded QR codes"
-          icon="▣"
-          status="coming_soon"
-        />
       </div>
 
-      </div>
+    </div>
   )
 }
