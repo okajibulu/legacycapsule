@@ -585,6 +585,7 @@ const [showPositionPicker, setShowPositionPicker] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false); const [submitSuccess, setSubmitSuccess] = useState(false)
   const [submitErr, setSubmitErr] = useState('')
+  const [phases, setPhases] = useState<Array<{ id: string; name: string; event_date: string | null; photo_count: number }>>([])
 const [fConsent, setFConsent] = useState(false)
   const [arrivalRef, setArrivalRef] = useState<string | null>(null)
   const [myRefCode, setMyRefCode] = useState<string | null>(null)
@@ -654,6 +655,14 @@ const [fConsent, setFConsent] = useState(false)
     } catch {}
   }, [capsule.slug, capsule.honouree_name])
   useEffect(() => { if (fEmail.includes('@')) { localStorage.setItem(LS_EMAIL, fEmail); setVisitorEmail(fEmail) } }, [fEmail])
+
+  // ── Fetch phases with D-Day photo counts ─────────────────────────────────
+  useEffect(() => {
+    fetch(`/api/capsule/public-info?slug=${capsule.slug}`)
+      .then(r => r.json())
+      .then(d => { if (d.capsule?.phases) setPhases(d.capsule.phases) })
+      .catch(() => {})
+  }, [capsule.slug])
   const poll = useCallback(async () => {
     const { data } = await supabaseClient
       .from('contributions')
@@ -1394,7 +1403,12 @@ background:
 
           {/* Success toast when composer is closed */}
           {submitSuccess && !composerOpen && (
-            <div style={{ margin: '10px 12px 0', borderRadius: '12px', padding: '12px 16px', fontSize: '12px', textAlign: 'center', border: `1px solid ${t.accentFaint}`, background: t.cardBg, color: t.accentPrimary }}>✦ Your tribute has been received — thank you.</div>
+            <div style={{ margin: '10px 12px 0', borderRadius: '12px', padding: '12px 16px', textAlign: 'center', border: `1px solid ${t.accentFaint}`, background: t.cardBg }}>
+              <p style={{ fontSize: '13px', color: t.accentPrimary, margin: '0 0 4px' }}>✦ Your tribute has been received — thank you.</p>
+              <p style={{ fontSize: '11px', color: t.textFaint, margin: 0, lineHeight: 1.6 }}>
+                {fEmail ? 'We'll send you the keepsake publication after the event.' : 'Leave your email when contributing to receive the keepsake publication.'}
+              </p>
+            </div>
           )}
 
           {/* ── TRIBUTE WALL HEADER ── */}
@@ -1431,6 +1445,39 @@ background:
               <div ref={bottomRef} />
             </div>
           </div>
+
+          {/* ── EVENT PHASES STRIP — pre-announcement ── */}
+          {phases.length > 0 && (
+            <div style={{ margin: '0 12px 16px', padding: '14px 16px', borderRadius: '14px', background: 'rgba(226,195,107,0.05)', border: `1px solid ${t.accentFaint}` }}>
+              <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: t.accentMuted, marginBottom: '10px' }}>
+                Event Phases
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                {phases.map(phase => (
+                  <div key={phase.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <p style={{ fontSize: '12px', fontWeight: 700, color: t.textHeading, margin: '0 0 1px' }}>{phase.name}</p>
+                      {phase.event_date && (
+                        <p style={{ fontSize: '10px', color: t.textFaint, margin: 0 }}>
+                          {new Date(phase.event_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' })}
+                        </p>
+                      )}
+                    </div>
+                    {phase.photo_count > 0 ? (
+                      <span style={{ fontSize: '10px', color: t.accentMuted, fontWeight: 700, flexShrink: 0 }}>
+                        📸 {phase.photo_count}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '10px', color: t.textFaint, flexShrink: 0 }}>Photos on day</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: '10px', color: t.textFaint, marginTop: '10px', lineHeight: 1.65 }}>
+                On event day, guests can upload their own photos and capture the moment. Watch this space.
+              </p>
+            </div>
+          )}
 
           {/* ── MAP MEMORY CARD ── */}
           <div style={{ margin: '0 12px 16px', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${t.accentFaint}`, background: t.cardBg, cursor: 'pointer' }} onClick={() => setMapOpen(true)} title="View the world tribute map">

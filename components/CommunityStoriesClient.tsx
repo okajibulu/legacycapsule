@@ -198,6 +198,19 @@ function SubmitStoryPanel({ capsule, topics, onClose, onSuccess }: {
       if (!res.ok) throw new Error('Submission failed')
       onSuccess()
     } catch { setError('Something went wrong. Please try again.') }
+    // Auto-register email to publication subscribers on success
+    if (email.trim() && email.includes('@')) {
+      fetch('/api/publication/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          capsule_id: capsule.id,
+          name:       name.trim(),
+          email:      email.trim().toLowerCase(),
+          source:     'stories',
+        }),
+      }).catch(() => {}) // silent — non-blocking
+    }
     setSubmitting(false)
   }
 
@@ -220,7 +233,7 @@ function SubmitStoryPanel({ capsule, topics, onClose, onSuccess }: {
         <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '10px' }}>
           <div style={{ display: 'flex', gap: '8px' }}>
             <input style={{ ...inp, flex: 1 }} placeholder="Your name *" value={name} onChange={e => setName(e.target.value)} />
-            <input type="email" style={{ ...inp, flex: 1 }} placeholder="Email (optional)" value={email} onChange={e => setEmail(e.target.value)} />
+            <input type="email" style={{ ...inp, flex: 1 }} placeholder="Email — we'll send you the keepsake publication after the event" value={email} onChange={e => setEmail(e.target.value)} />
           </div>
 
           {topics.length > 1 && (
@@ -251,7 +264,7 @@ function SubmitStoryPanel({ capsule, topics, onClose, onSuccess }: {
 
           <p style={{ fontSize: '10px', color: textFaint, textAlign: 'center' as const, lineHeight: 1.6, margin: 0 }}>
             Your memory will be reviewed before appearing in this record.
-            {email ? ' You\'ll receive a notification when it\'s published.' : ' Leave your email above to be notified.'}
+            {email ? ' We\'ll also send you the keepsake publication after the event.' : ' Add your email above to receive the keepsake publication after the event.'}
           </p>
         </div>
       </div>
