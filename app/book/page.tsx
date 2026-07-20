@@ -437,10 +437,10 @@ function BookPage() {
           <BookLogo />
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 800, color: textPrimary, lineHeight: 1.25, marginBottom: '10px' }}>
-              How would you like to begin?
+              Your event deserves this
             </h1>
             <p style={{ fontSize: '14px', color: textSecondary, lineHeight: 1.6 }}>
-              Every capsule starts the same way — your event, preserved and shared.
+              Whether you're organising for your own family or planning for a client — LegacyCapsule gives you everything you need to run a beautiful, well-organised event. No technical knowledge required. No detail left to chance.
             </p>
           </div>
           <GoldRule />
@@ -728,7 +728,7 @@ function BookPage() {
           <div style={{ textAlign: 'center', marginBottom: '8px' }}>
             <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 5vw, 26px)', fontWeight: 800, color: textPrimary, marginBottom: '8px' }}>Choose what you'd like to include</h1>
             <p style={{ fontSize: '13px', color: textSecondary, lineHeight: 1.6 }}>
-              Your capsule already comes with everything below — at no charge. Add anything extra that fits your occasion.
+              Every service below was designed so you can focus on your guests — not on managing technology. Your capsule already includes a generous set of tools at no charge. Add anything else that fits your occasion.
             </p>
           </div>
           <GoldRule />
@@ -900,8 +900,8 @@ function BookPage() {
           {bookMode === 'gift'
             ? <>A LegacyCapsule has been reserved for <span style={{ color: textPrimary, fontWeight: 600 }}>{honoureeName}</span>. Access details will be sent to <span style={{ color: gold, fontWeight: 600 }}>{recipientEmail}</span> when you are ready to activate it.</>
             : path === 'book'
-            ? <>Your LegacyCapsule for <span style={{ color: textPrimary, fontWeight: 600 }}>{honoureeName}</span> has been reserved with your selected services. Share the link when you are ready — your capsule goes live when the first tribute arrives.</>
-            : <>Your LegacyCapsule for <span style={{ color: textPrimary, fontWeight: 600 }}>{honoureeName}</span> is set up and ready. Share the link below — your capsule goes live when the first tribute arrives.</>
+            ? <>Your LegacyCapsule for <span style={{ color: textPrimary, fontWeight: 600 }}>{honoureeName}</span> has been reserved with your selected services. Your guest management, event coordination, and tribute collection tools are all waiting in your dashboard. Share the link when you are ready — your capsule goes live when the first tribute arrives.</>
+            : <>Your LegacyCapsule for <span style={{ color: textPrimary, fontWeight: 600 }}>{honoureeName}</span> is set up and ready. Everything you need to collect tributes, share memories, and coordinate your event is waiting in your dashboard. Share the link below — your capsule goes live when the first tribute arrives.</>
           }
         </p>
 

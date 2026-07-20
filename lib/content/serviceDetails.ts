@@ -2,8 +2,16 @@
 // FILE: lib/content/serviceDetails.ts
 // PURPOSE: Single source of truth for all service content across LegacyCapsule.
 //          Consumed by: ServicesTab, booking flow Step 3, help page, feature pages.
-//          Voice: organiser-first. Every word written from the user's world,
-//          never from the platform's architecture.
+//
+//          VOICE STANDARD:
+//          - Written from the organiser's world, never from the platform's architecture
+//          - Speaks to three personas: private individual, professional planner,
+//            first-time coordinator
+//          - Every description must answer: what does this do for MY event?
+//          - No technical language, no system jargon, no feature-speak
+//          - The platform's sophistication is communicated through simplicity
+//          - If a description sounds like a software feature list, rewrite it
+//            as an event planning benefit
 // ARCHITECTURE: LC04 Payment Engine (product definitions) · RW02 (platform services)
 // BUILT BY: AI12 · Claude Opus 4.6 · 20 July 2026
 // REPLACES: Previous version by Claude Sonnet 4.6 · July 2026
