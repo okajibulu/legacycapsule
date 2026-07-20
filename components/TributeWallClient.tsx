@@ -24,6 +24,7 @@ import { getTributePageTitle } from '@/lib/eventLabels'
 import { COUNTRIES } from '@/lib/tributeWallHelpers'
 import { getThemeConfig } from '@/lib/themeConfig'
 import type { ThemeKey, ThemeConfig } from '@/lib/themeConfig'
+import PublicationSubscribePanel from '@/components/capsule/PublicationSubscribePanel'
 
 const AudioTribute = dynamic(() => import('@/components/AudioTribute'), { ssr: false })
 const VideoTribute = dynamic(() => import('@/components/VideoTribute'), { ssr: false })
@@ -1273,7 +1274,7 @@ background:
                   {/* Name + Email + Photo */}
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'start' }}>
                     <div style={{ flex: 1 }}><input style={inp} placeholder="Your name *" value={fName} onChange={e => setFName(e.target.value)} maxLength={50} />{errors.name && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.name}</p>}</div>
-                    <div style={{ flex: 1 }}><input type="email" style={inp} placeholder="Email *" value={fEmail} onChange={e => setFEmail(e.target.value)} maxLength={100} />{errors.email && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.email}</p>}</div>
+                    <div style={{ flex: 1 }}><input type="email" style={inp} placeholder="Email — we'll send you the keepsake publication after the event" value={fEmail} onChange={e => setFEmail(e.target.value)} maxLength={100} />{errors.email && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.email}</p>}</div>
                     <div onClick={() => photoRef.current?.click()} style={{ width: '42px', height: '42px', borderRadius: '50%', border: `1px dashed ${t.accentFaint}`, background: t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, overflow: 'hidden' }}>
                       {fPhotoPreview ? <img src={fPhotoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ color: t.accentMuted, fontSize: '18px', lineHeight: 1 }}>+</span>}
                     </div>
@@ -1420,6 +1421,13 @@ background:
                 return `Voices shared in honour of ${honourName} will appear here. Be the first to add yours.`
               })()}</p></div>}
               {visible.map(c => <TributeCard key={c.id} c={c} capsuleId={capsule.id} isAdmin={isAdmin} isOwn={visitorEmail !== '' && c.email?.toLowerCase() === visitorEmail.toLowerCase()} onApprove={handleApprove} onDelete={handleDelete} onEdit={handleEdit} t={t} />)}
+          {/* ── Publication subscribe panel — Moment 1 email collection ── */}
+          {visible.length > 0 && (
+            <PublicationSubscribePanel
+              capsuleId={capsule.id}
+              honoureeName={capsule.honouree_name}
+            />
+          )}
               <div ref={bottomRef} />
             </div>
           </div>

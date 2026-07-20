@@ -17,8 +17,8 @@ const db = createClient(
 
 // RW-Ecosystem client for config
 const rwDb = createClient(
-  process.env.RW_SUPABASE_URL!,
-  process.env.RW_SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_RW_ECOSYSTEM_URL!,
+  process.env.RW_ECOSYSTEM_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
 export async function GET(req: NextRequest) {
