@@ -80,9 +80,17 @@ function generateQrPayload(capsule_id: string, numeric_code: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { capsule_id } = await req.json()
+    const { capsule_id, scope, guest_ids } = await req.json()
     if (!capsule_id) {
       return NextResponse.json({ error: 'capsule_id required' }, { status: 400 })
+    }
+
+    // ── Validate scope ──────────────────────────────────────────────────────
+    // scope: 'all' (default) | 'confirmed' | 'selected'
+    // 'selected' requires guest_ids array
+    const resolvedScope = scope ?? 'all'
+    if (resolvedScope === 'selected' && (!guest_ids || guest_ids.length === 0)) {
+      return NextResponse.json({ error: 'guest_ids required when scope is selected' }, { status: 400 })
     }
 
     // ── Fetch config ────────────────────────────────────────────────────────
@@ -92,20 +100,41 @@ export async function POST(req: NextRequest) {
       .eq('capsule_id', capsule_id)
       .maybeSingle()
 
-    // ── Fetch all guests for this capsule ───────────────────────────────────
-    const { data: guests, error: guestError } = await db
+    // ── Fetch guests filtered by scope ──────────────────────────────────────
+    // 'all' fetches everyone. 'confirmed' filters by rsvp_status. 'selected' uses guest_ids.
+    let guestQuery = db
       .from('guests')
-      .select('id, name, email, tier, section_id, special_note, vendor_company, vendor_role, valid_from')
+      .select('id, name, email, tier, section_id, special_note, vendor_company, vendor_role, valid_from, rsvp_status')
       .eq('capsule_id', capsule_id)
       .is('deleted_at', null)
+
+    if (resolvedScope === 'confirmed') {
+      guestQuery = (guestQuery as any).eq('rsvp_status', 'confirmed')
+    } else if (resolvedScope === 'selected') {
+      guestQuery = (guestQuery as any).in('id', guest_ids)
+    }
+
+    const { data: guests, error: guestError } = await guestQuery
 
     if (guestError) throw guestError
     if (!guests || guests.length === 0) {
       return NextResponse.json({ error: 'No guests found for this capsule' }, { status: 404 })
     }
 
-    // ── Delete existing codes to allow regeneration ─────────────────────────
-    await db.from('event_access_codes').delete().eq('capsule_id', capsule_id)
+    // ── Delete existing codes for the relevant scope ─────────────────────────
+    // 'all': wipe all codes for this capsule (full regeneration)
+    // 'confirmed' / 'selected': wipe only the codes for the guests in scope
+    if (resolvedScope === 'all') {
+      await db.from('event_access_codes').delete().eq('capsule_id', capsule_id)
+    } else {
+      const guestIdList = guests?.map(g => g.id) ?? []
+      if (guestIdList.length > 0) {
+        await db.from('event_access_codes')
+          .delete()
+          .eq('capsule_id', capsule_id)
+          .in('guest_id', guestIdList)
+      }
+    }
 
     // ── Generate codes for each guest ───────────────────────────────────────
     const generated = []

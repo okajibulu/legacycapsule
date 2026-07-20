@@ -42,8 +42,8 @@ interface Contribution {
 
 interface ServicesTabProps {
   capsule: {
-    id: string; slug: string; honouree_name: string; tier: string | null
-    components: string[]
+    id: string; slug: string; honouree_name: string; event_tag: string | null
+    tier: string | null; components: string[]
   }
   approvedContributions: Contribution[]
   supabase: any
@@ -535,7 +535,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
             <>
               <TableManagementSection capsuleId={capsule.id} onTablesChange={setTables} />
               <div style={{ height: '1px', background: 'rgba(255,255,255,0.04)', margin: '12px 0' }} />
-              <GuestManagementSection capsuleId={capsule.id} capsuleSlug={capsule.slug} tables={tables} phases={phases} />
+              <GuestManagementSection capsuleId={capsule.id} capsuleSlug={capsule.slug} honoureeName={capsule.honouree_name} eventTag={capsule.event_tag ?? null} tables={tables} phases={phases} />
             </>
           )}
         </ServiceCard>
