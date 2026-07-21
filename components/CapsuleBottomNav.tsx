@@ -42,7 +42,7 @@
 import { getThemeConfig } from '@/lib/themeConfig'
 import type { ThemeKey } from '@/lib/themeConfig'
 
-export type CapsulePage = 'tribute' | 'story' | 'stories' | 'profile' | 'legacy' | 'attire'
+export type CapsulePage = 'tribute' | 'memories' | 'profile' | 'legacy' | 'attire'
 
 interface CapsuleBottomNavProps {
   slug: string
@@ -67,11 +67,10 @@ interface NavTab {
 // ============================================================
 
 function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
-  const { slug, components, contributorCount, hasPhases } = props
-
+  const { slug, components } = props
   const tabs: NavTab[] = []
 
-  // Tribute Room — always visible
+  // Tab 1 — Tributes (always)
   tabs.push({
     id: 'tribute',
     label: 'Tributes',
@@ -80,18 +79,18 @@ function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
     active: true,
   })
 
-  // Event Story — only when phases exist
-  if (hasPhases) {
+  // Tab 2 — Memories / Community Stories (when active)
+  if ((components ?? []).includes('community_stories')) {
     tabs.push({
-      id: 'story',
-      label: 'Story',
-      icon: '◈',
-      href: `/for/${slug}/story`,
+      id: 'memories',
+      label: 'Memories',
+      icon: '◇',
+      href: `/for/${slug}/stories`,
       active: true,
     })
   }
 
-  // Profile — always visible
+  // Tab 3 — Profile (always)
   tabs.push({
     id: 'profile',
     label: 'Profile',
@@ -100,29 +99,16 @@ function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
     active: true,
   })
 
-  // Legacy Room — only when there are approved contributions
-  if (contributorCount >= 1) {
-    tabs.push({
-      id: 'legacy',
-      label: 'Highlights',
-      icon: '◎',
-      href: `/for/${slug}/legacy`,
-      active: true,
-    })
-  }
+  // Tab 4 — Highlights (always)
+  tabs.push({
+    id: 'legacy',
+    label: 'Highlights',
+    icon: '◎',
+    href: `/for/${slug}/legacy`,
+    active: true,
+  })
 
-  // Community Stories — only when module activated
-  if ((components ?? []).includes('community_stories')) {
-    tabs.push({
-      id: 'stories',
-      label: 'Stories',
-      icon: '◇',
-      href: `/for/${slug}/stories`,
-      active: true,
-    })
-  }
-
-  // Attire — only when module activated
+  // Tab 5 — Attire (conditional — when attire service is active)
   if ((components ?? []).includes('attire')) {
     tabs.push({
       id: 'attire',

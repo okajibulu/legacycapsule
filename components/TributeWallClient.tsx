@@ -86,10 +86,10 @@ async function getIPCoords(): Promise<{ lat: number; lng: number; country: strin
 /* =========================================================
    TRIBUTE CARD — theme-aware, left accent
 ========================================================= */
-function TributeCard({ c, capsuleId, isAdmin, isOwn, onApprove, onDelete, onEdit, t }: {
+function TributeCard({ c, capsuleId, isAdmin, isOwn, onApprove, onDelete, onEdit, t, serialNumber }: {
   c: Contribution; capsuleId: string; isAdmin: boolean; isOwn: boolean
   onApprove: (id: string) => void; onDelete: (id: string) => void
-  onEdit: (id: string, text: string) => void; t: ThemeConfig
+  onEdit: (id: string, text: string) => void; t: ThemeConfig; serialNumber?: number
 }) {
   const [expanded, setExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -120,8 +120,9 @@ borderLeft: `3px solid ${isPending ? t.cardAccentPending : t.accentPrimary}`,
             </div>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Line 1: Name · Relationship */}
+            {/* Line 1: Serial · Name · Relationship */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+              {serialNumber && <span style={{ fontSize: '9px', fontWeight: 700, color: t.textFaint, letterSpacing: '0.08em', fontFamily: 'monospace', flexShrink: 0 }}>#{String(serialNumber).padStart(3, '0')}</span>}
               <span style={{ fontSize: '12px', fontWeight: 700, color: t.textHeading, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {c.contributor_name}
               </span>
@@ -1434,7 +1435,7 @@ background:
                 if (type.includes('anniversary')) return `Heartfelt messages celebrating this milestone will appear here.`
                 return `Voices shared in honour of ${honourName} will appear here. Be the first to add yours.`
               })()}</p></div>}
-              {visible.map(c => <TributeCard key={c.id} c={c} capsuleId={capsule.id} isAdmin={isAdmin} isOwn={visitorEmail !== '' && c.email?.toLowerCase() === visitorEmail.toLowerCase()} onApprove={handleApprove} onDelete={handleDelete} onEdit={handleEdit} t={t} />)}
+              {visible.map((c, idx) => <TributeCard key={c.id} c={c} capsuleId={capsule.id} isAdmin={isAdmin} isOwn={visitorEmail !== '' && c.email?.toLowerCase() === visitorEmail.toLowerCase()} onApprove={handleApprove} onDelete={handleDelete} onEdit={handleEdit} t={t} serialNumber={idx + 1} />)}
           {/* ── Publication subscribe panel — Moment 1 email collection ── */}
           {visible.length > 0 && (
             <PublicationSubscribePanel
@@ -1631,61 +1632,7 @@ background:
     </div>
   </div>
    </div>
-  {/* ── NAV LINKS ── */}
-  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' as const }}>
-  {approvedCount >= 1 && (
-    <a
-      href={`/for/${capsule.slug}/legacy`}
-      style={{
-        padding: '10px 22px',
-        borderRadius: '24px',
-        textDecoration: 'none',
-        border: `1px solid ${t.accentFaint}`,
-        color: t.accentPrimary,
-        fontSize: '13px',
-        fontWeight: 600,
-        letterSpacing: '0.04em',
-        background: 'rgba(255,255,255,0.03)',
-      }}
-    >
-      Legacy Highlights →
-    </a>
-  )}
-
-  <a
-    href={`/for/${capsule.slug}/profile`}
-    style={{
-      padding: '10px 22px',
-      borderRadius: '24px',
-      textDecoration: 'none',
-      border: `1px solid ${t.accentFaint}`,
-      color: t.accentMuted,
-      fontSize: '13px',
-      fontWeight: 600,
-      letterSpacing: '0.04em',
-      background: 'rgba(255,255,255,0.03)',
-    }}
-  >
-    View Profile →
-  </a>
-
-  <button
-    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-    style={{
-      padding: '10px 22px',
-      borderRadius: '24px',
-      border: `1px solid ${t.accentFaint}`,
-      background: 'rgba(255,255,255,0.03)',
-      color: t.accentMuted,
-      fontSize: '13px',
-      fontWeight: 600,
-      letterSpacing: '0.04em',
-      cursor: 'pointer',
-    }}
-  >
-    ↑ Back to Top
-  </button>
-</div>
+{/* Nav links removed — bottom nav provides Highlights, Profile and all navigation */}
            
 
   {/* ── FOOTER ── */}

@@ -280,7 +280,7 @@ export default async function EventPhasePage({ params }: PageProps) {
       {/* ── BOTTOM NAV ── */}
       <CapsuleBottomNav
         slug={slug}
-        currentPage="story"
+        currentPage="tribute"
         components={capsule.components ?? []}
         contributorCount={capsule.approved_contrib_count ?? 0}
         hasPhases={true}

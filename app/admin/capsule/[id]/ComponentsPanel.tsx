@@ -7,14 +7,16 @@
 import { useState } from 'react'
 
 const COMPONENTS = [
-  { id: 'audio_tributes',    label: 'Voice Tributes',      desc: 'Contributors can record audio messages up to 2 minutes' },
-  { id: 'video_tributes',    label: 'Video Tributes',       desc: 'Contributors can upload short video messages' },
-  { id: 'ways_to_honour',   label: 'Ways to Honour',       desc: 'Bank transfer details and acknowledgement flow on profile page' },
-  { id: 'family_rep_portal', label: 'Family Rep Portal',   desc: 'Token-gated private portal for family representative' },
-  { id: 'extended_validity', label: 'Extended Validity',   desc: 'Capsule validity beyond the standard 90-day free window' },
-  { id: 'publication',      label: 'Digital Publication',  desc: 'PDF keepsake publication compiled from all tributes' },
-  { id: 'community_stories', label: 'Community Stories',  desc: 'Dedicated Stories room where contributors share memories organised by topic' },
-  { id: 'guest_management',  label: 'Guest Management',   desc: 'Guest list, access codes, RSVP tracking, check-in and table seating' },
+  { id: 'audio_tributes',      label: 'Voice Tributes',              desc: 'Contributors can record personal audio messages — up to 60 seconds each' },
+  { id: 'video_tributes',      label: 'Video Tributes',              desc: 'Contributors can upload short video messages — up to 60 seconds each' },
+  { id: 'ways_to_honour',      label: 'Gift of Honour',              desc: 'Dignified channel for guests to make financial contributions — private, no transaction fees' },
+  { id: 'family_rep_portal',   label: 'Family Rep Portal',           desc: 'Token-gated private access for family representatives — view tributes, acknowledgements and stats' },
+  { id: 'extended_validity',   label: 'Extended Validity',           desc: 'Extends capsule online availability beyond the standard period (3 months free / 6 months paid)' },
+  { id: 'publication',         label: 'Digital Publication',         desc: 'Beautifully assembled keepsake publication — all tributes, stories and photos compiled and distributed' },
+  { id: 'guest_management',    label: 'Guest Management & Seating',  desc: 'Full participant registry, RSVP tracking, table seating, VIP/VVIP management' },
+  { id: 'access_codes',        label: 'Access Code System',          desc: 'Personal entry codes, usher check-in, access cards and live arrival tracking' },
+  { id: 'attire',              label: 'Fabric & Attire Coordination', desc: 'Attire showcase, order tracking, collection management and vendor coordination' },
+  { id: 'additional_phase',    label: 'Additional Event Phase',      desc: 'One extra event phase with its own tribute collection window and QR code' },
 ]
 
 const gold = '#E2C36B'

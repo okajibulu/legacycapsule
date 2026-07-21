@@ -224,7 +224,7 @@ export default async function EventStoryPage({ params }: PageProps) {
       {/* ── BOTTOM NAV ── */}
       <CapsuleBottomNav
         slug={slug}
-        currentPage="story"
+        currentPage="memories"
         components={capsule.components ?? []}
         contributorCount={capsule.approved_contrib_count ?? 0}
         hasPhases={(phases?.length ?? 0) > 0}

@@ -98,7 +98,7 @@ export default async function CommunityStoriesPage({
 
   // ── Check Community Stories is activated ──────────────────────────────────
   const components: string[] = capsule.components ?? []
-  if (!components.includes('community_stories')) return notFound()
+  // Community Stories is free and always accessible — no component guard needed
 
   // ── Fetch active topics ───────────────────────────────────────────────────
   const { data: topicsRaw } = await supabase
@@ -165,7 +165,7 @@ export default async function CommunityStoriesPage({
         return (
           <CapsuleBottomNav
             slug={slug}
-            currentPage="stories"
+            currentPage="memories"
             components={components}
             contributorCount={stories.length}
             hasPhases={false}

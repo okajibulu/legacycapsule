@@ -1490,7 +1490,7 @@ const capRes = await supabase.from('capsules')
         </div>
 
         {/* ── FREE TIER BAR ── */}
-        {isFree && <FreeTierBar approvedCount={capsule.approved_contrib_count} daysLeft={days} hasFirstTribute={hasFirstTribute} onUpgrade={() => setActiveTab('settings')} />}
+        {isFree && <FreeTierBar approvedCount={capsule.approved_contrib_count} daysLeft={days} hasFirstTribute={hasFirstTribute} onUpgrade={() => setActiveTab('services')} />}
 
         {/* ── EXPIRY BANNER ── */}
         {(() => {
@@ -1590,9 +1590,9 @@ const capRes = await supabase.from('capsules')
               {/* ── ADD-ONS / SERVICES TABLE ── */}
               <SectionCard title="Capsule Services" subtitle="Tap any service to learn more — contact us to activate">
                 <AddOnsTable capsuleComponents={capsule.components ?? []} onServicesTab={() => {
-                  setActiveTab('settings')
+                  setActiveTab('services')
                   setTimeout(() => {
-                    document.getElementById('upgrade-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
                   }, 150)
                 }} />
               </SectionCard>
@@ -1710,9 +1710,9 @@ const capRes = await supabase.from('capsules')
                 ? <WaysToHonourEditor capsuleId={capsule.id} supabase={supabase} />
                 : undefined}
               onUpgrade={() => {
-                setActiveTab('settings')
+                setActiveTab('services')
                 setTimeout(() => {
-                  document.getElementById('upgrade-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
                 }, 150)
               }}
             />
@@ -1753,28 +1753,24 @@ const capRes = await supabase.from('capsules')
                 />
               </SectionCard>
 
-{/* Subject Reveal — Experience 5 */}
-              <SectionCard title="Capsule Reveal" subtitle="Send the honouree their capsule — all the voices, all for them">
-                <HonoureeRevealPanel
-                  capsuleId={capsule.id}
-                  honoureeName={capsule.honouree_name}
-                  honoureeEmail={(capsule as any).family_rep_email ?? null}
-                  revealSentAt={(capsule as any).reveal_sent_at ?? null}
-                  gold={gold}
-                  goldMuted={goldMuted}
-                  goldFaint={goldFaint}
-                  textPrimary={textPrimary}
-                  textSecondary={textSecondary}
-                  textFaint={textFaint}
-                  cardBorder={cardBorder}
-                  inp={inp}
-                />
-              </SectionCard>
+{/* Capsule Reveal decommissioned — Family Rep Portal covers this use case with multi-access support */}
 
               
 
-              <div id="upgrade-form">
-                <UpgradeCard capsuleName={capsule.honouree_name} />
+              <div id="upgrade-form" style={{ borderRadius: '16px', overflow: 'hidden', border: `1px solid rgba(226,195,107,0.18)`, background: 'linear-gradient(145deg, rgba(226,195,107,0.05), rgba(255,255,255,0.02))', marginBottom: '14px' }}>
+                <div style={{ height: '2px', background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.55), transparent)' }} />
+                <div style={{ padding: '20px 18px' }}>
+                  <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '17px', fontWeight: 700, color: gold, marginBottom: '8px' }}>Add Services to Your Capsule</h3>
+                  <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.7, marginBottom: '16px' }}>
+                    Voice tributes, video messages, guest management, digital publication, attire coordination — add what your event needs, directly from your Services tab. No need to contact us.
+                  </p>
+                  <button
+                    onClick={() => setActiveTab('services')}
+                    style={{ padding: '10px 20px', borderRadius: '10px', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '13px', fontWeight: 700, border: 'none', cursor: 'pointer' }}
+                  >
+                    Go to Services →
+                  </button>
+                </div>
               </div>
 
               <DeleteAccountSection email={visitorEmail} slug={slug} capsuleId={capsule?.id ?? ''} />
