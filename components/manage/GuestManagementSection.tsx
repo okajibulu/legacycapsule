@@ -11,20 +11,22 @@
  * Updated: AI12 · Claude Opus 4.6 · 20 July 2026
  *   — Gap 1 fix: GuestCodeList now rendered in Codes tab below setup
  *   — Gap 2 fix: Three-scope code generation selector added
- *     (Everyone / Confirmed only / Choose individually)
  *   — M6.6: Ticket/access card generation added to Codes tab
- *   — Scope choice drives both generate API call and label copy
- *   — Dead fetchCodes function removed from GuestCodeList import
- *   — Guest List tab description updated for organiser mental model
+ * Updated: AI12 · Claude Opus 4.6 · 21 July 2026
+ *   — CapacityMonitor panel added to Guest List tab
+ *   — Reads from /api/guests/capacity — config-driven thresholds
+ *   — Three alert levels: friendly / recommend / strong
+ *   — participant_category breakdown shown (guests vs event team)
  *
  * Sub-sections:
  *   1. Types & style constants
  *   2. GuestRow — individual guest with access code
  *   3. AddGuestForm — create guest
  *   4. GuestStats — summary counts
- *   5. ScopeSelector — three-option code generation scope picker
- *   6. TicketPrintView — printable ticket/access card layout
- *   7. Main component with tabbed sections
+ *   5. CapacityMonitor — usage panel with alert states
+ *   6. ScopeSelector — three-option code generation scope picker
+ *   7. TicketPrintView — printable ticket/access card layout
+ *   8. Main component with tabbed sections
  * ============================================================
  */
 
@@ -284,7 +286,105 @@ function GuestStats({ guests }: { guests: Guest[] }) {
   )
 }
 
-// ═══ SECTION 5 — ScopeSelector ═══
+// ═══ SECTION 5 — CapacityMonitor ═══
+
+interface CapacityData {
+  guest_count:      number
+  event_team_count: number
+  allocation:       number
+  pct:              number
+  alert_level:      'none' | 'friendly' | 'recommend' | 'strong' | 'grace'
+  recommended_pack: string | null
+}
+
+function CapacityMonitor({ capsuleId }: { capsuleId: string }) {
+  const [data,    setData]    = useState<CapacityData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`/api/guests/capacity?capsule_id=${capsuleId}`)
+      .then(r => r.json())
+      .then(d => setData(d))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [capsuleId])
+
+  if (loading || !data) return null
+
+  const PACK_LABELS: Record<string, string> = {
+    capacity_pack_growth:      'Growth Pack (+250 guests)',
+    capacity_pack_celebration: 'Celebration Pack (+750 guests)',
+    capacity_pack_grand:       'Grand Event Pack (+2,000 guests)',
+  }
+
+  const alertColors = {
+    none:      { bar: gold,                    bg: 'rgba(226,195,107,0.06)', border: cardBorder },
+    friendly:  { bar: gold,                    bg: 'rgba(226,195,107,0.06)', border: cardBorder },
+    recommend: { bar: 'rgba(251,191,36,0.9)',  bg: 'rgba(251,191,36,0.06)', border: 'rgba(251,191,36,0.2)' },
+    strong:    { bar: 'rgba(248,113,113,0.85)', bg: 'rgba(248,113,113,0.06)', border: 'rgba(248,113,113,0.2)' },
+    grace:     { bar: 'rgba(248,113,113,0.85)', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.3)' },
+  }
+
+  const alertMessages: Record<string, string | null> = {
+    none:      null,
+    friendly:  'Your event is growing. Consider adding a capacity pack ahead of time.',
+    recommend: "You're approaching your guest limit. Adding a pack now keeps things smooth.",
+    strong:    'Almost at capacity. Add a pack before you reach your limit.',
+    grace:     "You've exceeded your allocation. Add a capacity pack to continue adding guests.",
+  }
+
+  const colors  = alertColors[data.alert_level]
+  const message = alertMessages[data.alert_level]
+  const barPct  = Math.min(data.pct, 100)
+
+  return (
+    <div style={{ padding: '14px 16px', borderRadius: '12px', background: colors.bg, border: `1px solid ${colors.border}`, marginBottom: '16px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
+        <p style={{ fontSize: '10px', fontWeight: 700, color: goldMuted, textTransform: 'uppercase' as const, letterSpacing: '0.1em', margin: 0 }}>
+          Guest Support
+        </p>
+        <p style={{ fontSize: '11px', fontWeight: 700, color: data.alert_level === 'none' || data.alert_level === 'friendly' ? gold : data.alert_level === 'recommend' ? 'rgba(251,191,36,0.9)' : 'rgba(248,113,113,0.85)', margin: 0 }}>
+          {data.guest_count} / {data.allocation}
+        </p>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden', marginBottom: '8px' }}>
+        <div style={{ height: '100%', width: `${barPct}%`, background: colors.bar, borderRadius: '2px', transition: 'width 0.6s ease' }} />
+      </div>
+
+      {/* Breakdown */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: message ? '10px' : 0 }}>
+        <p style={{ fontSize: '10px', color: textFaint, margin: 0 }}>
+          {data.guest_count} guest{data.guest_count !== 1 ? 's' : ''}
+        </p>
+        {data.event_team_count > 0 && (
+          <p style={{ fontSize: '10px', color: textFaint, margin: 0 }}>
+            · {data.event_team_count} event team (not counted)
+          </p>
+        )}
+      </div>
+
+      {/* Alert message + pack recommendation */}
+      {message && (
+        <div style={{ marginTop: '8px' }}>
+          <p style={{ fontSize: '11px', color: textFaint, lineHeight: 1.6, margin: '0 0 8px' }}>{message}</p>
+          {data.recommended_pack && (
+            <a
+              href="#capacity-packs"
+              style={{ fontSize: '11px', fontWeight: 700, color: gold, textDecoration: 'none', padding: '6px 12px', borderRadius: '8px', background: 'rgba(226,195,107,0.1)', border: '1px solid rgba(226,195,107,0.2)', display: 'inline-block' }}
+            >
+              + Add {PACK_LABELS[data.recommended_pack] ?? 'Capacity Pack'}
+            </a>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ═══ SECTION 6 — ScopeSelector ═══
 // Three plain-language options for who receives codes.
 // Drives both the generate API call and the send API call.
 
@@ -387,7 +487,7 @@ function ScopeSelector({
   )
 }
 
-// ═══ SECTION 6 — TicketPrintView ═══
+// ═══ SECTION 7 — TicketPrintView ═══
 // Printable access card / ticket layout.
 // Opens in a new print window with all guest tickets.
 // Uses browser print-to-PDF (Puppeteer blocked on Vercel Hobby).
@@ -480,7 +580,7 @@ function buildTicketPrintHtml(d: {
 </html>`
 }
 
-// ═══ SECTION 7 — Main component ═══
+// ═══ SECTION 8 — Main component ═══
 
 export default function GuestManagementSection({
   capsuleId, capsuleSlug, honoureeName, eventTag, tables, phases
@@ -639,6 +739,9 @@ export default function GuestManagementSection({
           <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.65, marginBottom: '14px' }}>
             Everyone at your event in one place — guests, family, VIPs, vendors, media. Tap a guest to manage their table, RSVP status, and check-in.
           </p>
+
+          {/* ── Capacity Monitor ── */}
+          <CapacityMonitor capsuleId={capsuleId} />
 
           {loading ? (
             <p style={{ fontSize: '12px', color: textFaint, textAlign: 'center' as const, padding: '16px 0' }}>Loading guests…</p>

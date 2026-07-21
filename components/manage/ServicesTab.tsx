@@ -402,6 +402,8 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
   const [unlocking,     setUnlocking]     = useState<string | null>(null)
   const [featurePrices, setFeaturePrices] = useState<Record<string, { amount: number; symbol: string } | null>>({})
   const [cart,          setCart]          = useState<string[]>([])
+  const [capacityAlert, setCapacityAlert] = useState<'none'|'friendly'|'recommend'|'strong'|'grace'>('none')
+  const [recommendedPack, setRecommendedPack] = useState<string|null>(null)
 
   const components = capsule.components ?? []
 
@@ -418,6 +420,18 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
       .then(d => { if (d.features) setFeaturePrices(d.features) })
       .catch(() => {})
   }, [])
+
+  // ── Fetch capacity alert level ────────────────────────────────────────────
+  useEffect(() => {
+    if (!capsule.id) return
+    fetch(`/api/guests/capacity?capsule_id=${capsule.id}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.alert_level) setCapacityAlert(d.alert_level)
+        if (d.recommended_pack) setRecommendedPack(d.recommended_pack)
+      })
+      .catch(() => {})
+  }, [capsule.id])
 
   const toggleCart = (featureId: string) => {
     if (components.includes(featureId)) return
@@ -728,6 +742,54 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           FULL WIDTH — Always-on operational cards
       ════════════════════════════════════════════ */}
       <div style={{ marginTop: '4px' }}>
+
+        {/* ── Capacity Pack section — shown when alert is active ── */}
+        {capacityAlert !== 'none' && (
+          <div id="capacity-packs" style={{ padding: '16px', borderRadius: '14px', border: `1px solid ${capacityAlert === 'grace' || capacityAlert === 'strong' ? 'rgba(248,113,113,0.25)' : 'rgba(251,191,36,0.2)'}`, background: capacityAlert === 'grace' || capacityAlert === 'strong' ? 'rgba(248,113,113,0.05)' : 'rgba(251,191,36,0.05)', marginBottom: '8px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' as const, color: capacityAlert === 'grace' || capacityAlert === 'strong' ? 'rgba(248,113,113,0.8)' : 'rgba(251,191,36,0.8)', marginBottom: '6px' }}>
+              {capacityAlert === 'grace' ? 'Guest limit exceeded' : 'Guest capacity'}
+            </p>
+            <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.65, marginBottom: '12px' }}>
+              {capacityAlert === 'grace'    ? "You've exceeded your guest allocation. Add a capacity pack to continue adding guests."
+              : capacityAlert === 'strong'  ? 'Almost at your guest limit. Add a pack before you reach it.'
+              : capacityAlert === 'recommend' ? "You're approaching your guest limit. Adding a pack now keeps things smooth."
+              : 'Your event is growing. Consider adding a capacity pack ahead of time.'}
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+              {['capacity_pack_growth', 'capacity_pack_celebration', 'capacity_pack_grand'].map(packKey => {
+                const price    = featurePrices[packKey]
+                const isInCart = cart.includes(packKey)
+                const isActive = capsule.components.includes(packKey)
+                const labels: Record<string, string> = {
+                  capacity_pack_growth:      'Growth Pack — +250 guests',
+                  capacity_pack_celebration: 'Celebration Pack — +750 guests',
+                  capacity_pack_grand:       'Grand Event Pack — +2,000 guests',
+                }
+                return (
+                  <div key={packKey} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: '10px', border: `1px solid ${isInCart ? 'rgba(226,195,107,0.45)' : 'rgba(255,255,255,0.07)'}`, background: isInCart ? goldFaint : 'rgba(255,255,255,0.03)', cursor: isActive ? 'default' : 'pointer' }}
+                    onClick={() => !isActive && toggleCart(packKey)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {!isActive && (
+                        <div style={{ width: '18px', height: '18px', borderRadius: '5px', border: `2px solid ${isInCart ? gold : 'rgba(255,255,255,0.18)'}`, background: isInCart ? 'rgba(226,195,107,0.15)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {isInCart && <span style={{ fontSize: '10px', color: gold, fontWeight: 800 }}>✓</span>}
+                        </div>
+                      )}
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: isActive ? textFaint : textSecondary }}>
+                        {labels[packKey]}
+                        {recommendedPack === packKey && !isActive && <span style={{ marginLeft: '6px', fontSize: '9px', color: gold, fontWeight: 700 }}>Recommended</span>}
+                      </span>
+                    </div>
+                    {isActive ? (
+                      <span style={{ fontSize: '10px', color: 'rgba(134,239,172,0.8)', fontWeight: 700 }}>✓ Active</span>
+                    ) : price ? (
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: isInCart ? gold : textFaint }}>{price.symbol}{price.amount.toLocaleString()}</span>
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* D-Day Live Wall */}
         <ServiceCard

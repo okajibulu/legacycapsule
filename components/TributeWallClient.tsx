@@ -1406,7 +1406,7 @@ background:
             <div style={{ margin: '10px 12px 0', borderRadius: '12px', padding: '12px 16px', textAlign: 'center', border: `1px solid ${t.accentFaint}`, background: t.cardBg }}>
               <p style={{ fontSize: '13px', color: t.accentPrimary, margin: '0 0 4px' }}>✦ Your tribute has been received — thank you.</p>
               <p style={{ fontSize: '11px', color: t.textFaint, margin: 0, lineHeight: 1.6 }}>
-                {fEmail ? 'We'll send you the keepsake publication after the event.' : 'Leave your email when contributing to receive the keepsake publication.'}
+                {fEmail ? "We'll send you the keepsake publication after the event." : 'Leave your email when contributing to receive the keepsake publication.'}
               </p>
             </div>
           )}
