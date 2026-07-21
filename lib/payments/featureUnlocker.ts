@@ -108,6 +108,11 @@ const FEATURE_MAP: Record<string, FeatureDefinition> = {
   },
 
   // ── LEGACY KEY ALIASES ─────────────────────────────────────────────────────
+  // Capacity packs — cumulative, added to components array on each purchase
+  capacity_pack_growth:      { components: ['capacity_pack_growth'] },
+  capacity_pack_celebration: { components: ['capacity_pack_celebration'] },
+  capacity_pack_grand:       { components: ['capacity_pack_grand'] },
+
   // Kept for backward compatibility with any payments already in lc_pricing.
   // These map old price keys to the unified components system.
 

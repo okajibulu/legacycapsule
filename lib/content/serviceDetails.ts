@@ -334,9 +334,38 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
     refundNote: 'Extended Validity is activated immediately on payment and is non-refundable.',
   },
 
-  // ═══ SECTION 6 — Free Services (for reference/help page only) ═══
+  // ═══ SECTION 5B — Send Payment Link (feature, not a purchasable service) ═══
+// This entry documents the feature for help page and tooltip use.
+// It is not in lc_pricing and does not appear in the booking flow.
 
-  // ── Community Memories & Stories ────────────────────────────────────────────
+  send_payment_link: {
+    id:      `send_payment_link`,
+    title:   `Send a Payment Link`,
+    icon:    `✉`,
+    tagline: `Let a friend, family member, or sponsor pay for your capsule services.`,
+    summary: `Know someone who wants to contribute to your event capsule? Select the services you need, click "Send Link", enter their name and email, and we'll send them a branded payment email with a secure checkout button. Once they pay, the services activate on your capsule immediately - no delays, no manual steps.`,
+    whatYouGet: [
+      `A personalised payment email sent directly to the person you choose`,
+      `They see exactly what they're paying for - service names, total amount, and which capsule it's for`,
+      `Secure checkout - the link goes directly to Stripe, no account needed`,
+      `Services activate on your capsule the moment payment is confirmed`,
+      `Works for any combination of services you have in your selection`,
+    ],
+    contributorExperience: [
+      `The payer receives a clear, dignified email explaining what they're paying for and why`,
+      `One click takes them to a secure Stripe checkout page`,
+      `No LegacyCapsule account needed - just a card and a browser`,
+    ],
+    bestFor: [`Wedding`, `Chieftaincy`, `Memorial & Funeral`, `Retirement`, `Any event where a guest, family member, or sponsor wants to contribute`],
+    exampleUseCase: `An uncle wants to cover the Digital Publication and Guest Management for his nephew's wedding capsule as a gift. The organiser selects both services, clicks "Send Link", enters the uncle's name and email. The uncle receives a branded email, clicks "Complete Payment", pays once, and both services activate immediately on the wedding capsule.`,
+    faqs: [
+      { q: `Can multiple people pay for different services?`, a: `Yes - you can send separate payment links for different service combinations to different people. Each link covers the services you had selected at the time of sending.` },
+      { q: `What does the payer see?`, a: `A branded email from LegacyCapsule listing the services they're paying for, the total amount in the correct regional currency, and a secure payment button. They also see the capsule link so they can visit and leave a tribute.` },
+      { q: `What if they don't complete the payment?`, a: `Nothing changes on your capsule. Services only activate when payment is confirmed. You can resend the link at any time by selecting the same services and clicking Send Link again.` },
+      { q: `Does this work for capacity packs too?`, a: `Yes - select the Growth Pack, Celebration Pack, or Grand Event Pack from your services and send the link to whoever is helping cover the cost.` },
+    ],
+    refundNote: `Payment links expire after 24 hours. If the link expires before payment, simply generate a new one from your Services tab.`,
+  },
   community_stories: {
     id:      'community_stories',
     title:   'Community Memories & Stories',

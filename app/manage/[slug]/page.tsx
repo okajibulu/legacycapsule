@@ -15,6 +15,7 @@ import { getAllThemes, resolveTheme } from '@/lib/themeConfig'
 import type { ThemeKey } from '@/lib/themeConfig'
   import GalleryEditor from '@/components/GalleryEditor'
 import HonoureeRevealPanel from '@/components/HonoureeRevealPanel'
+import OrderHistoryPanel   from '@/components/manage/OrderHistoryPanel'
 import ServicesTab from '@/components/manage/ServicesTab'
 import HeroPositionPicker from '@/components/HeroPositionPicker'
 
@@ -1772,6 +1773,10 @@ const capRes = await supabase.from('capsules')
                   </button>
                 </div>
               </div>
+
+              <SectionCard title="Order History" subtitle="Services purchased for this capsule">
+                <OrderHistoryPanel capsuleId={capsule.id} />
+              </SectionCard>
 
               <DeleteAccountSection email={visitorEmail} slug={slug} capsuleId={capsule?.id ?? ''} />
             </div>

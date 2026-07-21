@@ -288,14 +288,15 @@ interface PriceRow {
 }
 
 function PriceColumn({
-  rows, cart, onToggle, onCheckout, unlocking, cardHeights,
+  rows, cart, onToggle, onCheckout, onSendLink, unlocking, cardHeights,
 }: {
   rows:        PriceRow[]
   cart:        string[]
   onToggle:    (id: string) => void
   onCheckout:  () => void
+  onSendLink:  () => void
   unlocking:   string | null
-  cardHeights: Record<string, number>
+  cardHeights?: Record<string, number>
 }) {
   const cartRows  = rows.filter(r => cart.includes(r.id))
   const cartTotal = cartRows.reduce((sum, r) => sum + (r.price?.amount ?? 0), 0)
@@ -319,7 +320,7 @@ function PriceColumn({
           <div
             key={row.id}
             style={{
-              height: cardHeights[row.id] ? `${cardHeights[row.id]}px` : '66px',
+              height: cardHeights?.[row.id] ? `${cardHeights[row.id]}px` : '66px',
               minHeight: '52px',
               width: '100%',
               display: 'flex',
@@ -390,8 +391,26 @@ function PriceColumn({
             transition: 'all 0.2s',
           }}
         >
-          {unlocking === 'cart' ? '…' : cart.length > 0 ? 'GO →' : 'Cart'}
+          {unlocking === 'cart' ? '…' : cart.length > 0 ? 'PAY →' : 'Cart'}
         </button>
+
+        {cart.length > 0 && (
+          <button
+            onClick={onSendLink}
+            style={{
+              width: '100%', padding: '6px 4px', borderRadius: '8px',
+              border: '1px solid rgba(226,195,107,0.2)',
+              background: 'transparent',
+              color: 'rgba(226,195,107,0.55)',
+              fontSize: '8px', fontWeight: 700, letterSpacing: '0.06em',
+              cursor: 'pointer', textTransform: 'uppercase' as const,
+              transition: 'all 0.2s', lineHeight: 1.3,
+            }}
+            title="Send a payment link to someone who will pay on your behalf"
+          >
+            ✉ SEND LINK
+          </button>
+        )}
       </div>
     </div>
   )
@@ -408,6 +427,11 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
   const [cardHeights,   setCardHeights]   = useState<Record<string, number>>({})
   const [capacityAlert, setCapacityAlert] = useState<'none'|'friendly'|'recommend'|'strong'|'grace'>('none')
   const [recommendedPack, setRecommendedPack] = useState<string|null>(null)
+  const [showSendModal,  setShowSendModal]  = useState(false)
+  const [sendName,       setSendName]       = useState('')
+  const [sendEmail,      setSendEmail]      = useState('')
+  const [sending,        setSending]        = useState(false)
+  const [sendResult,     setSendResult]     = useState<'success'|'error'|null>(null)
 
   const components = capsule.components ?? []
 
@@ -425,6 +449,41 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
       .catch(() => {})
   }, [])
 
+  // ── Card height tracking for price column alignment ─────────────────────────
+  const handleHeightChange = (id: string, height: number) => {
+    setCardHeights(prev => {
+      if (prev[id] === height) return prev
+      return { ...prev, [id]: height }
+    })
+  }
+
+  // ── Send payment link to third party ────────────────────────────────────────
+  const handleSendLink = async () => {
+    if (!sendName.trim() || !sendEmail.includes('@') || cart.length === 0) return
+    setSending(true); setSendResult(null)
+    try {
+      const res  = await fetch('/api/checkout/send-payment-link', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          capsule_id:   capsule.id,
+          capsule_slug: capsule.slug,
+          feature_ids:  cart,
+          payer_name:   sendName.trim(),
+          payer_email:  sendEmail.trim().toLowerCase(),
+          honouree_name: capsule.honouree_name,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to send')
+      setSendResult('success')
+      setSendName(''); setSendEmail('')
+      setTimeout(() => { setShowSendModal(false); setSendResult(null) }, 2500)
+    } catch {
+      setSendResult('error')
+    }
+    setSending(false)
+  }
+
   // ── Fetch capacity alert level ────────────────────────────────────────────
   useEffect(() => {
     if (!capsule.id) return
@@ -436,13 +495,6 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
       })
       .catch(() => {})
   }, [capsule.id])
-
-  const handleHeightChange = (id: string, height: number) => {
-    setCardHeights(prev => {
-      if (prev[id] === height) return prev
-      return { ...prev, [id]: height }
-    })
-  }
 
   const toggleCart = (featureId: string) => {
     if (components.includes(featureId)) return
@@ -465,6 +517,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           feature_ids:     cart,
           organiser_email: '',
           book_mode:       'own',
+          source:          'dashboard',
         }),
       })
       const data = await res.json()
@@ -488,7 +541,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
   // ── Price column rows — same order as ServiceCards ───────────────────────
   const priceRows: PriceRow[] = [
     {
-      id:     'guests',
+      id:     'guest_management',
       label:  'Guest Management',
       status: guestMgmtActive ? 'active' : 'locked',
       price:  featurePrices['guest_management'],
@@ -500,7 +553,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
       price:  featurePrices['access_codes'],
     },
     {
-      id:     'eoh',
+      id:     'ways_to_honour',
       label:  'Gift of Honour',
       status: components.includes('ways_to_honour') ? 'active' : 'locked',
       price:  featurePrices['ways_to_honour'],
@@ -559,6 +612,17 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           status="always_on"
         >
           <EventPhasesSection capsuleId={capsule.id} capsuleSlug={capsule.slug} />
+        </ServiceCard>
+
+        {/* D-Day Live Wall — shown here with Event Phases, not at bottom */}
+        <ServiceCard
+          id="live_wall"
+          title="D-Day Live Wall"
+          description="Full-screen real-time tribute display for your venue screen or projector"
+          icon="◇"
+          status="always_on"
+        >
+          <LiveWallSection capsuleSlug={capsule.slug} />
         </ServiceCard>
 
       </div>
@@ -750,12 +814,66 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
             cart={cart}
             onToggle={toggleCart}
             onCheckout={handleCartCheckout}
+            onSendLink={() => setShowSendModal(true)}
             unlocking={unlocking}
             cardHeights={cardHeights}
           />
         </div>
 
       </div>
+
+      {/* ── Send Payment Link modal ── */}
+      {showSendModal && (
+        <div style={{ position: 'fixed' as const, inset: 0, zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', background: 'rgba(10,0,20,0.75)', backdropFilter: 'blur(4px)' }}>
+          <div style={{ width: '100%', maxWidth: '380px', borderRadius: '16px', background: 'linear-gradient(160deg,#1a0845,#120630)', border: '1px solid rgba(226,195,107,0.25)', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+            <div style={{ height: '2px', background: 'linear-gradient(to right,transparent,#E2C36B,transparent)' }} />
+            <div style={{ padding: '20px 20px 24px' }}>
+              <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: '16px', fontWeight: 700, color: '#E2C36B', margin: '0 0 6px' }}>
+                Send a Payment Link
+              </h3>
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.65, margin: '0 0 16px' }}>
+                Know someone who wants to contribute to your capsule services? Send them a personalised payment link — they pay directly, and the services activate on your capsule instantly.
+              </p>
+
+              {/* Selected services summary */}
+              <div style={{ padding: '10px 12px', borderRadius: '10px', background: 'rgba(226,195,107,0.06)', border: '1px solid rgba(226,195,107,0.12)', marginBottom: '16px' }}>
+                <p style={{ fontSize: '9px', color: 'rgba(226,195,107,0.55)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', margin: '0 0 6px' }}>Services in this link</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '4px' }}>
+                  {cart.map(id => {
+                    const row = priceRows.find(r => r.id === id)
+                    return <span key={id} style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '20px', background: 'rgba(226,195,107,0.1)', border: '1px solid rgba(226,195,107,0.2)', color: 'rgba(226,195,107,0.75)' }}>{row?.label ?? id}</span>
+                  })}
+                </div>
+              </div>
+
+              {sendResult === 'success' ? (
+                <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', textAlign: 'center' as const }}>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: 'rgba(134,239,172,0.9)', margin: '0 0 4px' }}>✓ Payment link sent</p>
+                  <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', margin: 0 }}>They'll receive an email with the payment button shortly.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '9px', color: 'rgba(226,195,107,0.55)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', display: 'block', marginBottom: '5px' }}>Their name</label>
+                    <input style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(226,195,107,0.2)', color: 'rgba(255,255,255,0.92)', fontSize: '13px', outline: 'none', fontFamily: "'DM Sans',sans-serif", boxSizing: 'border-box' as const }} placeholder="Who is paying?" value={sendName} onChange={e => setSendName(e.target.value)} maxLength={80} autoFocus />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '9px', color: 'rgba(226,195,107,0.55)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', display: 'block', marginBottom: '5px' }}>Their email</label>
+                    <input type="email" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(226,195,107,0.2)', color: 'rgba(255,255,255,0.92)', fontSize: '13px', outline: 'none', fontFamily: "'DM Sans',sans-serif", boxSizing: 'border-box' as const }} placeholder="Where should we send the link?" value={sendEmail} onChange={e => setSendEmail(e.target.value)} maxLength={120} />
+                  </div>
+                  {sendResult === 'error' && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.8)', margin: 0 }}>Something went wrong. Please try again.</p>}
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                    <button onClick={handleSendLink} disabled={sending || !sendName.trim() || !sendEmail.includes('@')} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: sendName.trim() && sendEmail.includes('@') ? 'linear-gradient(135deg,#E2C36B,#C8A84A)' : 'rgba(255,255,255,0.06)', color: sendName.trim() && sendEmail.includes('@') ? '#1a0845' : 'rgba(255,255,255,0.2)', fontSize: '13px', fontWeight: 700, cursor: 'pointer', opacity: sending ? 0.7 : 1 }}>
+                      {sending ? 'Sending…' : '✉ Send Payment Link'}
+                    </button>
+                    <button onClick={() => { setShowSendModal(false); setSendName(''); setSendEmail(''); setSendResult(null) }} style={{ padding: '11px 16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: 'rgba(255,255,255,0.3)', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ════════════════════════════════════════════
           FULL WIDTH — Always-on operational cards
@@ -810,16 +928,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           </div>
         )}
 
-        {/* D-Day Live Wall */}
-        <ServiceCard
-          id="live_wall"
-          title="D-Day Live Wall"
-          description="Full-screen real-time tribute display for your venue screen or projector"
-          icon="◇"
-          status="always_on"
-        >
-          <LiveWallSection capsuleSlug={capsule.slug} />
-        </ServiceCard>
+{/* D-Day Live Wall moved to top always-on section with Event Phases */}
 
       </div>
 

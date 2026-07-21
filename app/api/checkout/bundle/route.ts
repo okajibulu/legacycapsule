@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
       recipient_name,
       recipient_email,
       book_mode,
+      source,
     } = body
 
     // ── Validation ────────────────────────────────────────────────────────────
@@ -208,7 +209,9 @@ const validFeatureIds: string[] = []
         feature_count:   String(validFeatureIds.length),
       },
       success_url: `${APP_URL}/manage/${capsule_slug}?payment=success`,
-      cancel_url:  `${APP_URL}/book?payment=cancelled&slug=${capsule_slug}&pid=${payment.id}`,
+      cancel_url:  source === 'dashboard'
+        ? `${APP_URL}/manage/${capsule_slug}?tab=services&payment=cancelled`
+        : `${APP_URL}/book?payment=cancelled&slug=${capsule_slug}&pid=${payment.id}`,
     })
 
     if (!session.url) throw new Error('Stripe did not return a session URL')

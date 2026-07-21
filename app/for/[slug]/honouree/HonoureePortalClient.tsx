@@ -37,7 +37,7 @@ type Tab = 'tributes' | 'honour' | 'acknowledgements'
 
 interface Tribute {
   id: string; contributor_name: string; city: string; country: string
-ip_country?: string | null
+  ip_country?: string | null
   relationship: string | null; tribute_text: string; thumbnail_url: string | null
   audio_url: string | null; video_url: string | null; created_at: string
   status: string; email: string | null
