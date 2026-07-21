@@ -182,6 +182,7 @@ const validFeatureIds: string[] = []
           book_mode:       book_mode ?? 'own',
           recipient_name:  recipient_name ?? null,
           recipient_email: recipient_email ?? null,
+          feature_ids:     validFeatureIds,
           feature_count:   validFeatureIds.length,
         },
       })
@@ -203,6 +204,8 @@ const validFeatureIds: string[] = []
         capsule_slug,
         book_mode:       book_mode ?? 'own',
         recipient_email: recipient_email ?? '',
+        feature_ids:     validFeatureIds.join(','),  // Stripe metadata is string-only
+        feature_count:   String(validFeatureIds.length),
       },
       success_url: `${APP_URL}/manage/${capsule_slug}?payment=success`,
       cancel_url:  `${APP_URL}/book?payment=cancelled&slug=${capsule_slug}&pid=${payment.id}`,

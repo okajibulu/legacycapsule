@@ -37,6 +37,7 @@ type Tab = 'tributes' | 'honour' | 'acknowledgements'
 
 interface Tribute {
   id: string; contributor_name: string; city: string; country: string
+ip_country?: string | null
   relationship: string | null; tribute_text: string; thumbnail_url: string | null
   audio_url: string | null; video_url: string | null; created_at: string
   status: string; email: string | null
@@ -214,7 +215,7 @@ export default function HonoureePortalClient({ capsule, tributes, supportAccount
             <p style={{ fontSize: '9px', color: textFaint, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px' }}>Tributes</p>
           </div>
           <div style={{ flex: 1, padding: '12px', borderRadius: '12px', background: cardBg, border: `1px solid ${cardBorder}`, textAlign: 'center' }}>
-            <p style={{ fontSize: '22px', fontWeight: 800, color: textPrimary, fontFamily: "'Playfair Display', serif", margin: 0 }}>{[...new Set(tributes.map(t => t.country).filter(Boolean))].length}</p>
+            <p style={{ fontSize: '22px', fontWeight: 800, color: textPrimary, fontFamily: "'Playfair Display', serif", margin: 0 }}>{[...new Set(tributes.map(t => t.ip_country ?? t.country).filter(Boolean))].length}</p>
             <p style={{ fontSize: '9px', color: textFaint, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px' }}>Countries</p>
           </div>
           <div style={{ flex: 1, padding: '12px', borderRadius: '12px', background: cardBg, border: `1px solid ${cardBorder}`, textAlign: 'center' }}>

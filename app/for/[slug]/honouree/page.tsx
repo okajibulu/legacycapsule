@@ -60,7 +60,7 @@ export default async function HonoureePortalPage({
   // Fetch approved tributes with responses
   const { data: tributes } = await supabase
     .from('contributions')
-    .select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, audio_url, video_url, created_at, status, email, tribute_responses(response_text, responded_by)')
+    .select('id, contributor_name, city, country, ip_country, relationship, tribute_text, thumbnail_url, audio_url, video_url, created_at, status, email, tribute_responses(response_text, responded_by)')
     .eq('capsule_id', capsule.id)
     .eq('status', 'approved')
     .is('deleted_at', null)
