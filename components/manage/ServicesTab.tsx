@@ -288,13 +288,14 @@ interface PriceRow {
 }
 
 function PriceColumn({
-  rows, cart, onToggle, onCheckout, unlocking,
+  rows, cart, onToggle, onCheckout, unlocking, cardHeights,
 }: {
-  rows:       PriceRow[]
-  cart:       string[]
-  onToggle:   (id: string) => void
-  onCheckout: () => void
-  unlocking:  string | null
+  rows:        PriceRow[]
+  cart:        string[]
+  onToggle:    (id: string) => void
+  onCheckout:  () => void
+  unlocking:   string | null
+  cardHeights: Record<string, number>
 }) {
   const cartRows  = rows.filter(r => cart.includes(r.id))
   const cartTotal = cartRows.reduce((sum, r) => sum + (r.price?.amount ?? 0), 0)
@@ -318,13 +319,15 @@ function PriceColumn({
           <div
             key={row.id}
             style={{
-              height: '66px',
+              height: cardHeights[row.id] ? `${cardHeights[row.id]}px` : '66px',
+              minHeight: '52px',
               width: '100%',
               display: 'flex',
               flexDirection: 'column' as const,
               alignItems: 'center',
               justifyContent: 'center',
               gap: '4px',
+              transition: 'height 0.2s ease',
             }}
           >
             {isActive ? (
@@ -402,6 +405,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
   const [unlocking,     setUnlocking]     = useState<string | null>(null)
   const [featurePrices, setFeaturePrices] = useState<Record<string, { amount: number; symbol: string } | null>>({})
   const [cart,          setCart]          = useState<string[]>([])
+  const [cardHeights,   setCardHeights]   = useState<Record<string, number>>({})
   const [capacityAlert, setCapacityAlert] = useState<'none'|'friendly'|'recommend'|'strong'|'grace'>('none')
   const [recommendedPack, setRecommendedPack] = useState<string|null>(null)
 
@@ -432,6 +436,13 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
       })
       .catch(() => {})
   }, [capsule.id])
+
+  const handleHeightChange = (id: string, height: number) => {
+    setCardHeights(prev => {
+      if (prev[id] === height) return prev
+      return { ...prev, [id]: height }
+    })
+  }
 
   const toggleCart = (featureId: string) => {
     if (components.includes(featureId)) return
@@ -477,7 +488,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
   // ── Price column rows — same order as ServiceCards ───────────────────────
   const priceRows: PriceRow[] = [
     {
-      id:     'guest_management',
+      id:     'guests',
       label:  'Guest Management',
       status: guestMgmtActive ? 'active' : 'locked',
       price:  featurePrices['guest_management'],
@@ -489,7 +500,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
       price:  featurePrices['access_codes'],
     },
     {
-      id:     'ways_to_honour',
+      id:     'eoh',
       label:  'Gift of Honour',
       status: components.includes('ways_to_honour') ? 'active' : 'locked',
       price:  featurePrices['ways_to_honour'],
@@ -561,6 +572,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           {/* ── Guest Management — priceRows[0] ── */}
           <ServiceCard
             id="guests"
+            onHeightChange={handleHeightChange}
             title="Guest Management & Seating"
             description="Guest list · RSVP · Table assignment · Seating"
             icon="◉"
@@ -594,6 +606,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           {/* ── Access Codes — priceRows[1] ── */}
           <ServiceCard
             id="access_codes"
+            onHeightChange={handleHeightChange}
             title="Access Code System"
             description="Personal entry codes · Usher check-in · Live arrivals"
             icon="🔐"
@@ -632,6 +645,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           {/* ── Gift of Honour — priceRows[2] ── */}
           <ServiceCard
             id="eoh"
+            onHeightChange={handleHeightChange}
             title="Gift of Honour"
             description="A dignified channel for guests to express financial support — private, tasteful"
             icon="✦"
@@ -652,6 +666,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           {/* ── Digital Publication — priceRows[3] ── */}
           <ServiceCard
             id="publication"
+            onHeightChange={handleHeightChange}
             title="Digital Publication"
             description="Curated commemorative PDF — arrange, preview, generate"
             icon="◎"
@@ -671,6 +686,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           {/* ── Fabric & Attire — priceRows[4] ── */}
           <ServiceCard
             id="attire"
+            onHeightChange={handleHeightChange}
             title="Fabric & Attire"
             description="Showcase, orders, payments, dispatch lifecycle"
             icon="◐"
@@ -690,6 +706,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           {/* ── Voice Tributes — priceRows[5] ── */}
           <ServiceCard
             id="audio_tributes"
+            onHeightChange={handleHeightChange}
             title="Voice Tributes"
             description="Contributors record personal audio messages"
             icon="🎙"
@@ -708,6 +725,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           {/* ── Video Tributes — priceRows[6] ── */}
           <ServiceCard
             id="video_tributes"
+            onHeightChange={handleHeightChange}
             title="Video Tributes"
             description="Contributors upload short video messages"
             icon="🎬"
@@ -733,6 +751,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
             onToggle={toggleCart}
             onCheckout={handleCartCheckout}
             unlocking={unlocking}
+            cardHeights={cardHeights}
           />
         </div>
 
