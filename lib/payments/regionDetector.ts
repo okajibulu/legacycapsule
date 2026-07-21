@@ -41,6 +41,23 @@ const IP_API_TIMEOUT_MS = 5000
 
 // â”€â”€ IP â†’ COUNTRY LOOKUP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Uses ipapi.co free tier. Replace with ipinfo.io or MaxMind for higher volume.
+// detectRegionFromHeaders — preferred method.
+// Reads Cloudflare cf-ipcountry header directly. No external API call.
+// Falls back to x-vercel-ip-country (Vercel injects this too).
+// Call this from route handlers that have access to the Request object.
+export function detectRegionFromHeaders(req: Request): string {
+  const cfCountry     = (req.headers as any).get?.('cf-ipcountry')
+  const vercelCountry = (req.headers as any).get?.('x-vercel-ip-country')
+  const country       = (cfCountry ?? vercelCountry ?? '').trim().toUpperCase()
+  if (country && country !== 'XX' && country !== 'T1') {
+    // XX = unknown, T1 = Tor exit node — treat both as ROW
+    return mapCountryToZone(country)
+  }
+  return FALLBACK_ZONE
+}
+
+// detectRegion(ip) — legacy method kept for backward compatibility.
+// Uses ipapi.co which has rate limits. Prefer detectRegionFromHeaders.
 export async function detectRegion(ip: string): Promise<string> {
   // Skip detection for localhost / private IPs
   if (!ip || ip === '0.0.0.0' || ip.startsWith('192.168') || ip.startsWith('127.')) {

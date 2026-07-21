@@ -7,24 +7,27 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from 'next/server'
-import { detectRegion } from '@/lib/payments/regionDetector'
+import { detectRegionFromHeaders, detectRegion } from '@/lib/payments/regionDetector'
 import { getRegionalPrice } from '@/lib/payments/priceFetcher'
 
 export async function GET(req: NextRequest) {
   try {
-    // ── Detect IP from request headers ────────────────────────────────────
-    // Vercel sets x-forwarded-for. Fallback to 0.0.0.0 → detectRegion
-    // returns EU for local dev.
-    // Cloudflare sets cf-connecting-ip as the real client IP.
-    // x-forwarded-for may contain Cloudflare edge IPs instead.
-    const ip =
-      req.headers.get('cf-connecting-ip') ??
-      req.headers.get('x-real-ip') ??
-      (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() ??
-      '0.0.0.0'
+    // ── Detect region — Cloudflare/Vercel header first ───────────────────
+    // cf-ipcountry set by Cloudflare: free, instant, no rate limits.
+    // x-vercel-ip-country set by Vercel: works in local dev too.
+    // No external API call needed for production traffic.
+    let zone = detectRegionFromHeaders(req)
 
-    // ── Detect zone ───────────────────────────────────────────────────────
-    const zone = await detectRegion(ip) ?? 'ROW'
+    // Fallback to IP lookup only when headers give no signal
+    if (zone === 'ROW') {
+      const ip =
+        req.headers.get('cf-connecting-ip') ??
+        req.headers.get('x-real-ip') ??
+        (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim()
+      if (ip && ip !== '0.0.0.0' && !ip.startsWith('127.') && !ip.startsWith('::1')) {
+        zone = await detectRegion(ip).catch(() => 'ROW')
+      }
+    }
 
     // ── Feature prices request (ServicesTab) ──────────────────────────────
     const featuresParam = req.nextUrl.searchParams.get('features')
