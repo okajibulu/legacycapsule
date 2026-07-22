@@ -44,7 +44,8 @@ export async function GET(req: NextRequest) {
       .from('payments')
       .select('id, processor, amount, currency, status, paid_at, created_at, package_tier, metadata, region')
       .eq('capsule_id', capsule_id)
-      .order('created_at', { ascending: false })
+      .not('paid_at', 'is', null)
+      .order('paid_at', { ascending: false })
 
     if (error) throw error
 
