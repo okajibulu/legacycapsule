@@ -7,8 +7,7 @@
 //   — Fix: subscription fetch moved inside try block (only fires on success)
 //   — Fix: name/email fields stacked vertically (mobile layout)
 //   — Improved: email placeholder shortened + hint line below field
-//   — Upgraded: GiftOfHonourSection — copy-to-clipboard per account card
-//   — Upgraded: GiftOfHonourSection — elevated dignity seal
+//   — EOH/Gifting moved to PremiumsPanel — strip shown via ActivePremiumsStrip
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -19,17 +18,10 @@ import { useState } from 'react'
 import Link         from 'next/link'
 import type { CapsuleInfo, StoryTopic, CommunityStory } from '@/app/for/[slug]/stories/page'
 
-interface EohAccount {
-  method_label:    string
-  account_holder:  string
-  reference_guide: string | null
-}
-
 interface Props {
-  capsule:     CapsuleInfo
-  topics:      StoryTopic[]
-  stories:     CommunityStory[]
-  eohAccounts: EohAccount[]
+  capsule:  CapsuleInfo
+  topics:   StoryTopic[]
+  stories:  CommunityStory[]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -294,134 +286,10 @@ function SubmitStoryPanel({ capsule, topics, onClose, onSuccess }: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SECTION 6 — Gift of Honour section (EOH in stories room)
-// Shows only when ways_to_honour is in capsule.components and accounts exist
-// Upgraded: per-account copy-to-clipboard, elevated dignity seal
-// ─────────────────────────────────────────────────────────────────────────────
-
-function AccountCard({ account }: { account: EohAccount }) {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = async () => {
-    const textToCopy = [account.account_holder, account.reference_guide].filter(Boolean).join(' · ')
-    try {
-      await navigator.clipboard.writeText(textToCopy)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch { /* clipboard unavailable — silent */ }
-  }
-
-  return (
-    <div style={{
-      padding: '14px 16px',
-      borderRadius: '12px',
-      background: 'rgba(255,255,255,0.04)',
-      border: `1px solid rgba(226,195,107,0.15)`,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: '12px',
-    }}>
-      {/* ── Account details ── */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: '0 0 3px', fontSize: '10px', color: goldMuted, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.12em' }}>
-          {account.method_label}
-        </p>
-        <p style={{ margin: '0 0 2px', fontSize: '14px', color: textPrimary, fontWeight: 600, fontFamily: "'Playfair Display', serif" }}>
-          {account.account_holder}
-        </p>
-        {account.reference_guide && (
-          <p style={{ margin: 0, fontSize: '11px', color: textSecondary, lineHeight: 1.5 }}>
-            {account.reference_guide}
-          </p>
-        )}
-      </div>
-
-      {/* ── Copy button ── */}
-      <button
-        onClick={handleCopy}
-        style={{
-          flexShrink: 0,
-          padding: '7px 14px',
-          borderRadius: '20px',
-          border: copied ? `1px solid rgba(226,195,107,0.5)` : `1px solid rgba(226,195,107,0.22)`,
-          background: copied ? 'rgba(226,195,107,0.12)' : 'transparent',
-          color: copied ? gold : goldMuted,
-          fontSize: '11px',
-          fontWeight: 700,
-          cursor: 'pointer',
-          letterSpacing: '0.04em',
-          transition: 'all 0.2s',
-          whiteSpace: 'nowrap' as const,
-        }}
-      >
-        {copied ? '✓ Copied' : 'Copy'}
-      </button>
-    </div>
-  )
-}
-
-function GiftOfHonourSection({ honoureeName, accounts }: {
-  honoureeName: string
-  accounts:     EohAccount[]
-}) {
-  if (accounts.length === 0) return null
-
-  return (
-    <div style={{
-      margin: '28px 0',
-      borderRadius: '16px',
-      border: `1px solid rgba(226,195,107,0.28)`,
-      background: 'linear-gradient(160deg, rgba(226,195,107,0.06) 0%, rgba(226,195,107,0.02) 100%)',
-      overflow: 'hidden',
-    }}>
-
-      {/* ── Header band ── */}
-      <div style={{ padding: '18px 20px 14px', borderBottom: `1px solid rgba(226,195,107,0.1)` }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-          <span style={{ fontSize: '18px', lineHeight: 1, marginTop: '3px', color: gold }}>✦</span>
-          <div>
-            <h3 style={{ margin: '0 0 6px', fontSize: '15px', fontWeight: 700, color: textPrimary, fontFamily: "'Playfair Display', serif", letterSpacing: '0.01em' }}>
-              Gift of Honour
-            </h3>
-            <p style={{ margin: 0, fontSize: '12px', color: textSecondary, lineHeight: 1.7 }}>
-              If you wish to honour {honoureeName} in a personal way, the family has made these details available. Your gesture will be received with deep gratitude.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Account cards ── */}
-      <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
-        {accounts.map((a, i) => (
-          <AccountCard key={i} account={a} />
-        ))}
-      </div>
-
-      {/* ── Dignity seal ── */}
-      <div style={{
-        padding: '10px 20px 14px',
-        borderTop: `1px solid rgba(226,195,107,0.08)`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '8px',
-      }}>
-        <span style={{ fontSize: '10px', color: 'rgba(226,195,107,0.35)', letterSpacing: '0.06em' }}>◈</span>
-        <p style={{ margin: 0, fontSize: '10px', color: 'rgba(226,195,107,0.4)', letterSpacing: '0.06em', fontVariant: 'small-caps', textAlign: 'center' as const }}>
-          Private &amp; dignified · No amounts displayed publicly
-        </p>
-        <span style={{ fontSize: '10px', color: 'rgba(226,195,107,0.35)', letterSpacing: '0.06em' }}>◈</span>
-      </div>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // SECTION 7 — Main component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function CommunityStoriesClient({ capsule, topics, stories, eohAccounts }: Props) {
+export default function CommunityStoriesClient({ capsule, topics, stories }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [submitted,  setSubmitted]  = useState(false)
   const [copied,     setCopied]     = useState(false)
@@ -492,11 +360,6 @@ export default function CommunityStoriesClient({ capsule, topics, stories, eohAc
             onShare={() => setSubmitting(true)}
           />
         ))}
-
-        {/* ── Gift of Honour section ── */}
-        {eohAccounts.length > 0 && (
-          <GiftOfHonourSection honoureeName={capsule.honouree_name} accounts={eohAccounts} />
-        )}
 
         {/* ── Share strip ── */}
         <div style={{ padding: '16px', borderRadius: '14px', background: goldFaint, border: `1px solid rgba(226,195,107,0.15)`, marginTop: '16px' }}>

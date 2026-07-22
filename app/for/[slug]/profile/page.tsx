@@ -19,7 +19,8 @@ import SectionReactions from '@/components/SectionReactions'
 import GalleryLightbox from '@/components/GalleryLightbox'
 import SectionTextClamp from '@/components/SectionTextClamp'
 import CapsuleBottomNav from '@/components/CapsuleBottomNav'
-import PublicationSubscribePanel from '@/components/capsule/PublicationSubscribePanel'
+import PublicationSubscribePanel  from '@/components/capsule/PublicationSubscribePanel'
+import ActivePremiumsStrip        from '@/components/ActivePremiumsStrip'
 
 /* ── Client setup ──────────────────────────────────────── */
 const adminClient = createClient(
@@ -167,6 +168,15 @@ export default async function ProfilePage({ params }: PageProps) {
     galleryPhotos.length > 0 ||
     milestones.length > 0
   )
+
+  // ── Fetch support accounts for Premiums panel (EOH/Gifting) ──────────
+  const { data: supportAccounts } = await adminClient
+    .from('capsule_support_accounts')
+    .select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, is_active, sort_order, relationship_to_honouree')
+    .eq('capsule_id', capsule.id)
+    .eq('is_active', true)
+    .is('deleted_at', null)
+    .order('sort_order', { ascending: true })
 
   const themeKey    = resolveTheme(capsule.theme, capsule.event_type)
   const t           = getThemeConfig(themeKey)
@@ -444,6 +454,10 @@ A story worth preserving.<br />The organiser is preparing this profile — check
         </div>
       )}
 
+      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 20px 8px' }}>
+        <ActivePremiumsStrip slug={slug} components={capsule.components ?? []} />
+      </div>
+
       <CapsuleBottomNav
         slug={slug}
         currentPage="profile"
@@ -451,6 +465,10 @@ A story worth preserving.<br />The organiser is preparing this profile — check
         contributorCount={contributorCount}
         hasPhases={false}
         themeKey={themeKey}
+        capsuleId={capsule.id}
+        honourName={capsule.honouree_name}
+        eventType={capsule.event_type}
+        supportAccounts={supportAccounts ?? []}
       />
       
       {/* FOOTER */}

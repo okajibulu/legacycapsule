@@ -14,7 +14,8 @@ import type { ThemeKey } from '@/lib/themeConfig'
 import LegacyRoomClient from '@/components/LegacyRoomClient'
 import type { Metadata } from 'next'
 import CapsuleBottomNav from '@/components/CapsuleBottomNav'
-import PublicationSubscribePanel from '@/components/capsule/PublicationSubscribePanel'
+import PublicationSubscribePanel  from '@/components/capsule/PublicationSubscribePanel'
+import ActivePremiumsStrip        from '@/components/ActivePremiumsStrip'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 1 — ISR config
@@ -165,6 +166,15 @@ export default async function LegacyRoomPage(
   } catch { phases = []; phaseCount = 0 }
 
   // ── Resolve theme ─────────────────────────────────────────────────────
+  // ── Fetch support accounts for Premiums panel (EOH/Gifting) ──────────
+  const { data: supportAccounts } = await supabase
+    .from('capsule_support_accounts')
+    .select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, is_active, sort_order, relationship_to_honouree')
+    .eq('capsule_id', capsule.id)
+    .eq('is_active', true)
+    .is('deleted_at', null)
+    .order('sort_order', { ascending: true })
+
   const themeKey: ThemeKey = resolveTheme(
     (capsule.theme as ThemeKey | 'classic') ?? 'classic',
     capsule.event_type
@@ -251,6 +261,10 @@ export default async function LegacyRoomPage(
       />
     </div>
 
+    <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 8px' }}>
+      <ActivePremiumsStrip slug={slug} components={capsule.components ?? []} />
+    </div>
+
     <CapsuleBottomNav
       slug={slug}
       currentPage="legacy"
@@ -258,6 +272,10 @@ export default async function LegacyRoomPage(
       contributorCount={summary?.contributor_count ?? 0}
       hasPhases={(phaseCount ?? 0) > 0}
       themeKey={themeKey}
+      capsuleId={capsule.id}
+      honourName={capsule.honouree_name}
+      eventType={capsule.event_type}
+      supportAccounts={supportAccounts ?? []}
     />
     </>
   )

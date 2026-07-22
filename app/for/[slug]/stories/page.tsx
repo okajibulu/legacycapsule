@@ -13,6 +13,7 @@ import { notFound }                from 'next/navigation'
 import { resolveTheme }            from '@/lib/themeConfig'
 import CommunityStoriesClient      from '@/components/CommunityStoriesClient'
 import CapsuleBottomNav            from '@/components/CapsuleBottomNav'
+import ActivePremiumsStrip         from '@/components/ActivePremiumsStrip'
   
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -135,16 +136,16 @@ export default async function CommunityStoriesPage({
     components,
   }
 
-  // ── Fetch EOH accounts if Gift of Honour is active ───────────────────────
-  let eohAccounts: { method_label: string; account_holder: string; reference_guide: string | null }[] = []
-  if (components.includes('ways_to_honour')) {
-    const { data: accounts } = await supabase
-      .from('capsule_support_accounts')
-      .select('method_label, account_holder, reference_guide')
-      .eq('capsule_id', capsule.id)
-      .eq('is_active', true)
-    eohAccounts = accounts ?? []
-  }
+  // eohAccounts removed — supportAccounts below covers EOH via PremiumsPanel
+
+  // ── Fetch support accounts for Premiums panel ─────────────────────────
+  const { data: supportAccounts } = await supabase
+    .from('capsule_support_accounts')
+    .select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, is_active, sort_order, relationship_to_honouree')
+    .eq('capsule_id', capsule.id)
+    .eq('is_active', true)
+    .is('deleted_at', null)
+    .order('sort_order', { ascending: true })
 
   return (
     <>
@@ -152,9 +153,12 @@ export default async function CommunityStoriesPage({
         capsule={capsuleInfo}
         topics={topicsWithCounts}
         stories={stories}
-        eohAccounts={eohAccounts}
       />
        
+      <div style={{ maxWidth: '640px', margin: '0 auto', padding: '0 20px 8px' }}>
+        <ActivePremiumsStrip slug={slug} components={components} />
+      </div>
+
       <CapsuleBottomNav
         slug={slug}
         currentPage="memories"
@@ -162,6 +166,10 @@ export default async function CommunityStoriesPage({
         contributorCount={stories.length}
         hasPhases={false}
         themeKey={resolveTheme(capsule.theme, capsule.event_type)}
+        capsuleId={capsule.id}
+        honourName={capsule.honouree_name}
+        eventType={capsule.event_type}
+        supportAccounts={supportAccounts ?? []}
       />
     </>
   )
