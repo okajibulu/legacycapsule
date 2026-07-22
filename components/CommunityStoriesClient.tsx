@@ -3,13 +3,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FILE: components/CommunityStoriesClient.tsx
 // PURPOSE: Community Memories & Stories room — client island
-// UPDATED: Claude Sonnet 4.6 · July 2026
-//   — Rebuilt to dark premium theme (matches tribute wall)
-//   — Story truncation: 3 lines visible, Read More to expand
-//   — EOH / Gift of Honour section at bottom (conditional)
-//   — Admin response display in story cards
-//   — Character limit: 2000 chars (enforced in submission form)
-//   — Share strip (consistent with tribute wall)
+// UPDATED: AI13 · Claude Opus 4.6 · 22 July 2026
+//   — Fix: subscription fetch moved inside try block (only fires on success)
+//   — Fix: name/email fields stacked vertically (mobile layout)
+//   — Improved: email placeholder shortened + hint line below field
+//   — Upgraded: GiftOfHonourSection — copy-to-clipboard per account card
+//   — Upgraded: GiftOfHonourSection — elevated dignity seal
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -21,8 +20,8 @@ import Link         from 'next/link'
 import type { CapsuleInfo, StoryTopic, CommunityStory } from '@/app/for/[slug]/stories/page'
 
 interface EohAccount {
-  method_label:   string
-  account_holder: string
+  method_label:    string
+  account_holder:  string
   reference_guide: string | null
 }
 
@@ -37,15 +36,15 @@ interface Props {
 // SECTION 2 — Design tokens
 // ─────────────────────────────────────────────────────────────────────────────
 
-const pageBg       = 'linear-gradient(160deg, #0f0a1e 0%, #1a0845 45%, #120630 100%)'
-const gold         = '#E2C36B'
-const goldMuted    = 'rgba(226,195,107,0.55)'
-const goldFaint    = 'rgba(226,195,107,0.08)'
-const cardBg       = 'rgba(255,255,255,0.04)'
-const cardBorder   = 'rgba(226,195,107,0.12)'
-const textPrimary  = 'rgba(255,255,255,0.92)'
+const pageBg        = 'linear-gradient(160deg, #0f0a1e 0%, #1a0845 45%, #120630 100%)'
+const gold          = '#E2C36B'
+const goldMuted     = 'rgba(226,195,107,0.55)'
+const goldFaint     = 'rgba(226,195,107,0.08)'
+const cardBg        = 'rgba(255,255,255,0.04)'
+const cardBorder    = 'rgba(226,195,107,0.12)'
+const textPrimary   = 'rgba(255,255,255,0.92)'
 const textSecondary = 'rgba(255,255,255,0.55)'
-const textFaint    = 'rgba(255,255,255,0.28)'
+const textFaint     = 'rgba(255,255,255,0.28)'
 
 const STORY_CHAR_LIMIT = 2000
 
@@ -160,7 +159,7 @@ function TopicSection({ topic, stories, onShare }: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SECTION 5 — Story submission form (inline, no modal)
+// SECTION 5 — Story submission form (bottom sheet modal)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function SubmitStoryPanel({ capsule, topics, onClose, onSuccess }: {
@@ -169,12 +168,12 @@ function SubmitStoryPanel({ capsule, topics, onClose, onSuccess }: {
   onClose:   () => void
   onSuccess: () => void
 }) {
-  const [name,     setName]     = useState('')
-  const [email,    setEmail]    = useState('')
-  const [topicId,  setTopicId]  = useState(topics[0]?.id ?? '')
-  const [text,     setText]     = useState('')
+  const [name,       setName]       = useState('')
+  const [email,      setEmail]      = useState('')
+  const [topicId,    setTopicId]    = useState(topics[0]?.id ?? '')
+  const [text,       setText]       = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [error,    setError]    = useState('')
+  const [error,      setError]      = useState('')
 
   const remaining = STORY_CHAR_LIMIT - text.length
 
@@ -184,32 +183,36 @@ function SubmitStoryPanel({ capsule, topics, onClose, onSuccess }: {
 
     setSubmitting(true); setError('')
     try {
-      const res  = await fetch('/api/community-topics/submit', {
-        method: 'POST',
+      const res = await fetch('/api/community-topics/submit', {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          capsule_id:       capsule.id,
-          story_topic_id:   topicId,
-          contributor_name: name.trim(),
+        body:    JSON.stringify({
+          capsule_id:        capsule.id,
+          story_topic_id:    topicId,
+          contributor_name:  name.trim(),
           contributor_email: email.trim() || undefined,
-          tribute_text:     text.trim(),
+          tribute_text:      text.trim(),
         }),
       })
       if (!res.ok) throw new Error('Submission failed')
+
+      // Auto-register to publication subscribers — only fires on successful submission
+      if (email.trim() && email.includes('@')) {
+        fetch('/api/publication/subscribe', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            capsule_id: capsule.id,
+            name:       name.trim(),
+            email:      email.trim().toLowerCase(),
+            source:     'stories',
+          }),
+        }).catch(() => {}) // silent — non-blocking
+      }
+
       onSuccess()
-    } catch { setError('Something went wrong. Please try again.') }
-    // Auto-register email to publication subscribers on success
-    if (email.trim() && email.includes('@')) {
-      fetch('/api/publication/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          capsule_id: capsule.id,
-          name:       name.trim(),
-          email:      email.trim().toLowerCase(),
-          source:     'stories',
-        }),
-      }).catch(() => {}) // silent — non-blocking
+    } catch {
+      setError('Something went wrong. Please try again.')
     }
     setSubmitting(false)
   }
@@ -231,9 +234,27 @@ function SubmitStoryPanel({ capsule, topics, onClose, onSuccess }: {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '10px' }}>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <input style={{ ...inp, flex: 1 }} placeholder="Your name *" value={name} onChange={e => setName(e.target.value)} />
-            <input type="email" style={{ ...inp, flex: 1 }} placeholder="Email — we'll send you the keepsake publication after the event" value={email} onChange={e => setEmail(e.target.value)} />
+
+          {/* ── Name field — full width ── */}
+          <input
+            style={inp}
+            placeholder="Your name *"
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+
+          {/* ── Email field — full width with hint ── */}
+          <div>
+            <input
+              type="email"
+              style={inp}
+              placeholder="Email address"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+            />
+            <p style={{ margin: '5px 0 0', fontSize: '10px', color: textFaint, lineHeight: 1.5, paddingLeft: '2px' }}>
+              We'll send you the keepsake publication when this record is ready.
+            </p>
           </div>
 
           {topics.length > 1 && (
@@ -274,8 +295,71 @@ function SubmitStoryPanel({ capsule, topics, onClose, onSuccess }: {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 6 — Gift of Honour section (EOH in stories room)
-// Shows only when ways_to_honour is in capsule.components
+// Shows only when ways_to_honour is in capsule.components and accounts exist
+// Upgraded: per-account copy-to-clipboard, elevated dignity seal
 // ─────────────────────────────────────────────────────────────────────────────
+
+function AccountCard({ account }: { account: EohAccount }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    const textToCopy = [account.account_holder, account.reference_guide].filter(Boolean).join(' · ')
+    try {
+      await navigator.clipboard.writeText(textToCopy)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* clipboard unavailable — silent */ }
+  }
+
+  return (
+    <div style={{
+      padding: '14px 16px',
+      borderRadius: '12px',
+      background: 'rgba(255,255,255,0.04)',
+      border: `1px solid rgba(226,195,107,0.15)`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: '12px',
+    }}>
+      {/* ── Account details ── */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ margin: '0 0 3px', fontSize: '10px', color: goldMuted, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.12em' }}>
+          {account.method_label}
+        </p>
+        <p style={{ margin: '0 0 2px', fontSize: '14px', color: textPrimary, fontWeight: 600, fontFamily: "'Playfair Display', serif" }}>
+          {account.account_holder}
+        </p>
+        {account.reference_guide && (
+          <p style={{ margin: 0, fontSize: '11px', color: textSecondary, lineHeight: 1.5 }}>
+            {account.reference_guide}
+          </p>
+        )}
+      </div>
+
+      {/* ── Copy button ── */}
+      <button
+        onClick={handleCopy}
+        style={{
+          flexShrink: 0,
+          padding: '7px 14px',
+          borderRadius: '20px',
+          border: copied ? `1px solid rgba(226,195,107,0.5)` : `1px solid rgba(226,195,107,0.22)`,
+          background: copied ? 'rgba(226,195,107,0.12)' : 'transparent',
+          color: copied ? gold : goldMuted,
+          fontSize: '11px',
+          fontWeight: 700,
+          cursor: 'pointer',
+          letterSpacing: '0.04em',
+          transition: 'all 0.2s',
+          whiteSpace: 'nowrap' as const,
+        }}
+      >
+        {copied ? '✓ Copied' : 'Copy'}
+      </button>
+    </div>
+  )
+}
 
 function GiftOfHonourSection({ honoureeName, accounts }: {
   honoureeName: string
@@ -284,32 +368,51 @@ function GiftOfHonourSection({ honoureeName, accounts }: {
   if (accounts.length === 0) return null
 
   return (
-    <div style={{ margin: '28px 0', padding: '20px', borderRadius: '16px', border: `1px solid rgba(226,195,107,0.25)`, background: goldFaint }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '16px' }}>
-        <span style={{ fontSize: '20px', lineHeight: 1, marginTop: '2px' }}>✦</span>
-        <div>
-          <h3 style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: 700, color: textPrimary, fontFamily: "'Playfair Display', serif" }}>
-            Gift of Honour
-          </h3>
-          <p style={{ margin: 0, fontSize: '12px', color: textSecondary, lineHeight: 1.65 }}>
-            If you wish to express your support for {honoureeName} in a personal way, the family has shared the details below. Your gesture will be received with gratitude.
-          </p>
+    <div style={{
+      margin: '28px 0',
+      borderRadius: '16px',
+      border: `1px solid rgba(226,195,107,0.28)`,
+      background: 'linear-gradient(160deg, rgba(226,195,107,0.06) 0%, rgba(226,195,107,0.02) 100%)',
+      overflow: 'hidden',
+    }}>
+
+      {/* ── Header band ── */}
+      <div style={{ padding: '18px 20px 14px', borderBottom: `1px solid rgba(226,195,107,0.1)` }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+          <span style={{ fontSize: '18px', lineHeight: 1, marginTop: '3px', color: gold }}>✦</span>
+          <div>
+            <h3 style={{ margin: '0 0 6px', fontSize: '15px', fontWeight: 700, color: textPrimary, fontFamily: "'Playfair Display', serif", letterSpacing: '0.01em' }}>
+              Gift of Honour
+            </h3>
+            <p style={{ margin: 0, fontSize: '12px', color: textSecondary, lineHeight: 1.7 }}>
+              If you wish to honour {honoureeName} in a personal way, the family has made these details available. Your gesture will be received with deep gratitude.
+            </p>
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+      {/* ── Account cards ── */}
+      <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
         {accounts.map((a, i) => (
-          <div key={i} style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.04)', border: `1px solid rgba(226,195,107,0.12)` }}>
-            <p style={{ margin: '0 0 2px', fontSize: '11px', color: goldMuted, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>{a.method_label}</p>
-            <p style={{ margin: '0 0 2px', fontSize: '13px', color: textPrimary, fontWeight: 600 }}>{a.account_holder}</p>
-            {a.reference_guide && <p style={{ margin: 0, fontSize: '11px', color: textFaint }}>{a.reference_guide}</p>}
-          </div>
+          <AccountCard key={i} account={a} />
         ))}
       </div>
 
-      <p style={{ margin: '12px 0 0', fontSize: '10px', color: textFaint, textAlign: 'center' as const, fontStyle: 'italic' }}>
-        This is a private, dignified channel. No amounts are displayed publicly.
-      </p>
+      {/* ── Dignity seal ── */}
+      <div style={{
+        padding: '10px 20px 14px',
+        borderTop: `1px solid rgba(226,195,107,0.08)`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+      }}>
+        <span style={{ fontSize: '10px', color: 'rgba(226,195,107,0.35)', letterSpacing: '0.06em' }}>◈</span>
+        <p style={{ margin: 0, fontSize: '10px', color: 'rgba(226,195,107,0.4)', letterSpacing: '0.06em', fontVariant: 'small-caps', textAlign: 'center' as const }}>
+          Private &amp; dignified · No amounts displayed publicly
+        </p>
+        <span style={{ fontSize: '10px', color: 'rgba(226,195,107,0.35)', letterSpacing: '0.06em' }}>◈</span>
+      </div>
     </div>
   )
 }
