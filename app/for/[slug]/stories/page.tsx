@@ -12,7 +12,7 @@ import { createClient }            from '@supabase/supabase-js'
 import { notFound }                from 'next/navigation'
 import CommunityStoriesClient      from '@/components/CommunityStoriesClient'
 import CapsuleBottomNav            from '@/components/CapsuleBottomNav'
-import PublicationSubscribePanel   from '@/components/capsule/PublicationSubscribePanel'
+  
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 1 — Types
@@ -153,13 +153,7 @@ export default async function CommunityStoriesPage({
         stories={stories}
         eohAccounts={eohAccounts}
       />
-      {/* ── Publication subscribe panel ── */}
-      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 8px' }}>
-        <PublicationSubscribePanel
-          capsuleId={capsule.id}
-          honoureeName={capsule.honouree_name}
-        />
-      </div>
+       
       {(() => {
         const themeKey = 'classic' as any
         return (
