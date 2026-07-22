@@ -79,16 +79,14 @@ function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
     active: true,
   })
 
-  // Tab 2 — Memories / Community Stories (when active)
-  if ((components ?? []).includes('community_stories')) {
-    tabs.push({
-      id: 'memories',
-      label: 'Memories',
-      icon: '◇',
-      href: `/for/${slug}/stories`,
-      active: true,
-    })
-  }
+  // Tab 2 — Memories / Community Stories (always — free for all capsules)
+  tabs.push({
+    id: 'memories',
+    label: 'Memories',
+    icon: '◇',
+    href: `/for/${slug}/stories`,
+    active: true,
+  })
 
   // Tab 3 — Profile (always)
   tabs.push({

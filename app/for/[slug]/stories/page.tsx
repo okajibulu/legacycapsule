@@ -8,8 +8,9 @@
 //   — Added: CapsuleBottomNav, admin_response field
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { createClient }            from '@supabase/supabase-js'
+  import { createClient }            from '@supabase/supabase-js'
 import { notFound }                from 'next/navigation'
+import { resolveTheme }            from '@/lib/themeConfig'
 import CommunityStoriesClient      from '@/components/CommunityStoriesClient'
 import CapsuleBottomNav            from '@/components/CapsuleBottomNav'
   
@@ -89,12 +90,12 @@ export default async function CommunityStoriesPage({
   // ── Fetch capsule ─────────────────────────────────────────────────────────
   const { data: capsule, error: capsuleError } = await supabase
     .from('capsules')
-    .select('id, slug, honouree_name, event_type, event_tag, components, page_state')
+    .select('id, slug, honouree_name, event_type, event_tag, theme, components, page_state')
     .eq('slug', slug)
     .single()
 
   if (capsuleError || !capsule) return notFound()
-  if (capsule.page_state !== 'active') return notFound()
+  if (capsule.page_state === 'suspended') return notFound()
 
   // ── Check Community Stories is activated ──────────────────────────────────
   const components: string[] = capsule.components ?? []
@@ -154,19 +155,14 @@ export default async function CommunityStoriesPage({
         eohAccounts={eohAccounts}
       />
        
-      {(() => {
-        const themeKey = 'classic' as any
-        return (
-          <CapsuleBottomNav
-            slug={slug}
-            currentPage="memories"
-            components={components}
-            contributorCount={stories.length}
-            hasPhases={false}
-            themeKey={themeKey}
-          />
-        )
-      })()}
+      <CapsuleBottomNav
+        slug={slug}
+        currentPage="memories"
+        components={components}
+        contributorCount={stories.length}
+        hasPhases={false}
+        themeKey={resolveTheme(capsule.theme, capsule.event_type)}
+      />
     </>
   )
 }
