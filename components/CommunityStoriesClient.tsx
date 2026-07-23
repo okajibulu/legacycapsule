@@ -14,8 +14,9 @@
 // SECTION 1 — Imports & types
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState } from 'react'
-import Link         from 'next/link'
+import { useState }        from 'react'
+import Link                from 'next/link'
+import ActivePremiumsStrip from '@/components/ActivePremiumsStrip'
 import type { CapsuleInfo, StoryTopic, CommunityStory } from '@/app/for/[slug]/stories/page'
 
 interface Props {
@@ -360,6 +361,9 @@ export default function CommunityStoriesClient({ capsule, topics, stories }: Pro
             onShare={() => setSubmitting(true)}
           />
         ))}
+
+        {/* ── Premiums awareness strip ── */}
+        <ActivePremiumsStrip slug={capsule.slug} components={capsule.components ?? []} />
 
         {/* ── Share strip ── */}
         <div style={{ padding: '16px', borderRadius: '14px', background: goldFaint, border: `1px solid rgba(226,195,107,0.15)`, marginTop: '16px' }}>

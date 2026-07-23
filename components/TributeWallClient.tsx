@@ -17,7 +17,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import WaysToHonourSection from '@/components/WaysToHonourSection'
+import ActivePremiumsStrip from '@/components/ActivePremiumsStrip'
 import { createClient } from '@supabase/supabase-js'
 import { useSearchParams } from 'next/navigation'
 import { getTributePageTitle } from '@/lib/eventLabels'
@@ -1511,67 +1511,10 @@ background:
               </div>
             </div>
           
-          {/* ── Expression of Honour — gold plaque ── */}
-          {supportAccounts.length > 0 && capsule.components?.includes('ways_to_honour') && (
-            <div style={{ margin: '8px 16px 16px', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 8px 32px rgba(188,152,60,0.35), 0 2px 8px rgba(0,0,0,0.4)' }}>
-              {/* Solid gold plaque background */}
-              <div style={{
-                background: 'linear-gradient(145deg, #C9960C, #E2C36B, #F5D97A, #D4A91A, #B8850A)',
-                padding: '20px 20px 24px',
-              }}>
-                {/* Engraved header */}
-                <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-                  <div style={{ height: '1px', background: 'rgba(100,60,0,0.3)', marginBottom: '12px' }} />
-                  <p style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(80,45,0,0.75)', marginBottom: '4px' }}>
-                    {(() => {
-                      const type = capsule.event_type?.toLowerCase() ?? ''
-                      if (type.includes('memorial') || type.includes('funeral')) return 'Expression of Honour'
-                      if (type.includes('retirement')) return `Celebrate With ${honourName}`
-                      if (type.includes('wedding')) return 'Expression of Honour'
-                      if (type.includes('ordination') || type.includes('thanksgiving')) return 'Expression of Honour'
-                      if (type.includes('birthday')) return `Honour ${honourName}`
-                      if (type.includes('chieftaincy') || type.includes('recognition')) return 'Expressions of Honour'
-                      return 'Expression of Honour'
-                    })()}
-                  </p>
-                  <p style={{ fontSize: '11px', color: 'rgba(70,38,0,0.65)', lineHeight: 1.6, maxWidth: '280px', margin: '0 auto', fontStyle: 'italic' }}>
-                    {(() => {
-                      const type = capsule.event_type?.toLowerCase() ?? ''
-                      if (type.includes('memorial') || type.includes('funeral')) return 'The family is deeply grateful for every expression of love, remembrance and honour shared during this time.'
-                      if (type.includes('retirement')) return 'Presence, prayers, goodwill and every expression of honour shared on this occasion are sincerely appreciated.'
-                      return 'Presence, prayers, goodwill and every expression of honour shared on this occasion are sincerely appreciated.'
-                    })()}
-                  </p>
-                  <div style={{ height: '1px', background: 'rgba(100,60,0,0.3)', marginTop: '12px' }} />
-                </div>
-
-                {/* Support cards — plaque style */}
-                <WaysToHonourSection
-                  accounts={supportAccounts}
-                  capsuleId={capsule.id}
-                  honourName={honourName}
-                  eventType={capsule.event_type}
-                  supabase={createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)}
-                  t={{
-                    ...t,
-                    // Override theme tokens for gold plaque — dark text on gold
-                    textHeading: 'rgba(50,25,0,0.92)',
-                    textBody: 'rgba(60,32,0,0.78)',
-                    textMuted: 'rgba(70,38,0,0.65)',
-                    textFaint: 'rgba(80,45,0,0.5)',
-                    accentPrimary: 'rgba(60,30,0,0.85)',
-                    accentMuted: 'rgba(80,45,0,0.65)',
-                    accentFaint: 'rgba(100,55,0,0.15)',
-                    cardBg: 'rgba(255,255,255,0.18)',
-                    cardBorder: 'rgba(100,55,0,0.25)',
-                    inputBg: 'rgba(255,255,255,0.2)',
-                    inputBorder: 'rgba(100,55,0,0.3)',
-                  }}
-                  isRepView={false}
-                />
-              </div>
-            </div>
-          )}
+          {/* ── Premiums awareness strip ── */}
+          <div style={{ margin: '8px 16px 16px' }}>
+            <ActivePremiumsStrip slug={capsule.slug} components={capsule.components ?? []} />
+          </div>
 
 {/* ── Page Navigation ── */}
 <div
