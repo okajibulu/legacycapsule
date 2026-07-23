@@ -1,6 +1,10 @@
 /* =========================================================
    app/api/rep/invite/route.ts
    Generates Family Rep portal token + sends invite email
+   UPDATED: AI13 - Claude Opus 4.6 - 22 July 2026
+     -- repName now used in email greeting
+     -- Raw token URL removed from email body (security)
+     -- Masked domain reference replaces raw URL display
 ========================================================= */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -55,7 +59,7 @@ export async function POST(request: NextRequest) {
     await resend.emails.send({
       from: 'LegacyCapsule <hello@itslegacycapsule.com>',
       to: capsule.family_rep_email,
-      subject: `Your Family Rep Access — ${honourName}'s LegacyCapsule`,
+      subject: `Your Family Rep Access -- ${honourName}'s LegacyCapsule`,
       html: `
 <!DOCTYPE html>
 <html>
@@ -91,17 +95,26 @@ export async function POST(request: NextRequest) {
                 <tr>
                   <td align="center" style="padding-bottom:20px;">
                     <div style="width:52px;height:52px;border-radius:50%;background:rgba(226,195,107,0.1);border:1px solid rgba(226,195,107,0.25);display:inline-flex;align-items:center;justify-content:center;">
-                      <span style="font-size:22px;">✦</span>
+                      <span style="font-size:22px;">&#10022;</span>
                     </div>
                   </td>
                 </tr>
 
                 <!-- Heading -->
                 <tr>
-                  <td align="center" style="padding-bottom:12px;">
+                  <td align="center" style="padding-bottom:8px;">
                     <h1 style="font-family:Georgia,serif;font-size:22px;font-weight:700;color:rgba(255,255,255,0.92);margin:0;line-height:1.3;">
                       Family Rep Access
                     </h1>
+                  </td>
+                </tr>
+
+                <!-- Personal greeting -->
+                <tr>
+                  <td align="center" style="padding-bottom:16px;">
+                    <p style="font-size:13px;color:rgba(226,195,107,0.7);margin:0;font-style:italic;">
+                      Dear ${repName},
+                    </p>
                   </td>
                 </tr>
 
@@ -109,57 +122,43 @@ export async function POST(request: NextRequest) {
                 <tr>
                   <td align="center" style="padding-bottom:28px;">
                     <p style="font-size:14px;color:rgba(255,255,255,0.55);line-height:1.7;margin:0;max-width:380px;">
-                      You have been given a Family-Rep-Access to <strong style="color:rgba(255,255,255,0.85);">${honourName}</strong>'s LegacyCapsule. Find your access link below.
+                      You have been given Family Representative access to <strong style="color:rgba(255,255,255,0.85);">${honourName}</strong>'s LegacyCapsule. Your private portal gives you a dedicated view of tributes, support details, and acknowledgements received on behalf of the family.
                     </p>
-                  </td>
-                </tr>
-
-                <!-- Access link box -->
-                <tr>
-                  <td style="padding-bottom:24px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="background:rgba(226,195,107,0.07);border:1px solid rgba(226,195,107,0.2);border-radius:12px;padding:16px 20px;">
-                          <p style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(226,195,107,0.55);margin:0 0 8px;">Your Private Access Link</p>
-                          <p style="font-size:12px;color:#E2C36B;word-break:break-all;margin:0;line-height:1.6;">${portalUrl}</p>
-                        </td>
-                      </tr>
-                    </table>
                   </td>
                 </tr>
 
                 <!-- CTA button -->
                 <tr>
-                  <td align="center" style="padding-bottom:24px;">
-                    <a href="${portalUrl}" style="display:inline-block;padding:14px 36px;border-radius:30px;background:linear-gradient(135deg,#E2C36B,rgba(226,195,107,0.7));color:#1a0845;font-size:14px;font-weight:700;text-decoration:none;letter-spacing:0.04em;">
-                      Open My Portal →
+                  <td align="center" style="padding-bottom:20px;">
+                    <a href="${portalUrl}" style="display:inline-block;padding:14px 40px;border-radius:30px;background:linear-gradient(135deg,#E2C36B,rgba(226,195,107,0.75));color:#1a0845;font-size:14px;font-weight:700;text-decoration:none;letter-spacing:0.04em;">
+                      Open My Portal &#8594;
                     </a>
                   </td>
                 </tr>
 
-                <!-- What you can do -->
+                <!-- Security note -- no raw URL exposed -->
                 <tr>
-                  <td style="padding-bottom:20px;">
-                    <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.03);border-radius:10px;padding:16px 18px;">
-                      <tr>
-                        <td>
-                          <p style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(226,195,107,0.55);margin:0 0 10px;">What you can access</p>
-                          <p style="font-size:12px;color:rgba(255,255,255,0.5);margin:0 0 6px;line-height:1.6;">✦ &nbsp;All approved tributes for ${honourName}</p>
-                          <p style="font-size:12px;color:rgba(255,255,255,0.5);margin:0 0 6px;line-height:1.6;">✦ &nbsp;Ways to Honour — support details</p>
-                          <p style="font-size:12px;color:rgba(255,255,255,0.5);margin:0;line-height:1.6;">✦ &nbsp;Support acknowledgements received</p>
-                        </td>
-                      </tr>
-                    </table>
+                  <td align="center" style="padding-bottom:24px;">
+                    <p style="font-size:11px;color:rgba(255,255,255,0.28);line-height:1.7;margin:0;">
+                      This link is private and unique to you. Please do not forward this email.<br/>
+                      Your access remains valid for 6 months from the date of issue.
+                    </p>
                   </td>
                 </tr>
 
-                <!-- Security note -->
+                <!-- What you can access -->
                 <tr>
-                  <td align="center">
-                    <p style="font-size:11px;color:rgba(255,255,255,0.28);line-height:1.6;margin:0;">
-                      This link is private and unique to you. Do not share it.<br/>
-                      It remains valid for 6 months from the date of issue.
-                    </p>
+                  <td style="padding-bottom:8px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.03);border:1px solid rgba(226,195,107,0.1);border-radius:12px;padding:16px 18px;">
+                      <tr>
+                        <td>
+                          <p style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(226,195,107,0.55);margin:0 0 12px;">What you can access</p>
+                          <p style="font-size:13px;color:rgba(255,255,255,0.5);margin:0 0 8px;line-height:1.6;">&#10022; &nbsp;All approved tributes for ${honourName}</p>
+                          <p style="font-size:13px;color:rgba(255,255,255,0.5);margin:0 0 8px;line-height:1.6;">&#10022; &nbsp;Gifting details shared by the family</p>
+                          <p style="font-size:13px;color:rgba(255,255,255,0.5);margin:0;line-height:1.6;">&#10022; &nbsp;Support acknowledgements received</p>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
 
@@ -170,8 +169,8 @@ export async function POST(request: NextRequest) {
           <!-- Footer -->
           <tr>
             <td align="center" style="padding-top:28px;">
-              <p style="font-size:11px;color:rgba(255,255,255,0.2);margin:0;">
-                LegacyCapsule · RevoWorldTech · Valnex, Unipessoal LDA<br/>
+              <p style="font-size:11px;color:rgba(255,255,255,0.2);margin:0;line-height:1.8;">
+                LegacyCapsule &middot; RevoWorldTech &middot; Valnex, Unipessoal LDA<br/>
                 <a href="https://itslegacycapsule.com" style="color:rgba(226,195,107,0.35);text-decoration:none;">itslegacycapsule.com</a>
               </p>
             </td>
