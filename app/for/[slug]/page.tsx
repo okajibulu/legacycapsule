@@ -9,6 +9,7 @@ import { notFound } from 'next/navigation'
 import { resolveTheme } from '@/lib/themeConfig'
 import TributeWallClient from '@/components/TributeWallClient'
 import CapsuleBottomNav from '@/components/CapsuleBottomNav'
+import ActivePremiumsStrip from '@/components/ActivePremiumsStrip'
 
 /* =========================================================
    GENERATE METADATA
@@ -166,6 +167,10 @@ supabase
         supportAccounts={supportRes.data ?? []}
         themeKey={themeKey}
       />
+      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 8px' }}>
+        <ActivePremiumsStrip slug={slug} components={capsule.components ?? []} />
+      </div>
+
       <CapsuleBottomNav
         slug={slug}
         currentPage="tribute"
@@ -173,6 +178,10 @@ supabase
         contributorCount={capsule.approved_contrib_count ?? 0}
         hasPhases={(phaseCount ?? 0) > 0}
         themeKey={themeKey}
+        capsuleId={capsule.id}
+        honourName={capsule.honouree_name}
+        eventType={capsule.event_type}
+        supportAccounts={supportRes.data ?? []}
       />
     </>
   )
