@@ -42,6 +42,26 @@ const ROTATING_LINES = [
   'Permanent Digital Memory Archive',
 ]
 
+// ============================================================
+// HOMEPAGE LIVE DATA
+// ============================================================
+function useHomepageData() {
+  const [stats,    setStats]    = useState<Record<string, string>>({})
+  const [featured, setFeatured] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch('/api/homepage/stats')
+      .then(r => r.json())
+      .then(d => {
+        if (d.stats)    setStats(d.stats)
+        if (d.featured) setFeatured(d.featured)
+      })
+      .catch(() => {}) // silent -- homepage must never break
+  }, [])
+
+  return { stats, featured }
+}
+
 function RotatingEventType() {
   const [current, setCurrent] = useState(0)
   const [visible, setVisible] = useState(true)
@@ -269,11 +289,12 @@ const PILLARS = [
 /* ============================================================
    SOCIAL PROOF STRIP
    ============================================================ */
-const STATS = [
-  { value: "...soon", label: "Tributes Collected"   },
-  { value: "...soon",      label: "Countries Reached"    },
-  { value: "...soon",    label: "Events Preserved"     },
-  { value: "...soon",     label: "Average Rating"       },
+// STATS are populated dynamically from /api/homepage/stats
+// Default values shown before fetch completes
+const STATS_DEFAULT = [
+  { key: "tributes", label: "Tributes Collected" },
+  { key: "capsules", label: "Events Preserved"  },
+  { key: "static1",  label: "Free to Start"     },
 ]
 
 /* ============================================================
@@ -304,6 +325,8 @@ const STEPS = [
    MAIN PAGE COMPONENT
    ============================================================ */
 export default function HomePage() {
+  const { stats, featured } = useHomepageData()
+
   return (
     <>
 
@@ -442,7 +465,7 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
           style={{ pointerEvents: "auto" }}>
           Start Your Capsule
         </Link>
-        <Link href="/examples"
+        <Link href="/#showcase"
           style={{
             display:       "inline-flex",
             alignItems:    "center",
@@ -668,29 +691,34 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
             gap:                 "var(--space-8)",
             textAlign:           "center",
           }}>
-            {STATS.map((stat) => (
-              <div key={stat.label}>
-                <div style={{
-                  fontFamily:    "var(--font-display)",
-                  fontSize:      "clamp(var(--text-2xl), 3vw, var(--text-4xl))",
-                  fontWeight:    200,
-                  color:         "var(--lc-gold)",
-                  letterSpacing: "var(--tracking-tight)",
-                  marginBottom:  "var(--space-2)",
-                }}>
-                  {stat.value}
+            {STATS_DEFAULT.map((stat) => {
+              const value = stat.key === 'static1'
+                ? 'FREE'
+                : stats[stat.key] ?? '...'
+              return (
+                <div key={stat.label}>
+                  <div style={{
+                    fontFamily:    "var(--font-display)",
+                    fontSize:      "clamp(var(--text-2xl), 3vw, var(--text-4xl))",
+                    fontWeight:    200,
+                    color:         "var(--lc-gold)",
+                    letterSpacing: "var(--tracking-tight)",
+                    marginBottom:  "var(--space-2)",
+                  }}>
+                    {value}
+                  </div>
+                  <div style={{
+                    fontFamily:    "var(--font-body)",
+                    fontSize:      "var(--text-xs)",
+                    color:         "rgba(245,243,238,0.5)",
+                    letterSpacing: "var(--tracking-widest)",
+                    textTransform: "uppercase",
+                  }}>
+                    {stat.label}
+                  </div>
                 </div>
-                <div style={{
-                  fontFamily:    "var(--font-body)",
-                  fontSize:      "var(--text-xs)",
-                  color:         "rgba(245,243,238,0.5)",
-                  letterSpacing: "var(--tracking-widest)",
-                  textTransform: "uppercase",
-                }}>
-                  {stat.label}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </section>
@@ -849,7 +877,7 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
                     {step.body}
                   </p>
                   {step.cta && (
-                    <Link href="/examples" style={{
+                    <Link href="/#showcase" style={{
                       fontFamily:    "var(--font-body)",
                       fontSize:      "var(--text-sm)",
                       fontWeight:    600,
@@ -867,7 +895,152 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
         </div>
       </section>
 
-      {/* ── SECTION 8: FINAL CTA ────────────────────────── */}
+      {/* ── SECTION 8: SHOWCASE ─────────────────────────── */}
+      <section id="showcase" style={{
+        padding:    "var(--space-24) 0",
+        background: "var(--lc-purple-deep)",
+        borderTop:  "1px solid rgba(184,150,12,0.12)",
+      }}>
+        <div className="container">
+
+          <div style={{ textAlign: "center", marginBottom: "var(--space-16)" }}>
+            <div className="type-event-tag" style={{ marginBottom: "var(--space-4)" }}>
+              Events We Have Hosted
+            </div>
+            <h2 className="type-heading-xl" style={{ color: "var(--lc-ivory)", maxWidth: "600px", margin: "0 auto var(--space-4)" }}>
+              Real events. Real stories. Real legacies.
+            </h2>
+            <p style={{
+              fontFamily: "var(--font-body)",
+              fontSize:   "var(--text-md)",
+              color:      "rgba(245,243,238,0.45)",
+              maxWidth:   "480px",
+              margin:     "0 auto",
+              lineHeight: 1.7,
+            }}>
+              LegacyCapsule is grateful to have been trusted to preserve the following events.
+            </p>
+          </div>
+
+          {featured.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "var(--space-16)" }}>
+              <p style={{
+                fontFamily: "var(--font-body)",
+                fontSize:   "var(--text-sm)",
+                color:      "rgba(245,243,238,0.25)",
+                fontStyle:  "italic",
+              }}>
+                Our first showcased events are coming soon.
+              </p>
+            </div>
+          ) : (
+            <div style={{
+              display:             "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+              gap:                 "var(--space-5)",
+            }}>
+              {featured.map((cap: any) => {
+                const year = cap.event_date ? new Date(cap.event_date).getFullYear() : null
+                return (
+                  <div key={cap.slug} style={{
+                    borderRadius: "14px",
+                    overflow:     "hidden",
+                    border:       "1px solid rgba(184,150,12,0.15)",
+                    background:   "rgba(255,255,255,0.03)",
+                  }}>
+                    {/* Event image */}
+                    <div style={{
+                      height:     "160px",
+                      background: cap.hero_image_url
+                        ? `url(${cap.hero_image_url}) center/cover no-repeat`
+                        : "linear-gradient(135deg, rgba(45,27,105,0.8), rgba(15,10,30,0.9))",
+                      position:   "relative",
+                    }}>
+                      {/* Event type badge */}
+                      <div style={{
+                        position:      "absolute",
+                        top:           "10px",
+                        left:          "10px",
+                        padding:       "3px 10px",
+                        borderRadius:  "20px",
+                        background:    "rgba(15,10,30,0.75)",
+                        backdropFilter: "blur(8px)",
+                        fontSize:      "9px",
+                        fontWeight:    700,
+                        color:         "rgba(226,195,107,0.8)",
+                        letterSpacing: "0.1em",
+                        textTransform: "uppercase",
+                      }}>
+                        {cap.event_type}
+                      </div>
+                    </div>
+
+                    {/* Card content */}
+                    <div style={{ padding: "14px 16px" }}>
+                      <p style={{
+                        fontFamily:   "var(--font-heading)",
+                        fontSize:     "var(--text-md)",
+                        fontWeight:   700,
+                        color:        "rgba(245,243,238,0.9)",
+                        margin:       "0 0 4px",
+                        lineHeight:   1.3,
+                      }}>
+                        {cap.honouree_name}
+                      </p>
+                      {cap.event_tag && (
+                        <p style={{
+                          fontFamily: "var(--font-body)",
+                          fontSize:   "var(--text-xs)",
+                          color:      "rgba(184,150,12,0.65)",
+                          margin:     "0 0 10px",
+                        }}>
+                          {cap.event_tag}
+                        </p>
+                      )}
+                      <div style={{
+                        display:    "flex",
+                        gap:        "12px",
+                        alignItems: "center",
+                        flexWrap:   "wrap",
+                      }}>
+                        {cap.tribute_count > 0 && (
+                          <span style={{
+                            fontSize:   "10px",
+                            color:      "rgba(245,243,238,0.35)",
+                            fontFamily: "var(--font-body)",
+                          }}>
+                            {cap.tribute_count} tribute{cap.tribute_count !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                        {cap.city && (
+                          <span style={{
+                            fontSize:   "10px",
+                            color:      "rgba(245,243,238,0.35)",
+                            fontFamily: "var(--font-body)",
+                          }}>
+                            {cap.city}
+                          </span>
+                        )}
+                        {year && (
+                          <span style={{
+                            fontSize:   "10px",
+                            color:      "rgba(245,243,238,0.35)",
+                            fontFamily: "var(--font-body)",
+                          }}>
+                            {year}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── SECTION 9: FINAL CTA ────────────────────────── */}
       <section style={{
         padding:    "var(--space-32) 0",
         background: "var(--lc-purple)",
