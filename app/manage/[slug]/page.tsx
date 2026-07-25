@@ -1,7 +1,7 @@
 'use client'
 
 /* =========================================================
-   ORGANISER CONTROL DASHBOARD — app/manage/[slug]/page.tsx — v2
+   ORGANISER CONTROL DASHBOARD -- app/manage/[slug]/page.tsx -- v2
    Full section editor · Style picker · Arrow reorder
    Theme-aware · Premium workspace aesthetic
 ========================================================= */
@@ -49,7 +49,7 @@ const supabase = createClient(
 const FREE_TRIBUTE_LIMIT = 50
 const LS_EMAIL = 'lc_visitor_email'
 
-// ── NO character limits on any section type ──────────────
+// -- NO character limits on any section type --------------
 const SUMMARY_SECTION_TYPES = [
   { type: 'intro',   label: 'Introduction',    placeholder: 'A brief introduction to the honouree and this occasion…' },
   { type: 'occasion', label: 'About the Occasion', placeholder: 'Details about this event or milestone…' },
@@ -58,13 +58,23 @@ const SUMMARY_SECTION_TYPES = [
 ]
 
 const PROFILE_SECTION_TYPES = [
-  { type: 'biography',    label: 'Biography',     placeholder: 'The full story of the honouree…' },
-  { type: 'timeline',     label: 'Timeline',      placeholder: 'Key milestones and dates…' },
-  { type: 'achievements', label: 'Achievements',  placeholder: 'Notable accomplishments and recognition…' },
-  { type: 'family',       label: 'Family',        placeholder: 'Family members and relationships…' },
-  { type: 'legacy',       label: 'Legacy',        placeholder: 'The lasting impact and legacy…' },
-  { type: 'custom',       label: 'Custom Section', placeholder: 'Write your own section…' },
+  { type: 'biography',    label: 'Biography',     placeholder: 'The full story of the honouree...' },
+  { type: 'timeline',     label: 'Timeline',      placeholder: 'Key milestones and dates...' },
+  { type: 'achievements', label: 'Achievements',  placeholder: 'Notable accomplishments and recognition...' },
+  { type: 'family',       label: 'Family',        placeholder: 'Family members and relationships...' },
+  { type: 'legacy',       label: 'Legacy',        placeholder: 'The lasting impact and legacy...' },
+  { type: 'custom',       label: 'Custom Section', placeholder: 'Write your own section...' },
+  { type: 'appreciation', label: 'Family Appreciation', placeholder: 'A heartfelt thank you from the family to all who contributed...' },
 ]
+
+const DEFAULT_APPRECIATION_TEXT = `From the heart of our family, we want to say thank you.
+
+To every person who took a moment to add their voice to this tribute wall -- whether you shared a memory, sent a message, uploaded a photo, or simply visited to honour [honouree_name] -- your presence here has meant more than words can express.
+
+This capsule was built by all of you. Every tribute, every story, every expression of love and support has been received with deep gratitude. You have helped us preserve something that will outlast this moment.
+
+With love and appreciation,
+The Family of [honouree_name]`
 
 const bg = '#0f0a1e'
 const cardBg = 'rgba(255,255,255,0.04)'
@@ -95,7 +105,7 @@ const TributeMap = dynamic(() => import('@/components/TributeMap'), {
   loading: () => <div style={{ width: '100%', height: '100%', background: '#0a0218' }} />,
 })
 
-/* ── FREE TIER BAR ──────────────────────────-──────────── */
+/* -- FREE TIER BAR --------------------------------------- */
 function FreeTierBar({ approvedCount, daysLeft, hasFirstTribute, onUpgrade }: {
   approvedCount: number; daysLeft: number | null; hasFirstTribute: boolean; onUpgrade: () => void
 }) {
@@ -126,7 +136,7 @@ function FreeTierBar({ approvedCount, daysLeft, hasFirstTribute, onUpgrade }: {
   )
 }
 
-/* ── STAT PILL ────────────────────────────---────────────── */
+/* -- STAT PILL --------------------------------------------- */
 function StatPill({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
   return (
     <div style={{ flex: 1, minWidth: '70px', padding: '12px 10px', borderRadius: '12px', background: accent ? 'rgba(226,195,107,0.07)' : cardBg, border: `1px solid ${accent ? 'rgba(226,195,107,0.18)' : 'rgba(255,255,255,0.05)'}`, textAlign: 'center' }}>
@@ -136,7 +146,7 @@ function StatPill({ label, value, accent }: { label: string; value: string | num
   )
 }
 
-/* ── SECTION CARD ─────────-----────────────────────────────── */
+/* -- SECTION CARD -------------------------------------------- */
 function SectionCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: '16px', overflow: 'hidden', marginBottom: '14px' }}>
@@ -149,7 +159,7 @@ function SectionCard({ title, subtitle, children }: { title: string; subtitle?: 
   )
 }
 
-/* ── TRIBUTE REVIEW CARD ──────────────────────────────── */
+/* -- TRIBUTE REVIEW CARD -------------------------------- */
 function TributeReviewCard({ c, onApprove, onDecline }: { c: Contribution; onApprove: (id: string) => void; onDecline: (id: string) => void }) {
   const [declining, setDeclining] = useState(false)
   const [approving, setApproving] = useState(false)
@@ -179,7 +189,7 @@ function TributeReviewCard({ c, onApprove, onDecline }: { c: Contribution; onApp
   )
 }
 
-/* ── EDIT FIELD ───────────────────────────────────────── */
+/* -- EDIT FIELD ----------------------------------------- */
 function EditField({ label, value, placeholder, onSave, type = 'text', hint }: {
   label: string; value: string; placeholder?: string
   onSave: (val: string) => Promise<void>; type?: 'text' | 'date' | 'email'; hint?: string
@@ -212,7 +222,7 @@ function EditField({ label, value, placeholder, onSave, type = 'text', hint }: {
   )
 }
 
-/* ── SECTION EDITOR — NO character limits ─────────────── */
+/* -- SECTION EDITOR -- NO character limits --------------- */
 function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; sections: ProfileSection[]; onRefresh: () => void }) {
   const [adding, setAdding] = useState(false)
   const [newType, setNewType] = useState('')
@@ -428,7 +438,7 @@ const handleSaveEdit = async (
           {newType === 'custom' && <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Section title" style={{ ...inp, marginBottom: '8px' }} maxLength={60} />}
           {newType && (
             <>
-              {/* NO maxLength, NO char counter — unlimited */}
+              {/* NO maxLength, NO char counter -- unlimited */}
               <textarea
                 value={newContent}
                 onChange={e => setNewContent(e.target.value)}
@@ -450,14 +460,14 @@ const handleSaveEdit = async (
   )
 }
 
-/* ── STYLE PICKER ─────────────────────────────────────── */
+/* -- STYLE PICKER --------------------------------------- */
 function StylePicker({ currentTheme, eventType, onSave }: { currentTheme: string | null; eventType: string; onSave: (theme: ThemeKey | 'classic') => Promise<void> }) {
   const themes = getAllThemes()
   const autoKey = resolveTheme('classic', eventType)
   const [saving, setSaving] = useState(false)
   const handleSelect = async (key: ThemeKey | 'classic') => { setSaving(true); await onSave(key); setSaving(false) }
   const currentLabel = (!currentTheme || currentTheme === 'classic')
-    ? `Auto — ${themes.find(t => t.key === autoKey)?.label ?? 'Classic'}`
+    ? `Auto -- ${themes.find(t => t.key === autoKey)?.label ?? 'Classic'}`
     : themes.find(t => t.key === currentTheme)?.label ?? currentTheme
 
   return (
@@ -471,16 +481,16 @@ function StylePicker({ currentTheme, eventType, onSave }: { currentTheme: string
         disabled={saving}
         style={{ ...inp, cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(226,195,107,0.6)' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center', paddingRight: '36px' }}
       >
-        <option value="classic">Auto — {themes.find(t => t.key === autoKey)?.label} (Recommended)</option>
+        <option value="classic">Auto -- {themes.find(t => t.key === autoKey)?.label} (Recommended)</option>
         {themes.map(t => (
-          <option key={t.key} value={t.key}>{t.label} — {t.description}</option>
+          <option key={t.key} value={t.key}>{t.label} -- {t.description}</option>
         ))}
       </select>
       {saving && <p style={{ fontSize: '11px', color: goldMuted, marginTop: '8px' }}>Saving…</p>}
     </div>
   )
 }
-/* ── UPGRADE CARD ─────────────────────────────────────── */
+/* -- UPGRADE CARD --------------------------------------- */
 function UpgradeCard({ capsuleName }: { capsuleName: string }) {
   const [name, setName] = useState(''); const [email, setEmail] = useState(''); const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false); const [sent, setSent] = useState(false)
@@ -495,10 +505,10 @@ function UpgradeCard({ capsuleName }: { capsuleName: string }) {
       <div style={{ height: '2px', background: `linear-gradient(to right, transparent, rgba(226,195,107,0.55), transparent)` }} />
       <div style={{ padding: '20px 18px' }}>
         <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '17px', fontWeight: 700, color: gold, marginBottom: '8px' }}>Expand Your Capsule</h3>
-        <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.7, marginBottom: '16px' }}>Photo tributes, audio and video contributions, digital publication, extended validity — add what your event needs.</p>
+        <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.7, marginBottom: '16px' }}>Photo tributes, audio and video contributions, digital publication, extended validity -- add what your event needs.</p>
         {sent ? (
           <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(74,222,128,0.07)', border: '1px solid rgba(74,222,128,0.18)', textAlign: 'center' }}>
-            <p style={{ fontSize: '13px', color: 'rgba(134,239,172,0.9)', fontWeight: 600, margin: 0 }}>✓ Message received — we'll be in touch within 24 hours.</p>
+            <p style={{ fontSize: '13px', color: 'rgba(134,239,172,0.9)', fontWeight: 600, margin: 0 }}>✓ Message received -- we'll be in touch within 24 hours.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -513,7 +523,7 @@ function UpgradeCard({ capsuleName }: { capsuleName: string }) {
   )
 }
 
-/* ── BOTTOM NAV ───────────────────────────────────────── */
+/* -- BOTTOM NAV ----------------------------------------- */
 function BottomNav({ active, onChange, pendingCount }: { active: Tab; onChange: (t: Tab) => void; pendingCount: number }) {
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'overview',  label: 'Overview',  icon: '◈' },
@@ -540,7 +550,7 @@ function BottomNav({ active, onChange, pendingCount }: { active: Tab; onChange: 
   )
 }
 
-/* ── WAYS TO HONOUR EDITOR ───────────────────────────── */
+/* -- WAYS TO HONOUR EDITOR ----------------------------- */
 function WaysToHonourEditor({ capsuleId, supabase }: { capsuleId: string; supabase: any }) {
   const [accounts, setAccounts] = useState<any[]>([])
   const [adding, setAdding] = useState(false)
@@ -633,7 +643,7 @@ function WaysToHonourEditor({ capsuleId, supabase }: { capsuleId: string; supaba
       {accounts.map(acc => (
         <div key={acc.id}>
           {editingId === acc.id ? (
-            /* ── Inline Edit Mode ── */
+            /* -- Inline Edit Mode -- */
             <div style={{ padding: '14px', borderRadius: '12px', border: `1px solid rgba(226,195,107,0.3)`, background: 'rgba(226,195,107,0.05)', marginBottom: '8px' }}>
               <p style={{ fontSize: '11px', color: goldMuted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>Edit Account</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -651,7 +661,7 @@ function WaysToHonourEditor({ capsuleId, supabase }: { capsuleId: string; supaba
               </div>
             </div>
           ) : (
-            /* ── Display Mode ── */
+            /* -- Display Mode -- */
             <div style={{ padding: '12px 14px', borderRadius: '10px', background: cardBg, border: `1px solid ${cardBorder}`, marginBottom: '8px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: '13px', fontWeight: 600, color: acc.is_active ? gold : textFaint, marginBottom: '2px' }}>
@@ -734,7 +744,7 @@ function WaysToHonourEditor({ capsuleId, supabase }: { capsuleId: string; supaba
      and after each send/resend
 ========================================================= */
 
-/* ── FAMILY REP SECTION — inline fields, single send ─── */
+/* -- FAMILY REP SECTION -- inline fields, single send --- */
 function FamilyRepSection({ capsuleId, slug, initialName, initialEmail, sentAt, onSaved }: {
   capsuleId: string; slug: string; initialName: string; initialEmail: string
   sentAt: string | null; onSaved: () => void
@@ -752,7 +762,7 @@ function FamilyRepSection({ capsuleId, slug, initialName, initialEmail, sentAt, 
   const canSend = email.includes('@')
   const isDirty = name !== initialName || email !== initialEmail
 
-  /* ── Fetch issued tokens ── */
+  /* -- Fetch issued tokens -- */
   const fetchTokens = async () => {
     const { data } = await supabase
       .from('honouree_portal_tokens')
@@ -815,7 +825,7 @@ function FamilyRepSection({ capsuleId, slug, initialName, initialEmail, sentAt, 
   return (
     <div>
       <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.65, marginBottom: '14px' }}>
-        The Family Representative receives a private link to view all tributes, support acknowledgements and Ways to Honour details — without organiser access.
+        The Family Representative receives a private link to view all tributes, support acknowledgements and Ways to Honour details -- without organiser access.
       </p>
 
       {/* Always-editable fields */}
@@ -844,7 +854,7 @@ function FamilyRepSection({ capsuleId, slug, initialName, initialEmail, sentAt, 
       {sent ? (
         <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(74,222,128,0.07)', border: '1px solid rgba(74,222,128,0.2)', marginBottom: '16px' }}>
           <p style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(134,239,172,0.9)', margin: '0 0 2px' }}>✓ Portal access link sent</p>
-          <p style={{ fontSize: '11px', color: textFaint, margin: 0 }}>Sent to {email} — they can click the link to view tributes privately.</p>
+          <p style={{ fontSize: '11px', color: textFaint, margin: 0 }}>Sent to {email} -- they can click the link to view tributes privately.</p>
         </div>
       ) : (
         <div style={{ marginBottom: '16px' }}>
@@ -865,7 +875,7 @@ function FamilyRepSection({ capsuleId, slug, initialName, initialEmail, sentAt, 
         </div>
       )}
 
-      {/* ── Issued Portal Access List ── */}
+      {/* -- Issued Portal Access List -- */}
       {tokens.length > 0 && (
         <div>
           <div style={{ height: '1px', background: `linear-gradient(to right, transparent, rgba(226,195,107,0.15), transparent)`, marginBottom: '14px' }} />
@@ -918,7 +928,7 @@ function FamilyRepSection({ capsuleId, slug, initialName, initialEmail, sentAt, 
 }
 
 
-/* ── NOTIFICATION SETTINGS ────────────────────────────── */
+/* -- NOTIFICATION SETTINGS ------------------------------ */
 function NotificationSettings({ capsuleId, currentFrequency, eventDate, onSaved }: {
   capsuleId: string; currentFrequency: string | null
   eventDate: string | null; onSaved: () => void
@@ -964,7 +974,7 @@ function NotificationSettings({ capsuleId, currentFrequency, eventDate, onSaved 
   return (
     <div>
       <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.65, marginBottom: '14px' }}>
-        Receive an email when new tributes arrive and are waiting for your approval. One email per window — never flooded.
+        Receive an email when new tributes arrive and are waiting for your approval. One email per window -- never flooded.
       </p>
 
       {/* Toggle */}
@@ -981,7 +991,7 @@ function NotificationSettings({ capsuleId, currentFrequency, eventDate, onSaved 
         </button>
       </div>
 
-      {/* Frequency selector — only shown when enabled */}
+      {/* Frequency selector -- only shown when enabled */}
       {enabled && (
         <div>
           <label style={{ fontSize: '10px', color: goldMuted, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '8px' }}>
@@ -1016,7 +1026,7 @@ function NotificationSettings({ capsuleId, currentFrequency, eventDate, onSaved 
   )
 }
 
-/* ── DELETE ACCOUNT SECTION ───────────────────────────── */
+/* -- DELETE ACCOUNT SECTION ----------------------------- */
 function DeleteAccountSection({ email, slug, capsuleId }: { email: string; slug: string; capsuleId: string }) {
   const [showModal, setShowModal] = useState(false)
   const [confirmation, setConfirmation] = useState('')
@@ -1112,16 +1122,16 @@ body: JSON.stringify({ email, confirmation, capsuleId }),
   )
 }
 
-/* ── ADD-ONS TABLE ────────────────────────────────────── */
+/* -- ADD-ONS TABLE -------------------------------------- */
 const LC_SERVICES = [
-  // ── Free — always on ──────────────────────────────────────────────────────
+  // -- Free -- always on ------------------------------------------------------
   { id: 'tribute_wall',      label: 'Text Tributes',              desc: 'Guests leave written tributes on the public wall, visible to all visitors. Included on every capsule at no cost.', alwaysOn: true, phase: 1 },
   { id: 'world_map',         label: 'World Tribute Map',          desc: 'Interactive map showing where in the world tributes came from. Included on every capsule.', alwaysOn: true, phase: 1 },
   { id: 'event_profile',     label: 'Event Profile Canvas',       desc: 'Full profile page with biography, sections, timeline and photo gallery.', alwaysOn: true, phase: 1 },
   { id: 'photo_tributes',    label: 'Photo Tributes',             desc: 'Contributors can attach a photo to their tribute message. Included on every capsule.', alwaysOn: true, phase: 1 },
   { id: 'family_rep_portal', label: 'Family Rep Portal',          desc: 'Private portal for the Family Representative to view tributes and acknowledgements.', alwaysOn: true, phase: 1 },
   { id: 'community_stories', label: 'Community Memories & Stories', desc: 'A dedicated room for contributors to share memories and stories, organised by topic.', alwaysOn: true, phase: 1 },
-  // ── Premium — activate from Services tab ──────────────────────────────────
+  // -- Premium -- activate from Services tab ----------------------------------
   { id: 'ways_to_honour',    label: 'Gift of Honour',             desc: 'A dignified private channel for guests to express financial support for the honouree.', alwaysOn: false, phase: 1 },
   { id: 'audio_tributes',    label: 'Voice Tributes',             desc: 'Contributors record personal audio messages. Hearing a voice adds a dimension text cannot replicate.', alwaysOn: false, phase: 1 },
   { id: 'video_tributes',    label: 'Video Tributes',             desc: 'Contributors upload short video messages shown directly in their tribute card.', alwaysOn: false, phase: 1 },
@@ -1199,7 +1209,7 @@ function AddOnsTable({ capsuleComponents, onServicesTab }: { capsuleComponents: 
                 <span style={{ fontSize: '12px', color: 'rgba(74,222,128,0.7)', flexShrink: 0 }}>✓</span>
               )}
 
-              {/* Locked — show lock icon only, no button */}
+              {/* Locked -- show lock icon only, no button */}
               {!svc.alwaysOn && !isActivated && !isAutoActivated && !isComingSoon && (
                 <span style={{ fontSize: '11px', color: 'rgba(226,195,107,0.35)', flexShrink: 0 }}>🔒</span>
               )}
@@ -1226,7 +1236,7 @@ function AddOnsTable({ capsuleComponents, onServicesTab }: { capsuleComponents: 
 }
 
 
-/* ── EXPORTS TAB ── */
+/* -- EXPORTS TAB -- */
 function ExportsTab({ contributions, slug }: {
   contributions: Contribution[]
   slug: string
@@ -1322,7 +1332,7 @@ function ExportsTab({ contributions, slug }: {
 }
 
 
-/* ── MAIN COMPONENT ───────────────────────────────────── */
+/* -- MAIN COMPONENT ------------------------------------- */
 export default function ManagePage() {
   const params = useParams()
   const slug = params?.slug as string
@@ -1473,7 +1483,7 @@ const capRes = await supabase.from('capsules')
 
       <div style={{ minHeight: '100vh', background: bg, fontFamily: "'DM Sans', sans-serif", color: textPrimary, paddingBottom: '80px' }}>
 
-        {/* ── TOP HEADER ── */}
+        {/* -- TOP HEADER -- */}
         <div style={{ background: 'rgba(255,255,255,0.02)', borderBottom: `1px solid rgba(226,195,107,0.08)`, padding: '12px 16px', position: 'sticky', top: 0, zIndex: 40, backdropFilter: 'blur(16px)' }}>
           <div style={{ maxWidth: '640px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <Link href="/" style={{ textDecoration: 'none', flexShrink: 0 }}>
@@ -1485,15 +1495,15 @@ const capRes = await supabase.from('capsules')
               <p style={{ fontSize: '13px', fontWeight: 700, color: textPrimary, fontFamily: "'Playfair Display', serif", margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{capsule.honouree_name}</p>
               <p style={{ fontSize: '10px', color: textFaint, margin: '1px 0 0' }}>{capsule.event_type}{capsule.event_tag ? ` · ${capsule.event_tag}` : ''}</p>
             </div>
-            {/* View Live — clickable link to public wall */}
+            {/* View Live -- clickable link to public wall */}
             <a href={`/for/${slug}`} target="_blank" rel="noopener noreferrer" style={{ flexShrink: 0, fontSize: '10px', fontWeight: 700, padding: '4px 10px', borderRadius: '20px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', color: 'rgba(134,239,172,0.9)', letterSpacing: '0.08em', textTransform: 'uppercase', textDecoration: 'none' }}>View Live ↗</a>
           </div>
         </div>
 
-        {/* ── FREE TIER BAR ── */}
+        {/* -- FREE TIER BAR -- */}
         {isFree && <FreeTierBar approvedCount={capsule.approved_contrib_count} daysLeft={days} hasFirstTribute={hasFirstTribute} onUpgrade={() => setActiveTab('services')} />}
 
-        {/* ── EXPIRY BANNER ── */}
+        {/* -- EXPIRY BANNER -- */}
         {(() => {
           if (!capsule.free_tier_expires_at) return null
           const daysLeft = Math.floor((new Date(capsule.free_tier_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -1522,7 +1532,7 @@ const capRes = await supabase.from('capsules')
 
           const banners = {
             complete:    { tone: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.25)', heading: `${capsule.honouree_name}'s legacy is preserved`, body: `This capsule has gathered its community. It remains accessible at your link. Extended Validity is available from Services if needed.`, cta: null, href: null },
-            wrapping_up: { tone: 'rgba(147,197,253,0.08)', border: 'rgba(147,197,253,0.25)', heading: `Ready to compile the final record?`, body: `${daysLeft} days remaining. The tributes are gathered — a Digital Publication will preserve them permanently.`, cta: 'Generate Publication', href: `/manage/${slug}/publication` },
+            wrapping_up: { tone: 'rgba(147,197,253,0.08)', border: 'rgba(147,197,253,0.25)', heading: `Ready to compile the final record?`, body: `${daysLeft} days remaining. The tributes are gathered -- a Digital Publication will preserve them permanently.`, cta: 'Generate Publication', href: `/manage/${slug}/publication` },
             active:      { tone: 'rgba(226,195,107,0.07)', border: 'rgba(226,195,107,0.3)', heading: `Your capsule closes in ${daysLeft} days`, body: `Voices are still arriving. Extend your capsule to keep the tribute wall open.`, cta: 'Extend Access', href: null },
             underused:   { tone: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.08)', heading: `Your capsule is still waiting`, body: `${capsule.honouree_name}'s tribute wall hasn't gathered many voices yet. Share the link to get started.`, cta: 'Share Your Capsule', href: `/for/${slug}` },
           }
@@ -1546,10 +1556,10 @@ const capRes = await supabase.from('capsules')
           )
         })()}
 
-        {/* ── MAIN CONTENT ── */}
+        {/* -- MAIN CONTENT -- */}
         <div style={{ maxWidth: '640px', margin: '0 auto', padding: '16px 16px 0' }}>
 
-          {/* ── OVERVIEW TAB ── */}
+          {/* -- OVERVIEW TAB -- */}
           {activeTab === 'overview' && (
             <div>
               <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
@@ -1588,8 +1598,8 @@ const capRes = await supabase.from('capsules')
 
                 
 
-              {/* ── ADD-ONS / SERVICES TABLE ── */}
-              <SectionCard title="Capsule Services" subtitle="Tap any service to learn more — contact us to activate">
+              {/* -- ADD-ONS / SERVICES TABLE -- */}
+              <SectionCard title="Capsule Services" subtitle="Tap any service to learn more -- contact us to activate">
                 <AddOnsTable capsuleComponents={capsule.components ?? []} onServicesTab={() => {
                   setActiveTab('services')
                   setTimeout(() => {
@@ -1600,7 +1610,7 @@ const capRes = await supabase.from('capsules')
             </div>
           )}
 
-          {/* ── TRIBUTES TAB ── */}
+          {/* -- TRIBUTES TAB -- */}
           {activeTab === 'tributes' && (
             <div>
               {pending.length > 0 && (
@@ -1644,7 +1654,7 @@ const capRes = await supabase.from('capsules')
             </div>
           )}
 
-          {/* ── PROFILE TAB ── */}
+          {/* -- PROFILE TAB -- */}
           {activeTab === 'profile' && (
             <div>
 <SectionCard title="Capsule Photo" subtitle="Appears on the tribute wall and profile">
@@ -1695,13 +1705,52 @@ const capRes = await supabase.from('capsules')
                 <GalleryEditor capsuleId={capsule.id} initialPhotos={galleryPhotos} supabase={supabase} t={galleryTheme} onSaved={fetchAll} />
               </SectionCard>
 
-              <SectionCard title="Profile Sections" subtitle="No character limit — write as much as your event deserves">
+              <SectionCard title="Profile Sections" subtitle="No character limit -- write as much as your event deserves">
+
+                {/* -- Appreciation prompt -- shown when no appreciation section exists yet -- */}
+                {!profileSections.some((s: ProfileSection) => s.section_type === 'appreciation') && (
+                  <div style={{ padding: '16px 18px', borderRadius: '12px', border: '1px solid rgba(212,174,42,0.3)', background: 'linear-gradient(135deg, rgba(212,174,42,0.06) 0%, rgba(212,174,42,0.02) 100%)', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                      <span style={{ fontSize: '18px', flexShrink: 0, marginTop: '2px' }}>&#10022;</span>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: '0 0 6px', fontSize: '13px', fontWeight: 700, color: gold }}>Add a Family Appreciation</p>
+                        <p style={{ margin: '0 0 12px', fontSize: '12px', color: textSecondary, lineHeight: 1.65 }}>
+                          A warm closing message from the family -- thanking guests and everyone who contributed to this capsule. It appears on the profile page after your event date has passed, as a dignified final word.
+                        </p>
+                        <p style={{ margin: '0 0 12px', fontSize: '11px', color: textFaint, lineHeight: 1.6, fontStyle: 'italic' }}>
+                          Tip: We have pre-written a warm, inclusive message that works for all event types. Simply add the section below, review it, and personalise with specific names or sentiments your family wants to include.
+                        </p>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await supabase.from('capsule_profile_sections').insert({
+                                capsule_id:   capsule.id,
+                                section_type: 'appreciation',
+                                custom_title: null,
+                                content:      DEFAULT_APPRECIATION_TEXT.replace(/\[honouree_name\]/g, capsule.honouree_name),
+                                sort_order:   (profileSections.length + 1) * 10,
+                                is_active:    true,
+                              })
+                              fetchAll()
+                            } catch (err) {
+                              console.error('[appreciation] Failed to add:', err)
+                            }
+                          }}
+                          style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #E2C36B, #C8A84A)', color: '#1a0845', fontSize: '12px', fontWeight: 700, cursor: 'pointer', letterSpacing: '0.04em' }}
+                        >
+                          + Add Family Appreciation
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <SectionEditor capsuleId={capsule.id} sections={profileSections} onRefresh={fetchAll} />
               </SectionCard>
             </div>
           )}
 
-  {/* ── SERVICES TAB ── */}
+  {/* -- SERVICES TAB -- */}
           {activeTab === 'services' && (
             <ServicesTab
               capsule={capsule}
@@ -1719,7 +1768,7 @@ const capRes = await supabase.from('capsules')
             />
           )}
 
-          {/* ── SETTINGS TAB ── */}
+          {/* -- SETTINGS TAB -- */}
           {activeTab === 'settings' && (
             <div>
               <SectionCard title="Capsule Details">
@@ -1754,7 +1803,7 @@ const capRes = await supabase.from('capsules')
                 />
               </SectionCard>
 
-{/* Capsule Reveal decommissioned — Family Rep Portal covers this use case with multi-access support */}
+{/* Capsule Reveal decommissioned -- Family Rep Portal covers this use case with multi-access support */}
 
               
 
@@ -1763,7 +1812,7 @@ const capRes = await supabase.from('capsules')
                 <div style={{ padding: '20px 18px' }}>
                   <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '17px', fontWeight: 700, color: gold, marginBottom: '8px' }}>Add Services to Your Capsule</h3>
                   <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.7, marginBottom: '16px' }}>
-                    Voice tributes, video messages, guest management, digital publication, attire coordination — add what your event needs, directly from your Services tab. No need to contact us.
+                    Voice tributes, video messages, guest management, digital publication, attire coordination -- add what your event needs, directly from your Services tab. No need to contact us.
                   </p>
                   <button
                     onClick={() => setActiveTab('services')}

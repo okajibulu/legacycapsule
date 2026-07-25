@@ -198,6 +198,7 @@ export default async function ProfilePage({ params }: PageProps) {
       biography: 'Biography', intro: 'Introduction', occasion: 'About the Occasion',
       quote: 'Featured Quote', message: "Organiser's Message", timeline: 'Timeline',
       achievements: 'Achievements', family: 'Family', legacy: 'Legacy',
+      appreciation: 'Family Appreciation',
     }
     return labels[section.section_type] ?? section.section_type.replace(/_/g, ' ')
   }
@@ -293,8 +294,8 @@ export default async function ProfilePage({ params }: PageProps) {
           </div>
         )}
 
-        {/* Profile text sections */}
-        {profileSections.map((section: any) => (
+        {/* Profile text sections -- appreciation rendered separately at the end */}
+        {profileSections.filter((s: any) => s.section_type !== 'appreciation').map((section: any) => (
           <div key={section.id} style={{ marginBottom: '32px' }}>
             <div style={sectionHeadingStyle}>
               <div style={ruleStyle} />
@@ -400,6 +401,83 @@ A story worth preserving.<br />The organiser is preparing this profile — check
             </p>
           </div>
         )}
+
+{/* ── Appreciation Plaque -- renders last, only after event date has passed ── */}
+        {(() => {
+          const appreciationSection = profileSections.find((s: any) => s.section_type === 'appreciation' && s.is_active && s.content?.trim())
+          const eventHasPassed = capsule.event_date ? new Date(capsule.event_date) < new Date() : false
+          if (!appreciationSection || !eventHasPassed) return null
+          const text = appreciationSection.content.replace(/\[honouree_name\]/g, capsule.honouree_name)
+          return (
+            <div style={{ marginBottom: '40px', marginTop: '16px' }}>
+              {/* Outer gold frame */}
+              <div style={{
+                padding: '3px',
+                borderRadius: '18px',
+                background: 'linear-gradient(135deg, #C9960C, #E2C36B, #F5D97A, #D4A91A, #B8850A)',
+                boxShadow: '0 8px 40px rgba(188,152,60,0.3), 0 2px 8px rgba(0,0,0,0.5)',
+              }}>
+                {/* Inner plaque */}
+                <div style={{
+                  borderRadius: '16px',
+                  background: 'linear-gradient(160deg, #1a0d35 0%, #0f0820 50%, #1a0d35 100%)',
+                  padding: '36px 32px',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}>
+                  {/* Subtle background texture */}
+                  <div style={{
+                    position: 'absolute', inset: 0, borderRadius: '16px',
+                    background: 'radial-gradient(ellipse at 50% 0%, rgba(226,195,107,0.07) 0%, transparent 65%)',
+                    pointerEvents: 'none',
+                  }} />
+
+                  {/* Top ornament rule */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
+                    <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, transparent, rgba(212,174,42,0.5))' }} />
+                    <span style={{ fontSize: '14px', color: '#D4AE2A', letterSpacing: '0.3em' }}>&#10022; &#10022; &#10022;</span>
+                    <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to left, transparent, rgba(212,174,42,0.5))' }} />
+                  </div>
+
+                  {/* Plaque label */}
+                  <p style={{
+                    margin: '0 0 20px',
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '9px',
+                    fontWeight: 800,
+                    letterSpacing: '0.28em',
+                    textTransform: 'uppercase',
+                    color: 'rgba(212,174,42,0.55)',
+                    textAlign: 'center',
+                  }}>
+                    A Word of Appreciation
+                  </p>
+
+                  {/* Appreciation text */}
+                  <div style={{
+                    fontFamily: "'Playfair Display', Georgia, serif",
+                    fontSize: 'clamp(14px, 3.5vw, 16px)',
+                    lineHeight: 1.9,
+                    color: 'rgba(245,235,200,0.88)',
+                    textAlign: 'center',
+                    fontStyle: 'italic',
+                    whiteSpace: 'pre-line',
+                    position: 'relative',
+                  }}>
+                    {text}
+                  </div>
+
+                  {/* Bottom ornament rule */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '24px' }}>
+                    <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, transparent, rgba(212,174,42,0.5))' }} />
+                    <span style={{ fontSize: '14px', color: '#D4AE2A', letterSpacing: '0.3em' }}>&#10022; &#10022; &#10022;</span>
+                    <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to left, transparent, rgba(212,174,42,0.5))' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
 
 {/* Bottom navigation */}
         <div style={{ paddingTop: '32px', borderTop: `1px solid ${t.accentFaint}`, display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center', marginTop: '16px' }}>
