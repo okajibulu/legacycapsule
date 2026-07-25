@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
       recipient_name,
       recipient_email,
       book_mode,
+      gift_deliver_at,
       source,
     } = body
 
@@ -204,6 +205,7 @@ const validFeatureIds: string[] = []
         capsule_slug,
         book_mode:       book_mode ?? 'own',
         recipient_email: recipient_email ?? '',
+        gift_deliver_at: gift_deliver_at ?? '',
         feature_ids:     validFeatureIds.join(','),  // Stripe metadata is string-only
         feature_count:   String(validFeatureIds.length),
       },

@@ -238,22 +238,42 @@ export async function POST(req: NextRequest) {
         const featureIds: string[] = metadata.feature_ids
           ? metadata.feature_ids.split(',').map((s: string) => s.trim()).filter(Boolean)
           : (metadata.package_tier ?? '').split(',').map((s: string) => s.trim()).filter(Boolean)
+        // gift_deliver_at is stored in metadata when gifter chose scheduled delivery
 
         await sendPaymentConfirmationEmail(payment_id, featureIds)
 
-        // Step 4: send gift notification if this was a gift booking
+        // Step 4: send gift notification (immediate or scheduled)
         if (metadata.book_mode === 'gift' && metadata.recipient_email && metadata.capsule_slug) {
           try {
-            await fetch(`${APP_URL}/api/email/gift-notification`, {
-              method:  'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body:    JSON.stringify({
-                recipient_email: metadata.recipient_email,
-                capsule_slug:    metadata.capsule_slug,
-                capsule_id:      metadata.capsule_id,
-                organiser_email: metadata.organiser_email,
-              }),
-            })
+            const giftDeliverAt = metadata.gift_deliver_at ?? ''
+            const isScheduled   = !!giftDeliverAt && new Date(giftDeliverAt) > new Date(Date.now() + 5 * 60 * 1000)
+
+            if (isScheduled) {
+              // Schedule via Resend scheduledAt -- no cron needed
+              await fetch(`${APP_URL}/api/email/gift-schedule`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({
+                  capsule_id:      metadata.capsule_id,
+                  capsule_slug:    metadata.capsule_slug,
+                  recipient_email: metadata.recipient_email,
+                  gift_deliver_at: giftDeliverAt,
+                  organiser_email: metadata.organiser_email,
+                }),
+              })
+            } else {
+              // Send immediately
+              await fetch(`${APP_URL}/api/email/gift-notification`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({
+                  recipient_email: metadata.recipient_email,
+                  capsule_slug:    metadata.capsule_slug,
+                  capsule_id:      metadata.capsule_id,
+                  organiser_email: metadata.organiser_email,
+                }),
+              })
+            }
           } catch (giftErr) {
             console.error('[stripe webhook] Gift notification failed:', giftErr)
           }
