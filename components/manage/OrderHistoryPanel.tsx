@@ -1,14 +1,17 @@
 'use client'
 
-// ─────────────────────────────────────────────────────────────────────────────
 // FILE: components/manage/OrderHistoryPanel.tsx
 // PURPOSE: Shows payment order history in the manage dashboard Settings tab.
 //          Displays each order: services purchased, amount, date, status, processor.
 //          Reads from /api/capsule/orders.
-// BUILT BY: AI12 · Claude Opus 4.6 · 21 July 2026
-// ─────────────────────────────────────────────────────────────────────────────
+// UPDATED: AI13 - Claude Opus 4.6 - 22 July 2026
+//   -- Amount display fixed (divided by 100 -- was showing minor units)
+//   -- Total spend in summary also fixed
+//   -- expires_at field added to Order interface and display
 
-// ═══ SECTION 1 — Types & tokens ═══
+// ============================================================
+// SECTION 1 -- Types & tokens
+// ============================================================
 
 import { useState, useEffect } from 'react'
 
@@ -21,6 +24,7 @@ interface Order {
   status:     string
   paid_at:    string | null
   created_at: string
+  expires_at: string | null
   features:   string[]
   region:     string | null
 }
@@ -40,22 +44,42 @@ const cardBorder  = 'rgba(226,195,107,0.12)'
 const textPrimary = 'rgba(255,255,255,0.92)'
 const textFaint   = 'rgba(255,255,255,0.28)'
 
-// ═══ SECTION 2 — Helpers ═══
+// ============================================================
+// SECTION 2 -- Helpers
+// ============================================================
 
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '—'
+  if (!dateStr) return '--'
   return new Date(dateStr).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric'
+    day: 'numeric', month: 'short', year: 'numeric',
   })
+}
+
+function formatAmount(minor: number): string {
+  const major = minor / 100
+  return major % 1 === 0
+    ? major.toLocaleString()
+    : major.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function isExpired(expiresAt: string | null): boolean {
+  if (!expiresAt) return false
+  return new Date(expiresAt) < new Date()
+}
+
+function isExpiringSoon(expiresAt: string | null): boolean {
+  if (!expiresAt) return false
+  const days = (new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  return days > 0 && days <= 30
 }
 
 function StatusBadge({ status }: { status: string }) {
   const isPaid    = status === 'paid' || status === 'succeeded'
   const isPending = status === 'pending'
-  const color     = isPaid ? 'rgba(134,239,172,0.8)' : isPending ? 'rgba(226,195,107,0.7)' : 'rgba(248,113,113,0.7)'
-  const bg        = isPaid ? 'rgba(74,222,128,0.08)' : isPending ? 'rgba(226,195,107,0.08)' : 'rgba(248,113,113,0.08)'
-  const border    = isPaid ? 'rgba(74,222,128,0.2)' : isPending ? 'rgba(226,195,107,0.2)' : 'rgba(248,113,113,0.2)'
-  const label     = isPaid ? 'Paid' : isPending ? 'Pending' : status
+  const color  = isPaid ? 'rgba(134,239,172,0.8)' : isPending ? 'rgba(226,195,107,0.7)' : 'rgba(248,113,113,0.7)'
+  const bg     = isPaid ? 'rgba(74,222,128,0.08)'  : isPending ? 'rgba(226,195,107,0.08)' : 'rgba(248,113,113,0.08)'
+  const border = isPaid ? 'rgba(74,222,128,0.2)'   : isPending ? 'rgba(226,195,107,0.2)'  : 'rgba(248,113,113,0.2)'
+  const label  = isPaid ? 'Paid' : isPending ? 'Pending' : status
 
   return (
     <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, padding: '3px 8px', borderRadius: '20px', background: bg, border: `1px solid ${border}`, color, flexShrink: 0 }}>
@@ -64,7 +88,22 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-// ═══ SECTION 3 — Main component ═══
+function ExpiryBadge({ expiresAt }: { expiresAt: string | null }) {
+  if (!expiresAt) return null
+  const expired = isExpired(expiresAt)
+  const soon    = isExpiringSoon(expiresAt)
+  if (!expired && !soon) return null
+
+  return (
+    <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' as const, padding: '3px 8px', borderRadius: '20px', background: expired ? 'rgba(248,113,113,0.08)' : 'rgba(251,191,36,0.08)', border: `1px solid ${expired ? 'rgba(248,113,113,0.25)' : 'rgba(251,191,36,0.25)'}`, color: expired ? 'rgba(248,113,113,0.8)' : 'rgba(251,191,36,0.8)', flexShrink: 0 }}>
+      {expired ? 'Expired' : `Expires ${formatDate(expiresAt)}`}
+    </span>
+  )
+}
+
+// ============================================================
+// SECTION 3 -- Main component
+// ============================================================
 
 export default function OrderHistoryPanel({ capsuleId }: { capsuleId: string }) {
   const [orders,  setOrders]  = useState<Order[]>([])
@@ -88,7 +127,7 @@ export default function OrderHistoryPanel({ capsuleId }: { capsuleId: string }) 
     return (
       <div style={{ padding: '20px', textAlign: 'center' as const }}>
         <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid rgba(226,195,107,0.2)`, borderTopColor: gold, animation: 'spin 0.8s linear infinite', margin: '0 auto 8px' }} />
-        <p style={{ fontSize: '11px', color: textFaint }}>Loading order history…</p>
+        <p style={{ fontSize: '11px', color: textFaint }}>Loading order history...</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )
@@ -111,12 +150,12 @@ export default function OrderHistoryPanel({ capsuleId }: { capsuleId: string }) 
 
   return (
     <div>
-      {/* ── Summary strip ── */}
+      {/* Summary strip */}
       {summary && summary.total_paid > 0 && (
         <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
           <div style={{ flex: 1, padding: '12px 14px', borderRadius: '10px', background: goldFaint, border: `1px solid ${cardBorder}`, textAlign: 'center' as const }}>
             <p style={{ fontSize: '18px', fontWeight: 800, color: gold, margin: '0 0 2px', fontFamily: "'Playfair Display', serif" }}>
-              {summary.symbol}{summary.total_paid.toLocaleString()}
+              {summary.symbol}{formatAmount(summary.total_paid)}
             </p>
             <p style={{ fontSize: '9px', color: textFaint, margin: 0, textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>Total Spent</p>
           </div>
@@ -124,19 +163,21 @@ export default function OrderHistoryPanel({ capsuleId }: { capsuleId: string }) 
             <p style={{ fontSize: '18px', fontWeight: 800, color: textPrimary, margin: '0 0 2px', fontFamily: "'Playfair Display', serif" }}>
               {summary.total_orders}
             </p>
-            <p style={{ fontSize: '9px', color: textFaint, margin: 0, textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>Order{summary.total_orders !== 1 ? 's' : ''}</p>
+            <p style={{ fontSize: '9px', color: textFaint, margin: 0, textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
+              Order{summary.total_orders !== 1 ? 's' : ''}
+            </p>
           </div>
         </div>
       )}
 
-      {/* ── Order list ── */}
+      {/* Order list */}
       <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
         {orders.map(order => (
           <div key={order.id} style={{ borderRadius: '12px', border: `1px solid ${cardBorder}`, background: cardBg, overflow: 'hidden' }}>
-            {/* Order header */}
             <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+
+              {/* Left -- features + meta */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                {/* Features */}
                 {order.features.length > 0 ? (
                   <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '4px', marginBottom: '6px' }}>
                     {order.features.map(f => (
@@ -150,26 +191,39 @@ export default function OrderHistoryPanel({ capsuleId }: { capsuleId: string }) 
                 )}
 
                 {/* Meta row */}
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as const, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' as const, alignItems: 'center' }}>
                   <span style={{ fontSize: '10px', color: textFaint }}>
                     {order.paid_at ? `Paid ${formatDate(order.paid_at)}` : `Created ${formatDate(order.created_at)}`}
                   </span>
                   <span style={{ fontSize: '10px', color: textFaint, textTransform: 'capitalize' as const }}>
-                    {order.processor === 'stripe' ? '💳 Card' : order.processor === 'paystack' ? '🏦 Paystack' : order.processor}
+                    {order.processor === 'stripe' ? 'Card' : order.processor === 'paystack' ? 'Paystack' : order.processor}
                   </span>
                   {order.region && (
                     <span style={{ fontSize: '10px', color: textFaint }}>{order.region}</span>
                   )}
                 </div>
+
+                {/* Expiry row */}
+                {order.expires_at && (
+                  <div style={{ marginTop: '6px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <ExpiryBadge expiresAt={order.expires_at} />
+                    {!isExpired(order.expires_at) && !isExpiringSoon(order.expires_at) && (
+                      <span style={{ fontSize: '10px', color: textFaint }}>
+                        Expires {formatDate(order.expires_at)}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Amount + status */}
+              {/* Right -- amount + status */}
               <div style={{ flexShrink: 0, textAlign: 'right' as const }}>
                 <p style={{ fontSize: '15px', fontWeight: 800, color: textPrimary, margin: '0 0 4px', fontFamily: "'Playfair Display', serif" }}>
-                  {order.symbol}{order.amount.toLocaleString()}
+                  {order.symbol}{formatAmount(order.amount)}
                 </p>
                 <StatusBadge status={order.status} />
               </div>
+
             </div>
           </div>
         ))}
