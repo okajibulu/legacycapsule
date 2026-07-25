@@ -466,7 +466,7 @@ function BookPage() {
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
                   <span style={{ fontSize: '15px', fontWeight: 700, color: textPrimary }}>Book a Capsule</span>
-                  <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: '20px', border: '1px solid rgba(226,195,107,0.25)', color: 'rgba(226,195,107,0.75)', background: 'rgba(255,255,255,0.02)' }}>Premium</span>
+                  <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: '20px', border: '1px solid rgba(226,195,107,0.25)', color: 'rgba(226,195,107,0.75)', background: 'rgba(255,255,255,0.02)' }}>With Add-ons</span>
                 </div>
                 <p style={{ fontSize: '13px', color: textSecondary, lineHeight: 1.6, margin: 0 }}>Choose your services upfront and pay once. Perfect for planning ahead or gifting to someone special.</p>
               </div>

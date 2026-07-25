@@ -1,28 +1,31 @@
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // FILE: app/api/checkout/bundle/route.ts
 // PURPOSE: Single Stripe checkout session for multiple feature purchases.
 //          Used by Book a Capsule journey (Screen 3 services selector).
 //          Creates one Stripe session with multiple line items.
 //          Payment record stores comma-separated feature keys.
 //          featureUnlocker handles all activations on webhook.
-// UPDATED: Claude Sonnet 4.6 · July 2026
-//   — Fixed: price.stripe_currency → derived from price.currency
-//   — Fixed: price.amount_for_stripe → computed from price.amount + currency
-//   — Fixed: ways_to_honour label updated to Gift of Honour
-//   — Added: access_codes, additional_phase to FEATURE_LABELS
+// UPDATED: Claude Sonnet 4.6 - July 2026
+//   - Fixed: price.stripe_currency - derived from price.currency
+//   - Fixed: price.amount_for_stripe - computed from price.amount + currency
+//   - Fixed: ways_to_honour label updated to Gift of Honour
+//   - Added: access_codes, additional_phase to FEATURE_LABELS
 // ARCHITECTURE: LC04 Payment Engine
-// BUILT BY: Claude Sonnet 4.6 · July 2026
-// ─────────────────────────────────────────────────────────────────────────────
+// UPDATED: AI13 - Claude Opus 4.6 - 22 July 2026
+//   -- detectRegion(ip) replaced with detectRegionFromHeaders (B2 currency fix)
+//   -- ways_to_honour label updated to Gifting
+// BUILT BY: Claude Sonnet 4.6 - July 2026
+// -----------------------------------------------------------------------------
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@supabase/supabase-js'
 import Stripe                        from 'stripe'
-import { detectRegion }              from '@/lib/payments/regionDetector'
+import { detectRegionFromHeaders }   from '@/lib/payments/regionDetector'
 import { getRegionalPrice }          from '@/lib/payments/priceFetcher'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SECTION 1 — Clients
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// SECTION 1 - Clients
+// -----------------------------------------------------------------------------
 
 const db = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,14 +38,14 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SECTION 2 — Feature label map (for Stripe line item display)
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// SECTION 2 - Feature label map (for Stripe line item display)
+// -----------------------------------------------------------------------------
 
 const FEATURE_LABELS: Record<string, string> = {
   audio_tributes:    'Voice Tributes',
   video_tributes:    'Video Tributes',
-  ways_to_honour:    'Gift of Honour',
+  ways_to_honour:    'Gifting',
   publication:       'Digital Publication',
   guest_management:  'Guest Management & Seating',
   attire:            'Fabric & Attire',
@@ -52,11 +55,11 @@ const FEATURE_LABELS: Record<string, string> = {
   additional_phase:  'Additional Event Phase',
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SECTION 3 — Currency helpers
+// -----------------------------------------------------------------------------
+// SECTION 3 - Currency helpers
 // Stripe requires amounts in minor units (cents/kobo) for most currencies.
-// NGN is NOT a zero-decimal currency — amounts in kobo (x100).
-// ─────────────────────────────────────────────────────────────────────────────
+// NGN is NOT a zero-decimal currency - amounts in kobo (x100).
+// -----------------------------------------------------------------------------
 
 /** Map RegionalPrice currency to Stripe currency code (lowercase) */
 function toStripeCurrency(currency: string): string {
@@ -73,9 +76,9 @@ function toStripeAmount(amount: number, currency: string): number {
   return Math.round(amount * 100)
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SECTION 4 — Route handler
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// SECTION 4 - Route handler
+// -----------------------------------------------------------------------------
 
 export async function POST(req: NextRequest) {
   try {
@@ -91,12 +94,12 @@ export async function POST(req: NextRequest) {
       source,
     } = body
 
-    // ── Validation ────────────────────────────────────────────────────────────
+    // -- Validation ------------------------------------------------------------
     if (!capsule_id || !capsule_slug || !feature_ids?.length) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // organiser_email can be empty string — look it up from capsule if missing
+    // organiser_email can be empty string - look it up from capsule if missing
     let email = organiser_email?.trim() || ''
     if (!email) {
       const { data: cap } = await db
@@ -107,15 +110,11 @@ export async function POST(req: NextRequest) {
       email = cap?.organiser_email ?? ''
     }
 
-    // ── Detect region ─────────────────────────────────────────────────────────
-    const ip =
-      req.headers.get('cf-connecting-ip') ??
-      req.headers.get('x-real-ip') ??
-      (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() ??
-      '0.0.0.0'
-    const zone      = await detectRegion(ip) ?? 'ROW'
+    // -- Detect region ---------------------------------------------------------
+    // Use Cloudflare header directly -- no external API call, no rate limits
+    const zone = detectRegionFromHeaders(req as unknown as Request) ?? 'ROW'
 
-    // ── Fetch prices for all selected features ────────────────────────────────
+    // -- Fetch prices for all selected features --------------------------------
     const priceResults = await Promise.allSettled(
       (feature_ids as string[]).map((id: string) => getRegionalPrice(id, zone))
     )
@@ -129,7 +128,7 @@ const validFeatureIds: string[] = []
       const result = priceResults[i]
 
       if (result.status === 'rejected' || !result.value) {
-        console.warn(`[checkout/bundle] Skipped — no published price for: ${feature_ids[i]}`)
+        console.warn(`[checkout/bundle] Skipped - no published price for: ${feature_ids[i]}`)
         continue
       }
 
@@ -151,7 +150,7 @@ const validFeatureIds: string[] = []
           currency:     stripeCurrency,
           unit_amount:  stripeAmount,
           product_data: {
-            name:        `LegacyCapsule — ${FEATURE_LABELS[feature_ids[i]] ?? feature_ids[i]}`,
+            name:        `LegacyCapsule - ${FEATURE_LABELS[feature_ids[i]] ?? feature_ids[i]}`,
             description: `Premium feature for ${capsule_slug}`,
           },
         },
@@ -166,7 +165,7 @@ const validFeatureIds: string[] = []
       )
     }
 
-    // ── Create payment record ─────────────────────────────────────────────────
+    // -- Create payment record -------------------------------------------------
     const packageTier = ['capsule_activation', ...validFeatureIds].join(',')
 
     const { data: payment, error: paymentError } = await db
@@ -194,7 +193,7 @@ const validFeatureIds: string[] = []
       throw new Error(`Failed to create payment record: ${paymentError?.message}`)
     }
 
-    // ── Create Stripe checkout session ────────────────────────────────────────
+    // -- Create Stripe checkout session ----------------------------------------
     const session = await stripe.checkout.sessions.create({
       mode:           'payment',
       customer_email: email || undefined,
