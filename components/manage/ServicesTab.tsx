@@ -11,6 +11,10 @@
  *   — Add to Cart buttons removed from ServiceCard (cleaner)
  *   — Cart bar replaced by sticky price column footer
  * Updated: AI12 · Claude Opus 4.6 · 20 July 2026
+ * Updated: AI15 · Claude Sonnet 4.6 · 26 July 2026
+ *   — guest_management ServiceCard: externalLink wired to /manage/[slug]/guests
+ *   — Inline GuestManagementSection + TableManagementSection removed
+ *   — Unused imports removed (GuestManagementSection, TableManagementSection)
  *   — event_tag added to capsule interface
  *   — honoureeName and eventTag props passed to GuestManagementSection
  *   — Voice Tributes detail: corrected to 60 seconds (was 30)
@@ -38,9 +42,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 
-import EventPhasesSection     from '@/components/manage/EventPhasesSection'
-import GuestManagementSection from '@/components/manage/GuestManagementSection'
-import TableManagementSection from '@/components/manage/TableManagementSection'
+import EventPhasesSection from '@/components/manage/EventPhasesSection'
 
 interface Contribution {
   id: string; contributor_name: string; city: string; country: string
@@ -419,8 +421,7 @@ function PriceColumn({
 // ═══ SECTION 5 — Main ServicesTab component ═══
 
 export default function ServicesTab({ capsule, approvedContributions, supabase, onUpgrade, eohEditor }: ServicesTabProps) {
-  const [tables,        setTables]        = useState<any[]>([])
-  const [phases,        setPhases]        = useState<any[]>([])
+  const [phases, setPhases] = useState<any[]>([])
   const [unlocking,     setUnlocking]     = useState<string | null>(null)
   const [featurePrices, setFeaturePrices] = useState<Record<string, { amount: number; symbol: string } | null>>({})
   const [cart,          setCart]          = useState<string[]>([])
@@ -641,6 +642,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
             description="Guest list · RSVP · Table assignment · Seating"
             icon="◉"
             status={guestMgmtActive ? 'active' : 'locked'}
+            externalLink={guestMgmtActive ? `/manage/${capsule.slug}/guests` : undefined}
             price={featurePrices['guest_management']}
             detailSummary="Everyone at your event in one place — guests, family, VIPs, vendors, media. Collect RSVPs, manage seating, and know exactly who is expected and where they'll be."
             detailPoints={[
@@ -650,22 +652,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
               'VIP and VVIP protocol — PA contacts, entourage, arrival protocol notes',
             ]}
             learnMoreUrl="/help?section=guest_management&ref=dashboard"
-          >
-            {guestMgmtActive && (
-              <>
-                <TableManagementSection capsuleId={capsule.id} onTablesChange={setTables} />
-                <div style={{ height: '1px', background: 'rgba(255,255,255,0.04)', margin: '12px 0' }} />
-                <GuestManagementSection
-                  capsuleId={capsule.id}
-                  capsuleSlug={capsule.slug}
-                  honoureeName={capsule.honouree_name}
-                  eventTag={capsule.event_tag ?? null}
-                  tables={tables}
-                  phases={phases}
-                />
-              </>
-            )}
-          </ServiceCard>
+          />
 
           {/* ── Access Codes — priceRows[1] ── */}
           <ServiceCard
