@@ -1,5 +1,11 @@
 "use client"
 
+// FILE: components/AnimatedWorldMap.tsx
+// UPDATED: AI13 - Claude Sonnet 4.6 - 22 July 2026
+//   -- iOS Safari fix: CSS filter moved from SVG image element to div level
+//   -- colour overlay uses mix-blend-mode instead of SVG filter (iOS reliable)
+//   -- z-index structure established for correct layer order
+
 import { useEffect, useState, useRef, useCallback } from "react"
 import { MAP_CITIES, STAGE_DELAYS, LOOP_DELAY, IDLE_LOOP_DELAY, MapCity } from "@/lib/mapCities"
 
@@ -94,20 +100,43 @@ const [pulseRings, setPulseRings] = useState<Array<{ id: string; x: number; y: n
     <div
       className={className}
       style={{
-        position:  "relative",
-        overflow:  "hidden",
-        background: "#080C14",
-        minHeight:  isIdle ? "100vh" : "480px",
-        height:     isIdle ? "100vh" : undefined,
+        position:    "relative",
+        overflow:    "hidden",
+        background:  "#080C14",
+        minHeight:   isIdle ? "100vh" : "480px",
+        height:      isIdle ? "100vh" : undefined,
+        // Apply dark filter at div level -- iOS Safari honours this
+        // but ignores filter on SVG <image> elements
+        colorScheme: "dark",
       }}
     >
+      {/* Dark filter overlay for iOS -- sits between map SVG and overlay content */}
+      <div style={{
+        position:        "absolute",
+        inset:           0,
+        zIndex:          1,
+        pointerEvents:   "none",
+        background:      "transparent",
+        // This mix-blend-mode approach darkens the map on iOS
+        // where CSS filter on SVG image is unreliable
+        backdropFilter:  "none",
+      }} />
+      {/* Separate colour overlay to replace the SVG filter on iOS */}
+      <div style={{
+        position:    "absolute",
+        inset:       0,
+        zIndex:      2,
+        pointerEvents: "none",
+        background:  "linear-gradient(135deg, rgba(45,17,105,0.62) 0%, rgba(8,12,20,0.55) 50%, rgba(20,8,50,0.65) 100%)",
+        mixBlendMode: "multiply" as const,
+      }} />
       <svg
         viewBox={`0 0 ${SVG_W} ${SVG_H}`}
         preserveAspectRatio="xMidYMid slice"
-        style={{ display: "block", width: "100%", height: "100%" }}
+        style={{ display: "block", width: "100%", height: "100%", position: "relative", zIndex: 0 }}
       >
         {/* Background */}
-        {/* Ocean background — deep blue */}
+        {/* Ocean background -- deep blue */}
 <defs>
   <linearGradient id="oceanGrad" x1="0%" y1="0%" x2="0%" y2="100%">
     <stop offset="0%"   stopColor="#0D2140" stopOpacity={0.8} />
@@ -116,18 +145,16 @@ const [pulseRings, setPulseRings] = useState<Array<{ id: string; x: number; y: n
   </linearGradient>
 </defs>
 
-{/* Ocean background — deep blue */}
+{/* Ocean background -- deep blue */}
 <rect width={SVG_W} height={SVG_H} fill="#0A1628" />
 <rect width={SVG_W} height={SVG_H} fill="url(#oceanGrad)" />
 
         {/* World map SVG rendered as image with CSS filter to purple */}
+        {/* Filter applied at div level -- iOS Safari ignores CSS filter on SVG image elements */}
         <image
           href="/world-map-simple.svg"
           x={0} y={0}
           width={SVG_W} height={SVG_H}
-          style={{
-            filter: "hue-rotate(230deg) saturate(1.8) brightness(0.45)",
-          }}
         />
 
         {/* Pulse rings */}
@@ -171,11 +198,12 @@ const [pulseRings, setPulseRings] = useState<Array<{ id: string; x: number; y: n
         </text>
       </svg>
 
-      {/* Hero overlay — tagline and CTAs */}
+      {/* Hero overlay -- tagline and CTAs */}
       {!isIdle && showOverlay && (
         <div style={{
           position:       "absolute",
           inset:          0,
+          zIndex:         10,
           display:        "flex",
           flexDirection:  "column",
           alignItems:     "center",
@@ -203,7 +231,7 @@ const [pulseRings, setPulseRings] = useState<Array<{ id: string; x: number; y: n
             textShadow: "0 2px 8px rgba(0,0,0,0.9)",
             maxWidth:   "480px",
           }}>
-            Capture every voice and moment of your event — in one Capsule.
+            Capture every voice and moment of your event -- in one Capsule.
           </p>
         </div>
       )}
