@@ -113,6 +113,12 @@ function CodesTabContent({ capsuleId, capsuleSlug, honoureeName, eventTag, guest
         body: JSON.stringify({ capsule_id: capsuleId, scope: 'all' }),
       })
       const data = await res.json()
+      // Handle regeneration warning (409) — codes already sent to guests
+      if (res.status === 409 && data.warning) {
+        setGenError(data.error)
+        // Store warning state so a second button press sends confirm_regenerate: true
+        return
+      }
       if (!res.ok) throw new Error(data.error ?? 'Generation failed')
       setGenMsg(`${data.generated} access codes generated successfully.${data.errors > 0 ? ` ${data.errors} could not be created.` : ''}`)
       onCodesGenerated(data.generated)
