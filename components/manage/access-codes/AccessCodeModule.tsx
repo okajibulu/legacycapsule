@@ -16,6 +16,7 @@
 
 import { useState, useEffect }       from 'react'
 import AccessCodeSetup               from '@/components/manage/access-codes/AccessCodeSetup'
+import SectionManager                from '@/components/manage/access-codes/SectionManager'
 import GuestCodeList                 from '@/components/manage/access-codes/GuestCodeList'
 import { UsherSessionManager }       from '@/components/manage/access-codes/UsherSessionManager'
 import { AccessMetricsDashboard }    from '@/components/manage/access-codes/AccessMetricsDashboard'
@@ -186,6 +187,7 @@ export default function AccessCodeModule({
   const [codeCount,      setCodeCount]      = useState(0)
   const [configLoading,  setConfigLoading]  = useState(true)
   const [tipDismissed,   setTipDismissed]   = useState<Record<string, boolean>>({})
+  const [configVersion,  setConfigVersion]  = useState(0)
 
   // ── Check configuration and code status on mount ───────────────────────────
 
@@ -470,6 +472,7 @@ export default function AccessCodeModule({
                 eventDate={eventDate}
                 onActivated={() => {
                   setIsConfigured(true)
+                  setConfigVersion(v => v + 1)
                   setActiveTab('codes')
                 }}
               />
@@ -491,6 +494,13 @@ export default function AccessCodeModule({
                     activated, add guests there first — they will appear here
                     automatically.
                   </p>
+                </div>
+              )}
+
+              {/* Section/table/zone manager — appears after config is saved */}
+              {isConfigured && (
+                <div style={{ marginTop: '20px' }}>
+                  <SectionManager capsuleId={capsuleId} key={configVersion} />
                 </div>
               )}
             </div>
