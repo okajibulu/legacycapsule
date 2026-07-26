@@ -1,17 +1,17 @@
 "use client"
 
-/* ============================================================
-   HOMEPAGE — LegacyCapsule
-   Sections:
-   1. Hero — animated world map, tagline, dual CTA
-   2. Emotional promise — one paragraph
-   3. Three pillars — visual
-   4. Event type showcase — rotating
-   5. Social proof strip
-   6. Audience routing — 5 cards (3+2 grid)
-   7. How it works — 3 steps
-   8. Final CTA
-   ============================================================ */
+// ============================================================
+// FILE PATH: app/page.tsx
+// PURPOSE:   LegacyCapsule public homepage. Hero, pillars, stats, event types, how it works, showcase, CTA.
+// ARCHITECTURE: LC00
+// BUILT BY:  AI10
+// UPDATED:   AI13 - Claude Sonnet 4.6
+// VERSION:   v2.1.6
+// DATE:      22 July 2026
+// ============================================================
+// SECTIONS:
+//   See sub-section headers (// === SECTION N) within file
+// ============================================================
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
@@ -353,14 +353,15 @@ export default function HomePage() {
     pointerEvents: "none",
   }} />
 
-  {/* Bottom fade to next section */}
+  {/* Bottom fade to next section -- kept tight to avoid swallowing CTAs */}
   <div style={{
     position:      "absolute",
     bottom:        0,
     left:          0,
     right:         0,
-    height:        "30%",
-background: "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",    pointerEvents: "none",
+    height:        "10%",
+    background:    "linear-gradient(to top, var(--lc-ivory) 0%, transparent 100%)",
+    pointerEvents: "none",
   }} />
 
   {/* Hero content — centred */}

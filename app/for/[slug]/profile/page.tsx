@@ -1,15 +1,15 @@
-/**
- * ============================================================
- * app/for/[slug]/profile/page.tsx
- *
- * Changes v1.2.6 (AI6):
- *   - T2: Expression of Honour section removed entirely.
- *     EOH lives only on the tribute wall going forward.
- *     Removed: supportRes query, supportAccounts, hasWaysToHonour,
- *     maskAccountNumber, WaysToHonourCard import,
- *     getWaysToHonourLabel, getGiftAcknowledgeLabel imports.
- * ============================================================
- */
+// ============================================================
+// FILE PATH: app/for/[slug]/profile/page.tsx
+// PURPOSE:   Public profile page — honouree biography, sections, appreciation plaque. Server component.
+// ARCHITECTURE: LC02
+// BUILT BY:  AI6
+// UPDATED:   AI13 - Claude Sonnet 4.6
+// VERSION:   v2.1.1
+// DATE:      22 July 2026
+// ============================================================
+// SECTIONS:
+//   See sub-section headers (// === SECTION N) within file
+// ============================================================
 
 import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'

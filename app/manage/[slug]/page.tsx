@@ -1,10 +1,17 @@
 'use client'
 
-/* =========================================================
-   ORGANISER CONTROL DASHBOARD -- app/manage/[slug]/page.tsx -- v2
-   Full section editor · Style picker · Arrow reorder
-   Theme-aware · Premium workspace aesthetic
-========================================================= */
+// ============================================================
+// FILE PATH: app/manage/[slug]/page.tsx
+// PURPOSE:   Organiser control dashboard. Section editor, style picker, services, orders, settings.
+// ARCHITECTURE: LC02 LC04
+// BUILT BY:  AI10
+// UPDATED:   AI13 - Claude Sonnet 4.6
+// VERSION:   v2.1.1
+// DATE:      22 July 2026
+// ============================================================
+// SECTIONS:
+//   See sub-section headers (// === SECTION N) within file
+// ============================================================
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams } from 'next/navigation'
