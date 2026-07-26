@@ -789,6 +789,7 @@ export default function GuestManagementSection({
           <AccessCodeSetup
             capsuleId={capsuleId}
             guestCount={guests.length}
+            eventDate={null}
             onActivated={() => setCodesGenerated(true)}
           />
 

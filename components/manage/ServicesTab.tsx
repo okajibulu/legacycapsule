@@ -675,6 +675,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
             description="Personal entry codes · Usher check-in · Live arrivals"
             icon="🔐"
             status={accessCodesActive ? 'active' : 'locked'}
+            externalLink={accessCodesActive ? `/manage/${capsule.slug}/access` : undefined}
             price={featurePrices['access_codes']}
             detailSummary="Give every guest a personal entry code. Your team checks guests in on the day with a simple scan on any phone. When a VIP arrives, you know immediately."
             detailPoints={[
@@ -684,27 +685,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
               'Live arrivals dashboard with VVIP outstanding list',
             ]}
             learnMoreUrl="/help?section=access_codes&ref=dashboard"
-          >
-            {/* Access Codes tab lives inside GuestManagementSection.
-                When access_codes is active but guest_management is not,
-                render a standalone GuestManagementSection so the
-                Codes, Ushers, and Metrics tabs are accessible. */}
-            {accessCodesActive && !guestMgmtActive && (
-              <GuestManagementSection
-                capsuleId={capsule.id}
-                capsuleSlug={capsule.slug}
-                honoureeName={capsule.honouree_name}
-                eventTag={capsule.event_tag ?? null}
-                tables={[]}
-                phases={phases}
-              />
-            )}
-            {accessCodesActive && guestMgmtActive && (
-              <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.65, padding: '4px 0' }}>
-                Access codes are managed inside Guest Management above — including code generation, usher PINs, access passes, and live arrival metrics.
-              </p>
-            )}
-          </ServiceCard>
+          />
 
           {/* ── Gift of Honour — priceRows[2] ── */}
           <ServiceCard
