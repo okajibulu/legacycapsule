@@ -19,6 +19,7 @@ import AccessCodeSetup               from '@/components/manage/access-codes/Acce
 import SectionManager                from '@/components/manage/access-codes/SectionManager'
 import GuestCodeList                 from '@/components/manage/access-codes/GuestCodeList'
 import { UsherSessionManager }       from '@/components/manage/access-codes/UsherSessionManager'
+import BulkGuestImport               from '@/components/manage/access-codes/BulkGuestImport'
 import { AccessMetricsDashboard }    from '@/components/manage/access-codes/AccessMetricsDashboard'
 
 interface Props {
@@ -509,6 +510,21 @@ export default function AccessCodeModule({
                   <SectionManager capsuleId={capsuleId} key={configVersion} />
                 </div>
               )}
+
+              {/* Bulk guest import — always available in Setup tab */}
+              <div style={{
+                marginTop: '24px',
+                paddingTop: '20px',
+                borderTop: '1px solid rgba(255,255,255,0.05)',
+              }}>
+                <BulkGuestImport
+                  capsuleId={capsuleId}
+                  onImported={(count) => {
+                    // Refresh guest count badge in header
+                    window.location.reload()
+                  }}
+                />
+              </div>
             </div>
           )}
 
