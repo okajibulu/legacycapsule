@@ -105,31 +105,10 @@ const [pulseRings, setPulseRings] = useState<Array<{ id: string; x: number; y: n
         background:  "#080C14",
         minHeight:   isIdle ? "100vh" : "480px",
         height:      isIdle ? "100vh" : undefined,
-        // Apply dark filter at div level -- iOS Safari honours this
-        // but ignores filter on SVG <image> elements
         colorScheme: "dark",
       }}
     >
-      {/* Dark filter overlay for iOS -- sits between map SVG and overlay content */}
-      <div style={{
-        position:        "absolute",
-        inset:           0,
-        zIndex:          1,
-        pointerEvents:   "none",
-        background:      "transparent",
-        // This mix-blend-mode approach darkens the map on iOS
-        // where CSS filter on SVG image is unreliable
-        backdropFilter:  "none",
-      }} />
-      {/* Separate colour overlay to replace the SVG filter on iOS */}
-      <div style={{
-        position:    "absolute",
-        inset:       0,
-        zIndex:      2,
-        pointerEvents: "none",
-        background:  "linear-gradient(135deg, rgba(45,17,105,0.62) 0%, rgba(8,12,20,0.55) 50%, rgba(20,8,50,0.65) 100%)",
-        mixBlendMode: "multiply" as const,
-      }} />
+
       <svg
         viewBox={`0 0 ${SVG_W} ${SVG_H}`}
         preserveAspectRatio="xMidYMid slice"
@@ -150,11 +129,33 @@ const [pulseRings, setPulseRings] = useState<Array<{ id: string; x: number; y: n
 <rect width={SVG_W} height={SVG_H} fill="url(#oceanGrad)" />
 
         {/* World map SVG rendered as image with CSS filter to purple */}
-        {/* Filter applied at div level -- iOS Safari ignores CSS filter on SVG image elements */}
+        {/* SVG feColorMatrix filter -- works on iOS Safari unlike CSS filter on SVG image */}
+        <defs>
+          <filter id="mapDarkFilter" colorInterpolationFilters="sRGB">
+            {/* Step 1: desaturate */}
+            <feColorMatrix type="saturate" values="0.3" result="desat" />
+            {/* Step 2: darken significantly */}
+            <feColorMatrix
+              in="desat"
+              type="matrix"
+              values="0.15 0    0    0 0.04
+                      0    0.12 0    0 0.04
+                      0    0    0.25 0 0.08
+                      0    0    0    1 0"
+            />
+          </filter>
+        </defs>
         <image
           href="/world-map-simple.svg"
           x={0} y={0}
           width={SVG_W} height={SVG_H}
+          filter="url(#mapDarkFilter)"
+        />
+        {/* Purple tint overlay rect -- sits above the darkened map image */}
+        <rect
+          width={SVG_W} height={SVG_H}
+          fill="rgba(45,17,105,0.35)"
+          style={{ mixBlendMode: "screen" as unknown as undefined }}
         />
 
         {/* Pulse rings */}
@@ -203,7 +204,7 @@ const [pulseRings, setPulseRings] = useState<Array<{ id: string; x: number; y: n
         <div style={{
           position:       "absolute",
           inset:          0,
-          zIndex:         10,
+          zIndex:         20,
           display:        "flex",
           flexDirection:  "column",
           alignItems:     "center",
