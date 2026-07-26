@@ -130,6 +130,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     invited_phases?: string[]
     dietary_requirements?: string
     table_id?: string
+    circle_id?: string
+    invited_by?: string
+    household_size?: number
   }
 
   try {
@@ -168,6 +171,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       rsvp_status: 'pending',
       dietary_requirements: body.dietary_requirements?.trim() || null,
       table_id: body.table_id || null,
+      circle_id: body.circle_id || null,
+      invited_by: body.invited_by?.trim() || null,
+      household_size: body.household_size ?? 1,
     })
     .select('id, access_code')
     .single()
@@ -216,6 +222,9 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
   if (body.dietary_requirements !== undefined) updates.dietary_requirements = body.dietary_requirements?.trim() || null
   if (body.table_id !== undefined) updates.table_id = body.table_id || null
   if (body.rsvp_status !== undefined) updates.rsvp_status = body.rsvp_status
+  if ((body as any).circle_id !== undefined) updates.circle_id = (body as any).circle_id || null
+  if ((body as any).invited_by !== undefined) updates.invited_by = (body as any).invited_by?.trim() || null
+  if ((body as any).household_size !== undefined) updates.household_size = (body as any).household_size ?? 1
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'No fields to update.' }, { status: 400 })
