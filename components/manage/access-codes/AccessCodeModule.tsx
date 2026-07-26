@@ -15,6 +15,7 @@
 // ═══ SECTION 1 — Imports & types ═══
 
 import { useState, useEffect }       from 'react'
+import { useRouter }                  from 'next/navigation'
 import AccessCodeSetup               from '@/components/manage/access-codes/AccessCodeSetup'
 import SectionManager                from '@/components/manage/access-codes/SectionManager'
 import GuestCodeList                 from '@/components/manage/access-codes/GuestCodeList'
@@ -195,6 +196,7 @@ export default function AccessCodeModule({
   const [configLoading,  setConfigLoading]  = useState(true)
   const [tipDismissed,   setTipDismissed]   = useState<Record<string, boolean>>({})
   const [configVersion,  setConfigVersion]  = useState(0)
+  const router = useRouter()
 
   // ── Check configuration and code status on mount ───────────────────────────
 
@@ -543,6 +545,24 @@ export default function AccessCodeModule({
                   setCodeCount(count)
                 }}
               />
+            {/* Print cards link — shown when codes exist */}
+            {codesExist && (
+              <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <button
+                  onClick={() => router.push(`/manage/${capsuleSlug}/access/cards/print`)}
+                  style={{
+                    width: '100%', padding: '10px', borderRadius: '10px',
+                    border: '1px solid rgba(226,195,107,0.2)',
+                    background: 'rgba(226,195,107,0.04)',
+                    color: 'rgba(226,195,107,0.7)', fontSize: '12px',
+                    fontWeight: 600, cursor: 'pointer',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  🖨 Print Access Cards
+                </button>
+              </div>
+            )}
             </div>
           )}
 
