@@ -114,6 +114,19 @@ const [pulseRings, setPulseRings] = useState<Array<{ id: string; x: number; y: n
         preserveAspectRatio="xMidYMid slice"
         style={{ display: "block", width: "100%", height: "100%", position: "relative", zIndex: 0 }}
       >
+        {/* Inline keyframes -- iOS Safari does not apply external CSS animations to SVG elements */}
+        <style>{`
+          @keyframes pulseRing {
+            0%   { r: 0;  opacity: 0.7; }
+            70%  { r: 18; opacity: 0.2; }
+            100% { r: 24; opacity: 0;   }
+          }
+          @keyframes pulseRingLarge {
+            0%   { r: 0;  opacity: 0.6; }
+            70%  { r: 28; opacity: 0.15; }
+            100% { r: 38; opacity: 0;   }
+          }
+        `}</style>
         {/* Background */}
         {/* Ocean background -- deep blue */}
 <defs>
@@ -138,9 +151,9 @@ const [pulseRings, setPulseRings] = useState<Array<{ id: string; x: number; y: n
             <feColorMatrix
               in="desat"
               type="matrix"
-              values="0.15 0    0    0 0.04
-                      0    0.12 0    0 0.04
-                      0    0    0.25 0 0.08
+              values="0.18 0    0    0 0.06
+                      0    0.14 0    0 0.05
+                      0    0    0.32 0 0.14
                       0    0    0    1 0"
             />
           </filter>
@@ -154,7 +167,7 @@ const [pulseRings, setPulseRings] = useState<Array<{ id: string; x: number; y: n
         {/* Purple tint overlay rect -- sits above the darkened map image */}
         <rect
           width={SVG_W} height={SVG_H}
-          fill="rgba(45,17,105,0.35)"
+          fill="rgba(55,20,120,0.45)"
           style={{ mixBlendMode: "screen" as unknown as undefined }}
         />
 
