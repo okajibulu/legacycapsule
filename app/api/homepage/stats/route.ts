@@ -35,6 +35,9 @@ export async function GET() {
 
     // ── 2.1 Read qualification config + platform stats in parallel ───────────
 
+    console.log('[homepage/stats] ecosystem URL present:', !!process.env.NEXT_PUBLIC_RW_ECOSYSTEM_URL)
+    console.log('[homepage/stats] ecosystem key present:', !!process.env.RW_ECOSYSTEM_SERVICE_ROLE_KEY)
+
     const [configRes, tributeRes, capsuleRes] = await Promise.all([
 
       ecosystem
@@ -64,6 +67,8 @@ export async function GET() {
 
     // ── 2.2 Parse config values ───────────────────────────────────────────────
 
+    console.log('[homepage/stats] configRes:', JSON.stringify(configRes))
+
     const configMap: Record<string, string> = {}
     for (const row of configRes.data ?? []) configMap[row.config_key] = row.value
 
@@ -85,9 +90,7 @@ export async function GET() {
       .order('showcase_qualified_at', { ascending: false })
       .limit(10)
 
-    if (adminErr) {
-      console.error('[homepage/stats] admin featured query failed:', adminErr)
-    }
+    console.log('[homepage/stats] adminFeatured:', JSON.stringify(adminFeatured), 'adminErr:', JSON.stringify(adminErr))
 
     const adminList = adminFeatured ?? []
 
