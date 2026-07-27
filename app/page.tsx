@@ -46,20 +46,22 @@ const ROTATING_LINES = [
 // HOMEPAGE LIVE DATA
 // ============================================================
 function useHomepageData() {
-  const [stats,    setStats]    = useState<Record<string, string>>({})
-  const [featured, setFeatured] = useState<any[]>([])
+  const [stats,     setStats]     = useState<Record<string, string>>({})
+  const [featured,  setFeatured]  = useState<any[]>([])
+  const [clickable, setClickable] = useState<boolean>(false)
 
   useEffect(() => {
     fetch('/api/homepage/stats')
       .then(r => r.json())
       .then(d => {
-        if (d.stats)    setStats(d.stats)
-        if (d.featured) setFeatured(d.featured)
+        if (d.stats)                setStats(d.stats)
+        if (d.featured)             setFeatured(d.featured)
+        if (d.clickable !== undefined) setClickable(d.clickable)
       })
       .catch(() => {}) // silent -- homepage must never break
   }, [])
 
-  return { stats, featured }
+  return { stats, featured, clickable }
 }
 
 function RotatingEventType() {
@@ -325,7 +327,7 @@ const STEPS = [
    MAIN PAGE COMPONENT
    ============================================================ */
 export default function HomePage() {
-  const { stats, featured } = useHomepageData()
+  const { stats, featured, clickable } = useHomepageData()
 
   return (
     <>
@@ -967,8 +969,10 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
                 {[...featured, ...featured].map((cap: any, idx: number) => {
                   const year = cap.event_date ? new Date(cap.event_date).getFullYear() : null
                   return (
-                    <div
-                      key={`${cap.slug}-${idx}`}
+ <a                   
+ 
+                   key={`${cap.slug}-${idx}`}
+                      href={clickable ? `/for/${cap.slug}` : undefined}
                       style={{
                         width:        "200px",
                         flexShrink:   0,
@@ -976,7 +980,20 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
                         overflow:     "hidden",
                         border:       "1px solid rgba(184,150,12,0.15)",
                         background:   "rgba(255,255,255,0.03)",
-                        cursor:       "default",
+                        cursor:       clickable ? "pointer" : "default",
+                        display:      "block",
+                        textDecoration: "none",
+                        transition:   "border-color 0.2s, transform 0.2s",
+                      }}
+                      onMouseEnter={e => {
+                        if (clickable) {
+                          e.currentTarget.style.borderColor = "rgba(184,150,12,0.4)"
+                          e.currentTarget.style.transform   = "translateY(-2px)"
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.borderColor = "rgba(184,150,12,0.15)"
+                        e.currentTarget.style.transform   = "translateY(0)"
                       }}
                     >
                       {/* Event image */}
@@ -1051,7 +1068,7 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
                           </span>
                         )}
                       </div>
-                    </div>
+                    </a>
                   )
                 })}
               </div>

@@ -49,6 +49,7 @@ export async function GET() {
           'showcase_require_story',
           'showcase_require_phase',
           'showcase_require_hero_image',
+          'showcase_cards_clickable',
         ]),
 
       // Total approved tributes across all capsules
@@ -73,10 +74,11 @@ export async function GET() {
     const configMap: Record<string, string> = {}
     for (const row of configRes.data ?? []) configMap[row.config_key] = row.value
 
-    const minTributes      = parseInt(configMap['showcase_min_tributes'] ?? '15', 10)
-    const requireStory     = configMap['showcase_require_story']      === 'true'
-    const requirePhase     = configMap['showcase_require_phase']      === 'true'
-    const requireHeroImage = configMap['showcase_require_hero_image'] === 'true'
+    const minTributes       = parseInt(configMap['showcase_min_tributes'] ?? '15', 10)
+    const requireStory      = configMap['showcase_require_story']      === 'true'
+    const requirePhase      = configMap['showcase_require_phase']      === 'true'
+    const requireHeroImage  = configMap['showcase_require_hero_image'] === 'true'
+    const cardsClickable    = configMap['showcase_cards_clickable']    !== 'false'
 
     // ── 2.3 Fetch admin-flagged capsules directly (no qualification needed) ───
     // featured_on_homepage = true is the admin override — always shown.
@@ -119,7 +121,6 @@ const adminQuery = db
         .eq('featured_on_homepage', false)
         .is('deleted_at', null)
         .not('event_date', 'is', null)
-        .lte('event_date', new Date().toISOString().split('T')[0])
         .order('event_date', { ascending: false })
         .limit(30)
 
@@ -238,6 +239,7 @@ const adminQuery = db
         tributes: tributeFormatted,
         capsules: String(capsuleCount),
       },
+      clickable: cardsClickable,
       featured: merged.map(c => ({
         slug:           c.slug,
         honouree_name:  c.honouree_name,
