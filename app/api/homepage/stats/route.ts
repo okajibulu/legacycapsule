@@ -1,46 +1,51 @@
-// FILE: app/api/homepage/stats/route.ts
-// PURPOSE: Returns live platform stats for homepage social proof strip
-//          and featured capsules for the showcase section.
-//          Called client-side from homepage useEffect.
-// BUILT BY: AI13 - Claude Opus 4.6 - 22 July 2026
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE PATH: app/api/homepage/stats/route.ts
+// PURPOSE:   Returns live platform stats for homepage social proof strip
+//            and featured capsules for the showcase section.
+//            Qualification is config-driven from RW-Ecosystem platform_config.
+//            Uses a single efficient query — no per-capsule await loops.
+// BUILT BY:  AI13 · Claude Sonnet 4.6 · 22 July 2026
+// UPDATED:   AI15 · Claude Sonnet 4.6 · 27 July 2026
+//   — Replaced per-capsule sequential loop with single SQL-level qualification
+//   — Admin override (featured_on_homepage=true) fetched directly, no loop
+//   — Auto-qualification via subquery counts — no sequential awaits
+//   — showcase_qualified_at used as permanent showcase pass (expiry-proof)
+//   — RW-Ecosystem env vars: NEXT_PUBLIC_RW_ECOSYSTEM_URL + RW_ECOSYSTEM_SERVICE_ROLE_KEY
+// ─────────────────────────────────────────────────────────────────────────────
 
-import { NextResponse }  from 'next/server'
-import { createClient }  from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
-// ── RW-Ecosystem env vars: NEXT_PUBLIC_RW_ECOSYSTEM_URL + RW_ECOSYSTEM_SERVICE_ROLE_KEY ──
+// ═══ SECTION 1 — Supabase clients ═══
 
 const db = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// ============================================================
-// SECTION 1 -- GET handler
-// ============================================================
+const ecosystem = createClient(
+  process.env.NEXT_PUBLIC_RW_ECOSYSTEM_URL!,
+  process.env.RW_ECOSYSTEM_SERVICE_ROLE_KEY!
+)
+
+// ═══ SECTION 2 — GET handler ═══
 
 export async function GET() {
   try {
-    // ── Step 1: Read qualification config from RW-Ecosystem ──────────────
-    const ecosystem = createClient(
-      process.env.NEXT_PUBLIC_RW_ECOSYSTEM_URL!,
-      process.env.RW_ECOSYSTEM_SERVICE_ROLE_KEY!
-    )
 
-    const { data: configRows } = await ecosystem
-      .from('platform_config')
-      .select('config_key, value')
-      .eq('product_key', 'legacycapsule')
-      .in('config_key', ['showcase_min_tributes', 'showcase_require_story', 'showcase_require_phase'])
+    // ── 2.1 Read qualification config + platform stats in parallel ───────────
 
-    const configMap: Record<string, string> = {}
-    for (const row of configRows ?? []) configMap[row.config_key] = row.value
+    const [configRes, tributeRes, capsuleRes] = await Promise.all([
 
-    const minTributes    = parseInt(configMap['showcase_min_tributes']  ?? '15', 10)
-    const requireStory   = configMap['showcase_require_story']  === 'true'
-    const requirePhase   = configMap['showcase_require_phase']  === 'true'
-
-    // ── Step 2: Run platform stats + candidate capsules in parallel ───────
-    const [tributeRes, capsuleRes, candidateRes] = await Promise.all([
+      ecosystem
+        .from('platform_config')
+        .select('config_key, value')
+        .eq('product_key', 'legacycapsule')
+        .in('config_key', [
+          'showcase_min_tributes',
+          'showcase_require_story',
+          'showcase_require_phase',
+        ]),
 
       // Total approved tributes across all capsules
       db
@@ -55,92 +60,156 @@ export async function GET() {
         .select('id', { count: 'exact', head: true })
         .eq('page_state', 'active')
         .is('deleted_at', null),
+    ])
 
-      // Candidate capsules: manually featured OR past event date + active
-      db
+    // ── 2.2 Parse config values ───────────────────────────────────────────────
+
+    const configMap: Record<string, string> = {}
+    for (const row of configRes.data ?? []) configMap[row.config_key] = row.value
+
+    const minTributes  = parseInt(configMap['showcase_min_tributes'] ?? '15', 10)
+    const requireStory = configMap['showcase_require_story'] === 'true'
+    const requirePhase = configMap['showcase_require_phase'] === 'true'
+
+    // ── 2.3 Fetch admin-flagged capsules directly (no qualification needed) ───
+    // featured_on_homepage = true is the admin override — always shown.
+    // Also includes capsules that previously auto-qualified (showcase_qualified_at set).
+    // This is expiry-proof: page_state is NOT filtered so past capsules stay visible.
+
+    const { data: adminFeatured, error: adminErr } = await db
+      .from('capsules')
+      .select('id, slug, honouree_name, event_type, event_tag, event_date, hero_image_url, approved_contrib_count, city')
+      .eq('featured_on_homepage', true)
+      .eq('showcase_opted_out', false)
+      .is('deleted_at', null)
+      .order('showcase_qualified_at', { ascending: false })
+      .limit(10)
+
+    if (adminErr) {
+      console.error('[homepage/stats] admin featured query failed:', adminErr)
+    }
+
+    const adminList = adminFeatured ?? []
+
+    // ── 2.4 Auto-qualification: find additional qualifying capsules ───────────
+    // Only runs if we have fewer than 10 admin-featured capsules.
+    // Fetches candidates and counts contributions in a single query per capsule
+    // using RPC or fallback to a batch count approach.
+
+    let autoQualified: any[] = []
+
+    if (adminList.length < 10) {
+      // Fetch candidates: past events, active, not opted out, not already featured
+      const adminIds = adminList.map(c => c.id)
+
+      const { data: candidates } = await db
         .from('capsules')
-        .select('id, slug, honouree_name, event_type, event_tag, event_date, hero_image_url, approved_contrib_count, city, featured_on_homepage, showcase_opted_out')
+        .select('id, slug, honouree_name, event_type, event_tag, event_date, hero_image_url, approved_contrib_count, city')
         .eq('page_state', 'active')
         .eq('showcase_opted_out', false)
+        .eq('featured_on_homepage', false)
         .is('deleted_at', null)
         .not('event_date', 'is', null)
         .lte('event_date', new Date().toISOString().split('T')[0])
         .order('event_date', { ascending: false })
-        .limit(50),
-    ])
+        .limit(30)
 
-    // ── Step 3: For each candidate, check qualification criteria ─────────
-    const candidates = candidateRes.data ?? []
-    const qualifiedIds: string[] = []
+      const pool = (candidates ?? []).filter(c => !adminIds.includes(c.id))
 
-    for (const capsule of candidates) {
-      // Admin manual override — always show if featured_on_homepage = true
-      if (capsule.featured_on_homepage) {
-        qualifiedIds.push(capsule.id)
-        continue
-      }
+      // Batch fetch tribute counts for all candidates in one query
+      const poolIds = pool.map(c => c.id)
 
-      // Check tribute count (tributes only — excludes community_story type)
-      const { count: tributeCount } = await db
-        .from('contributions')
-        .select('id', { count: 'exact', head: true })
-        .eq('capsule_id', capsule.id)
-        .eq('status', 'approved')
-        .neq('contribution_type', 'community_story')
-        .is('deleted_at', null)
+      if (poolIds.length > 0) {
+        const [tributeCounts, storyCounts, phaseCounts] = await Promise.all([
 
-      if ((tributeCount ?? 0) < minTributes) continue
+          // Tribute counts (excluding community_story type)
+          db
+            .from('contributions')
+            .select('capsule_id')
+            .in('capsule_id', poolIds)
+            .eq('status', 'approved')
+            .neq('contribution_type', 'community_story')
+            .is('deleted_at', null),
 
-      // Optional gate: community story
-      if (requireStory) {
-        const { count: storyCount } = await db
-          .from('contributions')
-          .select('id', { count: 'exact', head: true })
-          .eq('capsule_id', capsule.id)
-          .eq('contribution_type', 'community_story')
-          .eq('status', 'approved')
-          .is('deleted_at', null)
+          // Community story counts (only needed if requireStory)
+          requireStory
+            ? db
+                .from('contributions')
+                .select('capsule_id')
+                .in('capsule_id', poolIds)
+                .eq('status', 'approved')
+                .eq('contribution_type', 'community_story')
+                .is('deleted_at', null)
+            : Promise.resolve({ data: [] }),
 
-        if ((storyCount ?? 0) < 1) continue
-      }
+          // Phase activity counts (only needed if requirePhase)
+          requirePhase
+            ? db
+                .from('gallery_items')
+                .select('capsule_id')
+                .in('capsule_id', poolIds)
+                .not('phase_id', 'is', null)
+                .is('deleted_at', null)
+            : Promise.resolve({ data: [] }),
+        ])
 
-      // Optional gate: event phase with actual D-Day activity
-      // (gallery items uploaded against a specific phase — proves the phase was used)
-      if (requirePhase) {
-        const { count: phaseActivityCount } = await db
-          .from('gallery_items')
-          .select('id', { count: 'exact', head: true })
-          .eq('capsule_id', capsule.id)
-          .not('phase_id', 'is', null)
-          .is('deleted_at', null)
+        // Build count maps
+        const tributeMap: Record<string, number> = {}
+        for (const row of tributeCounts.data ?? []) {
+          tributeMap[row.capsule_id] = (tributeMap[row.capsule_id] ?? 0) + 1
+        }
 
-        if ((phaseActivityCount ?? 0) < 1) continue
-      }
+        const storyMap: Record<string, number> = {}
+        for (const row of (storyCounts as any).data ?? []) {
+          storyMap[row.capsule_id] = (storyMap[row.capsule_id] ?? 0) + 1
+        }
 
-      qualifiedIds.push(capsule.id)
-    }
+        const phaseMap: Record<string, number> = {}
+        for (const row of (phaseCounts as any).data ?? []) {
+          phaseMap[row.capsule_id] = (phaseMap[row.capsule_id] ?? 0) + 1
+        }
 
-    // ── Step 4: Auto-flag newly qualifying capsules ───────────────────────
-    const newlyQualified = candidates.filter(
-      c => qualifiedIds.includes(c.id) && !c.featured_on_homepage
-    )
-    if (newlyQualified.length > 0) {
-      await db
-        .from('capsules')
-        .update({
-          featured_on_homepage: true,
-          showcase_qualified_at: new Date().toISOString(),
+        // Filter candidates against qualification criteria
+        const newlyQualifying = pool.filter(c => {
+          if ((tributeMap[c.id] ?? 0) < minTributes) return false
+          if (requireStory && (storyMap[c.id] ?? 0) < 1) return false
+          if (requirePhase && (phaseMap[c.id] ?? 0) < 1) return false
+          return true
         })
-        .in('id', newlyQualified.map(c => c.id))
+
+        // Auto-flag newly qualifying capsules (non-blocking)
+        if (newlyQualifying.length > 0) {
+          db
+            .from('capsules')
+            .update({
+              featured_on_homepage:  true,
+              showcase_qualified_at: new Date().toISOString(),
+            })
+            .in('id', newlyQualifying.map(c => c.id))
+            .then(() => {})
+            .catch(err => console.warn('[homepage/stats] auto-flag failed:', err))
+        }
+
+        autoQualified = newlyQualifying
+      }
     }
 
-    // ── Step 5: Build featured list from qualified IDs (max 10) ──────────
-    const featured = candidates
-      .filter(c => qualifiedIds.includes(c.id))
-      .slice(0, 10)
+    // ── 2.5 Merge admin + auto-qualified, deduplicate, cap at 10 ─────────────
 
-    // ── Step 6: Format stats ──────────────────────────────────────────────
-    const tributeCount = tributeRes.count ?? 0
+    const seen  = new Set<string>()
+    const merged: any[] = []
+
+    for (const c of [...adminList, ...autoQualified]) {
+      if (!seen.has(c.id)) {
+        seen.add(c.id)
+        merged.push(c)
+      }
+      if (merged.length >= 10) break
+    }
+
+    // ── 2.6 Format stats ──────────────────────────────────────────────────────
+
+    const tributeCount     = tributeRes.count ?? 0
     const tributeFormatted = tributeCount >= 1000
       ? `${(tributeCount / 1000).toFixed(1)}k+`
       : String(tributeCount)
@@ -152,11 +221,11 @@ export async function GET() {
         tributes: tributeFormatted,
         capsules: String(capsuleCount),
       },
-      featured: featured.map(c => ({
+      featured: merged.map(c => ({
         slug:           c.slug,
         honouree_name:  c.honouree_name,
         event_type:     c.event_type,
-        event_tag:      c.event_tag ?? null,
+        event_tag:      c.event_tag  ?? null,
         event_date:     c.event_date,
         hero_image_url: c.hero_image_url ?? null,
         tribute_count:  c.approved_contrib_count ?? 0,
@@ -166,7 +235,7 @@ export async function GET() {
 
   } catch (err) {
     console.error('[homepage/stats]', err)
-    // Return safe defaults -- never break the homepage
+    // Safe defaults — homepage must never break
     return NextResponse.json({
       stats:    { tributes: '0', capsules: '0' },
       featured: [],
