@@ -951,25 +951,37 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
                   }}>
                     {/* Event image */}
                     <div style={{
-                      height:     "160px",
-                      background: cap.hero_image_url
-                        ? `url(${cap.hero_image_url}) center/cover no-repeat`
-                        : "linear-gradient(135deg, rgba(45,27,105,0.8), rgba(15,10,30,0.9))",
-                      position:   "relative",
+                      height:   "220px",
+                      position: "relative",
+                      overflow: "hidden",
+                      background: "linear-gradient(135deg, rgba(45,27,105,0.8), rgba(15,10,30,0.9))",
                     }}>
+                      {cap.hero_image_url && (
+                        <img
+                          src={cap.hero_image_url}
+                          alt={cap.honouree_name}
+                          style={{
+                            width:      "100%",
+                            height:     "100%",
+                            objectFit:  "cover",
+                            objectPosition: "top center",
+                            display:    "block",
+                          }}
+                        />
+                      )}
                       {/* Event type badge */}
                       <div style={{
                         position:      "absolute",
-                        top:           "10px",
+                        bottom:        "10px",
                         left:          "10px",
-                        padding:       "3px 10px",
-                        borderRadius:  "20px",
-                        background:    "rgba(15,10,30,0.75)",
+                        padding:       "2px 8px",
+                        borderRadius:  "4px",
+                        background:    "rgba(15,10,30,0.80)",
                         backdropFilter: "blur(8px)",
-                        fontSize:      "9px",
+                        fontSize:      "8px",
                         fontWeight:    700,
                         color:         "rgba(226,195,107,0.8)",
-                        letterSpacing: "0.1em",
+                        letterSpacing: "0.12em",
                         textTransform: "uppercase",
                       }}>
                         {cap.event_type}
