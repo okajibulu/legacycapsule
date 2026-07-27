@@ -48,6 +48,7 @@ export async function GET() {
           'showcase_min_tributes',
           'showcase_require_story',
           'showcase_require_phase',
+          'showcase_require_hero_image',
         ]),
 
       // Total approved tributes across all capsules
@@ -72,23 +73,28 @@ export async function GET() {
     const configMap: Record<string, string> = {}
     for (const row of configRes.data ?? []) configMap[row.config_key] = row.value
 
-    const minTributes  = parseInt(configMap['showcase_min_tributes'] ?? '15', 10)
-    const requireStory = configMap['showcase_require_story'] === 'true'
-    const requirePhase = configMap['showcase_require_phase'] === 'true'
+    const minTributes      = parseInt(configMap['showcase_min_tributes'] ?? '15', 10)
+    const requireStory     = configMap['showcase_require_story']      === 'true'
+    const requirePhase     = configMap['showcase_require_phase']      === 'true'
+    const requireHeroImage = configMap['showcase_require_hero_image'] === 'true'
 
     // ── 2.3 Fetch admin-flagged capsules directly (no qualification needed) ───
     // featured_on_homepage = true is the admin override — always shown.
     // Also includes capsules that previously auto-qualified (showcase_qualified_at set).
     // This is expiry-proof: page_state is NOT filtered so past capsules stay visible.
 
-    const { data: adminFeatured, error: adminErr } = await db
+const adminQuery = db
       .from('capsules')
       .select('id, slug, honouree_name, event_type, event_tag, event_date, hero_image_url')
       .eq('featured_on_homepage', true)
       .eq('showcase_opted_out', false)
       .is('deleted_at', null)
-      .order('showcase_qualified_at', { ascending: false })
+      .order('event_date', { ascending: false })
       .limit(10)
+
+    if (requireHeroImage) adminQuery.not('hero_image_url', 'is', null)
+
+    const { data: adminFeatured, error: adminErr } = await adminQuery
 
     console.log('[homepage/stats] adminFeatured:', JSON.stringify(adminFeatured), 'adminErr:', JSON.stringify(adminErr))
 
@@ -105,7 +111,7 @@ export async function GET() {
       // Fetch candidates: past events, active, not opted out, not already featured
       const adminIds = adminList.map(c => c.id)
 
-      const { data: candidates } = await db
+      const candidateQuery = db
         .from('capsules')
         .select('id, slug, honouree_name, event_type, event_tag, event_date, hero_image_url')
         .eq('page_state', 'active')
@@ -116,6 +122,10 @@ export async function GET() {
         .lte('event_date', new Date().toISOString().split('T')[0])
         .order('event_date', { ascending: false })
         .limit(30)
+
+      if (requireHeroImage) candidateQuery.not('hero_image_url', 'is', null)
+
+      const { data: candidates } = await candidateQuery
 
       const pool = (candidates ?? []).filter(c => !adminIds.includes(c.id))
 

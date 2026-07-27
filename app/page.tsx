@@ -937,8 +937,10 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
           ) : (
             <div style={{
               display:             "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-              gap:                 "var(--space-5)",
+              gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+              gap:                 "var(--space-4)",
+              maxWidth:            "720px",
+              margin:              "0 auto",
             }}>
               {featured.map((cap: any) => {
                 const year = cap.event_date ? new Date(cap.event_date).getFullYear() : null
@@ -951,7 +953,7 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
                   }}>
                     {/* Event image */}
                     <div style={{
-                      height:   "220px",
+                      height:   "160px",
                       position: "relative",
                       overflow: "hidden",
                       background: "linear-gradient(135deg, rgba(45,27,105,0.8), rgba(15,10,30,0.9))",
@@ -961,11 +963,11 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
                           src={cap.hero_image_url}
                           alt={cap.honouree_name}
                           style={{
-                            width:      "100%",
-                            height:     "100%",
-                            objectFit:  "cover",
+                            width:          "100%",
+                            height:         "100%",
+                            objectFit:      "cover",
                             objectPosition: "top center",
-                            display:    "block",
+                            display:        "block",
                           }}
                         />
                       )}
@@ -992,9 +994,9 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
                     <div style={{ padding: "14px 16px" }}>
                       <p style={{
                         fontFamily:   "var(--font-heading)",
-                        fontSize:     "var(--text-md)",
+                        fontSize:     "var(--text-sm)",
                         fontWeight:   700,
-                        color:        "rgba(245,243,238,0.9)",
+                        color:        "rgba(245,243,238,0.85)",
                         margin:       "0 0 4px",
                         lineHeight:   1.3,
                       }}>
