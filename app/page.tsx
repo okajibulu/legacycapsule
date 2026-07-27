@@ -935,111 +935,116 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
               </p>
             </div>
           ) : (
-            <div style={{
-              display:             "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-              gap:                 "var(--space-4)",
-              maxWidth:            "720px",
-              margin:              "0 auto",
-            }}>
-              {featured.map((cap: any) => {
-                const year = cap.event_date ? new Date(cap.event_date).getFullYear() : null
-                return (
-                  <div key={cap.slug} style={{
-                    borderRadius: "14px",
-                    overflow:     "hidden",
-                    border:       "1px solid rgba(184,150,12,0.15)",
-                    background:   "rgba(255,255,255,0.03)",
-                  }}>
-                    {/* Event image */}
-                    <div style={{
-                      height:   "160px",
-                      position: "relative",
-                      overflow: "hidden",
-                      background: "linear-gradient(135deg, rgba(45,27,105,0.8), rgba(15,10,30,0.9))",
-                    }}>
-                      {cap.hero_image_url && (
-                        <img
-                          src={cap.hero_image_url}
-                          alt={cap.honouree_name}
-                          style={{
-                            width:          "100%",
-                            height:         "100%",
-                            objectFit:      "cover",
-                            objectPosition: "top center",
-                            display:        "block",
-                          }}
-                        />
-                      )}
-                      {/* Event type badge */}
-                      <div style={{
-                        position:      "absolute",
-                        bottom:        "10px",
-                        left:          "10px",
-                        padding:       "2px 8px",
-                        borderRadius:  "4px",
-                        background:    "rgba(15,10,30,0.80)",
-                        backdropFilter: "blur(8px)",
-                        fontSize:      "8px",
-                        fontWeight:    700,
-                        color:         "rgba(226,195,107,0.8)",
-                        letterSpacing: "0.12em",
-                        textTransform: "uppercase",
-                      }}>
-                        {cap.event_type}
-                      </div>
-                    </div>
+            <div style={{ position: "relative", overflow: "hidden" }}>
 
-                    {/* Card content */}
-                    <div style={{ padding: "14px 16px" }}>
-                      <p style={{
-                        fontFamily:   "var(--font-heading)",
-                        fontSize:     "var(--text-sm)",
-                        fontWeight:   700,
-                        color:        "rgba(245,243,238,0.85)",
-                        margin:       "0 0 4px",
-                        lineHeight:   1.3,
-                      }}>
-                        {cap.honouree_name}
-                      </p>
-                      {cap.event_tag && (
-                        <p style={{
-                          fontFamily: "var(--font-body)",
-                          fontSize:   "var(--text-xs)",
-                          color:      "rgba(184,150,12,0.65)",
-                          margin:     "0 0 10px",
-                        }}>
-                          {cap.event_tag}
-                        </p>
-                      )}
+              {/* Fade edges — left */}
+              <div style={{
+                position:   "absolute", left: 0, top: 0, bottom: 0,
+                width:      "60px", zIndex: 2, pointerEvents: "none",
+                background: "linear-gradient(to right, var(--lc-purple-deep), transparent)",
+              }} />
+
+              {/* Fade edges — right */}
+              <div style={{
+                position:   "absolute", right: 0, top: 0, bottom: 0,
+                width:      "60px", zIndex: 2, pointerEvents: "none",
+                background: "linear-gradient(to left, var(--lc-purple-deep), transparent)",
+              }} />
+
+              {/* Scrolling track */}
+              <div
+                className="showcase-carousel"
+                style={{
+                  display:   "flex",
+                  gap:       "16px",
+                  width:     "max-content",
+                  animation: "showcaseScroll 28s linear infinite",
+                }}
+                onMouseEnter={e => (e.currentTarget.style.animationPlayState = "paused")}
+                onMouseLeave={e => (e.currentTarget.style.animationPlayState = "running")}
+              >
+                {/* Render twice for seamless loop */}
+                {[...featured, ...featured].map((cap: any, idx: number) => {
+                  const year = cap.event_date ? new Date(cap.event_date).getFullYear() : null
+                  return (
+                    <div
+                      key={`${cap.slug}-${idx}`}
+                      style={{
+                        width:        "200px",
+                        flexShrink:   0,
+                        borderRadius: "14px",
+                        overflow:     "hidden",
+                        border:       "1px solid rgba(184,150,12,0.15)",
+                        background:   "rgba(255,255,255,0.03)",
+                        cursor:       "default",
+                      }}
+                    >
+                      {/* Event image */}
                       <div style={{
-                        display:    "flex",
-                        gap:        "12px",
-                        alignItems: "center",
-                        flexWrap:   "wrap",
+                        height:     "240px",
+                        position:   "relative",
+                        overflow:   "hidden",
+                        background: "linear-gradient(135deg, rgba(45,27,105,0.8), rgba(15,10,30,0.9))",
                       }}>
-                        {cap.tribute_count > 0 && (
-                          <span style={{
-                            fontSize:   "10px",
-                            color:      "rgba(245,243,238,0.35)",
-                            fontFamily: "var(--font-body)",
-                          }}>
-                            {cap.tribute_count} tribute{cap.tribute_count !== 1 ? "s" : ""}
-                          </span>
+                        {cap.hero_image_url && (
+                          <img
+                            src={cap.hero_image_url}
+                            alt={cap.honouree_name}
+                            style={{
+                              width:          "100%",
+                              height:         "100%",
+                              objectFit:      "cover",
+                              objectPosition: "top center",
+                              display:        "block",
+                            }}
+                          />
                         )}
-                        {cap.city && (
-                          <span style={{
-                            fontSize:   "10px",
-                            color:      "rgba(245,243,238,0.35)",
+                        {/* Event type badge */}
+                        <div style={{
+                          position:       "absolute",
+                          bottom:         "10px",
+                          left:           "10px",
+                          padding:        "2px 8px",
+                          borderRadius:   "4px",
+                          background:     "rgba(15,10,30,0.82)",
+                          backdropFilter: "blur(8px)",
+                          fontSize:       "8px",
+                          fontWeight:     700,
+                          color:          "rgba(226,195,107,0.8)",
+                          letterSpacing:  "0.12em",
+                          textTransform:  "uppercase",
+                        }}>
+                          {cap.event_type}
+                        </div>
+                      </div>
+
+                      {/* Card content */}
+                      <div style={{ padding: "14px 16px" }}>
+                        <p style={{
+                          fontFamily: "var(--font-heading)",
+                          fontSize:   "var(--text-sm)",
+                          fontWeight: 700,
+                          color:      "rgba(245,243,238,0.85)",
+                          margin:     "0 0 4px",
+                          lineHeight: 1.3,
+                        }}>
+                          {cap.honouree_name}
+                        </p>
+                        {cap.event_tag && (
+                          <p style={{
                             fontFamily: "var(--font-body)",
+                            fontSize:   "var(--text-xs)",
+                            color:      "rgba(184,150,12,0.65)",
+                            margin:     "0 0 8px",
+                            lineHeight: 1.4,
                           }}>
-                            {cap.city}
-                          </span>
+                            {cap.event_tag}
+                          </p>
                         )}
                         {year && (
                           <span style={{
                             fontSize:   "10px",
-                            color:      "rgba(245,243,238,0.35)",
+                            color:      "rgba(245,243,238,0.28)",
                             fontFamily: "var(--font-body)",
                           }}>
                             {year}
@@ -1047,9 +1052,9 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
                         )}
                       </div>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -1139,6 +1144,13 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
         }
         .section-deep {
           background: var(--lc-purple-deep);
+        }
+        @keyframes showcaseScroll {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .showcase-carousel {
+          animation: showcaseScroll 28s linear infinite;
         }
       `}</style>
     </>
