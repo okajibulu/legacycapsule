@@ -197,9 +197,9 @@ export async function PUT(request: NextRequest) {
     // ── Welcome email — path-aware ────────────────────────────────────────────
     // Gift path: welcome email sent by gift-notification route, not here
     if (path !== 'gift') {
-      const { data: capsule } = await supabase
+const { data: capsule } = await supabase
         .from('capsules')
-        .select('slug, honouree_name, organiser_email')
+        .select('slug, honouree_name, organiser_email, event_type')
         .eq('id', capsuleId)
         .single()
 
@@ -225,6 +225,21 @@ export async function PUT(request: NextRequest) {
         })
       }
     }
+
+    // Seed story prompts -- non-blocking, fires for all paths including gift
+    // event_type fetched separately to ensure it's always available
+    fetch(`${APP_URL}/api/capsule/seed-prompts`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ capsule_id: capsuleId }),
+    }).catch(() => {}) // silent -- never block verification flow
+
+    // Seed story prompts non-blocking -- event_type fetched by route if needed
+    fetch(`${APP_URL}/api/capsule/seed-prompts`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ capsule_id: capsuleId }),
+    }).catch(() => {})
 
     return NextResponse.json({ valid: true })
 

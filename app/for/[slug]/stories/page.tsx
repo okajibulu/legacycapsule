@@ -30,16 +30,18 @@ export interface StoryTopic {
 }
 
 export interface CommunityStory {
-  id:               string
-  story_topic_id:   string
-  contributor_name: string
-  tribute_text:     string
-  relationship:     string | null
-  city:             string | null
-  country:          string | null
-  thumbnail_url:    string | null
-  admin_response:   string | null
-  created_at:       string
+  id:                    string
+  story_topic_id:        string
+  contributor_name:      string
+  tribute_text:          string
+  relationship:          string | null
+  city:                  string | null
+  country:               string | null
+  thumbnail_url:         string | null
+  admin_response:        string | null
+  era:                   string | null
+  relationship_category: string | null
+  created_at:            string
 }
 
 export interface CapsuleInfo {
@@ -113,7 +115,7 @@ export default async function CommunityStoriesPage({
   // ── Fetch approved community stories ─────────────────────────────────────
   const { data: storiesRaw } = await supabase
     .from('contributions')
-    .select('id, story_topic_id, contributor_name, tribute_text, relationship, city, country, thumbnail_url, admin_response, created_at')
+    .select('id, story_topic_id, contributor_name, tribute_text, relationship, city, country, thumbnail_url, admin_response, era, relationship_category, created_at')
     .eq('capsule_id', capsule.id)
     .eq('status', 'approved')
     .not('story_topic_id', 'is', null)
@@ -147,12 +149,35 @@ export default async function CommunityStoriesPage({
     .is('deleted_at', null)
     .order('sort_order', { ascending: true })
 
+  // Fetch story photos (source='stories', linked by contribution_id)
+  const storyContribIds = stories.map(s => s.id)
+  let storyPhotos: Record<string, any[]> = {}
+  if (storyContribIds.length > 0) {
+    const { data: photoRows } = await supabase
+      .from('gallery_items')
+      .select('id, contribution_id, storage_path')
+      .in('contribution_id', storyContribIds)
+      .eq('source', 'stories')
+
+    if (photoRows) {
+      for (const p of photoRows) {
+        if (!p.contribution_id) continue
+        if (!storyPhotos[p.contribution_id]) storyPhotos[p.contribution_id] = []
+        storyPhotos[p.contribution_id].push(p)
+      }
+    }
+  }
+
+  const hasPublication = components.includes('publication')
+
   return (
     <>
-      <CommunityStoriesClient
+<CommunityStoriesClient
         capsule={capsuleInfo}
         topics={topicsWithCounts}
         stories={stories}
+        storyPhotos={storyPhotos}
+        hasPublication={hasPublication}
       />
        
       <div style={{ maxWidth: '640px', margin: '0 auto', padding: '0 20px 8px' }}>
