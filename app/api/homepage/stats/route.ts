@@ -179,15 +179,19 @@ export async function GET() {
 
         // Auto-flag newly qualifying capsules (non-blocking)
         if (newlyQualifying.length > 0) {
-          db
-            .from('capsules')
-            .update({
-              featured_on_homepage:  true,
-              showcase_qualified_at: new Date().toISOString(),
-            })
-            .in('id', newlyQualifying.map(c => c.id))
-            .then(() => {})
-            .catch(err => console.warn('[homepage/stats] auto-flag failed:', err))
+          ;(async () => {
+            try {
+              await db
+                .from('capsules')
+                .update({
+                  featured_on_homepage:  true,
+                  showcase_qualified_at: new Date().toISOString(),
+                })
+                .in('id', newlyQualifying.map(c => c.id))
+            } catch (err) {
+              console.warn('[homepage/stats] auto-flag failed:', err)
+            }
+          })()
         }
 
         autoQualified = newlyQualifying
