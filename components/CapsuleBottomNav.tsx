@@ -1,15 +1,15 @@
 /**
  * ============================================================
  * FILE PATH: components/CapsuleBottomNav.tsx
- * LEGACYCAPSULE ? VALNEX, UNIPESSOAL LDA ? RevoWorldTech
+ * LEGACYCAPSULE — VALNEX, UNIPESSOAL LDA · RevoWorldTech
  * ============================================================
- * Built by: AI11 ? June 2026
- * Updated:  AI13 ? Claude Opus 4.6 ? 22 July 2026
- *   ? Premiums tab replaces Attire tab (always shown, 5th tab)
- *   ? PremiumsPanel bottom sheet wired to Premiums tab
- *   ? CapsulePage type: 'attire' removed, 'premiums' added
- *   ? 3 new props: capsuleId, honourName, eventType
- *   ? supportAccounts prop added for Gifting/EOH inline panel
+ * Built by: AI11 · June 2026
+ * Updated:  AI13 · Claude Opus 4.6 · 22 July 2026
+ *   — Premiums tab replaces Attire tab (always shown, 5th tab)
+ *   — PremiumsPanel bottom sheet wired to Premiums tab
+ *   — CapsulePage type: 'attire' removed, 'premiums' added
+ *   — 3 new props: capsuleId, honourName, eventType
+ *   — supportAccounts prop added for Gifting/EOH inline panel
  *
  * Bottom navigation for all public capsule pages.
  * Fixed to bottom. Theme-aware. Shows only active sections.
@@ -31,7 +31,7 @@
 'use client'
 
 // ============================================================
-// SECTION 1 ? Types & constants
+// SECTION 1 — Types & constants
 // ============================================================
 
 import { useState }            from 'react'
@@ -61,7 +61,7 @@ interface CapsuleBottomNavProps {
   contributorCount: number
   hasPhases:       boolean
   themeKey:        ThemeKey
-  // ?? New props for PremiumsPanel ??
+  // — New props for PremiumsPanel —
   capsuleId:       string
   honourName:      string
   eventType:       string
@@ -78,54 +78,54 @@ interface NavTab {
 }
 
 // ============================================================
-// SECTION 2 ? Build nav item list from props
+// SECTION 2 — Build nav item list from props
 // ============================================================
 
 function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
   const { slug } = props
   const tabs: NavTab[] = []
 
-  // Tab 1 ? Tributes (always)
+  // Tab 1 — Tributes (always)
   tabs.push({
     id:     'tribute',
     label:  'Tributes',
-    icon:   '?',
+    icon:   '✦',
     href:   `/for/${slug}`,
     active: true,
   })
 
-  // Tab 2 ? Memories (always ? community stories is free for all capsules)
+  // Tab 2 — Memories (always — community stories is free for all capsules)
   tabs.push({
     id:     'memories',
     label:  'Memories',
-    icon:   '?',
+    icon:   '◈',
     href:   `/for/${slug}/stories`,
     active: true,
   })
 
-  // Tab 3 ? Profile (always)
+  // Tab 3 — Profile (always)
   tabs.push({
     id:     'profile',
     label:  'Profile',
-    icon:   '?',
+    icon:   '◎',
     href:   `/for/${slug}/profile`,
     active: true,
   })
 
-  // Tab 4 ? Highlights (always)
+  // Tab 4 — Highlights (always)
   tabs.push({
     id:     'legacy',
     label:  'Highlights',
-    icon:   '?',
+    icon:   '◇',
     href:   `/for/${slug}/legacy`,
     active: true,
   })
 
-  // Tab 5 ? Premiums (always ? panel trigger, not a page)
+  // Tab 5 — Premiums (always — panel trigger, not a page)
   tabs.push({
     id:     'premiums',
     label:  'Premiums',
-    icon:   '?',
+    icon:   '✴',
     href:   null,
     active: true,
   })
@@ -134,7 +134,7 @@ function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
 }
 
 // ============================================================
-// SECTION 3 ? Render
+// SECTION 3 — Render
 // ============================================================
 
 export default function CapsuleBottomNav(props: CapsuleBottomNavProps) {
@@ -157,10 +157,10 @@ export default function CapsuleBottomNav(props: CapsuleBottomNavProps) {
 
   return (
     <>
-      {/* ?? Safe area spacer ?? */}
+      {/* — Safe area spacer — */}
       <div style={{ height: '80px' }} />
 
-      {/* ?? Fixed bottom bar ?? */}
+      {/* — Fixed bottom bar — */}
       <div style={{
         position:          'fixed',
         bottom:            0,
@@ -279,7 +279,7 @@ export default function CapsuleBottomNav(props: CapsuleBottomNavProps) {
         })}
       </div>
 
-      {/* ?? Premiums panel ?? */}
+      {/* — Premiums panel — */}
       {premiumsOpen && (
         <PremiumsPanel
           slug={slug}
