@@ -83,7 +83,7 @@ export async function GET() {
 
     const { data: adminFeatured, error: adminErr } = await db
       .from('capsules')
-      .select('id, slug, honouree_name, event_type, event_tag, event_date, hero_image_url, approved_contrib_count, city')
+      .select('id, slug, honouree_name, event_type, event_tag, event_date, hero_image_url')
       .eq('featured_on_homepage', true)
       .eq('showcase_opted_out', false)
       .is('deleted_at', null)
@@ -107,7 +107,7 @@ export async function GET() {
 
       const { data: candidates } = await db
         .from('capsules')
-        .select('id, slug, honouree_name, event_type, event_tag, event_date, hero_image_url, approved_contrib_count, city')
+        .select('id, slug, honouree_name, event_type, event_tag, event_date, hero_image_url')
         .eq('page_state', 'active')
         .eq('showcase_opted_out', false)
         .eq('featured_on_homepage', false)
@@ -235,8 +235,8 @@ export async function GET() {
         event_tag:      c.event_tag  ?? null,
         event_date:     c.event_date,
         hero_image_url: c.hero_image_url ?? null,
-        tribute_count:  c.approved_contrib_count ?? 0,
-        city:           c.city ?? null,
+        tribute_count:  0,
+        city:           null,
       })),
     })
 
