@@ -1352,6 +1352,10 @@ export default function ManagePage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
+  const [communityTopics, setCommunityTopics] = useState<any[]>([])
+  const [addingTopic, setAddingTopic] = useState(false)
+  const [newTopicText, setNewTopicText] = useState('')
+  const [topicSaving, setTopicSaving] = useState(false)
 const [heroUploading, setHeroUploading] = useState(false)
   const [heroImage, setHeroImage] = useState<string | null>(null)
   const [showHeroPicker, setShowHeroPicker] = useState(false)
@@ -1391,15 +1395,17 @@ const capRes = await supabase.from('capsules')
     const cap = capRes.data as Capsule
     setCapsule(cap); setHeroImage(cap.hero_image_url)
 
-    const [contribRes, sectionsRes, galleryRes] = await Promise.all([
+    const [contribRes, sectionsRes, galleryRes, topicsRes] = await Promise.all([
       supabase.from('contributions').select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, email, status, created_at, include_in_publication, include_in_programme_export').eq('capsule_id', cap.id).is('deleted_at', null).order('created_at', { ascending: false }),
       supabase.from('capsule_profile_sections').select('id, section_type, custom_title, content, sort_order, is_active').eq('capsule_id', cap.id).order('sort_order'),
       supabase.from('capsule_gallery').select('id, image_url, description, sort_order, section_index').eq('capsule_id', cap.id).order('section_index').order('sort_order'),
+      supabase.from('community_story_topics').select('id, topic_name, topic_source, status, display_order').eq('capsule_id', cap.id).order('display_order', { ascending: true }),
     ])
 
     if (contribRes.data) setContributions(contribRes.data as Contribution[])
     if (sectionsRes.data) setProfileSections(sectionsRes.data as ProfileSection[])
     if (galleryRes.data) setGalleryPhotos(galleryRes.data)
+    if (topicsRes.data) setCommunityTopics(topicsRes.data)
     setLoading(false)
   }, [slug])
 
@@ -1622,11 +1628,188 @@ const capRes = await supabase.from('capsules')
             </div>
           )}
 
-          {/* -- SETSTORIES TAB -- */}
+           {/* -- SETSTORIES TAB -- */}
           {activeTab === 'setstories' && (
             <div>
+              <SectionCard title="Story Prompts & Topics" subtitle="Guests answer these prompts in the Memories room. Deactivate any that aren't right for your event, or add your own.">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                  {communityTopics.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                      <p style={{ fontSize: '12px', color: textFaint, marginBottom: '12px' }}>
+                        No prompts yet. Seed default prompts for your event type to get started.
+                      </p>
+                      <button
+                        onClick={async () => {
+                          await fetch('/api/capsule/seed-prompts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ capsule_id: capsule.id }),
+                          })
+                          fetchAll()
+                        }}
+                        style={{ padding: '10px 24px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#E2C36B,#C8A84A)', color: '#1a0845', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                        Seed Default Prompts
+                      </button>
+                    </div>
+                  )}
+                  {communityTopics.map((topic: any) => (
+                    <div key={topic.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '10px', background: topic.status === 'active' ? 'rgba(226,195,107,0.05)' : 'rgba(255,255,255,0.02)', border: `1px solid ${topic.status === 'active' ? 'rgba(226,195,107,0.15)' : 'rgba(255,255,255,0.05)'}` }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: '12px', color: topic.status === 'active' ? textPrimary : textFaint, lineHeight: 1.5, fontStyle: 'italic' }}>
+                          "{topic.topic_name.replace(/\[honouree_name\]/g, capsule.honouree_name)}"
+                        </p>
+                        <p style={{ margin: '3px 0 0', fontSize: '9px', color: textFaint, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                          {topic.topic_source === 'system' ? 'Default prompt' : topic.topic_source === 'organiser' ? 'Your prompt' : 'Community'} — {topic.status}
+                        </p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const newStatus = topic.status === 'active' ? 'inactive' : 'active'
+                          await supabase.from('community_story_topics').update({ status: newStatus }).eq('id', topic.id)
+                          fetchAll()
+                        }}
+                        style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: `1px solid ${topic.status === 'active' ? 'rgba(248,113,113,0.3)' : 'rgba(74,222,128,0.3)'}`, background: 'transparent', color: topic.status === 'active' ? 'rgba(248,113,113,0.7)' : 'rgba(134,239,172,0.7)', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
+                        {topic.status === 'active' ? 'Deactivate' : 'Activate'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {addingTopic ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <textarea
+                      value={newTopicText}
+                      onChange={e => setNewTopicText(e.target.value)}
+                      placeholder={`Write your prompt here... e.g. "What is a memory of ${capsule.honouree_name} that made you laugh?"`}
+                      style={{ width: '100%', minHeight: '80px', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(226,195,107,0.18)', color: textPrimary, fontSize: '13px', boxSizing: 'border-box' as const, resize: 'vertical' as const, fontFamily: "'DM Sans', sans-serif" }}
+                    />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        disabled={topicSaving || !newTopicText.trim()}
+                        onClick={async () => {
+                          if (!newTopicText.trim()) return
+                          setTopicSaving(true)
+                          const maxOrder = communityTopics.length > 0 ? Math.max(...communityTopics.map((t: any) => t.display_order ?? 0)) : 0
+                          await supabase.from('community_story_topics').insert({
+                            capsule_id:    capsule.id,
+                            topic_name:    newTopicText.trim(),
+                            topic_source:  'organiser',
+                            status:        'active',
+                            display_order: maxOrder + 10,
+                          })
+                          setNewTopicText('')
+                          setAddingTopic(false)
+                          setTopicSaving(false)
+                          fetchAll()
+                        }}
+                        style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#E2C36B,#C8A84A)', color: '#1a0845', fontSize: '13px', fontWeight: 700, cursor: 'pointer', opacity: topicSaving || !newTopicText.trim() ? 0.5 : 1 }}>
+                        {topicSaving ? 'Saving...' : 'Add Prompt'}
+                      </button>
+                      <button
+                        onClick={() => { setAddingTopic(false); setNewTopicText('') }}
+                        style={{ padding: '10px 16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: textFaint, fontSize: '13px', cursor: 'pointer' }}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setAddingTopic(true)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px dashed rgba(226,195,107,0.2)', background: 'transparent', color: goldMuted, fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                    + Add a Custom Prompt
+                  </button>
+                )}
+              </SectionCard>
+            </div>
+          )}
 
-</div>
+          {/* -- SETPROFILE TAB -- */}
+          {activeTab === 'setprofile' && (
+            <div>
+              <SectionCard title="Capsule Photo" subtitle="Appears on the tribute wall and profile">
+                <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', marginBottom: resolvedHero ? '14px' : '0' }}>
+                  <div style={{ width: '72px', height: '72px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: `2px solid rgba(226,195,107,0.35)`, background: '#1a0845', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {resolvedHero
+                      ? <img src={resolvedHero} alt={capsule.honouree_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.1em', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.6))`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LC</span>
+                    }
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.65, marginBottom: '10px' }}>Upload a clear, high-quality image.</p>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' as const }}>
+                      <label style={{ display: 'inline-block', padding: '7px 16px', borderRadius: '8px', cursor: 'pointer', background: goldFaint, border: `1px solid rgba(226,195,107,0.22)`, color: gold, fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em' }}>
+                        {heroUploading ? 'Uploading…' : '📷 Upload Photo'}
+                        <input type="file" accept="image/*" onChange={handleHeroUpload} style={{ display: 'none' }} disabled={heroUploading} />
+                      </label>
+                      {resolvedHero && (
+                        <button
+                          onClick={() => setShowHeroPicker(p => !p)}
+                          style={{ padding: '7px 16px', borderRadius: '8px', cursor: 'pointer', background: showHeroPicker ? 'rgba(226,195,107,0.15)' : 'transparent', border: `1px solid rgba(226,195,107,0.22)`, color: goldMuted, fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em' }}
+                        >
+                          ⚙ Adjust
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {resolvedHero && showHeroPicker && (
+                  <HeroPositionPicker
+                    capsuleId={capsule.id}
+                    imageUrl={resolvedHero}
+                    currentPosition={capsule.hero_image_position ?? '50% 50%'}
+                    currentZoom={capsule.hero_image_zoom ?? 150}
+                    currentFit={capsule.hero_image_fit ?? 'height'}
+                    currentSize={capsule.hero_panel_size ?? 'standard'}
+                    currentBleed={capsule.hero_full_bleed ?? false}
+                    onSettingsChange={({ pos, zoom, fit, size, bleed }) => {
+                      setCapsule(prev => prev ? { ...prev, hero_image_position: pos, hero_image_zoom: zoom, hero_image_fit: fit, hero_panel_size: size, hero_full_bleed: bleed } : prev)
+                    }}
+                    onDone={() => setShowHeroPicker(false)}
+                    t={{ accentPrimary: gold, accentFaint: goldFaint, accentMuted: goldMuted, cardBg, cardBorder, textMuted: textSecondary, textFaint, inputBg: 'rgba(255,255,255,0.06)', inputBorder: 'rgba(226,195,107,0.18)' }}
+                  />
+                )}
+              </SectionCard>
+
+              <SectionCard title="Photo Gallery" subtitle="Up to 3 sections · 10 photos each · photo + caption per row">
+                <GalleryEditor capsuleId={capsule.id} initialPhotos={galleryPhotos} supabase={supabase} t={galleryTheme} onSaved={fetchAll} />
+              </SectionCard>
+
+              <SectionCard title="Profile Sections" subtitle="No character limit -- write as much as your event deserves">
+                {!profileSections.some((s: ProfileSection) => s.section_type === 'appreciation') && (
+                  <div style={{ padding: '16px 18px', borderRadius: '12px', border: '1px solid rgba(212,174,42,0.3)', background: 'linear-gradient(135deg, rgba(212,174,42,0.06) 0%, rgba(212,174,42,0.02) 100%)', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                      <span style={{ fontSize: '18px', flexShrink: 0, marginTop: '2px' }}>&#10022;</span>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: '0 0 6px', fontSize: '13px', fontWeight: 700, color: gold }}>Add a Family Appreciation</p>
+                        <p style={{ margin: '0 0 12px', fontSize: '12px', color: textSecondary, lineHeight: 1.65 }}>
+                          A warm closing message from the family — thanking guests and everyone who contributed to this capsule.
+                        </p>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await supabase.from('capsule_profile_sections').insert({
+                                capsule_id:   capsule.id,
+                                section_type: 'appreciation',
+                                custom_title: null,
+                                content:      DEFAULT_APPRECIATION_TEXT.replace(/\[honouree_name\]/g, capsule.honouree_name),
+                                sort_order:   (profileSections.length + 1) * 10,
+                                is_active:    true,
+                              })
+                              fetchAll()
+                            } catch (err) {
+                              console.error('[appreciation] Failed to add:', err)
+                            }
+                          }}
+                          style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #E2C36B, #C8A84A)', color: '#1a0845', fontSize: '12px', fontWeight: 700, cursor: 'pointer', letterSpacing: '0.04em' }}
+                        >
+                          + Add Family Appreciation
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <SectionEditor capsuleId={capsule.id} sections={profileSections} onRefresh={fetchAll} />
+              </SectionCard>
+            </div>
           )}
 
           {/* -- SERVICES TAB -- */}
