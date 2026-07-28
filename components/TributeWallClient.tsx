@@ -1,14 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// FILE: components/TributeWallClient.tsx
-// PURPOSE: Public-facing tribute wall — theme-aware, collapsible composer,
-//          participation language engine integrated (presentation layer only).
-//          Internal model names (Contribution, Contributor) unchanged.
-// ARCHITECTURE: LC · Capsule Guest Experience
-// UPDATED: AI12 · Claude Sonnet 4.6 · 22 July 2026
-//   — Participation Language Engine integrated (lang.* tokens)
-//   — CTA, wall title, count, success messages now event-type-aware
-//   — Internal variable/function names unchanged per architecture rule
-// ─────────────────────────────────────────────────────────────────────────────
 'use client'
 
 /* =========================================================
@@ -37,6 +26,7 @@ import { getThemeConfig } from '@/lib/themeConfig'
 import type { ThemeKey, ThemeConfig } from '@/lib/themeConfig'
 import PublicationSubscribePanel from '@/components/capsule/PublicationSubscribePanel'
 import { getParticipationLanguage, formatParticipationCount } from '@/lib/utils/getParticipationLanguage'
+import GlobalExpressionsStrip from '@/components/capsule/GlobalExpressionsStrip'
 
 const AudioTribute = dynamic(() => import('@/components/AudioTribute'), { ssr: false })
 const VideoTribute = dynamic(() => import('@/components/VideoTribute'), { ssr: false })
@@ -369,9 +359,9 @@ function MapModal({ pins, honourName, uniqueCountries, onClose, t }: { pins: Pin
     <div style={{ position: 'fixed', inset: '16px', zIndex: 50, display: 'flex', flexDirection: 'column', borderRadius: '24px', overflow: 'hidden', background: 'rgba(8,2,26,0.97)', backdropFilter: 'blur(4px)' }}>
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: `1px solid ${t.accentFaint}` }}>
         <div>
-          <p style={{ fontSize: '14px', fontWeight: 700, color: t.textHeading, fontFamily: "'Playfair Display', serif" }}>A World of Tributes</p>
+          <p style={{ fontSize: '14px', fontWeight: 700, color: t.textHeading, fontFamily: "'Playfair Display', serif" }}>{`A World of Voices`}</p>
           <p style={{ fontSize: '11px', color: t.textFaint, marginTop: '3px' }}>
-            {uniqueCountries.length > 0 ? `Every pin represents someone who paused to honour ${honourName}` : 'Pins appear as tributes are approved'}
+            {uniqueCountries.length > 0 ? `Every pin represents someone who paused to honour ${honourName}` : `Pins appear as voices are approved`}
           </p>
         </div>
         <button onClick={onClose} style={{ color: t.textFaint, background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', lineHeight: 1, padding: '4px' }}>×</button>
@@ -580,7 +570,7 @@ const phaseId = searchParams.get('phase')
   const [heroPosition, setHeroPosition] = useState<string>((capsule as any).hero_image_position ?? '50% 50%')
   const [heroZoom, setHeroZoom] = useState<number>((capsule as any).hero_image_zoom ?? 150)
   const [heroFit, setHeroFit] = useState<string>((capsule as any).hero_image_fit ?? 'height')
-  const [heroSize, setHeroSize] = useState<string>((capsule as any).hero_panel_size ?? 'standard')
+  const [heroSize, setHeroSize] = useState<string>((capsule as any).hero_panel_size ?? 'compact')
   const [heroBleed, setHeroBleed] = useState<boolean>((capsule as any).hero_full_bleed ?? false)
 const [showPositionPicker, setShowPositionPicker] = useState(false)
   const [uploadingHero, setUploadingHero] = useState(false)
@@ -908,6 +898,9 @@ setFAudioUrl(null); setFVideoUrl(null); setFVideoThumb(null); setFConsent(false)
       <div style={{ minHeight: '100vh', width: '100%', display: 'flex', justifyContent: 'center', background: t.pageBg }}>
         <div style={{ width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif" }}>
 
+        {/* Sticky header wrapper — top bar + hero + expressions + CTA stay fixed */}
+        <div style={{ position: 'sticky', top: 0, zIndex: 30, background: t.pageBg }}>
+
 {/* ── TOP BAR — session aware ── */}
 <div
   style={{
@@ -1220,6 +1213,11 @@ background:
             </div>
           )}
 
+          {/* ── GLOBAL EXPRESSIONS STRIP — fixed below hero ── */}
+          <div style={{ flexShrink: 0, padding: '6px 16px 2px', borderBottom: '1px solid rgba(226,195,107,0.08)' }}>
+            <GlobalExpressionsStrip expressionCategory={lang.expressionCategory} />
+          </div>
+
           {/* ── COLLAPSIBLE COMPOSER ── */}
           <div style={{ flexShrink: 0, margin: '10px 12px 0' }}>
 {!composerOpen ? (
@@ -1230,12 +1228,12 @@ background:
     onClick={() => setComposerOpen(true)}
     style={{
       width: '100%',
-      padding: '14px',
+      padding: '11px 14px',
       borderRadius: '8px',
       backgroundColor: t.accentPrimary,
       color: '#1a0826',
       fontWeight: 'bold',
-      fontSize: '15px',
+      fontSize: '14px',
       letterSpacing: '0.03em',
       cursor: 'pointer',
       border: 'none',
@@ -1297,7 +1295,7 @@ background:
                   {/* Name + Email + Photo */}
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'start' }}>
                     <div style={{ flex: 1 }}><input style={inp} placeholder="Your name *" value={fName} onChange={e => setFName(e.target.value)} maxLength={50} />{errors.name && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.name}</p>}</div>
-                    <div style={{ flex: 1 }}><input type="email" style={inp} placeholder="Email — we'll send you the keepsake publication after the event" value={fEmail} onChange={e => setFEmail(e.target.value)} maxLength={100} />{errors.email && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.email}</p>}</div>
+                    <div style={{ flex: 1 }}><input type="email" style={inp} placeholder="Add Email" value={fEmail} onChange={e => setFEmail(e.target.value)} maxLength={100} />{errors.email && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.email}</p>}</div>
                     <div onClick={() => photoRef.current?.click()} style={{ width: '42px', height: '42px', borderRadius: '50%', border: `1px dashed ${t.accentFaint}`, background: t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, overflow: 'hidden' }}>
                       {fPhotoPreview ? <img src={fPhotoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ color: t.accentMuted, fontSize: '18px', lineHeight: 1 }}>+</span>}
                     </div>
@@ -1327,14 +1325,14 @@ background:
                   />
 
 <p style={{ fontSize: '11px', color: t.textFaint, lineHeight: 1.65, margin: '0 0 6px', fontStyle: 'italic' }}>
-  {lang.plural} are limited to 500 characters — keep it personal and concise.
-  {' '}<span style={{ color: t.accentMuted }}>Have a longer story or photos? Share them in the Community Memories &amp; Stories room.</span>
+ Keep {lang.plural} limited to 500 characters.
+  {' '}<span style={{ color: t.accentMuted }}>You can share longer stories in the Community Memories &amp; Stories room.</span>
 </p>
 
                   {/* Tribute + Submit */}
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
                     <div style={{ flex: 1, position: 'relative' }}>
-                      <textarea style={{ ...inp, minHeight: '80px', maxHeight: '120px', resize: 'none', lineHeight: 1.7 }} placeholder={`Share a tribute for ${honourName}… (up to 500 characters). For longer stories and memories, visit the Community Memories & Stories room.`} value={fMsg} onChange={e => setFMsg(e.target.value)} maxLength={MAX_CHARS} rows={3} />
+                      <textarea style={{ ...inp, minHeight: '60px', maxHeight: '90px', resize: 'none', lineHeight: 1.7 }} placeholder="Share your voice…" value={fMsg} onChange={e => setFMsg(e.target.value)} maxLength={MAX_CHARS} rows={3} />
                       <span style={{ position: 'absolute', bottom: '8px', right: '10px', fontSize: '9px', color: fMsg.length > 450 ? t.accentPrimary : t.textFaint, pointerEvents: 'none' }}>{fMsg.length}/{MAX_CHARS}</span>
                       {errors.msg && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.msg}</p>}
                     </div>
@@ -1343,10 +1341,10 @@ background:
   disabled={submitting} 
   style={{ 
     flexShrink: 0,
-    padding: '14px 20px', 
+    padding: '11px 14px', 
     borderRadius: '14px', 
     fontWeight: 700, 
-    fontSize: '13px', 
+    fontSize: '14px', 
     background: `linear-gradient(180deg, ${t.accentPrimary}, ${t.accentMuted})`, 
     color: '#1a0826', 
     border: 'none', 
@@ -1385,7 +1383,7 @@ background:
                       style={{ marginTop: '2px', accentColor: t.accentPrimary, cursor: 'pointer' }}
                     />
                     <span style={{ fontSize: '11px', color: t.textFaint, lineHeight: 1.5 }}>
-                      If my tribute helps bring others to this collection, I'd like to be recognised as a Legacy Builder.
+                      {`If my ${lang.singular.toLowerCase()} helps bring others to this collection, I'd like to be recognised as a Legacy Builder.`}
                     </span>
                   </label>
 
@@ -1438,9 +1436,7 @@ background:
             <div style={{ maxHeight: '420px', overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px', scrollbarWidth: 'thin', scrollbarColor: `${t.accentFaint} transparent` }}>
               {visible.length === 0 && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}><p style={{ color: t.textFaint, fontSize: '13px', lineHeight: 1.7, fontStyle: 'italic', maxWidth: '280px' }}>{(() => {
                 const type = capsule.event_type?.toLowerCase() ?? ''
-                if (type.includes('memorial') || type.includes('funeral')) return `Voices, memories and reflections shared in honour of ${honourName} will appear here.`
-                if (type.includes('retirement')) return `Messages of appreciation from colleagues and loved ones will appear here.`
-                if (type.includes('wedding')) return `Messages celebrating this union will appear here.`
+                return `${lang.plural} for ${honourName} will appear here. ${lang.cta} to be first.`
                 if (type.includes('birthday')) return `Birthday tributes and warm messages will appear here.`
                 if (type.includes('graduation')) return `Congratulations and words of pride will appear here.`
                 if (type.includes('ordination') || type.includes('religious') || type.includes('thanksgiving')) return `Words of blessing and celebration will appear here.`
@@ -1459,6 +1455,8 @@ background:
               <div ref={bottomRef} />
             </div>
           </div>
+
+        </div>{/* end sticky header wrapper */}
 
           {/* ── EVENT PHASES STRIP — pre-announcement ── */}
           {phases.length > 0 && (
@@ -1508,7 +1506,7 @@ background:
             {/* Card footer */}
             <div style={{ padding: '0 16px 12px', textAlign: 'center' }}>
               <span style={{ fontSize: '10px', color: t.textFaint, letterSpacing: '0.04em' }}>
-                {uniqueCountries.length > 0 ? 'Every pin represents someone who paused to honour this story' : 'Pins appear as tributes are approved'}
+                {uniqueCountries.length > 0 ? 'Every pin represents someone who paused to honour this story' : `Pins appear as ${lang.plural.toLowerCase()} are approved`}
               </span>
             </div>
           </div>

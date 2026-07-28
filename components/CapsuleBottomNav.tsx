@@ -89,7 +89,7 @@ function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
   // Tab 1 -- Tributes (always)
   tabs.push({
     id:     'tribute',
-    label:  'Tributes',
+    label:  'Voices',
     icon:   '✦',
     href:   `/for/${slug}`,
     active: true,
