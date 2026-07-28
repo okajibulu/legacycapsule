@@ -98,7 +98,7 @@ export default function GlobalExpressionsStrip({
         setCurrentIndex(getCurrentIndex())
         // Fade in
         setVisible(true)
-      }, 400) // 400ms fade duration
+      }, 600) // 400ms fade duration
     }
 
     timerRef.current = setInterval(tick, intervalMs)
@@ -140,11 +140,12 @@ export default function GlobalExpressionsStrip({
       <div
         style={{
           opacity:    visible ? 1 : 0,
-          transition: `opacity ${prefersReducedMotion ? '0ms' : '400ms'} ease`,
+          transition: `opacity ${prefersReducedMotion ? '0ms' : '600ms'} ease-in-out`,
           display:    'flex',
           alignItems: 'baseline',
           gap:        '0',
-          justifyContent: isBrand ? 'center' : 'flex-start',
+          justifyContent: 'center',
+          textAlign: 'center' as const,
           width:      '100%',
         }}
       >

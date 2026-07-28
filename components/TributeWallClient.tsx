@@ -356,7 +356,7 @@ function PremiumModal({ feature, onClose, t }: { feature: 'video' | 'audio' | nu
 ========================================================= */
 function MapModal({ pins, honourName, uniqueCountries, onClose, t }: { pins: Pin[]; honourName: string; uniqueCountries: string[]; onClose: () => void; t: ThemeConfig }) {
   return (
-    <div style={{ position: 'fixed', inset: '16px', zIndex: 50, display: 'flex', flexDirection: 'column', borderRadius: '24px', overflow: 'hidden', background: 'rgba(8,2,26,0.97)', backdropFilter: 'blur(4px)' }}>
+    <div style={{ position: 'fixed', top: '16px', left: '16px', right: '16px', bottom: '16px', zIndex: 50, display: 'flex', flexDirection: 'column', borderRadius: '24px', overflow: 'hidden', background: 'rgba(8,2,26,0.97)', backdropFilter: 'blur(4px)' }}>
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: `1px solid ${t.accentFaint}` }}>
         <div>
           <p style={{ fontSize: '14px', fontWeight: 700, color: t.textHeading, fontFamily: "'Playfair Display', serif" }}>{`A World of Voices`}</p>
