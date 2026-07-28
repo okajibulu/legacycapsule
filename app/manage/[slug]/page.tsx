@@ -534,8 +534,8 @@ function UpgradeCard({ capsuleName }: { capsuleName: string }) {
 function BottomNav({ active, onChange, pendingCount }: { active: Tab; onChange: (t: Tab) => void; pendingCount: number }) {
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'overview',    label: 'Overview',   icon: '🏠' },
-    { id: 'setstories',  label: 'Stories',    icon: '📖' },
-    { id: 'setprofile',  label: 'Profile',    icon: '👤' },
+    { id: 'setstories',  label: 'S/Stories',  icon: '📖' },
+    { id: 'setprofile',  label: 'S/Profile',  icon: '👤' },
     { id: 'settings',    label: 'Settings',   icon: '⚙️' },
     { id: 'services',    label: 'Services',   icon: '✨' },
   ]
