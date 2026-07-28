@@ -220,7 +220,7 @@ export default async function ProfilePage({ params }: PageProps) {
       </div>
 
       {/* HERO */}
-      <div style={{ position: 'relative', overflow: 'hidden', minHeight: '260px' }}>
+      <div style={{ position: 'relative', overflow: 'hidden', minHeight: '260px', width: '100%' }}>
         <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${resolvedHero})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
         <div style={{ position: 'absolute', inset: 0, background: t.heroOverlay }} />
         <div style={{ position: 'absolute', inset: 0, background: t.heroGlow }} />
@@ -247,7 +247,7 @@ export default async function ProfilePage({ params }: PageProps) {
       </div>
 
       {/* MAIN CONTENT */}
-      <main style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 16px 60px' }}>
+      <main style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 20px 60px', boxSizing: 'border-box' }}>
 
 {/* Auto-composed occasion block — shows when no Introduction section exists */}
         {!profileSections.some((s: any) => s.section_type === 'intro' || s.section_type === 'introduction') && (

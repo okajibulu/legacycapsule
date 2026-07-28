@@ -90,7 +90,7 @@ function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
   tabs.push({
     id:     'tribute',
     label:  'Voices',
-    icon:   '✦',
+    icon:   '💬',
     href:   `/for/${slug}`,
     active: true,
   })
@@ -99,7 +99,7 @@ function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
   tabs.push({
     id:     'memories',
     label:  'Memories',
-    icon:   '◈',
+    icon:   '📖',
     href:   `/for/${slug}/stories`,
     active: true,
   })
@@ -108,7 +108,7 @@ function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
   tabs.push({
     id:     'profile',
     label:  'Profile',
-    icon:   '◎',
+    icon:   '👤',
     href:   `/for/${slug}/profile`,
     active: true,
   })
@@ -117,7 +117,7 @@ function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
   tabs.push({
     id:     'legacy',
     label:  'Highlights',
-    icon:   '◇',
+    icon:   '⭐',
     href:   `/for/${slug}/legacy`,
     active: true,
   })
@@ -126,7 +126,7 @@ function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
   tabs.push({
     id:     'premiums',
     label:  'Premiums',
-    icon:   '✴',
+    icon:   '✨',
     href:   null,
     active: true,
   })

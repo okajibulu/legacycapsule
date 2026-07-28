@@ -533,11 +533,11 @@ function UpgradeCard({ capsuleName }: { capsuleName: string }) {
 /* -- BOTTOM NAV ----------------------------------------- */
 function BottomNav({ active, onChange, pendingCount }: { active: Tab; onChange: (t: Tab) => void; pendingCount: number }) {
   const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: 'overview',    label: 'Overview',   icon: '◈' },
-    { id: 'setstories',  label: 'Stories',    icon: '✦' },
-    { id: 'setprofile',  label: 'Profile',    icon: '◉' },
-    { id: 'settings',    label: 'Settings',   icon: '⊙' },
-    { id: 'services',    label: 'Services',   icon: '◎' },
+    { id: 'overview',    label: 'Overview',   icon: '🏠' },
+    { id: 'setstories',  label: 'Stories',    icon: '📖' },
+    { id: 'setprofile',  label: 'Profile',    icon: '👤' },
+    { id: 'settings',    label: 'Settings',   icon: '⚙️' },
+    { id: 'services',    label: 'Services',   icon: '✨' },
   ]
   return (
     <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50, background: 'rgba(15,10,30,0.98)', backdropFilter: 'blur(20px)', borderTop: `1px solid rgba(226,195,107,0.15)`, display: 'flex', padding: '6px 8px max(8px, env(safe-area-inset-bottom))' }}>
