@@ -898,8 +898,7 @@ setFAudioUrl(null); setFVideoUrl(null); setFVideoThumb(null); setFConsent(false)
       <div style={{ minHeight: '100vh', width: '100%', display: 'flex', justifyContent: 'center', background: t.pageBg }}>
         <div style={{ width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif" }}>
 
-        {/* Sticky header wrapper — top bar + hero + expressions + CTA stay fixed */}
-        <div style={{ position: 'sticky', top: 0, zIndex: 30, background: t.pageBg }}>
+        {/* Header — scrollable */}
 
 {/* ── TOP BAR — session aware ── */}
 <div
@@ -1456,7 +1455,7 @@ background:
             </div>
           </div>
 
-        </div>{/* end sticky header wrapper */}
+         
 
           {/* ── EVENT PHASES STRIP — pre-announcement ── */}
           {phases.length > 0 && (
