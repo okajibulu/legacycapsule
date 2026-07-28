@@ -1339,6 +1339,143 @@ function ExportsTab({ contributions, slug }: {
 }
 
 
+/* -- SETSTORIES MANAGER --------------------------------- */
+function SetStoriesManager({ communityTopics, capsule, supabase, fetchAll, gold, goldMuted, textPrimary, textFaint }: {
+  communityTopics: any[]; capsule: any; supabase: any; fetchAll: () => void
+  gold: string; goldMuted: string; textPrimary: string; textFaint: string
+}) {
+  const CATEGORY_ORDER = [
+    'Personal Memories', 'Childhood & Early Life', 'Work & Achievements',
+    'Faith & Values', 'Family', 'Funny Moments', 'Legacy & Impact', 'General',
+  ]
+  const presentCats = CATEGORY_ORDER.filter(cat =>
+    communityTopics.some((t: any) => (t.category ?? 'General') === cat)
+  )
+  const extraCats = [...new Set(communityTopics.map((t: any) => t.category ?? 'General'))]
+    .filter((c: any) => !CATEGORY_ORDER.includes(c))
+  const allCats = [...presentCats, ...extraCats as string[]]
+
+  const [openCategory,      setOpenCategory]      = useState<string | null>(null)
+  const [addingInCategory,  setAddingInCategory]  = useState(false)
+  const [newTopicText,      setNewTopicText]      = useState('')
+  const [topicSaving,       setTopicSaving]       = useState(false)
+  const cardBorder = 'rgba(226,195,107,0.12)'
+  const cardBg     = 'rgba(255,255,255,0.04)'
+
+  if (openCategory) {
+    const catTopics = communityTopics.filter((t: any) => (t.category ?? 'General') === openCategory)
+    return (
+      <div>
+        <button onClick={() => { setOpenCategory(null); setAddingInCategory(false); setNewTopicText('') }}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: goldMuted, fontSize: '12px', fontWeight: 600, cursor: 'pointer', padding: '0 0 16px', letterSpacing: '0.04em' }}>
+          ← S/Stories
+        </button>
+        <div style={{ marginBottom: '16px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 700, color: textPrimary, margin: '0 0 2px' }}>{openCategory}</p>
+          <p style={{ fontSize: '11px', color: textFaint, margin: 0 }}>
+            {catTopics.length} {catTopics.length === 1 ? 'prompt' : 'prompts'}
+          </p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px', marginBottom: '14px' }}>
+          {catTopics.map((topic: any) => (
+            <div key={topic.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '10px', background: topic.status === 'active' ? 'rgba(226,195,107,0.05)' : 'rgba(255,255,255,0.02)', border: `1px solid ${topic.status === 'active' ? 'rgba(226,195,107,0.15)' : 'rgba(255,255,255,0.05)'}` }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: '12px', color: topic.status === 'active' ? textPrimary : textFaint, lineHeight: 1.5, fontStyle: 'italic' }}>
+                  "{topic.topic_name.replace(/\[honouree_name\]/g, capsule.honouree_name)}"
+                </p>
+                <p style={{ margin: '3px 0 0', fontSize: '9px', color: textFaint, textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>
+                  {topic.topic_source === 'system' ? 'Default' : topic.topic_source === 'organiser' ? 'Your prompt' : 'Community'} · {topic.status}
+                </p>
+              </div>
+              <button
+                onClick={async () => {
+                  const newStatus = topic.status === 'active' ? 'inactive' : 'active'
+                  await supabase.from('community_story_topics').update({ status: newStatus }).eq('id', topic.id)
+                  fetchAll()
+                }}
+                style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: `1px solid ${topic.status === 'active' ? 'rgba(248,113,113,0.3)' : 'rgba(74,222,128,0.3)'}`, background: 'transparent', color: topic.status === 'active' ? 'rgba(248,113,113,0.7)' : 'rgba(134,239,172,0.7)', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
+                {topic.status === 'active' ? 'Deactivate' : 'Activate'}
+              </button>
+            </div>
+          ))}
+          {catTopics.length === 0 && (
+            <p style={{ fontSize: '12px', color: textFaint, textAlign: 'center' as const, padding: '16px 0' }}>No prompts in this category yet.</p>
+          )}
+        </div>
+        {addingInCategory ? (
+          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+            <textarea value={newTopicText} onChange={e => setNewTopicText(e.target.value)}
+              placeholder={`Write a prompt for ${openCategory}…`}
+              style={{ width: '100%', minHeight: '80px', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(226,195,107,0.18)', color: textPrimary, fontSize: '13px', boxSizing: 'border-box' as const, resize: 'vertical' as const, fontFamily: "'DM Sans', sans-serif" }}
+            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button disabled={topicSaving || !newTopicText.trim()}
+                onClick={async () => {
+                  if (!newTopicText.trim()) return
+                  setTopicSaving(true)
+                  const maxOrder = communityTopics.length > 0 ? Math.max(...communityTopics.map((t: any) => t.display_order ?? 0)) : 0
+                  await supabase.from('community_story_topics').insert({ capsule_id: capsule.id, topic_name: newTopicText.trim(), topic_source: 'organiser', status: 'active', category: openCategory, display_order: maxOrder + 10 })
+                  setNewTopicText(''); setAddingInCategory(false); setTopicSaving(false); fetchAll()
+                }}
+                style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#E2C36B,#C8A84A)', color: '#1a0845', fontSize: '13px', fontWeight: 700, cursor: 'pointer', opacity: topicSaving || !newTopicText.trim() ? 0.5 : 1 }}>
+                {topicSaving ? 'Saving…' : 'Add Prompt'}
+              </button>
+              <button onClick={() => { setAddingInCategory(false); setNewTopicText('') }}
+                style={{ padding: '10px 16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: textFaint, fontSize: '13px', cursor: 'pointer' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setAddingInCategory(true)}
+            style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px dashed rgba(226,195,107,0.2)', background: 'transparent', color: goldMuted, fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+            + Add a Prompt to {openCategory}
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <p style={{ fontSize: '13px', fontWeight: 700, color: textPrimary, margin: '0 0 16px' }}>
+        Manage Community Story Topics
+      </p>
+      {communityTopics.length === 0 && (
+        <div style={{ textAlign: 'center' as const, padding: '24px 16px', borderRadius: '12px', border: '1px dashed rgba(226,195,107,0.15)', marginBottom: '14px' }}>
+          <p style={{ fontSize: '12px', color: textFaint, marginBottom: '14px', lineHeight: 1.65 }}>
+            No story topics yet. Load a set of suggested prompts tailored to your event type to get started quickly.
+          </p>
+          <button
+            onClick={async () => {
+              await fetch('/api/capsule/seed-prompts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ capsule_id: capsule.id }) })
+              fetchAll()
+            }}
+            style={{ padding: '10px 24px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#E2C36B,#C8A84A)', color: '#1a0845', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+            Load Suggested Topics for This Event
+          </button>
+        </div>
+      )}
+      {allCats.map((cat: string) => {
+        const catTopics   = communityTopics.filter((t: any) => (t.category ?? 'General') === cat)
+        const activeCount = catTopics.filter((t: any) => t.status === 'active').length
+        return (
+          <button key={cat} onClick={() => setOpenCategory(cat)}
+            style={{ width: '100%', padding: '14px 16px', borderRadius: '12px', border: `1px solid ${cardBorder}`, background: cardBg, cursor: 'pointer', textAlign: 'left' as const, display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: textPrimary }}>{cat}</p>
+              <p style={{ margin: '3px 0 0', fontSize: '11px', color: textFaint }}>
+                {activeCount} active · {catTopics.length} total
+              </p>
+            </div>
+            <span style={{ fontSize: '14px', color: textFaint, flexShrink: 0 }}>→</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 /* -- MAIN COMPONENT ------------------------------------- */
 export default function ManagePage() {
   const params = useParams()
@@ -1628,97 +1765,20 @@ const capRes = await supabase.from('capsules')
             </div>
           )}
 
-           {/* -- SETSTORIES TAB -- */}
+
+{/* -- SETSTORIES TAB -- */}
           {activeTab === 'setstories' && (
             <div>
-              <SectionCard title="Story Prompts & Topics" subtitle="Guests answer these prompts in the Memories room. Deactivate any that aren't right for your event, or add your own.">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
-                  {communityTopics.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                      <p style={{ fontSize: '12px', color: textFaint, marginBottom: '12px' }}>
-                        No prompts yet. Seed default prompts for your event type to get started.
-                      </p>
-                      <button
-                        onClick={async () => {
-                          await fetch('/api/capsule/seed-prompts', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ capsule_id: capsule.id }),
-                          })
-                          fetchAll()
-                        }}
-                        style={{ padding: '10px 24px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#E2C36B,#C8A84A)', color: '#1a0845', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
-                        Seed Default Prompts
-                      </button>
-                    </div>
-                  )}
-                  {communityTopics.map((topic: any) => (
-                    <div key={topic.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '10px', background: topic.status === 'active' ? 'rgba(226,195,107,0.05)' : 'rgba(255,255,255,0.02)', border: `1px solid ${topic.status === 'active' ? 'rgba(226,195,107,0.15)' : 'rgba(255,255,255,0.05)'}` }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: '12px', color: topic.status === 'active' ? textPrimary : textFaint, lineHeight: 1.5, fontStyle: 'italic' }}>
-                          "{topic.topic_name.replace(/\[honouree_name\]/g, capsule.honouree_name)}"
-                        </p>
-                        <p style={{ margin: '3px 0 0', fontSize: '9px', color: textFaint, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                          {topic.topic_source === 'system' ? 'Default prompt' : topic.topic_source === 'organiser' ? 'Your prompt' : 'Community'} — {topic.status}
-                        </p>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          const newStatus = topic.status === 'active' ? 'inactive' : 'active'
-                          await supabase.from('community_story_topics').update({ status: newStatus }).eq('id', topic.id)
-                          fetchAll()
-                        }}
-                        style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: `1px solid ${topic.status === 'active' ? 'rgba(248,113,113,0.3)' : 'rgba(74,222,128,0.3)'}`, background: 'transparent', color: topic.status === 'active' ? 'rgba(248,113,113,0.7)' : 'rgba(134,239,172,0.7)', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
-                        {topic.status === 'active' ? 'Deactivate' : 'Activate'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                {addingTopic ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <textarea
-                      value={newTopicText}
-                      onChange={e => setNewTopicText(e.target.value)}
-                      placeholder={`Write your prompt here... e.g. "What is a memory of ${capsule.honouree_name} that made you laugh?"`}
-                      style={{ width: '100%', minHeight: '80px', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(226,195,107,0.18)', color: textPrimary, fontSize: '13px', boxSizing: 'border-box' as const, resize: 'vertical' as const, fontFamily: "'DM Sans', sans-serif" }}
-                    />
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        disabled={topicSaving || !newTopicText.trim()}
-                        onClick={async () => {
-                          if (!newTopicText.trim()) return
-                          setTopicSaving(true)
-                          const maxOrder = communityTopics.length > 0 ? Math.max(...communityTopics.map((t: any) => t.display_order ?? 0)) : 0
-                          await supabase.from('community_story_topics').insert({
-                            capsule_id:    capsule.id,
-                            topic_name:    newTopicText.trim(),
-                            topic_source:  'organiser',
-                            status:        'active',
-                            display_order: maxOrder + 10,
-                          })
-                          setNewTopicText('')
-                          setAddingTopic(false)
-                          setTopicSaving(false)
-                          fetchAll()
-                        }}
-                        style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#E2C36B,#C8A84A)', color: '#1a0845', fontSize: '13px', fontWeight: 700, cursor: 'pointer', opacity: topicSaving || !newTopicText.trim() ? 0.5 : 1 }}>
-                        {topicSaving ? 'Saving...' : 'Add Prompt'}
-                      </button>
-                      <button
-                        onClick={() => { setAddingTopic(false); setNewTopicText('') }}
-                        style={{ padding: '10px 16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: textFaint, fontSize: '13px', cursor: 'pointer' }}>
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setAddingTopic(true)}
-                    style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px dashed rgba(226,195,107,0.2)', background: 'transparent', color: goldMuted, fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
-                    + Add a Custom Prompt
-                  </button>
-                )}
-              </SectionCard>
+              <SetStoriesManager
+                communityTopics={communityTopics}
+                capsule={capsule}
+                supabase={supabase}
+                fetchAll={fetchAll}
+                gold={gold}
+                goldMuted={goldMuted}
+                textPrimary={textPrimary}
+                textFaint={textFaint}
+              />
             </div>
           )}
 

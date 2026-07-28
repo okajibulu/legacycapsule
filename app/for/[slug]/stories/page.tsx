@@ -2,19 +2,18 @@
 // FILE: app/for/[slug]/stories/page.tsx
 // PURPOSE: Community Memories & Stories room — public server component
 // Route: /for/[slug]/stories
-// UPDATED: Claude Sonnet 4.6 · July 2026
-//   — Fixed: event_name → honouree_name, tagline → event_tag (schema alignment)
-//   — Renamed: Community Stories → Community Memories & Stories (UI only)
-//   — Added: CapsuleBottomNav, admin_response field
+// UPDATED: AI14 · Claude Sonnet 4.6 · July 2026
+//   — Added: category field to StoryTopic type and DB query
+//   — Category-aware data passed to CommunityStoriesClient
+// ARCHITECTURE: LC02 LC05
 // ─────────────────────────────────────────────────────────────────────────────
 
-  import { createClient }            from '@supabase/supabase-js'
+import { createClient }            from '@supabase/supabase-js'
 import { notFound }                from 'next/navigation'
 import { resolveTheme }            from '@/lib/themeConfig'
 import CommunityStoriesClient      from '@/components/CommunityStoriesClient'
 import CapsuleBottomNav            from '@/components/CapsuleBottomNav'
 import ActivePremiumsStrip         from '@/components/ActivePremiumsStrip'
-  
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 1 — Types
@@ -27,6 +26,7 @@ export interface StoryTopic {
   status:        string
   display_order: number
   story_count:   number
+  category:      string   // Added AI14 — groups topics into browsable categories
 }
 
 export interface CommunityStory {
@@ -70,7 +70,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     .single()
 
   return {
-    title: capsule ? `Community Memories & Stories — ${capsule.honouree_name}` : 'Community Memories & Stories',
+    title: capsule
+      ? `Community Memories & Stories — ${capsule.honouree_name}`
+      : 'Community Memories & Stories',
   }
 }
 
@@ -100,14 +102,12 @@ export default async function CommunityStoriesPage({
   if (capsuleError || !capsule) return notFound()
   if (capsule.page_state === 'suspended') return notFound()
 
-  // ── Check Community Stories is activated ──────────────────────────────────
   const components: string[] = capsule.components ?? []
-  // Community Stories is free and always accessible — no component guard needed
 
-  // ── Fetch active topics ───────────────────────────────────────────────────
+  // ── Fetch active topics — now includes category ───────────────────────────
   const { data: topicsRaw } = await supabase
     .from('community_story_topics')
-    .select('id, topic_name, topic_source, status, display_order')
+    .select('id, topic_name, topic_source, status, display_order, category')
     .eq('capsule_id', capsule.id)
     .eq('status', 'active')
     .order('display_order', { ascending: true })
@@ -123,9 +123,10 @@ export default async function CommunityStoriesPage({
 
   const stories: CommunityStory[] = storiesRaw ?? []
 
-  // ── Enrich topics with story counts ──────────────────────────────────────
+  // ── Enrich topics with story counts and normalised category ───────────────
   const topicsWithCounts: StoryTopic[] = (topicsRaw ?? []).map(t => ({
     ...t,
+    category:    t.category ?? 'General',
     story_count: stories.filter(s => s.story_topic_id === t.id).length,
   }))
 
@@ -138,9 +139,7 @@ export default async function CommunityStoriesPage({
     components,
   }
 
-  // eohAccounts removed — supportAccounts below covers EOH via PremiumsPanel
-
-  // ── Fetch support accounts for Premiums panel ─────────────────────────
+  // ── Fetch support accounts for Premiums panel ─────────────────────────────
   const { data: supportAccounts } = await supabase
     .from('capsule_support_accounts')
     .select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, is_active, sort_order, relationship_to_honouree')
@@ -149,9 +148,10 @@ export default async function CommunityStoriesPage({
     .is('deleted_at', null)
     .order('sort_order', { ascending: true })
 
-  // Fetch story photos (source='stories', linked by contribution_id)
+  // ── Fetch story photos ────────────────────────────────────────────────────
   const storyContribIds = stories.map(s => s.id)
   let storyPhotos: Record<string, any[]> = {}
+
   if (storyContribIds.length > 0) {
     const { data: photoRows } = await supabase
       .from('gallery_items')
@@ -172,14 +172,14 @@ export default async function CommunityStoriesPage({
 
   return (
     <>
-<CommunityStoriesClient
+      <CommunityStoriesClient
         capsule={capsuleInfo}
         topics={topicsWithCounts}
         stories={stories}
         storyPhotos={storyPhotos}
         hasPublication={hasPublication}
       />
-       
+
       <div style={{ maxWidth: '640px', margin: '0 auto', padding: '0 20px 8px' }}>
         <ActivePremiumsStrip slug={slug} components={components} />
       </div>
