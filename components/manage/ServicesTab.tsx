@@ -58,7 +58,8 @@ interface ServicesTabProps {
   }
   approvedContributions: Contribution[]
   supabase: any
-  onUpgrade: () => void
+onUpgrade:      () => void
+  onToggleFlag?:  (id: string, field: string, current: boolean) => void
   eohEditor?: React.ReactNode
 }
 
@@ -195,7 +196,7 @@ function ServiceCard({
 
 // ═══ SECTION 3 — ExportsSection ═══
 
-function ExportsSection({ contributions, slug }: { contributions: Contribution[]; slug: string }) {
+function ExportsSection({ contributions, slug, onToggleFlag }: { contributions: Contribution[]; slug: string; onToggleFlag?: (id: string, field: string, current: boolean) => void }) {
   const [copiedAll, setCopiedAll] = useState(false)
   const [copiedProg, setCopiedProg] = useState(false)
 
@@ -221,7 +222,41 @@ function ExportsSection({ contributions, slug }: { contributions: Contribution[]
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+      {/* ── Voice curation flags ── */}
+      {contributions.length > 0 && onToggleFlag && (
+        <div>
+          <p style={{ fontSize: '10px', color: goldMuted, textTransform: 'uppercase' as const, letterSpacing: '0.1em', margin: '0 0 8px', fontWeight: 600 }}>
+            Curate Voices for Export
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '6px', marginBottom: '12px' }}>
+            {contributions.map(c => (
+              <div key={c.id} style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: textPrimary }}>{c.contributor_name}</span>
+                  {c.relationship && <span style={{ fontSize: '10px', color: textFaint }}>({c.relationship})</span>}
+                  <span style={{ fontSize: '10px', color: textFaint, marginLeft: 'auto', whiteSpace: 'nowrap' as const }}>{new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+                </div>
+                <p style={{ fontSize: '11px', color: textSecondary, lineHeight: 1.5, margin: '0 0 8px' }}>{c.tribute_text.length > 120 ? c.tribute_text.slice(0, 120) + '…' : c.tribute_text}</p>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' as const }}>
+                  <button
+                    onClick={() => onToggleFlag(c.id, 'include_in_publication', (c as any).include_in_publication ?? true)}
+                    style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '6px', cursor: 'pointer', border: `1px solid ${(c as any).include_in_publication !== false ? 'rgba(74,222,128,0.28)' : 'rgba(255,255,255,0.08)'}`, background: (c as any).include_in_publication !== false ? 'rgba(74,222,128,0.07)' : 'transparent', color: (c as any).include_in_publication !== false ? 'rgba(134,239,172,0.9)' : textFaint }}>
+                    {(c as any).include_in_publication !== false ? '✓' : '✗'} Publication
+                  </button>
+                  <button
+                    onClick={() => onToggleFlag(c.id, 'include_in_programme_export', (c as any).include_in_programme_export ?? false)}
+                    style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '6px', cursor: 'pointer', border: `1px solid ${(c as any).include_in_programme_export ? 'rgba(226,195,107,0.35)' : 'rgba(255,255,255,0.08)'}`, background: (c as any).include_in_programme_export ? goldFaint : 'transparent', color: (c as any).include_in_programme_export ? gold : textFaint }}>
+                    {(c as any).include_in_programme_export ? '✓' : '✗'} Programme Export
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <button onClick={handleCopyAll} disabled={contributions.length === 0} style={{ width: '100%', padding: '11px', borderRadius: '10px', border: `1px solid ${cardBorder}`, background: copiedAll ? 'rgba(74,222,128,0.08)' : cardBg, color: copiedAll ? 'rgba(134,239,172,0.9)' : textPrimary, fontSize: '12px', fontWeight: 700, cursor: contributions.length === 0 ? 'not-allowed' : 'pointer', opacity: contributions.length === 0 ? 0.4 : 1 }}>
         {copiedAll ? '✓ Copied' : `Copy All Tributes (${contributions.length})`}
       </button>
@@ -229,7 +264,7 @@ function ExportsSection({ contributions, slug }: { contributions: Contribution[]
         {copiedProg ? '✓ Copied' : `Copy Programme Export (${programmeContribs.length})`}
       </button>
       {programmeContribs.length === 0 && (
-        <p style={{ fontSize: '11px', color: textFaint, textAlign: 'center' as const, fontStyle: 'italic' }}>Mark tributes for Programme Export in the Tributes tab.</p>
+        <p style={{ fontSize: '11px', color: textFaint, textAlign: 'center' as const, fontStyle: 'italic' }}>Mark voices for Programme Export in the Programme Exports section above.</p>
       )}
     </div>
   )
@@ -420,7 +455,7 @@ function PriceColumn({
 
 // ═══ SECTION 5 — Main ServicesTab component ═══
 
-export default function ServicesTab({ capsule, approvedContributions, supabase, onUpgrade, eohEditor }: ServicesTabProps) {
+export default function ServicesTab({ capsule, approvedContributions, supabase, onUpgrade, eohEditor, onToggleFlag }: ServicesTabProps) {
   const [phases, setPhases] = useState<any[]>([])
   const [unlocking,     setUnlocking]     = useState<string | null>(null)
   const [featurePrices, setFeaturePrices] = useState<Record<string, { amount: number; symbol: string } | null>>({})
@@ -601,7 +636,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           icon="⬇"
           status="always_on"
         >
-          <ExportsSection contributions={approvedContributions} slug={capsule.slug} />
+          <ExportsSection contributions={approvedContributions} slug={capsule.slug} onToggleFlag={onToggleFlag} />
         </ServiceCard>
 
         {/* Event Phases */}

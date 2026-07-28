@@ -7,6 +7,7 @@
 //          Gifting (EOH) opens WaysToHonourSection inline.
 //          All other active services navigate to their own page.
 // UPDATED: AI13 - Claude Opus 4.6 - 22 July 2026
+//   -- z-index raised to 60/61 (above submission panel at 50)
 
 // ============================================================
 // SECTION 1 -- Imports & types
@@ -217,12 +218,12 @@ export default function PremiumsPanel({
       <div
         onClick={onClose}
         style={{
-          position: 'fixed', inset: 0, zIndex: 40,
+          position: 'fixed', inset: 0, zIndex: 60,
           background: 'rgba(8,2,20,0.7)', backdropFilter: 'blur(4px)',
         }}
       />
       <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 41,
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 61,
         background: 'linear-gradient(160deg, #1a0845 0%, #120630 100%)',
         borderRadius: '20px 20px 0 0',
         borderTop: '1px solid rgba(226,195,107,0.2)',

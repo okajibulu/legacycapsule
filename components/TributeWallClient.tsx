@@ -1,3 +1,14 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE: components/TributeWallClient.tsx
+// PURPOSE: Public-facing tribute wall — theme-aware, collapsible composer,
+//          participation language engine integrated (presentation layer only).
+//          Internal model names (Contribution, Contributor) unchanged.
+// ARCHITECTURE: LC · Capsule Guest Experience
+// UPDATED: AI12 · Claude Sonnet 4.6 · 22 July 2026
+//   — Participation Language Engine integrated (lang.* tokens)
+//   — CTA, wall title, count, success messages now event-type-aware
+//   — Internal variable/function names unchanged per architecture rule
+// ─────────────────────────────────────────────────────────────────────────────
 'use client'
 
 /* =========================================================
@@ -25,6 +36,7 @@ import { COUNTRIES } from '@/lib/tributeWallHelpers'
 import { getThemeConfig } from '@/lib/themeConfig'
 import type { ThemeKey, ThemeConfig } from '@/lib/themeConfig'
 import PublicationSubscribePanel from '@/components/capsule/PublicationSubscribePanel'
+import { getParticipationLanguage, formatParticipationCount } from '@/lib/utils/getParticipationLanguage'
 
 const AudioTribute = dynamic(() => import('@/components/AudioTribute'), { ssr: false })
 const VideoTribute = dynamic(() => import('@/components/VideoTribute'), { ssr: false })
@@ -596,6 +608,7 @@ const [fConsent, setFConsent] = useState(false)
   const honourName = capsule.honouree_name
   const pageTitle = getTributePageTitle(capsule.event_type, honourName)
   const ornament = ORNAMENTS[capsule.event_type] ?? '✦'
+  const lang      = getParticipationLanguage(capsule.event_type)
   const isAdmin = visitorEmail !== '' && visitorEmail.toLowerCase() === capsule.organiser_email?.toLowerCase()
   const visible = all.filter(c => { if (c.status === 'approved') return true; if (isAdmin) return true; if (visitorEmail && c.email?.toLowerCase() === visitorEmail.toLowerCase()) return true; return false })
   const approvedCount = all.filter(c => c.status === 'approved').length
@@ -1228,7 +1241,7 @@ background:
       border: 'none',
     }}
   >
-    ✦ Leave a Tribute
+    ✦ {lang.cta}
   </button>
   
   {/* Secondary Amplification Row */}
@@ -1276,7 +1289,7 @@ background:
               <div className="composer-enter" style={{ borderRadius: '18px', padding: '18px 16px', background: t.cardBg, border: `1px solid ${t.accentFaint}`, overflow: 'hidden' }}>
                 {/* Close composer */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <span style={{ fontSize: '11px', color: t.accentMuted, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>Leave a Tribute</span>
+                  <span style={{ fontSize: '11px', color: t.accentMuted, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>{lang.cta}</span>
                   <button onClick={() => setComposerOpen(false)} style={{ color: t.textFaint, background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', lineHeight: 1 }}>↑</button>
                 </div>
 
@@ -1314,7 +1327,7 @@ background:
                   />
 
 <p style={{ fontSize: '11px', color: t.textFaint, lineHeight: 1.65, margin: '0 0 6px', fontStyle: 'italic' }}>
-  Tributes are limited to 500 characters — keep it personal and concise.
+  {lang.plural} are limited to 500 characters — keep it personal and concise.
   {' '}<span style={{ color: t.accentMuted }}>Have a longer story or photos? Share them in the Community Memories &amp; Stories room.</span>
 </p>
 
@@ -1395,7 +1408,7 @@ background:
                     />
                   )}
 
-                  {submitSuccess && <div style={{ borderRadius: '12px', padding: '12px 16px', fontSize: '12px', textAlign: 'center', letterSpacing: '0.04em', border: `1px solid ${t.accentFaint}`, background: t.cardBg, color: t.accentPrimary }}>✦ Your tribute has been received — thank you.</div>}
+                  {submitSuccess && <div style={{ borderRadius: '12px', padding: '12px 16px', fontSize: '12px', textAlign: 'center', letterSpacing: '0.04em', border: `1px solid ${t.accentFaint}`, background: t.cardBg, color: t.accentPrimary }}>✦ Your {lang.singular.toLowerCase()} has been received — thank you.</div>}
                   {submitErr && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.85)', textAlign: 'center' }}>{submitErr}</p>}
                 </div>
               </div>
@@ -1405,7 +1418,7 @@ background:
           {/* Success toast when composer is closed */}
           {submitSuccess && !composerOpen && (
             <div style={{ margin: '10px 12px 0', borderRadius: '12px', padding: '12px 16px', textAlign: 'center', border: `1px solid ${t.accentFaint}`, background: t.cardBg }}>
-              <p style={{ fontSize: '13px', color: t.accentPrimary, margin: '0 0 4px' }}>✦ Your tribute has been received — thank you.</p>
+              <p style={{ fontSize: '13px', color: t.accentPrimary, margin: '0 0 4px' }}>✦ Your {lang.singular.toLowerCase()} has been received — thank you.</p>
               <p style={{ fontSize: '11px', color: t.textFaint, margin: 0, lineHeight: 1.6 }}>
                 {fEmail ? "We'll send you the keepsake publication after the event." : 'Leave your email when contributing to receive the keepsake publication.'}
               </p>
@@ -1415,7 +1428,7 @@ background:
           {/* ── TRIBUTE WALL HEADER ── */}
           <div style={{ flexShrink: 0, padding: '18px 16px 10px', textAlign: 'center' }}>
             <p style={{ fontFamily: "'Playfair Display', serif", fontSize: '15px', fontWeight: 700, color: t.textHeading, letterSpacing: '0.04em', textShadow: `0 0 20px ${t.accentFaint}` }}>
-              {approvedCount > 0 ? `${approvedCount} ${approvedCount === 1 ? 'voice has' : 'voices have'} joined this collection for ${honourName}` : `Be the first to add your voice for ${honourName}`}
+              {approvedCount > 0 ? `${approvedCount} ${formatParticipationCount(approvedCount, lang)} shared for ${honourName}` : `Be the first to ${lang.cta.toLowerCase()} for ${honourName}`}
             </p>
             <div style={{ height: '1px', marginTop: '12px', background: `linear-gradient(to right, transparent, ${t.accentFaint}, transparent)` }} />
           </div>
@@ -1536,7 +1549,7 @@ background:
     gap: '8px',
   }}>
     <p style={{ margin: 0, fontSize: '11px', color: t.accentMuted, fontWeight: 700, letterSpacing: '0.08em' }}>
-      {myRefCode ? 'Your personal share link' : 'Share this tribute wall'}
+      {myRefCode ? 'Your personal share link' : `Share this ${lang.wallTitle.toLowerCase()}`}
     </p>
     <p style={{ margin: 0, fontSize: '10px', color: t.textFaint, lineHeight: 1.5 }}>
       {myRefCode

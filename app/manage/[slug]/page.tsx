@@ -46,7 +46,7 @@ interface ProfileSection {
   id: string; section_type: string; custom_title: string | null
   content: string | null; sort_order: number; is_active: boolean
 }
-type Tab = 'overview' | 'tributes' | 'profile' | 'settings' | 'services'
+type Tab = 'overview' | 'setstories' | 'setprofile' | 'settings' | 'services'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -533,11 +533,11 @@ function UpgradeCard({ capsuleName }: { capsuleName: string }) {
 /* -- BOTTOM NAV ----------------------------------------- */
 function BottomNav({ active, onChange, pendingCount }: { active: Tab; onChange: (t: Tab) => void; pendingCount: number }) {
   const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: 'overview',  label: 'Overview',  icon: '◈' },
-    { id: 'tributes',  label: 'Tributes',  icon: '✦' },
-    { id: 'profile',   label: 'Profile',   icon: '◉' },
-    { id: 'settings',  label: 'Settings',  icon: '⊙' },
-    { id: 'services',  label: 'Services',  icon: '◎' },
+    { id: 'overview',    label: 'Overview',   icon: '◈' },
+    { id: 'setstories',  label: 'Stories',    icon: '✦' },
+    { id: 'setprofile',  label: 'Profile',    icon: '◉' },
+    { id: 'settings',    label: 'Settings',   icon: '⊙' },
+    { id: 'services',    label: 'Services',   icon: '◎' },
   ]
   return (
     <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50, background: 'rgba(15,10,30,0.98)', backdropFilter: 'blur(20px)', borderTop: `1px solid rgba(226,195,107,0.15)`, display: 'flex', padding: '6px 8px max(8px, env(safe-area-inset-bottom))' }}>
@@ -545,7 +545,7 @@ function BottomNav({ active, onChange, pendingCount }: { active: Tab; onChange: 
         <button key={tab.id} onClick={() => onChange(tab.id)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: active === tab.id ? 'rgba(226,195,107,0.1)' : 'transparent', border: 'none', cursor: 'pointer', padding: '8px 4px', borderRadius: '10px', position: 'relative', margin: '0 2px', transition: 'background 0.2s' }}>
           <span style={{ fontSize: '18px', color: active === tab.id ? gold : 'rgba(255,255,255,0.45)', transition: 'color 0.15s', lineHeight: 1 }}>{tab.icon}</span>
           <span style={{ fontSize: '10px', letterSpacing: '0.06em', textTransform: 'uppercase', color: active === tab.id ? gold : 'rgba(255,255,255,0.45)', fontWeight: active === tab.id ? 700 : 500, transition: 'color 0.15s' }}>{tab.label}</span>
-          {tab.id === 'tributes' && pendingCount > 0 && (
+          {tab.id === 'overview' && pendingCount > 0 && (
             <span style={{ position: 'absolute', top: '4px', right: '18%', width: '16px', height: '16px', borderRadius: '50%', background: gold, color: '#1a0845', fontSize: '9px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{pendingCount}</span>
           )}
           {active === tab.id && (
@@ -1424,7 +1424,7 @@ const capRes = await supabase.from('capsules')
   }
   const handleDecline = async (id: string) => { await supabase.from('contributions').delete().eq('id', id); fetchAll() }
  
- const handleToggleFlag = async (id: string, field: 'include_in_publication' | 'include_in_programme_export', current: boolean) => {
+ const handleToggleFlag = async (id: string, field: string, current: boolean) => {
     await supabase.from('contributions').update({ [field]: !current }).eq('id', id)
     fetchAll()
   }
@@ -1577,12 +1577,17 @@ const capRes = await supabase.from('capsules')
               </div>
 
               {pending.length > 0 && (
-                <div onClick={() => setActiveTab('tributes')} style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(226,195,107,0.06)', border: `1px solid rgba(226,195,107,0.22)`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                  <div>
-                    <p style={{ fontSize: '13px', fontWeight: 700, color: gold, margin: 0 }}>{pending.length} tribute{pending.length !== 1 ? 's' : ''} awaiting review</p>
-                    <p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0' }}>Tap to review and publish</p>
+                <div style={{ marginBottom: '14px' }}>
+                  <div style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(226,195,107,0.06)', border: `1px solid rgba(226,195,107,0.22)`, marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <p style={{ fontSize: '13px', fontWeight: 700, color: gold, margin: 0 }}>{pending.length} voice{pending.length !== 1 ? 's' : ''} awaiting review</p>
+                      <p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0' }}>Review and publish below</p>
+                    </div>
+                    <span style={{ fontSize: '16px', color: goldMuted }}>{pending.length}</span>
                   </div>
-                  <span style={{ fontSize: '18px', color: goldMuted }}>→</span>
+                  <SectionCard title="Awaiting Review" subtitle={`${pending.length} to review`}>
+                    {pending.map(c => <TributeReviewCard key={c.id} c={c} onApprove={handleApprove} onDecline={handleDecline} />)}
+                  </SectionCard>
                 </div>
               )}
 
@@ -1617,147 +1622,14 @@ const capRes = await supabase.from('capsules')
             </div>
           )}
 
-          {/* -- TRIBUTES TAB -- */}
-          {activeTab === 'tributes' && (
+          {/* -- SETSTORIES TAB -- */}
+          {activeTab === 'setstories' && (
             <div>
-              {pending.length > 0 && (
-                <SectionCard title="Awaiting Review" subtitle={`${pending.length} to review`}>
-                  {pending.map(c => <TributeReviewCard key={c.id} c={c} onApprove={handleApprove} onDecline={handleDecline} />)}
-                </SectionCard>
-              )}
-              {approved.length > 0 && (
-                <SectionCard title="Published" subtitle={`${approved.length} live on the wall`}>
-                  {approved.map(c => (
-                    <div key={c.id} style={{ padding: '10px 12px', borderRadius: '10px', border: `1px solid rgba(255,255,255,0.06)`, background: 'rgba(255,255,255,0.02)', marginBottom: '6px' }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 600, color: textPrimary }}>{c.contributor_name}{c.relationship && <span style={{ fontWeight: 400, color: textFaint }}> ({c.relationship})</span>}</span>
-                        <span style={{ fontSize: '10px', color: textFaint }}>{[c.city, c.country].filter(Boolean).join(' · ')}</span>
-                        <span style={{ fontSize: '10px', color: textFaint, marginLeft: 'auto', whiteSpace: 'nowrap' }}>{new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
-                      </div>
-                      <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.6, margin: '0 0 8px' }}>{c.tribute_text.length > 180 ? c.tribute_text.slice(0, 180) + '…' : c.tribute_text}</p>
-                      {/* Programme Export Flags */}
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' as const }}>
-                        <button
-                          onClick={() => handleToggleFlag(c.id, 'include_in_publication', (c as any).include_in_publication ?? true)}
-                          style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '6px', cursor: 'pointer', border: `1px solid ${(c as any).include_in_publication !== false ? 'rgba(74,222,128,0.28)' : 'rgba(255,255,255,0.08)'}`, background: (c as any).include_in_publication !== false ? 'rgba(74,222,128,0.07)' : 'transparent', color: (c as any).include_in_publication !== false ? 'rgba(134,239,172,0.9)' : textFaint }}>
-                          {(c as any).include_in_publication !== false ? '✓' : '✗'} Publication
-                        </button>
-                        <button
-                          onClick={() => handleToggleFlag(c.id, 'include_in_programme_export', (c as any).include_in_programme_export ?? false)}
-                          style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '6px', cursor: 'pointer', border: `1px solid ${(c as any).include_in_programme_export ? 'rgba(226,195,107,0.35)' : 'rgba(255,255,255,0.08)'}`, background: (c as any).include_in_programme_export ? goldFaint : 'transparent', color: (c as any).include_in_programme_export ? gold : textFaint }}>
-                          {(c as any).include_in_programme_export ? '✓' : '✗'} Programme Export
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </SectionCard>
-              )}
-              {contributions.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-                  <p style={{ fontSize: '32px', marginBottom: '12px' }}>✦</p>
-                  <p style={{ fontSize: '14px', color: textFaint, lineHeight: 1.7 }}>No tributes yet. Share your capsule link and the first one will arrive soon.</p>
-                </div>
-              )}
-            </div>
+
+</div>
           )}
 
-          {/* -- PROFILE TAB -- */}
-          {activeTab === 'profile' && (
-            <div>
-<SectionCard title="Capsule Photo" subtitle="Appears on the tribute wall and profile">
-                <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', marginBottom: resolvedHero ? '14px' : '0' }}>
-                  <div style={{ width: '72px', height: '72px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: `2px solid rgba(226,195,107,0.35)`, background: '#1a0845', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {resolvedHero
-                      ? <img src={resolvedHero} alt={capsule.honouree_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      : <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.1em', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.6))`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LC</span>
-                    }
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.65, marginBottom: '10px' }}>Upload a clear, high-quality image.</p>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' as const }}>
-                      <label style={{ display: 'inline-block', padding: '7px 16px', borderRadius: '8px', cursor: 'pointer', background: goldFaint, border: `1px solid rgba(226,195,107,0.22)`, color: gold, fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em' }}>
-                        {heroUploading ? 'Uploading…' : '📷 Upload Photo'}
-                        <input type="file" accept="image/*" onChange={handleHeroUpload} style={{ display: 'none' }} disabled={heroUploading} />
-                      </label>
-                      {resolvedHero && (
-                        <button
-                          onClick={() => setShowHeroPicker(p => !p)}
-                          style={{ padding: '7px 16px', borderRadius: '8px', cursor: 'pointer', background: showHeroPicker ? 'rgba(226,195,107,0.15)' : 'transparent', border: `1px solid rgba(226,195,107,0.22)`, color: goldMuted, fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em' }}
-                        >
-                          ⚙ Adjust
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                {resolvedHero && showHeroPicker && (
-                  <HeroPositionPicker
-                    capsuleId={capsule.id}
-                    imageUrl={resolvedHero}
-                    currentPosition={capsule.hero_image_position ?? '50% 50%'}
-                    currentZoom={capsule.hero_image_zoom ?? 150}
-                    currentFit={capsule.hero_image_fit ?? 'height'}
-                    currentSize={capsule.hero_panel_size ?? 'standard'}
-                    currentBleed={capsule.hero_full_bleed ?? false}
-                    onSettingsChange={({ pos, zoom, fit, size, bleed }) => {
-                      setCapsule(prev => prev ? { ...prev, hero_image_position: pos, hero_image_zoom: zoom, hero_image_fit: fit, hero_panel_size: size, hero_full_bleed: bleed } : prev)
-                    }}
-                    onDone={() => setShowHeroPicker(false)}
-                    t={{ accentPrimary: gold, accentFaint: goldFaint, accentMuted: goldMuted, cardBg, cardBorder, textMuted: textSecondary, textFaint, inputBg: 'rgba(255,255,255,0.06)', inputBorder: 'rgba(226,195,107,0.18)' }}
-                  />
-                )}
-              </SectionCard>
-
-              <SectionCard title="Photo Gallery" subtitle="Up to 3 sections · 10 photos each · photo + caption per row">
-                <GalleryEditor capsuleId={capsule.id} initialPhotos={galleryPhotos} supabase={supabase} t={galleryTheme} onSaved={fetchAll} />
-              </SectionCard>
-
-              <SectionCard title="Profile Sections" subtitle="No character limit -- write as much as your event deserves">
-
-                {/* -- Appreciation prompt -- shown when no appreciation section exists yet -- */}
-                {!profileSections.some((s: ProfileSection) => s.section_type === 'appreciation') && (
-                  <div style={{ padding: '16px 18px', borderRadius: '12px', border: '1px solid rgba(212,174,42,0.3)', background: 'linear-gradient(135deg, rgba(212,174,42,0.06) 0%, rgba(212,174,42,0.02) 100%)', marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                      <span style={{ fontSize: '18px', flexShrink: 0, marginTop: '2px' }}>&#10022;</span>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ margin: '0 0 6px', fontSize: '13px', fontWeight: 700, color: gold }}>Add a Family Appreciation</p>
-                        <p style={{ margin: '0 0 12px', fontSize: '12px', color: textSecondary, lineHeight: 1.65 }}>
-                          A warm closing message from the family -- thanking guests and everyone who contributed to this capsule. It appears on the profile page after your event date has passed, as a dignified final word.
-                        </p>
-                        <p style={{ margin: '0 0 12px', fontSize: '11px', color: textFaint, lineHeight: 1.6, fontStyle: 'italic' }}>
-                          Tip: We have pre-written a warm, inclusive message that works for all event types. Simply add the section below, review it, and personalise with specific names or sentiments your family wants to include.
-                        </p>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await supabase.from('capsule_profile_sections').insert({
-                                capsule_id:   capsule.id,
-                                section_type: 'appreciation',
-                                custom_title: null,
-                                content:      DEFAULT_APPRECIATION_TEXT.replace(/\[honouree_name\]/g, capsule.honouree_name),
-                                sort_order:   (profileSections.length + 1) * 10,
-                                is_active:    true,
-                              })
-                              fetchAll()
-                            } catch (err) {
-                              console.error('[appreciation] Failed to add:', err)
-                            }
-                          }}
-                          style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #E2C36B, #C8A84A)', color: '#1a0845', fontSize: '12px', fontWeight: 700, cursor: 'pointer', letterSpacing: '0.04em' }}
-                        >
-                          + Add Family Appreciation
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <SectionEditor capsuleId={capsule.id} sections={profileSections} onRefresh={fetchAll} />
-              </SectionCard>
-            </div>
-          )}
-
-  {/* -- SERVICES TAB -- */}
+          {/* -- SERVICES TAB -- */}
           {activeTab === 'services' && (
             <ServicesTab
               capsule={capsule}
@@ -1766,6 +1638,7 @@ const capRes = await supabase.from('capsules')
               eohEditor={capsule.components?.includes('ways_to_honour')
                 ? <WaysToHonourEditor capsuleId={capsule.id} supabase={supabase} />
                 : undefined}
+              onToggleFlag={handleToggleFlag}
               onUpgrade={() => {
                 setActiveTab('services')
                 setTimeout(() => {
