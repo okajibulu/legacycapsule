@@ -541,7 +541,7 @@ function BottomNav({ active, onChange, pendingCount }: { active: Tab; onChange: 
   ]
   return (
     <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50, background: 'rgba(15,10,30,0.98)', backdropFilter: 'blur(20px)', borderTop: `1px solid rgba(226,195,107,0.15)`, display: 'flex', padding: '6px 8px max(8px, env(safe-area-inset-bottom))' }}>
-      {tabs.map(tab => (
+      {tabs.map((tab: { id: Tab; label: string; icon: string }) => (
         <button key={tab.id} onClick={() => onChange(tab.id)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: active === tab.id ? 'rgba(226,195,107,0.1)' : 'transparent', border: 'none', cursor: 'pointer', padding: '8px 4px', borderRadius: '10px', position: 'relative', margin: '0 2px', transition: 'background 0.2s' }}>
           <span style={{ fontSize: '18px', color: active === tab.id ? gold : 'rgba(255,255,255,0.45)', transition: 'color 0.15s', lineHeight: 1 }}>{tab.icon}</span>
           <span style={{ fontSize: '10px', letterSpacing: '0.06em', textTransform: 'uppercase', color: active === tab.id ? gold : 'rgba(255,255,255,0.45)', fontWeight: active === tab.id ? 700 : 500, transition: 'color 0.15s' }}>{tab.label}</span>
