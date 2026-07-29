@@ -66,6 +66,8 @@ export async function POST(req: NextRequest) {
       'event_venue',
       'event_datetime',
       'event_dress_code',
+      'custom_message',
+      'custom_closing',
     ]
 
     const payload: Record<string, any> = {

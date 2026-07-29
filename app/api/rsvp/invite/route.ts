@@ -56,15 +56,18 @@ async function logAction(params: {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const {
+const {
       capsule_id,
       capsule_slug,
       honouree_name,
       event_tag,
       organiser_email,
-      circle_id,        // optional — scope to one circle
-      guest_ids,        // optional — scope to specific guests
-      is_reminder,      // boolean — changes email subject/tone
+      circle_id,
+      guest_ids,
+      is_reminder,
+      custom_message,
+      custom_closing,
+      test_to,
     } = body
 
     if (!capsule_id || !capsule_slug) {
@@ -74,13 +77,44 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // ── Test mode: send one preview email to organiser ────────────────────────
+    if (test_to) {
+      const APP_URL_TEST = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
+      const rsvpUrl = `${APP_URL_TEST}/for/${capsule_slug}/rsvp?t=PREVIEW`
+      const eventLabel = event_tag ?? honouree_name ?? 'Your Event'
+      try {
+        await resend.emails.send({
+          from:    'LegacyCapsule <events@itslegacycapsule.com>',
+          to:      test_to,
+          subject: `[PREVIEW] You are personally invited — ${eventLabel}`,
+          html:    rsvpInviteHtml({
+            guestName:     'Your Name',
+            eventLabel,
+            honoureeName:  honouree_name ?? '',
+            rsvpUrl,
+            isReminder:    false,
+            isPreview:     true,
+            venue:         null,
+            eventDatetime: null,
+            dressCode:     null,
+            deadline:      null,
+            customMessage: custom_message ?? null,
+            customClosing: custom_closing ?? null,
+          }),
+        })
+        return NextResponse.json({ ok: true, sent: 1, test: true })
+      } catch (e: any) {
+        return NextResponse.json({ error: 'Could not send test email. Please try again.' }, { status: 500 })
+      }
+    }
+
     // ── Fetch RSVP config for event details ────────────────────────────────
 
-    const { data: rsvpConfig } = await db
-      .from('event_rsvp_config')
-      .select('event_venue, event_datetime, event_dress_code, rsvp_tone, show_event_details, deadline_at')
-      .eq('capsule_id', capsule_id)
-      .maybeSingle()
+const { data: rsvpConfig } = await db
+          .from('event_rsvp_config')
+          .select('event_venue, event_datetime, event_dress_code, rsvp_tone, show_event_details, deadline_at, custom_message, custom_closing')
+          .eq('capsule_id', capsule_id)
+          .maybeSingle()
 
     // ── Build guest query based on scope ───────────────────────────────────
 
@@ -138,15 +172,18 @@ export async function POST(req: NextRequest) {
             ? `A gentle reminder — ${eventLabel}`
             : buildSubject(eventLabel, rsvpConfig?.rsvp_tone),
           html: rsvpInviteHtml({
-            guestName:    guest.name,
+            guestName:     guest.name,
             eventLabel,
-            honoureeName: honouree_name ?? '',
+            honoureeName:  honouree_name ?? '',
             rsvpUrl,
-            isReminder:   !!is_reminder,
-            venue:        rsvpConfig?.show_event_details ? rsvpConfig?.event_venue ?? null : null,
-            eventDatetime: rsvpConfig?.show_event_details ? rsvpConfig?.event_datetime ?? null : null,
-            dressCode:    rsvpConfig?.show_event_details ? rsvpConfig?.event_dress_code ?? null : null,
-            deadline:     rsvpConfig?.deadline_at ?? null,
+            isReminder:    !!is_reminder,
+            isPreview:     false,
+            venue:         rsvpConfig?.show_event_details ? rsvpConfig?.event_venue         ?? null : null,
+            eventDatetime: rsvpConfig?.show_event_details ? rsvpConfig?.event_datetime      ?? null : null,
+            dressCode:     rsvpConfig?.show_event_details ? rsvpConfig?.event_dress_code    ?? null : null,
+            deadline:      rsvpConfig?.deadline_at ?? null,
+            customMessage: custom_message ?? rsvpConfig?.custom_message ?? null,
+            customClosing: custom_closing ?? rsvpConfig?.custom_closing ?? null,
           }),
         })
 
@@ -204,10 +241,13 @@ function rsvpInviteHtml(d: {
   honoureeName:  string
   rsvpUrl:       string
   isReminder:    boolean
+  isPreview:     boolean
   venue:         string | null
   eventDatetime: string | null
   dressCode:     string | null
   deadline:      string | null
+  customMessage: string | null
+  customClosing: string | null
 }) {
   const declineUrl = `${d.rsvpUrl}&response=declined`
 
@@ -257,6 +297,11 @@ function rsvpInviteHtml(d: {
       <td align="center" style="padding:40px 20px;">
         <table width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#1a0d3a;border-radius:16px;overflow:hidden;">
 
+          ${d.isPreview ? `<tr><td style="background:rgba(226,195,107,0.15);padding:8px 44px;text-align:center;">
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#E2C36B;font-weight:700;letter-spacing:0.08em;">
+              PREVIEW — This is how your invitation will appear to guests
+            </p>
+          </td></tr>` : ''}
           <!-- Gold top rule -->
           <tr><td height="3" style="background:linear-gradient(90deg,transparent,#E2C36B,transparent);"></td></tr>
 
@@ -282,7 +327,9 @@ function rsvpInviteHtml(d: {
               </p>
               ${reminderNote}
               <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:rgba(255,255,255,0.55);line-height:1.75;">
-                ${d.isReminder
+                ${d.customMessage
+                  ? d.customMessage
+                  : d.isReminder
                   ? `Your presence at this celebration would mean the world.`
                   : `You have been personally invited to this celebration. We would be truly honoured to have you join us.`
                 }
@@ -292,6 +339,12 @@ function rsvpInviteHtml(d: {
 
           <!-- Event details (if set and visible) -->
           ${eventDetailsBlock}
+
+${d.customClosing ? `
+          <!-- Custom closing note -->
+          <tr><td style="padding:0 44px 12px;text-align:center;">
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:rgba(255,255,255,0.6);line-height:1.75;font-style:italic;">${d.customClosing}</p>
+          </td></tr>` : ''}
 
           <!-- Primary CTA — Attending -->
           <tr>
