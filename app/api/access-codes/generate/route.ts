@@ -58,21 +58,37 @@ const MAX_USES_BY_TYPE: Record<string, number> = {
  * Checks event_access_codes for collision before returning.
  * Retries up to 20 times — collision probability is negligible below 100k guests.
  */
-async function generateUniqueNumericCode(capsule_id: string): Promise<string> {
-  for (let attempt = 0; attempt < 20; attempt++) {
+// Pre-fetch all existing codes for this capsule once,
+// then generate locally without repeated DB calls.
+// This reduces N*20 round-trips to a single query.
+async function generateUniqueCodes(
+  capsule_id: string,
+  count: number
+): Promise<string[]> {
+  // Fetch all existing codes in one query
+  const { data: existing } = await db
+    .from('event_access_codes')
+    .select('numeric_code')
+    .eq('capsule_id', capsule_id)
+
+  const usedCodes = new Set((existing ?? []).map(r => r.numeric_code))
+  const generated: string[] = []
+
+  let attempts = 0
+  while (generated.length < count && attempts < count * 50) {
+    attempts++
     const code = String(Math.floor(100000 + Math.random() * 900000))
-    const { data } = await db
-      .from('event_access_codes')
-      .select('id')
-      .eq('capsule_id', capsule_id)
-      .eq('numeric_code', code)
-      .maybeSingle()
-    if (!data) return code
+    if (!usedCodes.has(code) && !generated.includes(code)) {
+      generated.push(code)
+      usedCodes.add(code)
+    }
   }
-  throw new Error(
-    'Could not generate a unique code after 20 attempts. '
-    + 'This is unexpected — please contact support.'
-  )
+
+  if (generated.length < count) {
+    throw new Error('Could not generate enough unique codes. Please try again.')
+  }
+
+  return generated
 }
 
 /**
@@ -269,12 +285,24 @@ export async function POST(req: NextRequest) {
     // period so stale codes are automatically rejected at the door.
 
     const batchRows    = []
-    const guestUpdates = []   // for backward-compat guests.access_code update
+    const guestUpdates = []
     const errors:       { guest_id: string; guest_name: string; reason: string }[] = []
 
-    for (const guest of guests) {
+    // Generate all codes in one batch — single DB round-trip instead of N*20
+    let uniqueCodes: string[]
+    try {
+      uniqueCodes = await generateUniqueCodes(capsule_id, guests.length)
+    } catch (e: any) {
+      return NextResponse.json(
+        { error: e.message ?? 'Could not generate unique codes. Please try again.' },
+        { status: 500 }
+      )
+    }
+
+    for (let i = 0; i < guests.length; i++) {
+      const guest = guests[i]
       try {
-        const numeric_code     = await generateUniqueNumericCode(capsule_id)
+        const numeric_code     = uniqueCodes[i]
         const qr_payload       = generateQrPayload(capsule_id, numeric_code)
 
         // Prefer guests.participant_type (if set) over tier mapping
