@@ -137,6 +137,7 @@ function CodesTabContent({ capsuleId, capsuleSlug, honoureeName, eventTag, guest
         capsuleSlug={capsuleSlug}
         honoureeName={honoureeName}
         eventTag={eventTag}
+        onCodesGenerated={onCodesGenerated}
       />
     )
   }
