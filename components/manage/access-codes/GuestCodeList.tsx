@@ -288,6 +288,7 @@ export default function GuestCodeList({
   const [revokingId,   setRevokingId]   = useState<string | null>(null)
   const [editGuest,    setEditGuest]    = useState<Guest | null>(null)
   const [generatingId, setGeneratingId] = useState<string | null>(null)
+  const [genScope,     setGenScope]     = useState<string>('all')
   const [msg,          setMsg]          = useState('')
   const [error,        setError]        = useState('')
 
@@ -305,8 +306,8 @@ export default function GuestCodeList({
       ])
       if (guestData.guests) setGuests(guestData.guests)
       if (codeData.codes)   setCodes(codeData.codes)
-    } catch {
-      setError('Could not load guest data. Please refresh.')
+    } catch (e) {
+      setError('Could not load codes. Your guests are visible below — click Regenerate All Codes to try again.')
     }
     setLoading(false)
   }, [capsuleId])
@@ -365,10 +366,19 @@ export default function GuestCodeList({
   const handleGenerateAll = async () => {
     setGenerating(true); setGenError(''); setGenMsg('')
     try {
+      // Build payload based on selected scope
+      const selectedGuests = genScope === 'all'
+        ? guests
+        : guests.filter(g => g.tier === genScope)
+
+      const payload = genScope === 'all'
+        ? { capsule_id: capsuleId, scope: 'all' }
+        : { capsule_id: capsuleId, scope: 'selected', guest_ids: selectedGuests.map(g => g.id) }
+
       const res  = await fetch('/api/access-codes/generate', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ capsule_id: capsuleId, scope: 'all' }),
+        body:    JSON.stringify(payload),
       })
       const data = await res.json()
       if (res.status === 409 && data.warning) {
@@ -376,7 +386,8 @@ export default function GuestCodeList({
         return
       }
       if (!res.ok) throw new Error(data.error ?? 'Generation failed')
-      setGenMsg(`✓ ${data.generated} access codes generated.${data.config_defaulted ? ' Using free seating defaults — configure your hall in Setup if needed.' : ''}`)
+      const scopeLabel = genScope === 'all' ? 'all guests' : `${genScope} guests`
+      setGenMsg(`✓ ${data.generated} access codes generated for ${scopeLabel}.${data.config_defaulted ? ' Using free seating defaults — configure your hall in Setup if needed.' : ''}`)
       await fetchData()
       onCodesGenerated?.(data.generated)
     } catch (e: any) {
@@ -600,11 +611,44 @@ export default function GuestCodeList({
               padding: '12px 16px',
               borderTop: '1px solid rgba(255,255,255,0.04)',
             }}>
-              {genMsg && <p style={{ fontSize: '12px', color: successColor, margin: '0 0 10px' }}>{genMsg}</p>}
-              {genError && <p style={{ fontSize: '12px', color: errorColor, margin: '0 0 10px', lineHeight: 1.5 }}>{genError}</p>}
-              <button
-                onClick={handleGenerateAll}
-                disabled={generating}
+{genMsg && <p style={{ fontSize: '12px', color: successColor, margin: '0 0 10px' }}>{genMsg}</p>}
+          {genError && <p style={{ fontSize: '12px', color: errorColor, margin: '0 0 10px', lineHeight: 1.5 }}>{genError}</p>}
+
+          {/* Tier filter for selective generation */}
+          {guests.length > 0 && (
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ fontSize: '10px', color: textFaint, display: 'block', marginBottom: '4px', textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>
+                Generate for
+              </label>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' as const }}>
+                {[
+                  { key: 'all', label: `All (${guests.length})` },
+                  ...([...new Set(guests.map(g => g.tier))].map(tier => ({
+                    key: tier,
+                    label: `${tier} (${guests.filter(g => g.tier === tier).length})`,
+                  }))),
+                ].map(opt => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setGenScope(opt.key)}
+                    style={{
+                      fontSize: '10px', padding: '4px 10px', borderRadius: '6px',
+                      border: `1px solid ${genScope === opt.key ? 'rgba(226,195,107,0.45)' : cardBorder}`,
+                      background: genScope === opt.key ? goldFaint : 'transparent',
+                      color: genScope === opt.key ? gold : textFaint,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={handleGenerateAll}
+            disabled={generating}
                 style={{
                   width: '100%', padding: '12px',
                   borderRadius: '10px', border: 'none',
