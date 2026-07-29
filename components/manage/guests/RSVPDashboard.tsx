@@ -201,8 +201,10 @@ export default function RSVPDashboard({
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          capsule_id: capsuleId,
-          mode:       'unsent',  // only guests who haven't been sent yet
+          capsule_id:    capsuleId,
+          capsule_slug:  capsuleSlug,
+          honouree_name: honoureeName,
+          event_tag:     eventTag,
         }),
       })
       const data = await res.json()
@@ -232,8 +234,11 @@ export default function RSVPDashboard({
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          capsule_id: capsuleId,
-          mode:       'reminder',  // only guests sent but not responded
+          capsule_id:    capsuleId,
+          capsule_slug:  capsuleSlug,
+          honouree_name: honoureeName,
+          event_tag:     eventTag,
+          is_reminder:   true,
         }),
       })
       const data = await res.json()

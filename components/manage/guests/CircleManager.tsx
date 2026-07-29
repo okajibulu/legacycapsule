@@ -602,8 +602,11 @@ export default function CircleManager({ capsuleId, capsuleSlug, onDataChange }: 
         }),
       })
       if (!res.ok) throw new Error('Failed to assign')
-      showToast('success', 'Guest assigned to circle')
-      await Promise.all([fetchCircles(), fetchGuests()])
+      setAllGuests(prev => prev.map(g =>
+        g.id === guestId ? { ...g, circle_id: circleId } : g
+      ))
+      showToast('success', 'Guest assigned successfully.')
+      fetchCircles()
       onDataChange()
     } catch {
       showToast('error', 'Failed to assign guest')

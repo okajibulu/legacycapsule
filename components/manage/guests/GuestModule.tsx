@@ -170,7 +170,7 @@ export default function GuestModule({ capsule }: GuestModuleProps) {
       {/* ── Header ── */}
       <div style={{ marginBottom: '20px' }}>
         <Link
-          href={`/manage/${capsule.slug}/services`}
+          href={`/manage/${capsule.slug}`}
           style={{
             fontSize: '12px', color: goldMuted, textDecoration: 'none',
             display: 'inline-flex', alignItems: 'center', gap: '4px',
