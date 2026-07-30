@@ -881,7 +881,13 @@ export default function GuestManagementSection({
           USHERS TAB
       ════════════════════════════════════════════ */}
       {tab === 'ushers' && (
-        <UsherSessionManager capsuleId={capsuleId} capsuleSlug={capsuleSlug} />
+        <UsherSessionManager
+          capsuleId={capsuleId}
+          capsuleSlug={capsuleSlug}
+          honoureeName={honoureeName ?? ''}
+          eventTag={eventTag ?? null}
+          eventDate={null}
+        />
       )}
 
       {/* ════════════════════════════════════════════

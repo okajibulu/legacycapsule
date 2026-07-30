@@ -325,6 +325,7 @@ export default function AccessCodeSetup({ capsuleId, guestCount, eventDate, onAc
   const [noteVisible, setNoteVisible] = useState(true)
 
   const LS_KEY = `lc_access_config_draft_${capsuleId}`
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   const update = useCallback((key: keyof Config, value: any) => {
     setConfig(prev => ({ ...prev, [key]: value }))
@@ -661,38 +662,87 @@ export default function AccessCodeSetup({ capsuleId, guestCount, eventDate, onAc
         </FieldWithTip>
       </div>
 
-      {/* ── 8.5 Check-in window ──────────────────────────────────────────── */}
+      {/* ── 8.5 Advanced Settings — check-in window (hidden by default) ──── */}
 
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr',
-        gap: '10px', marginBottom: '0px',
-      }}>
-        <FieldWithTip
-          label="Check-in Opens"
-          tipKey="checkin_opens_at"
-          error={errors.checkin}
+      <div style={{ marginBottom: '14px' }}>
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(o => !o)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            background: 'none', border: 'none', cursor: 'pointer',
+            padding: '8px 0', width: '100%',
+          }}
         >
-          <input
-            style={{
-              ...inputStyle,
-              borderColor: errors.checkin
-                ? 'rgba(248,113,113,0.4)'
-                : 'rgba(226,195,107,0.18)',
-            }}
-            type="datetime-local"
-            value={config.checkin_opens_at?.slice(0, 16) ?? ''}
-            onChange={e => update('checkin_opens_at', e.target.value || null)}
-          />
-        </FieldWithTip>
+          <span style={{
+            fontSize: '10px', color: textFaint,
+            textTransform: 'uppercase', letterSpacing: '0.1em',
+            fontWeight: 600,
+          }}>
+            Advanced Settings
+          </span>
+          <span style={{ fontSize: '10px', color: textFaint }}>
+            {showAdvanced ? '▲' : '▼'}
+          </span>
+        </button>
 
-        <FieldWithTip label="Check-in Closes" tipKey="checkin_closes_at">
-          <input
-            style={inputStyle}
-            type="datetime-local"
-            value={config.checkin_closes_at?.slice(0, 16) ?? ''}
-            onChange={e => update('checkin_closes_at', e.target.value || null)}
-          />
-        </FieldWithTip>
+        {!showAdvanced && (
+          <p style={{
+            fontSize: '10px', color: 'rgba(226,195,107,0.35)',
+            margin: '0', lineHeight: 1.5, fontStyle: 'italic',
+          }}>
+            Set timed entry windows — only needed for multi-session or phased events.
+            Most events do not need this.
+          </p>
+        )}
+
+        {showAdvanced && (
+          <div style={{
+            padding: '14px', borderRadius: '10px',
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            marginTop: '8px',
+          }}>
+            <p style={{
+              fontSize: '11px', color: 'rgba(226,195,107,0.5)',
+              margin: '0 0 12px', lineHeight: 1.65,
+            }}>
+              Use this only if you need to restrict when guests can be scanned in.
+              Without these settings, codes are valid for the full event day.
+            </p>
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr',
+              gap: '10px',
+            }}>
+              <FieldWithTip
+                label="Check-in Opens"
+                tipKey="checkin_opens_at"
+                error={errors.checkin}
+              >
+                <input
+                  style={{
+                    ...inputStyle,
+                    borderColor: errors.checkin
+                      ? 'rgba(248,113,113,0.4)'
+                      : 'rgba(226,195,107,0.18)',
+                  }}
+                  type="datetime-local"
+                  value={config.checkin_opens_at?.slice(0, 16) ?? ''}
+                  onChange={e => update('checkin_opens_at', e.target.value || null)}
+                />
+              </FieldWithTip>
+
+              <FieldWithTip label="Check-in Closes" tipKey="checkin_closes_at">
+                <input
+                  style={inputStyle}
+                  type="datetime-local"
+                  value={config.checkin_closes_at?.slice(0, 16) ?? ''}
+                  onChange={e => update('checkin_closes_at', e.target.value || null)}
+                />
+              </FieldWithTip>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── 8.6 Toggle options ───────────────────────────────────────────── */}

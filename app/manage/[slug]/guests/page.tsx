@@ -138,7 +138,7 @@ export default function GuestsPage() {
             {error}
           </p>
           <button
-            onClick={() => router.push(`/manage/${slug}`)}
+            onClick={() => router.push(`/manage/${slug}?tab=services`)}
             style={{
               padding: '10px 24px', borderRadius: '10px',
               border: `1px solid rgba(226,195,107,0.3)`,

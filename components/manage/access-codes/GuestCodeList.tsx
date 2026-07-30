@@ -44,6 +44,7 @@ interface AccessCode {
   guest_email:      string | null
   participant_type: string
   numeric_code:     string
+  serial_number:    number | null
   status:           string
   use_count:        number
   section_name:     string | null
@@ -814,12 +815,14 @@ export default function GuestCodeList({
                         </span>
                       </div>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' as const }}>
-                        <span style={{
-                          fontSize: '12px', fontWeight: 700, color: gold,
-                          fontFamily: 'monospace', letterSpacing: '0.22em',
-                        }}>
-                          {code.numeric_code}
-                        </span>
+                        {code.serial_number && (
+                          <span style={{
+                            fontSize: '9px', color: textFaint,
+                            fontFamily: 'monospace', letterSpacing: '0.05em',
+                          }}>
+                            S/N: {String(code.serial_number).padStart(4, '0')}
+                          </span>
+                        )}
                         <span style={{
                           fontSize: '8px', fontWeight: 700,
                           color: STATUS_COLOR[code.status] ?? textFaint,

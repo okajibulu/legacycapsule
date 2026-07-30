@@ -1,12 +1,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FILE: app/api/access-codes/generate/route.ts
-// PURPOSE: Generate unique access codes for all guests in a capsule.
-//          Batch code generation — single DB query instead of N×20 sequential
-//          calls, eliminating Vercel Hobby timeout on large guest lists.
-// ARCHITECTURE: LC02 Event Services Engine · Access Code System
+// PURPOSE: Generate unique access credentials for all guests in a capsule.
+//          Implements ETH-AC-001 v1.1 specification:
+//            · Batch code generation — single DB query, no timeout risk
+//            · Sequential serial numbers per capsule (S/N reference, not entry code)
+//            · credential_type field on every record
+//            · Config gate softened — defaults to free_seating if not set
+//            · Sent-code safety check with explicit confirm_regenerate
+// ARCHITECTURE: LC02 Event Services Engine · Access Code System (ETH-AC-001)
 // BUILT BY: AI14 · Claude Opus 4.6 · 29 July 2026
-// REPLACES: Previous version (sequential collision checks — timed out on Vercel)
-// VERSION: v2.10.5
+// VERSION: v2.11.0
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -42,50 +45,67 @@ const MAX_USES_BY_TYPE: Record<string, number> = {
   vendor:         999,
 }
 
-// ═══ SECTION 3 — Batch code generation ═══
+// ═══ SECTION 3 — Batch QR code generation ═══
 //
-// Fetches ALL existing codes for the capsule in ONE query,
-// then generates unique codes locally using a Set for O(1) lookups.
-// This replaces the previous approach of N×20 sequential DB round-trips
-// which caused Vercel Hobby timeouts on any guest list > 3 people.
+// Per ETH-AC-001 AMD-001 R2: the QR payload is the entry credential.
+// The numeric_code is used internally for HMAC generation only.
+// Serial numbers are sequential per capsule (administrative reference).
 
 async function generateUniqueCodes(
   capsule_id: string,
   count: number
 ): Promise<string[]> {
-  // Single DB query — fetch all existing codes for this capsule
   const { data: existing } = await db
     .from('event_access_codes')
     .select('numeric_code')
     .eq('capsule_id', capsule_id)
 
-  const usedCodes  = new Set((existing ?? []).map((r: any) => r.numeric_code))
+  const usedCodes = new Set((existing ?? []).map((r: any) => r.numeric_code))
   const generated: string[] = []
-
-  // Generate locally — no DB calls in the loop
   let attempts = 0
-  const maxAttempts = count * 100   // generous ceiling, collision rate is negligible
+  const maxAttempts = count * 100
 
   while (generated.length < count && attempts < maxAttempts) {
     attempts++
     const code = String(Math.floor(100000 + Math.random() * 900000))
     if (!usedCodes.has(code)) {
       generated.push(code)
-      usedCodes.add(code)   // prevent duplicates within this batch
+      usedCodes.add(code)
     }
   }
 
   if (generated.length < count) {
     throw new Error(
-      `Could not generate ${count} unique codes after ${maxAttempts} attempts. `
-      + 'Please try again.'
+      `Could not generate ${count} unique codes. Please try again.`
     )
   }
 
   return generated
 }
 
-// ═══ SECTION 4 — QR payload generation ═══
+// ═══ SECTION 4 — Serial number allocation ═══
+//
+// Per ETH-AC-001 AMD-001 R2: serial numbers are sequential within the capsule.
+// They are administrative references (S/N: 0001, 0002...) — not entry codes.
+// Fetched once before batch build, then allocated locally.
+
+async function getNextSerialNumbers(
+  capsule_id: string,
+  count: number
+): Promise<number[]> {
+  const { data: existing } = await db
+    .from('event_access_codes')
+    .select('serial_number')
+    .eq('capsule_id', capsule_id)
+    .not('serial_number', 'is', null)
+    .order('serial_number', { ascending: false })
+    .limit(1)
+
+  const lastSerial = existing?.[0]?.serial_number ?? 0
+  return Array.from({ length: count }, (_, i) => lastSerial + i + 1)
+}
+
+// ═══ SECTION 5 — QR payload generation ═══
 
 function generateQrPayload(capsule_id: string, numeric_code: string): string {
   const secret = process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'lc-fallback-secret'
@@ -98,14 +118,14 @@ function generateQrPayload(capsule_id: string, numeric_code: string): string {
   return `LC:${capsule_id.slice(0, 8)}:${numeric_code}:${hash}`
 }
 
-// ═══ SECTION 5 — POST handler ═══
+// ═══ SECTION 6 — POST handler ═══
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const { capsule_id, scope, guest_ids, confirm_regenerate } = body
 
-    // ── 5.1 Input validation ─────────────────────────────────────────────────
+    // ── 6.1 Input validation ──────────────────────────────────────────────────
 
     if (!capsule_id) {
       return NextResponse.json(
@@ -130,7 +150,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // ── 5.2 Config — soft check, default to free_seating if not set ──────────
+    // ── 6.2 Config — soft check, default to free_seating ─────────────────────
+    // Per ETH-AC-001 AMD-001 R1: valid_from/until are optional.
+    // Per spec: system does not block generation if no config saved.
 
     const { data: config, error: configErr } = await db
       .from('event_access_config')
@@ -139,14 +161,13 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
 
     if (configErr) {
-      console.error('[access-codes/generate] Config fetch error:', configErr)
+      console.error('[generate] Config fetch error:', configErr)
       return NextResponse.json(
-        { error: 'Could not read hall configuration. Please try again.' },
+        { error: 'Could not read event configuration. Please try again.' },
         { status: 500 }
       )
     }
 
-    // Use defaults if no config saved — don't block generation
     const effectiveConfig = config ?? {
       hall_config:       'free_seating',
       code_mode:         'single',
@@ -154,7 +175,7 @@ export async function POST(req: NextRequest) {
       checkin_closes_at: null,
     }
 
-    // ── 5.3 Sent-code safety check ────────────────────────────────────────────
+    // ── 6.3 Sent-code safety check ────────────────────────────────────────────
 
     if (resolvedScope === 'all' && !confirm_regenerate) {
       const { count: sentCount } = await db
@@ -170,15 +191,16 @@ export async function POST(req: NextRequest) {
             sent_count: sentCount,
             error:
               `${sentCount} guest${sentCount !== 1 ? 's have' : ' has'} already `
-              + `received their code by email. Regenerating will invalidate those codes. `
-              + `Re-submit with confirm_regenerate: true to proceed.`,
+              + `received their access code. Regenerating will invalidate those codes — `
+              + `guests will need to be resent. `
+              + `Resubmit with confirm_regenerate: true to proceed.`,
           },
           { status: 409 }
         )
       }
     }
 
-    // ── 5.4 Fetch guests ──────────────────────────────────────────────────────
+    // ── 6.4 Fetch guests ──────────────────────────────────────────────────────
 
     let guestQuery = db
       .from('guests')
@@ -198,9 +220,9 @@ export async function POST(req: NextRequest) {
     const { data: rawGuests, error: guestErr } = await guestQuery
 
     if (guestErr) {
-      console.error('[access-codes/generate] Guest fetch error:', guestErr)
+      console.error('[generate] Guest fetch error:', guestErr)
       return NextResponse.json(
-        { error: 'Could not fetch guest list. Please try again.' },
+        { error: 'Could not load guest list. Please try again.' },
         { status: 500 }
       )
     }
@@ -222,14 +244,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: resolvedScope === 'confirmed'
-            ? 'No confirmed guests found. Check that guests have confirmed their RSVP.'
-            : 'No guests found for this capsule. Add guests before generating codes.',
+            ? 'No confirmed guests found. Guests need to confirm their RSVP before codes can be generated for confirmed-only scope.'
+            : 'No guests found for this event. Add guests before generating access codes.',
         },
         { status: 404 }
       )
     }
 
-    // ── 5.5 Delete existing codes for scope ───────────────────────────────────
+    // ── 6.5 Delete existing codes for scope ───────────────────────────────────
 
     if (resolvedScope === 'all') {
       const { error: deleteErr } = await db
@@ -238,9 +260,9 @@ export async function POST(req: NextRequest) {
         .eq('capsule_id', capsule_id)
 
       if (deleteErr) {
-        console.error('[access-codes/generate] Delete error:', deleteErr)
+        console.error('[generate] Delete error:', deleteErr)
         return NextResponse.json(
-          { error: 'Failed to clear existing codes. Please try again.' },
+          { error: 'Could not clear existing codes. Please try again.' },
           { status: 500 }
         )
       }
@@ -255,27 +277,33 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── 5.6 Generate all codes in one batch ───────────────────────────────────
+    // ── 6.6 Generate codes and serial numbers in batch ────────────────────────
 
     let uniqueCodes: string[]
+    let serialNumbers: number[]
+
     try {
-      uniqueCodes = await generateUniqueCodes(capsule_id, guests.length)
+      ;[uniqueCodes, serialNumbers] = await Promise.all([
+        generateUniqueCodes(capsule_id, guests.length),
+        getNextSerialNumbers(capsule_id, guests.length),
+      ])
     } catch (e: any) {
       return NextResponse.json(
-        { error: e.message ?? 'Could not generate unique codes. Please try again.' },
+        { error: e.message ?? 'Could not generate codes. Please try again.' },
         { status: 500 }
       )
     }
 
-    // ── 5.7 Build batch insert payload ────────────────────────────────────────
+    // ── 6.7 Build batch insert payload ────────────────────────────────────────
 
     const batchRows:    any[] = []
     const guestUpdates: { id: string; access_code: string }[] = []
     const errors:       { guest_name: string; reason: string }[] = []
 
     for (let i = 0; i < guests.length; i++) {
-      const guest        = guests[i]
-      const numeric_code = uniqueCodes[i]
+      const guest         = guests[i]
+      const numeric_code  = uniqueCodes[i]
+      const serial_number = serialNumbers[i]
 
       try {
         const qr_payload       = generateQrPayload(capsule_id, numeric_code)
@@ -287,14 +315,17 @@ export async function POST(req: NextRequest) {
         batchRows.push({
           capsule_id,
           guest_id:         guest.id,
+          credential_type:  'personal',
           participant_type,
           guest_name:       guest.name,
           guest_email:      guest.email          ?? null,
           section_id:       guest.section_id     ?? null,
           numeric_code,
           qr_payload,
+          serial_number,
           vendor_company:   guest.vendor_company ?? null,
           vendor_role:      guest.vendor_role    ?? null,
+          // Per AMD-001 R1: valid_from/until only set if config has them
           valid_from:       guest.valid_from     ?? effectiveConfig.checkin_opens_at  ?? null,
           valid_until:      effectiveConfig.checkin_closes_at ?? null,
           special_note:     guest.special_note   ?? null,
@@ -307,16 +338,16 @@ export async function POST(req: NextRequest) {
         guestUpdates.push({ id: guest.id, access_code: numeric_code })
 
       } catch (rowErr: any) {
-        console.error(`[access-codes/generate] Row build failed for ${guest.name}:`, rowErr)
+        console.error(`[generate] Row build failed for ${guest.name}:`, rowErr)
         errors.push({ guest_name: guest.name, reason: rowErr.message ?? 'Unknown' })
       }
     }
 
-    // ── 5.8 Batch insert in chunks of 100 ────────────────────────────────────
+    // ── 6.8 Batch insert in chunks of 100 ────────────────────────────────────
 
     let insertedCount = 0
-
     const CHUNK = 100
+
     for (let i = 0; i < batchRows.length; i += CHUNK) {
       const chunk = batchRows.slice(i, i + CHUNK)
       const { error: insertErr } = await db
@@ -324,7 +355,7 @@ export async function POST(req: NextRequest) {
         .insert(chunk)
 
       if (insertErr) {
-        console.error('[access-codes/generate] Batch insert error:', insertErr)
+        console.error('[generate] Batch insert error:', insertErr)
         errors.push(...chunk.map((r: any) => ({
           guest_name: r.guest_name,
           reason:     insertErr.message,
@@ -334,7 +365,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── 5.9 Backward-compat: update guests.access_code ───────────────────────
+    // ── 6.9 Backward-compat: update guests.access_code ───────────────────────
 
     for (const update of guestUpdates) {
       try {
@@ -343,16 +374,16 @@ export async function POST(req: NextRequest) {
           .update({ access_code: update.access_code })
           .eq('id', update.id)
       } catch (e) {
-        console.warn('[access-codes/generate] Could not update guests.access_code:', e)
+        console.warn('[generate] Could not update guests.access_code:', e)
       }
     }
 
-    // ── 5.10 Response ─────────────────────────────────────────────────────────
+    // ── 6.10 Response ─────────────────────────────────────────────────────────
 
     return NextResponse.json({
-      ok:             true,
-      generated:      insertedCount,
-      errors:         errors.length,
+      ok:              true,
+      generated:       insertedCount,
+      errors:          errors.length,
       config_defaulted: !config,
       ...(errors.length > 0 && {
         error_detail: errors.map(e => `${e.guest_name}: ${e.reason}`),
@@ -360,9 +391,9 @@ export async function POST(req: NextRequest) {
     })
 
   } catch (e: any) {
-    console.error('[access-codes/generate] Unexpected error:', e)
+    console.error('[generate] Unexpected error:', e)
     return NextResponse.json(
-      { error: 'An unexpected error occurred. Please try again.' },
+      { error: 'Something went wrong. Please try again.' },
       { status: 500 }
     )
   }

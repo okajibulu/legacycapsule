@@ -120,7 +120,7 @@ export default function AccessCodePage() {
 
   // ── Navigate back to the manage dashboard ──────────────────────────────────
 
-  const goBack = () => router.push(`/manage/${slug}`)
+  const goBack = () => router.push(`/manage/${slug}?tab=services`)
 
   // ═══ SECTION 6 — Loading state ═══
 

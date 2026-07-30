@@ -572,6 +572,9 @@ export default function AccessCodeModule({
             <UsherSessionManager
               capsuleId={capsuleId}
               capsuleSlug={capsuleSlug}
+              honoureeName={honoureeName}
+              eventTag={eventTag}
+              eventDate={eventDate}
             />
           )}
 
