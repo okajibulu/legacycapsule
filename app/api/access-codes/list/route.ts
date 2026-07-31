@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       .from('event_access_codes')
       .select(`
         id, guest_id, guest_name, guest_email, participant_type,
-        numeric_code, status, use_count, special_note,
+        numeric_code, qr_payload, serial_number, status, use_count, special_note,
         event_sections ( name )
       `)
       .eq('capsule_id', capsule_id)
