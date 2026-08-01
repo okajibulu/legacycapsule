@@ -1132,21 +1132,21 @@ body: JSON.stringify({ email, confirmation, capsuleId }),
 /* -- ADD-ONS TABLE -------------------------------------- */
 const LC_SERVICES = [
   // -- Free -- always on ------------------------------------------------------
-  { id: 'tribute_wall',      label: 'Text Tributes',              desc: 'Guests leave written tributes on the public wall, visible to all visitors. Included on every capsule at no cost.', alwaysOn: true, phase: 1 },
-  { id: 'world_map',         label: 'World Tribute Map',          desc: 'Interactive map showing where in the world tributes came from. Included on every capsule.', alwaysOn: true, phase: 1 },
+  { id: 'tribute_wall',      label: 'Text Voices',              desc: 'Guests leave written voices on the public wall, visible to all visitors. Included on every capsule at no cost.', alwaysOn: true, phase: 1 },
+  { id: 'world_map',         label: 'World Voices Map',          desc: 'Interactive map showing where in the world voices came from. Included on every capsule.', alwaysOn: true, phase: 1 },
   { id: 'event_profile',     label: 'Event Profile Canvas',       desc: 'Full profile page with biography, sections, timeline and photo gallery.', alwaysOn: true, phase: 1 },
-  { id: 'photo_tributes',    label: 'Photo Tributes',             desc: 'Contributors can attach a photo to their tribute message. Included on every capsule.', alwaysOn: true, phase: 1 },
-  { id: 'family_rep_portal', label: 'Family Rep Portal',          desc: 'Private portal for the Family Representative to view tributes and acknowledgements.', alwaysOn: true, phase: 1 },
+  { id: 'photo_tributes',    label: 'Photo Voices',             desc: 'Contributors can attach a photo to their voice message. Included on every capsule.', alwaysOn: true, phase: 1 },
+  { id: 'family_rep_portal', label: 'Family Rep Portal',          desc: 'Private portal for the Family Representative to view voices and acknowledgements.', alwaysOn: true, phase: 1 },
   { id: 'community_stories', label: 'Community Memories & Stories', desc: 'A dedicated room for contributors to share memories and stories, organised by topic.', alwaysOn: true, phase: 1 },
   // -- Premium -- activate from Services tab ----------------------------------
   { id: 'ways_to_honour',    label: 'Gift of Honour',             desc: 'A dignified private channel for guests to express financial support for the honouree.', alwaysOn: false, phase: 1 },
-  { id: 'audio_tributes',    label: 'Voice Tributes',             desc: 'Contributors record personal audio messages. Hearing a voice adds a dimension text cannot replicate.', alwaysOn: false, phase: 1 },
-  { id: 'video_tributes',    label: 'Video Tributes',             desc: 'Contributors upload short video messages shown directly in their tribute card.', alwaysOn: false, phase: 1 },
+  { id: 'audio_tributes',    label: 'Voice Messages',             desc: 'Contributors record personal audio messages. Hearing a voice adds a dimension text cannot replicate.', alwaysOn: false, phase: 1 },
+  { id: 'video_tributes',    label: 'Video Messages',             desc: 'Contributors upload short video messages shown directly in their voice card.', alwaysOn: false, phase: 1 },
   { id: 'publication',       label: 'Digital Publication',        desc: 'A beautifully designed keepsake PDF compiled from all capsule content and sent to every contributor.', alwaysOn: false, phase: 1 },
   { id: 'guest_management',  label: 'Guest Management & Seating', desc: 'Guest list, RSVP tracking, table management, seat assignment, and printable access cards.', alwaysOn: false, phase: 1 },
   { id: 'access_codes',      label: 'Access Code System',         desc: 'Unique entry codes per guest, usher interface, real-time check-in dashboard and arrival metrics.', alwaysOn: false, phase: 1 },
   { id: 'attire',            label: 'Fabric & Attire',            desc: 'Coordinate event dress code, fabric choices and attire orders for guests.', alwaysOn: false, phase: 1 },
-  { id: 'extended_validity', label: 'Extended Validity',          desc: 'Extend your capsule beyond the standard validity period to keep collecting tributes.', alwaysOn: false, phase: 1 },
+  { id: 'extended_validity', label: 'Extended Validity',          desc: 'Extend your capsule beyond the standard validity period to keep collecting voices.', alwaysOn: false, phase: 1 },
 ]
 
 function AddOnsTable({ capsuleComponents, onServicesTab }: { capsuleComponents: string[]; onServicesTab: () => void }) {

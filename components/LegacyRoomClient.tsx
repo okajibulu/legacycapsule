@@ -395,7 +395,7 @@ export default function LegacyRoomClient({
                 fontSize: '11px', fontWeight: 600, color: t.accentMuted,
                 textDecoration: 'none', whiteSpace: 'nowrap',
               }}>
-                Tribute Room →
+                The Voices →
               </Link>
               <Link href={`/for/${capsule.slug}/profile`} style={{
                 fontSize: '11px', fontWeight: 600, color: t.accentMuted,
@@ -629,7 +629,7 @@ export default function LegacyRoomClient({
               fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em',
               background: 'rgba(255,255,255,0.03)',
             }}>
-              Tribute Room →
+              The Voices →
             </Link>
             <Link href={`/for/${capsule.slug}/profile`} style={{
               padding: '10px 22px', borderRadius: '24px', textDecoration: 'none',

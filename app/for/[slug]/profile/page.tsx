@@ -15,6 +15,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { resolveTheme, getThemeConfig } from '@/lib/themeConfig'
 import { getEventTypeLabel, getEventTypeEmoji } from '@/lib/eventLabels'
+import { getParticipationLanguage } from '@/lib/utils/getParticipationLanguage'
 import SectionReactions from '@/components/SectionReactions'
 import GalleryLightbox from '@/components/GalleryLightbox'
 import SectionTextClamp from '@/components/SectionTextClamp'
@@ -180,6 +181,7 @@ export default async function ProfilePage({ params }: PageProps) {
 
   const themeKey    = resolveTheme(capsule.theme, capsule.event_type)
   const t           = getThemeConfig(themeKey)
+  const lang        = getParticipationLanguage(capsule.event_type)
   const eventLabel  = getEventTypeLabel(capsule.event_type)
   const eventEmoji  = getEventTypeEmoji(capsule.event_type)
   const resolvedHero = capsule.hero_image_url ?? '/honouree.jpg'
@@ -242,12 +244,12 @@ export default async function ProfilePage({ params }: PageProps) {
       {/* LEAVE TRIBUTE CTA */}
       <div style={{ background: 'rgba(0,0,0,0.15)', borderBottom: `1px solid ${t.accentFaint}`, padding: '14px 20px', textAlign: 'center' }}>
         <a href={`/for/${slug}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 24px', borderRadius: '24px', background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, color: '#1a0845', fontSize: '13px', fontWeight: 700, textDecoration: 'none', letterSpacing: '0.04em', boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}>
-          ✦ Leave a tribute
+          ✦ {lang.cta}
         </a>
       </div>
 
       {/* MAIN CONTENT */}
-      <main style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 20px 60px', boxSizing: 'border-box' }}>
+      <main style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 20px 100px', boxSizing: 'border-box' }}>
 
 {/* Auto-composed occasion block — shows when no Introduction section exists */}
         {!profileSections.some((s: any) => s.section_type === 'intro' || s.section_type === 'introduction') && (
@@ -479,26 +481,7 @@ A story worth preserving.<br />The organiser is preparing this profile — check
           )
         })()}
 
-{/* Bottom navigation */}
-        <div style={{ paddingTop: '32px', borderTop: `1px solid ${t.accentFaint}`, display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center', marginTop: '16px' }}>
-        
-        <a href={`/for/${slug}`} style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentMuted, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>← The Voices</a>
-        
-          {publicationPdf && (
-            <a href={publicationPdf} target="_blank" rel="noopener noreferrer" style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentPrimary, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>
-              ⬇ Download Publication
-            </a>
-          )}
-          {contributorCount >= 1 && (
-            <a href={`/for/${slug}/legacy`} style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentPrimary, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>Legacy Room →</a>
-          )}
-
- {capsule.components?.includes('attire') && (
-  <a href={`/for/${slug}/attire`} style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentPrimary, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>👗 Attire →</a>
-)}
-
-          <a href="#top" style={{ padding: '10px 22px', borderRadius: '24px', textDecoration: 'none', border: `1px solid ${t.accentFaint}`, color: t.accentMuted, fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.03)' }}>↑ Back to Top</a>
-        </div>
+ 
       </main>
 
 {/* ── Event Phases — pre-announcement strip ── */}
