@@ -122,7 +122,7 @@ function FreeTierBar({ approvedCount, daysLeft, hasFirstTribute, onUpgrade }: {
     <div style={{ background: urgent ? 'rgba(226,195,107,0.07)' : 'rgba(255,255,255,0.02)', borderBottom: `1px solid ${urgent ? 'rgba(226,195,107,0.2)' : 'rgba(255,255,255,0.05)'}`, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' as const }}>
       <div style={{ flex: 1, minWidth: '140px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-          <span style={{ fontSize: '10px', color: goldMuted, letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Tributes</span>
+          <span style={{ fontSize: '10px', color: goldMuted, letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Voices</span>
           <span style={{ fontSize: '10px', color: urgent ? gold : textFaint }}>{approvedCount} / {FREE_TRIBUTE_LIMIT}</span>
         </div>
         <div style={{ height: '3px', borderRadius: '2px', background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
@@ -131,7 +131,7 @@ function FreeTierBar({ approvedCount, daysLeft, hasFirstTribute, onUpgrade }: {
       </div>
       {!hasFirstTribute ? (
         <span style={{ fontSize: '10px', color: textFaint, fontStyle: 'italic', maxWidth: '160px', lineHeight: 1.4 }}>
-          Expiry countdown starts after first tribute is posted
+          Expiry countdown starts after first voice is posted
         </span>
       ) : daysLeft !== null ? (
         <span style={{ fontSize: '11px', color: daysLeft < 14 ? gold : textSecondary, fontWeight: daysLeft < 14 ? 600 : 400 }}>
