@@ -1443,7 +1443,7 @@ background:
                 if (type.includes('anniversary')) return `Heartfelt messages celebrating this milestone will appear here.`
                 return `Voices shared in honour of ${honourName} will appear here. Be the first to add yours.`
               })()}</p></div>}
-              {visible.map((c, idx) => <TributeCard key={c.id} c={c} capsuleId={capsule.id} isAdmin={isAdmin} isOwn={visitorEmail !== '' && c.email?.toLowerCase() === visitorEmail.toLowerCase()} onApprove={handleApprove} onDelete={handleDelete} onEdit={handleEdit} t={t} serialNumber={idx + 1} />)}
+              {visible.map((c, idx) => <TributeCard key={c.id} c={c} capsuleId={capsule.id} isAdmin={isAdmin} isOwn={visitorEmail !== '' && c.email?.toLowerCase() === visitorEmail.toLowerCase()} onApprove={handleApprove} onDelete={handleDelete} onEdit={handleEdit} t={t} serialNumber={visible.length - idx} />)}
           {/* ── Publication subscribe panel — Moment 1 email collection ── */}
           {visible.length > 0 && (
             <PublicationSubscribePanel

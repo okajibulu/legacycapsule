@@ -1256,12 +1256,14 @@ function ExportsTab({ contributions, slug }: {
   )
 
   function formatTributes(list: Contribution[]): string {
-    return list.map(c => {
+    const total = list.length
+    return list.map((c, idx) => {
       const location = [c.city, c.country].filter(Boolean).join(', ')
       const relationship = c.relationship ? ` · ${c.relationship}` : ''
+      const serial = `#${String(total - idx).padStart(3, '0')}`
       return [
         '---',
-        c.contributor_name + (location ? `\n${location}${relationship}` : relationship ? `\n${relationship}` : ''),
+        `${serial}  ${c.contributor_name}` + (location ? `\n${location}${relationship}` : relationship ? `\n${relationship}` : ''),
         '',
         c.tribute_text,
       ].join('\n')
@@ -1286,7 +1288,7 @@ function ExportsTab({ contributions, slug }: {
       <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
         <div style={{ flex: 1, padding: '14px 12px', borderRadius: '12px', background: cardBg, border: `1px solid ${cardBorder}`, textAlign: 'center' }}>
           <p style={{ fontSize: '24px', fontWeight: 800, color: textPrimary, fontFamily: "'Playfair Display', serif", margin: 0 }}>{contributions.length}</p>
-          <p style={{ fontSize: '9px', color: textFaint, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Approved Tributes</p>
+          <p style={{ fontSize: '9px', color: textFaint, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Approved Voices</p>
         </div>
         <div style={{ flex: 1, padding: '14px 12px', borderRadius: '12px', background: 'rgba(226,195,107,0.05)', border: `1px solid rgba(226,195,107,0.18)`, textAlign: 'center' }}>
           <p style={{ fontSize: '24px', fontWeight: 800, color: gold, fontFamily: "'Playfair Display', serif", margin: 0 }}>{programmeContribs.length}</p>
@@ -1300,19 +1302,19 @@ function ExportsTab({ contributions, slug }: {
             onClick={handleCopyAll}
             disabled={contributions.length === 0}
             style={{ width: '100%', padding: '13px', borderRadius: '10px', border: `1px solid ${cardBorder}`, background: copiedAll ? 'rgba(74,222,128,0.08)' : cardBg, color: copiedAll ? 'rgba(134,239,172,0.9)' : textPrimary, fontSize: '13px', fontWeight: 700, cursor: contributions.length === 0 ? 'not-allowed' : 'pointer', opacity: contributions.length === 0 ? 0.4 : 1, transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-            {copiedAll ? '✓ Copied Successfully' : `Copy All Approved Tributes (${contributions.length})`}
+            {copiedAll ? '✓ Copied Successfully' : `Copy All Approved Voices (${contributions.length})`}
           </button>
 
           <button
             onClick={handleCopyProgramme}
             disabled={programmeContribs.length === 0}
             style={{ width: '100%', padding: '13px', borderRadius: '10px', border: `1px solid ${programmeContribs.length > 0 ? 'rgba(226,195,107,0.28)' : cardBorder}`, background: copiedProg ? 'rgba(74,222,128,0.08)' : programmeContribs.length > 0 ? goldFaint : 'transparent', color: copiedProg ? 'rgba(134,239,172,0.9)' : programmeContribs.length > 0 ? gold : textFaint, fontSize: '13px', fontWeight: 700, cursor: programmeContribs.length === 0 ? 'not-allowed' : 'pointer', opacity: programmeContribs.length === 0 ? 0.4 : 1, transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-            {copiedProg ? '✓ Copied Successfully' : `Copy Programme Export Tributes (${programmeContribs.length})`}
+            {copiedProg ? '✓ Copied Successfully' : `Copy Programme Export Voices (${programmeContribs.length})`}
           </button>
 
           {programmeContribs.length === 0 && (
             <p style={{ fontSize: '11px', color: textFaint, textAlign: 'center', fontStyle: 'italic' }}>
-              Mark tributes for Programme Export in the Tributes tab first.
+              Mark voices for Programme Export in the Voices tab first.
             </p>
           )}
         </div>
@@ -1320,7 +1322,7 @@ function ExportsTab({ contributions, slug }: {
 
       <SectionCard title="Export Format" subtitle="Each tribute exports in this structure">
         <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: `1px solid rgba(255,255,255,0.06)`, fontFamily: 'monospace', fontSize: '11px', color: textFaint, lineHeight: 1.8 }}>
-          <p style={{ margin: 0, whiteSpace: 'pre' }}>{'---\nContributor Name\nCity, Country · Relationship\n\nTribute text appears here,\nas written by the contributor.\n\n---'}</p>
+          <p style={{ margin: 0, whiteSpace: 'pre' }}>{'---\n#001  Contributor Name\nCity, Country · Relationship\n\nVoice text appears here,\nas written by the contributor.\n\n---'}</p>
         </div>
       </SectionCard>
 

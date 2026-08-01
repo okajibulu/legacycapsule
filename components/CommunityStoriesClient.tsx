@@ -301,7 +301,7 @@ function CategorySummaryCard({ name, topicCount, responseCount, onClick }: {
           {name}
         </p>
         <p style={{ margin: '4px 0 0', fontSize: '11px', color: textFaint }}>
-          {topicCount} {topicCount === 1 ? 'prompt' : 'prompts'} ·{' '}
+          {topicCount} {topicCount === 1 ? 'topic' : 'topics'} ·{' '}
           <span style={{ color: responseCount > 0 ? goldMuted : textFaint }}>
             {responseCount} {responseCount === 1 ? 'memory' : 'memories'}
           </span>
@@ -352,12 +352,12 @@ function CategoryDetailView({ category, topics, stories, photos, honoureeName, o
           {category}
         </p>
         <p style={{ fontSize: '11px', color: textFaint, margin: 0 }}>
-          {categoryTopics.length} {categoryTopics.length === 1 ? 'prompt' : 'prompts'} ·{' '}
+          {categoryTopics.length} {categoryTopics.length === 1 ? 'topic' : 'topics'} ·{' '}
           {categoryTopics.reduce((sum, t) => sum + t.story_count, 0)} memories shared
         </p>
       </div>
 
-      {/* Unanswered prompts — shown as cards to invite response */}
+      {/* Unanswered topics — shown as cards to invite response */}
       {topicsWithoutStories.length > 0 && (
         <div style={{ marginBottom: '24px' }}>
           <p style={{
@@ -415,7 +415,7 @@ function CategoryDetailView({ category, topics, stories, photos, honoureeName, o
 
       {categoryTopics.length === 0 && (
         <div style={{ textAlign: 'center' as const, padding: '32px 20px', color: textFaint }}>
-          <p style={{ fontSize: '13px' }}>No prompts in this category yet.</p>
+          <p style={{ fontSize: '13px' }}>No topics in this category yet.</p>
         </div>
       )}
     </div>
@@ -725,7 +725,7 @@ export default function CommunityStoriesClient({ capsule, topics, stories, story
             ) : (
               <div>
                 <p style={{ fontSize: '10px', color: textFaint, textTransform: 'uppercase' as const, letterSpacing: '0.1em', fontWeight: 600, margin: '0 0 14px' }}>
-                  Browse by category
+                  Browse by topic
                 </p>
                 {allCategories.map(cat => {
                   const catTopics    = topics.filter(t => (t.category ?? 'General') === cat)
