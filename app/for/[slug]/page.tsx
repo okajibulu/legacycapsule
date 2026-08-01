@@ -54,10 +54,10 @@ export async function generateMetadata({
 
   return {
     title: `${data.honouree_name} · LegacyCapsule`,
-    description: `Add your voice and help preserve the memories, stories and tributes that matter most.`,
+    description: `Add your voice and help preserve the memories and stories that matter most.`,
     openGraph: {
       title: `${data.honouree_name} · LegacyCapsule`,
-      description: `Add your voice and help preserve the memories, stories and tributes that matter most.`,
+      description: `Add your voice and help preserve the memories and stories that matter most.`,
       url: `${appUrl}/for/${slug}`,
       siteName: 'LegacyCapsule',
       images: [
@@ -72,7 +72,7 @@ export async function generateMetadata({
     twitter: {
       card: 'summary_large_image',
       title: `${data.honouree_name} · LegacyCapsule`,
-      description: `Add your voice and help preserve the memories, stories and tributes that matter most.`,
+      description: `Add your voice and help preserve the memories and stories that matter most.`,
       images: [ogImageUrl],
     },
   }

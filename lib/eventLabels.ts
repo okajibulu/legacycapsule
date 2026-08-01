@@ -310,16 +310,16 @@ export function getEventTagDisplay(eventTag: string | null): string {
 
 export function getSubmitPageHeading(eventType: string, name: string): string {
   const e = norm(eventType)
-  if (e.includes('memorial')) return `Leave a tribute for ${name}`
+  if (e.includes('memorial')) return `Share your voice for ${name}`
   if (e.includes('wedding')) return `Leave a message for the couple`
   if (e.includes('conference')) return `Leave a message for ${name}`
-  return `Leave a tribute for ${name}`
+  return `Share your voice for ${name}`
 }
 
 export function getConfirmationMessage(eventType: string, name: string): string {
   const e = norm(eventType)
   if (e.includes('wedding')) return `Your message for the couple has been received`
-  return `Your tribute for ${name} has been received`
+  return `Your voice for ${name} has been received`
 }
 
 export function getRelationshipLabel(eventType: string, name: string): string {
@@ -340,5 +340,5 @@ export function getKeepsakeLabel(eventType: string, name: string): string {
   const e = norm(eventType)
   if (e.includes('memorial')) return `A tribute in memory of ${name}`
   if (e.includes('wedding')) return `A message for ${name}`
-  return `A tribute for ${name}`
+  return `A voice for ${name}`
 }

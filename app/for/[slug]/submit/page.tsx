@@ -15,6 +15,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import LogoCapsule from '@/components/LogoCapsule'
+import { getParticipationLanguage } from '@/lib/utils/getParticipationLanguage'
 import { COUNTRIES, getInitials, formatTributeDate } from '@/lib/tributeWallHelpers'
 import {
   getSubmitPageHeading,
@@ -226,7 +227,8 @@ export default function SubmitPage() {
   const [message, setMessage] = useState('')
   const [relationship, setRelationship] = useState('')
   const [email, setEmail] = useState('')
-const [consent, setConsent] = useState(false)
+  const [consent, setConsent] = useState(false)
+  const lang = capsule ? getParticipationLanguage(capsule.event_type) : null
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
@@ -707,7 +709,7 @@ const [consent, setConsent] = useState(false)
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
               <label style={{ ...labelStyle, marginBottom: 0 }}>
-                Tribute<span style={goldAsterisk}>*</span>
+                {lang?.singular ?? 'Voice'}<span style={goldAsterisk}>*</span>
               </label>
               <span style={{
                 fontSize: '11px',
@@ -725,7 +727,7 @@ const [consent, setConsent] = useState(false)
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               style={{ ...inputStyle, resize: 'vertical', lineHeight: '1.6' }}
-              placeholder={`Share a tribute (up to 500 characters). For longer stories and memories, use the Community Memories & Stories room.`}
+              placeholder={`Share your ${lang?.singular?.toLowerCase() ?? 'voice'} (up to 500 characters). For longer stories and memories, use the Community Memories & Stories room.`}
             />
             {fieldErrors.message && (
               <p style={{ color: '#f87171', fontSize: '12px', marginTop: '4px' }}>{fieldErrors.message}</p>
@@ -840,7 +842,7 @@ const [consent, setConsent] = useState(false)
               letterSpacing: '0.04em',
             }}
           >
-            Preview My Tribute &#8594;
+            Preview My {lang?.singular ?? 'Voice'} &#8594;
           </button>
         </div>
 

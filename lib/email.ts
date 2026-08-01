@@ -8,6 +8,7 @@
 //   -- Unicode ornaments replaced with HTML entities (email client safety)
 
 import { Resend } from 'resend'
+import { getParticipationLanguage } from '@/lib/utils/getParticipationLanguage'
 
 // ============================================================
 // SECTION 1 -- Resend client
@@ -65,20 +66,21 @@ function buildKeepsakeCardHtml(params: ApprovalEmailParams): string {
   const capsuleUrl = appUrl + '/for/' + capsuleSlug
   const editUrl    = params.editLink ?? null
 
-  const isMemorial = eventType === 'Memorial & Funeral'
-  const isWedding  = eventType === 'Wedding'
+  const lang       = getParticipationLanguage(eventType)
+  const isMemorial = eventType === 'memorial'
+  const isWedding  = eventType === 'wedding'
 
   const headline = isMemorial
     ? 'Your tribute for ' + subjectName + ' is now live'
     : isWedding
     ? 'Your message for the couple is now live'
-    : 'Your tribute for ' + subjectName + ' is now live'
+    : 'Your ' + lang.singular.toLowerCase() + ' for ' + subjectName + ' is now live'
 
   const keepsakeLabel = isMemorial
     ? 'A tribute in memory of ' + subjectName
     : isWedding
     ? 'A message for ' + subjectName
-    : 'A tribute for ' + subjectName
+    : 'A ' + lang.singular.toLowerCase() + ' for ' + subjectName
 
   const locationLine = city + (country ? ' &middot; ' + country : '')
 
@@ -114,7 +116,7 @@ function buildKeepsakeCardHtml(params: ApprovalEmailParams): string {
             ${headline}
           </h1>
           <p style="margin:12px 0 0;font-size:14px;color:rgba(255,255,255,0.4);line-height:1.7;text-align:center;">
-            Your words are now part of the tribute wall.<br/>We have preserved a keepsake of your tribute below.
+            Your words are now part of the ${lang.wallTitle}.<br/>We have preserved a keepsake of your ${lang.singular.toLowerCase()} below.
           </p>
         </td></tr>
 
@@ -178,10 +180,10 @@ function buildKeepsakeCardHtml(params: ApprovalEmailParams): string {
         <!-- View on wall CTA -->
         <tr><td align="center" style="padding-bottom:36px;">
           <p style="margin:0 0 16px;font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;">
-            Your tribute is now part of a growing collection of voices honouring ${subjectName}.
+            Your ${lang.singular.toLowerCase()} is now part of a growing collection of voices honouring ${subjectName}.
           </p>
           <a href="${capsuleUrl}" style="display:inline-block;padding:12px 32px;border-radius:10px;background:linear-gradient(135deg,#D4AE2A,#B8960C);color:#0D0820;font-size:14px;font-weight:700;text-decoration:none;letter-spacing:0.05em;">
-            View the Tribute Wall
+            View the ${lang.wallTitle}
           </a>
         </td></tr>
 
@@ -191,9 +193,9 @@ function buildKeepsakeCardHtml(params: ApprovalEmailParams): string {
           <p style="margin:0 0 14px;font-size:13px;color:rgba(255,255,255,0.35);line-height:1.6;">
             Know someone who should add their voice? Share the link below &mdash; every tribute you bring in helps build something lasting.
           </p>
-          ${editUrl ? `<p style="font-family:Arial,sans-serif;font-size:12px;color:rgba(255,255,255,0.4);text-align:center;margin:0 0 10px;">Want to make a change? <a href="${editUrl}" style="color:rgba(226,195,107,0.7);text-decoration:underline;">Edit your tribute</a></p>` : ''}
+          ${editUrl ? `<p style="font-family:Arial,sans-serif;font-size:12px;color:rgba(255,255,255,0.4);text-align:center;margin:0 0 10px;">Want to make a change? <a href="${editUrl}" style="color:rgba(226,195,107,0.7);text-decoration:underline;">Edit your ${lang.singular.toLowerCase()}</a></p>` : ''}
           <a href="${params.refCode ? capsuleUrl + '?ref=' + params.refCode : capsuleUrl}" style="display:inline-block;padding:10px 24px;border-radius:8px;background:rgba(212,174,42,0.12);border:1px solid rgba(212,174,42,0.25);color:rgba(212,174,42,0.8);font-size:13px;font-weight:600;text-decoration:none;letter-spacing:0.03em;">
-            Share the Tribute Wall &#8594;
+            Share the ${lang.wallTitle} &#8594;
           </a>
           <p style="margin:12px 0 0;font-size:11px;color:rgba(255,255,255,0.2);word-break:break-all;">
             ${params.refCode ? capsuleUrl + '?ref=' + params.refCode : capsuleUrl}
@@ -228,10 +230,11 @@ export async function sendKeepsakeCard(params: ApprovalEmailParams): Promise<voi
   const { contributorEmail, contributorName, subjectName } = params
 
   const html       = buildKeepsakeCardHtml(params)
-  const isMemorial = params.eventType === 'Memorial & Funeral'
+  const lang       = getParticipationLanguage(params.eventType)
+  const isMemorial = params.eventType === 'memorial'
   const subject    = isMemorial
-    ? 'Your tribute for ' + subjectName + ' is live -- LegacyCapsule'
-    : 'Your tribute for ' + subjectName + ' has been approved -- LegacyCapsule'
+    ? 'Your tribute for ' + subjectName + ' is live — LegacyCapsule'
+    : 'Your ' + lang.singular.toLowerCase() + ' for ' + subjectName + ' has been approved — LegacyCapsule'
 
   const { error } = await resend.emails.send({
     from:    FROM,

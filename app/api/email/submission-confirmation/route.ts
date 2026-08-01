@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getParticipationLanguage } from '@/lib/utils/getParticipationLanguage'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 
@@ -62,14 +63,15 @@ function buildSubmissionEmail({
   editLink: string
   capsuleUrl: string
 }): string {
-  const isMemorial = eventType === 'Memorial & Funeral'
+  const lang = getParticipationLanguage(eventType)
+  const isMemorial = eventType === 'memorial'
   const greeting = isMemorial
     ? 'Thank you for honouring ' + subjectName
-    : 'Thank you for your tribute for ' + subjectName
+    : 'Thank you for your ' + lang.singular.toLowerCase() + ' for ' + subjectName
 
   const bodyIntro = isMemorial
-    ? 'Your words are a meaningful gift to those who loved ' + subjectName + '. We have received your tribute and it is now awaiting review.'
-    : 'Your tribute has been received and is now awaiting review by the organiser.'
+    ? 'Your words are a meaningful gift to those who loved ' + subjectName + '. We have received Your ${lang.singular} and it is now awaiting review.'
+    : 'Your ' + lang.singular.toLowerCase() + ' has been received and is now awaiting review by the organiser.'
 
   return `
 <!DOCTYPE html>
@@ -77,7 +79,7 @@ function buildSubmissionEmail({
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Your tribute has been received</title>
+  <title>Your ${lang.singular} has been received</title>
 </head>
 <body style="margin:0;padding:0;background-color:#0D0820;font-family:'DM Sans',Arial,sans-serif;">
 
@@ -121,7 +123,7 @@ function buildSubmissionEmail({
               <!-- Tribute preview -->
               <div style="background-color:#FFFFFF;border-radius:10px;border-left:3px solid #D4AE2A;padding:16px 20px;margin-bottom:28px;">
                 <p style="margin:0 0 8px;font-size:12px;color:#9090a0;text-transform:uppercase;letter-spacing:0.1em;">
-                  Your tribute
+                  Your ${lang.singular}
                 </p>
                 <p style="margin:0;font-size:14px;color:#2a2a3e;line-height:1.75;font-style:italic;">
                   &ldquo;${tributeText.slice(0, 300)}${tributeText.length > 300 ? '…' : ''}&rdquo;
@@ -134,7 +136,7 @@ function buildSubmissionEmail({
                   What happens next
                 </p>
                 <p style="margin:0;font-size:13px;color:#4a4a5e;line-height:1.65;">
-                  The organiser will review your tribute. Once approved, it will appear on the tribute wall and you will receive a beautiful keepsake of your words.
+                  The organiser will review your ${lang.singular.toLowerCase()}. Once approved, it will appear on the ${lang.wallTitle} and you will receive a beautiful keepsake of your words.
                 </p>
               </div>
 
@@ -145,7 +147,7 @@ function buildSubmissionEmail({
                 </p>
                 <a href="${editLink}"
                   style="display:inline-block;padding:10px 28px;border-radius:8px;border:1px solid #D4AE2A;color:#B8960C;font-size:13px;font-weight:600;text-decoration:none;letter-spacing:0.05em;">
-                  Edit My Tribute
+                  Edit My ${lang.singular}
                 </a>
               </div>
 
@@ -213,6 +215,7 @@ export async function POST(req: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com'
     const editLink = appUrl + '/for/' + capsuleSlug + '/edit/' + token
     const capsuleUrl = appUrl + '/for/' + capsuleSlug
+const lang = getParticipationLanguage(eventType ?? '')
 
     // ── Build and send email ───────────────────────────────────────────────
     const html = buildSubmissionEmail({
@@ -227,7 +230,7 @@ export async function POST(req: NextRequest) {
     const { error: sendError } = await resend.emails.send({
       from: 'LegacyCapsule <noreply@itslegacycapsule.com>',
       to: contributorEmail,
-      subject: 'Your tribute has been received — ' + (subjectName ?? 'LegacyCapsule'),
+      subject: 'Your ' + (lang?.singular?.toLowerCase() ?? 'voice') + ' has been received — ' + (subjectName ?? 'LegacyCapsule'),
       html,
     })
 
