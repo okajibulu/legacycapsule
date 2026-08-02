@@ -1742,7 +1742,7 @@ const capRes = await supabase.from('capsules')
                   <span style={{ flex: 1, fontSize: '12px', color: goldMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{capsuleUrl}</span>
                   <button onClick={handleCopy} style={{ flexShrink: 0, fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '6px', background: copied ? 'rgba(74,222,128,0.1)' : goldFaint, border: `1px solid ${copied ? 'rgba(74,222,128,0.28)' : 'rgba(226,195,107,0.22)'}`, color: copied ? 'rgba(134,239,172,0.9)' : gold, cursor: 'pointer' }}>{copied ? '✓ Copied' : 'Copy'}</button>
                 </div>
-                <Link href={`https://wa.me/?text=${encodeURIComponent(`You are invited to leave a tribute for ${capsule.honouree_name}: ${capsuleUrl}`)}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', borderRadius: '10px', background: 'rgba(74,222,128,0.05)', border: '1px solid rgba(74,222,128,0.18)', color: 'rgba(134,239,172,0.85)', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>💬 Share via WhatsApp</Link>
+                <Link href={`https://wa.me/?text=${encodeURIComponent(`Add your voice to ${capsule.honouree_name}'s story — ${capsuleUrl}`)}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', borderRadius: '10px', background: 'rgba(74,222,128,0.05)', border: '1px solid rgba(74,222,128,0.18)', color: 'rgba(134,239,172,0.85)', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>💬 Share via WhatsApp</Link>
               </SectionCard>
 
               {pins.length > 0 && (

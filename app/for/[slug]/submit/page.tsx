@@ -430,7 +430,7 @@ export default function SubmitPage() {
     ? window.location.origin + '/for/' + slug
     : 'https://itslegacycapsule.com/for/' + slug
   const whatsappUrl = 'https://wa.me/?text=' + encodeURIComponent(
-    'I just left a tribute for ' + subjectName + '. Add yours here: ' + capsuleUrl
+    'I just added my voice to ' + subjectName + '\'s story. Add yours here: ' + capsuleUrl
   )
 
   // ─────────────────────────────────────────────────────────────────────────
