@@ -47,7 +47,7 @@ interface ProfileSection {
   id: string; section_type: string; custom_title: string | null
   content: string | null; sort_order: number; is_active: boolean
 }
-type Tab = 'overview' | 'setstories' | 'moments' | 'setprofile' | 'settings' | 'services'
+type Tab = 'overview' | 'setstories' | 'setprofile' | 'settings' | 'services'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -536,7 +536,7 @@ function BottomNav({ active, onChange, pendingCount }: { active: Tab; onChange: 
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'overview',    label: 'Overview',   icon: '🏠' },
     { id: 'setstories',  label: 'S/Stories',  icon: '📖' },
-    { id: 'moments',     label: 'Moments',    icon: '📸' },
+     
     { id: 'setprofile',  label: 'S/Profile',  icon: '👤' },
     { id: 'settings',    label: 'Settings',   icon: '⚙️' },
     { id: 'services',    label: 'Services',   icon: '✨' },
@@ -1789,26 +1789,6 @@ const [contribRes, sectionsRes, galleryRes, topicsRes, phasesRes] = await Promis
             </div>
           )}
 
-{activeTab === 'moments' && capsule && (
-            <div style={{ padding: '0 16px' }}>
-              <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: goldMuted, margin: '16px 0 4px' }}>Event Moments</p>
-              <p style={{ fontSize: '12px', color: textFaint, margin: '0 0 16px', lineHeight: 1.6 }}>
-                Manage photos from each programme item. Upload official photography, show or hide guest photos, and mark favourites for the publication.
-              </p>
-              <EventMomentsManager
-                capsuleId={capsule.id}
-                capsuleSlug={capsule.slug}
-                phases={phases}
-                gold={gold}
-                goldMuted={goldMuted}
-                textPrimary={textPrimary}
-                textFaint={textFaint}
-                cardBg={cardBg}
-                accentFaint={goldFaint}
-              />
-            </div>
-          )}
-
           {/* -- SETPROFILE TAB -- */}
           {activeTab === 'setprofile' && (
             <div>
@@ -1914,6 +1894,27 @@ const [contribRes, sectionsRes, galleryRes, topicsRes, phasesRes] = await Promis
                 setTimeout(() => {
                   window.scrollTo({ top: 0, behavior: 'smooth' })
                 }, 150)
+
+                {/* ── Event Moments curation ── */}
+              {phases.length > 0 && (
+                <div style={{ marginTop: '28px', borderTop: `1px solid ${goldFaint}`, paddingTop: '24px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: goldMuted, margin: '0 0 4px' }}>Event Moments</p>
+                  <p style={{ fontSize: '12px', color: textFaint, margin: '0 0 16px', lineHeight: 1.6 }}>
+                    Manage photos from each programme item. Upload official photography, show or hide guest photos, and mark favourites for the publication.
+                  </p>
+                  <EventMomentsManager
+                    capsuleId={capsule.id}
+                    capsuleSlug={capsule.slug}
+                    phases={phases}
+                    gold={gold}
+                    goldMuted={goldMuted}
+                    textPrimary={textPrimary}
+                    textFaint={textFaint}
+                    cardBg={cardBg}
+                    accentFaint={goldFaint}
+                  />
+                </div>
+              )}
               }}
             />
           )}
