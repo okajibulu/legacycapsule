@@ -63,12 +63,12 @@ export const PARTICIPATION_LANGUAGE: Record<string, ParticipationLanguage> = {
   },
 
   // ── Birthday (all milestone levels) ────────────────────────────────────────
-  birthday: {
-    wallTitle:          'Wishes Wall',
-    cta:                'Leave Your Wishes',
-    singular:           'Wish',
-    plural:             'Wishes',
-    expressionCategory: 'celebration',
+birthday: {
+    wallTitle:          'Encomium Wall',
+    cta:                'Share Your Encomium',
+    singular:           'Encomium',
+    plural:             'Encomiums',
+    expressionCategory: 'birthday',
   },
 
   // ── Wedding ─────────────────────────────────────────────────────────────────

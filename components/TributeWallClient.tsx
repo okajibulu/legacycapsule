@@ -1436,12 +1436,6 @@ background:
               {visible.length === 0 && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center' }}><p style={{ color: t.textFaint, fontSize: '13px', lineHeight: 1.7, fontStyle: 'italic', maxWidth: '280px' }}>{(() => {
                 const type = capsule.event_type?.toLowerCase() ?? ''
                 return `${lang.plural} for ${honourName} will appear here. ${lang.cta} to be first.`
-                if (type.includes('birthday')) return `Birthday tributes and warm messages will appear here.`
-                if (type.includes('graduation')) return `Congratulations and words of pride will appear here.`
-                if (type.includes('ordination') || type.includes('religious') || type.includes('thanksgiving')) return `Words of blessing and celebration will appear here.`
-                if (type.includes('chieftaincy')) return `Messages of honour and recognition will appear here.`
-                if (type.includes('anniversary')) return `Heartfelt messages celebrating this milestone will appear here.`
-                return `Voices shared in honour of ${honourName} will appear here. Be the first to add yours.`
               })()}</p></div>}
               {visible.map((c, idx) => <TributeCard key={c.id} c={c} capsuleId={capsule.id} isAdmin={isAdmin} isOwn={visitorEmail !== '' && c.email?.toLowerCase() === visitorEmail.toLowerCase()} onApprove={handleApprove} onDelete={handleDelete} onEdit={handleEdit} t={t} serialNumber={visible.length - idx} />)}
           {/* ── Publication subscribe panel — Moment 1 email collection ── */}
