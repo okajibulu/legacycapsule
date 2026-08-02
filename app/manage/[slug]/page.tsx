@@ -1375,7 +1375,7 @@ function SetStoriesManager({ communityTopics, capsule, supabase, fetchAll, gold,
         <div style={{ marginBottom: '16px' }}>
           <p style={{ fontSize: '13px', fontWeight: 700, color: textPrimary, margin: '0 0 2px' }}>{openCategory}</p>
           <p style={{ fontSize: '11px', color: textFaint, margin: 0 }}>
-            {catTopics.length} {catTopics.length === 1 ? 'prompt' : 'prompts'}
+            {catTopics.length} {catTopics.length === 1 ? 'topic' : 'topics'}
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px', marginBottom: '14px' }}>
@@ -1386,7 +1386,7 @@ function SetStoriesManager({ communityTopics, capsule, supabase, fetchAll, gold,
                   "{topic.topic_name.replace(/\[honouree_name\]/g, capsule.honouree_name)}"
                 </p>
                 <p style={{ margin: '3px 0 0', fontSize: '9px', color: textFaint, textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>
-                  {topic.topic_source === 'system' ? 'Default' : topic.topic_source === 'organiser' ? 'Your prompt' : 'Community'} · {topic.status}
+                  {topic.topic_source === 'system' ? 'Default' : topic.topic_source === 'organiser' ? 'Your topic' : 'Community'} · {topic.status}
                 </p>
               </div>
               <button
@@ -1401,13 +1401,13 @@ function SetStoriesManager({ communityTopics, capsule, supabase, fetchAll, gold,
             </div>
           ))}
           {catTopics.length === 0 && (
-            <p style={{ fontSize: '12px', color: textFaint, textAlign: 'center' as const, padding: '16px 0' }}>No prompts in this category yet.</p>
+            <p style={{ fontSize: '12px', color: textFaint, textAlign: 'center' as const, padding: '16px 0' }}>No topics in this category yet.</p>
           )}
         </div>
         {addingInCategory ? (
           <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
             <textarea value={newTopicText} onChange={e => setNewTopicText(e.target.value)}
-              placeholder={`Write a prompt for ${openCategory}…`}
+              placeholder={`Write a topic for ${openCategory}…`}
               style={{ width: '100%', minHeight: '80px', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(226,195,107,0.18)', color: textPrimary, fontSize: '13px', boxSizing: 'border-box' as const, resize: 'vertical' as const, fontFamily: "'DM Sans', sans-serif" }}
             />
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -1420,7 +1420,7 @@ function SetStoriesManager({ communityTopics, capsule, supabase, fetchAll, gold,
                   setNewTopicText(''); setAddingInCategory(false); setTopicSaving(false); fetchAll()
                 }}
                 style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#E2C36B,#C8A84A)', color: '#1a0845', fontSize: '13px', fontWeight: 700, cursor: 'pointer', opacity: topicSaving || !newTopicText.trim() ? 0.5 : 1 }}>
-                {topicSaving ? 'Saving…' : 'Add Prompt'}
+                {topicSaving ? 'Saving…' : 'Add Topic'}
               </button>
               <button onClick={() => { setAddingInCategory(false); setNewTopicText('') }}
                 style={{ padding: '10px 16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: textFaint, fontSize: '13px', cursor: 'pointer' }}>
@@ -1538,7 +1538,7 @@ const capRes = await supabase.from('capsules')
       supabase.from('contributions').select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, email, status, created_at, include_in_publication, include_in_programme_export').eq('capsule_id', cap.id).is('deleted_at', null).order('created_at', { ascending: false }),
       supabase.from('capsule_profile_sections').select('id, section_type, custom_title, content, sort_order, is_active').eq('capsule_id', cap.id).order('sort_order'),
       supabase.from('capsule_gallery').select('id, image_url, description, sort_order, section_index').eq('capsule_id', cap.id).order('section_index').order('sort_order'),
-      supabase.from('community_story_topics').select('id, topic_name, topic_source, status, display_order').eq('capsule_id', cap.id).order('display_order', { ascending: true }),
+      supabase.from('community_story_topics').select('id, topic_name, topic_source, status, display_order, category').eq('capsule_id', cap.id).order('display_order', { ascending: true }),
     ])
 
     if (contribRes.data) setContributions(contribRes.data as Contribution[])
