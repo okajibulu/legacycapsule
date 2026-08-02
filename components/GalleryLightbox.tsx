@@ -9,6 +9,7 @@
    Comments: any name, public, posted instantly.
 ========================================================= */
 import { useState, useEffect } from 'react'
+import PublicationSubscribePanel from '@/components/capsule/PublicationSubscribePanel'
 
 interface Comment {
   id: string
@@ -22,8 +23,9 @@ interface Props {
   caption: string
   alt: string
   aspectRatio?: string
-  photoId?: string      // needed for comments
-  capsuleId?: string    // needed for comments
+  photoId?: string
+  capsuleId?: string
+  honoureeName?: string   // needed for publication subscribe panel
 }
 
 function formatTime(s: string) {
@@ -31,11 +33,10 @@ function formatTime(s: string) {
   return `${String(d.getDate()).padStart(2,'0')} ${d.toLocaleString('en-GB',{month:'short'})} ${d.getFullYear()}`
 }
 
-export default function GalleryLightbox({ src, caption, alt, aspectRatio, photoId, capsuleId }: Props) {
+export default function GalleryLightbox({ src, caption, alt, aspectRatio, photoId, capsuleId, honoureeName }: Props) {
   const [open, setOpen] = useState(false)
   const [comments, setComments] = useState<Comment[]>([])
   const [loadingComments, setLoadingComments] = useState(false)
-  const [name, setName] = useState('')
   const [text, setText] = useState('')
   const [posting, setPosting] = useState(false)
   const [posted, setPosted] = useState(false)
@@ -52,13 +53,13 @@ export default function GalleryLightbox({ src, caption, alt, aspectRatio, photoI
   }, [open, photoId])
 
   const handleComment = async () => {
-    if (!name.trim() || !text.trim() || !photoId || !capsuleId) return
+    if (!text.trim() || !photoId || !capsuleId) return
     setPosting(true)
     try {
       const res = await fetch('/api/gallery/comment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ photoId, capsuleId, commenterName: name.trim(), commentText: text.trim() }),
+        body: JSON.stringify({ photoId, capsuleId, commenterName: 'Anonymous', commentText: text.trim() }),
       })
       const data = await res.json()
       if (data.comment) {
@@ -130,7 +131,6 @@ export default function GalleryLightbox({ src, caption, alt, aspectRatio, photoI
                     {comments.map(c => (
                       <div key={c.id} style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.06)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>{c.commenter_name}</span>
                           <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>{formatTime(c.created_at)}</span>
                         </div>
                         <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.65, margin: 0 }}>{c.comment_text}</p>
@@ -143,16 +143,26 @@ export default function GalleryLightbox({ src, caption, alt, aspectRatio, photoI
 
                 {/* Post comment */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <input style={inp} placeholder="Your name" value={name} onChange={e => setName(e.target.value)} />
+                   
                   <textarea style={{ ...inp, resize: 'none' as const, lineHeight: 1.6 }} placeholder="Leave a comment on this photo…" rows={3} value={text} onChange={e => setText(e.target.value)} />
                   <button
                     onClick={handleComment}
-                    disabled={posting || !name.trim() || !text.trim()}
-                    style={{ padding: '9px', borderRadius: '10px', background: name.trim() && text.trim() ? 'rgba(226,195,107,0.12)' : 'rgba(255,255,255,0.04)', border: `1px solid ${name.trim() && text.trim() ? 'rgba(226,195,107,0.35)' : 'rgba(255,255,255,0.06)'}`, color: name.trim() && text.trim() ? '#E2C36B' : 'rgba(255,255,255,0.25)', fontSize: '13px', fontWeight: 700, cursor: name.trim() && text.trim() ? 'pointer' : 'not-allowed', opacity: posting ? 0.7 : 1 }}
+                     disabled={posting || !text.trim()}
+                    style={{ padding: '9px', borderRadius: '10px', background: text.trim() ? 'rgba(226,195,107,0.12)' : 'rgba(255,255,255,0.04)', border: `1px solid ${text.trim() ? 'rgba(226,195,107,0.35)' : 'rgba(255,255,255,0.06)'}`, color: text.trim() ? '#E2C36B' : 'rgba(255,255,255,0.25)', fontSize: '13px', fontWeight: 700, cursor: text.trim() ? 'pointer' : 'not-allowed', opacity: posting ? 0.7 : 1 }}
                   >
                     {posting ? 'Posting…' : posted ? '✓ Posted' : 'Post Comment'}
                   </button>
                 </div>
+
+                {/* Publication subscribe — email collection */}
+                {capsuleId && honoureeName && (
+                  <div style={{ marginTop: '16px' }}>
+                    <PublicationSubscribePanel
+                      capsuleId={capsuleId}
+                      honoureeName={honoureeName}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
