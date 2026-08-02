@@ -139,14 +139,22 @@ export default async function CommunityStoriesPage({
     components,
   }
 
-  // ── Fetch support accounts for Premiums panel ─────────────────────────────
-  const { data: supportAccounts } = await supabase
-    .from('capsule_support_accounts')
-    .select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, is_active, sort_order, relationship_to_honouree')
-    .eq('capsule_id', capsule.id)
-    .eq('is_active', true)
-    .is('deleted_at', null)
-    .order('sort_order', { ascending: true })
+  // ── Fetch support accounts + phases for Premiums panel ────────────────────
+  const [{ data: supportAccounts }, { data: phasesData }] = await Promise.all([
+    supabase
+      .from('capsule_support_accounts')
+      .select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, is_active, sort_order, relationship_to_honouree')
+      .eq('capsule_id', capsule.id)
+      .eq('is_active', true)
+      .is('deleted_at', null)
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('capsule_phases')
+      .select('id, name')
+      .eq('capsule_id', capsule.id)
+      .is('deleted_at', null)
+      .order('sort_order', { ascending: true }),
+  ])
 
   // ── Fetch story photos ────────────────────────────────────────────────────
   const storyContribIds = stories.map(s => s.id)
@@ -189,12 +197,13 @@ export default async function CommunityStoriesPage({
         currentPage="memories"
         components={components}
         contributorCount={stories.length}
-        hasPhases={false}
+        hasPhases={(phasesData?.length ?? 0) > 0}
         themeKey={resolveTheme(capsule.theme, capsule.event_type)}
         capsuleId={capsule.id}
         honourName={capsule.honouree_name}
         eventType={capsule.event_type}
         supportAccounts={supportAccounts ?? []}
+        phases={phasesData ?? []}
       />
     </>
   )

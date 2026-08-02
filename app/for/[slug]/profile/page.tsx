@@ -530,6 +530,7 @@ A story worth preserving.<br />The organiser is preparing this profile — check
         honourName={capsule.honouree_name}
         eventType={capsule.event_type}
         supportAccounts={supportAccounts ?? []}
+        phases={phases.map(p => ({ id: p.id, name: p.name }))}
       />
       
       {/* FOOTER */}

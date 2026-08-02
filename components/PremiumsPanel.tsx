@@ -30,7 +30,7 @@ interface SupportAccount {
   relationship_to_honouree: string | null
 }
 
-interface Props {
+ interface Props {
   slug:            string
   components:      string[]
   capsuleId:       string
@@ -38,6 +38,7 @@ interface Props {
   eventType:       string
   supportAccounts: SupportAccount[]
   onClose:         () => void
+  phases?:         { id: string; name: string }[]
 }
 
 // ============================================================
@@ -209,7 +210,7 @@ function ServiceButton({ service, isActive, slug, onGifting }: {
 // ============================================================
 
 export default function PremiumsPanel({
-  slug, components, capsuleId, honourName, eventType, supportAccounts, onClose,
+  slug, components, capsuleId, honourName, eventType, supportAccounts, onClose, phases,
 }: Props) {
   const [showGifting, setShowGifting] = useState(false)
 
@@ -282,6 +283,55 @@ export default function PremiumsPanel({
               t={eohTheme}
               isRepView={false}
             />
+          </div>
+        )}
+
+{/* ── Event Moments ── */}
+        {phases && phases.length > 0 && (
+          <div style={{ margin: '8px 16px 0' }}>
+            <div style={{
+              padding:      '14px 16px',
+              borderRadius: '12px',
+              border:       '1px solid rgba(226,195,107,0.25)',
+              background:   goldFaint,
+            }}>
+              <p style={{
+                margin:        '0 0 10px',
+                fontSize:      '10px',
+                fontWeight:    800,
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase' as const,
+                color:         goldMuted,
+              }}>
+                Event Moments
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '6px' }}>
+
+{(phases ?? []).map((phase: { id: string; name: string }) => (
+                  <a
+                    key={phase.id}
+                    href={`/for/${slug}/story/${phase.id}`}
+                    style={{
+                      display:        'flex',
+                      alignItems:     'center',
+                      justifyContent: 'space-between',
+                      padding:        '10px 12px',
+                      borderRadius:   '10px',
+                      border:         '1px solid rgba(226,195,107,0.15)',
+                      background:     'rgba(255,255,255,0.03)',
+                      color:          textPrimary,
+                      fontSize:       '13px',
+                      fontWeight:     600,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <span>📸 {phase.name}</span>
+                    <span style={{ fontSize: '11px', color: goldMuted }}>›</span>
+                  </a>
+                ))}
+             
+              </div>
+            </div>
           </div>
         )}
 

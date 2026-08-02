@@ -149,11 +149,13 @@ supabase
   ])
 
    // Fetch phase count for bottom nav
-  const { count: phaseCount } = await supabase
+  const { data: phasesData } = await supabase
     .from('capsule_phases')
-    .select('id', { count: 'exact' })
+    .select('id, name')
     .eq('capsule_id', capsule.id)
     .is('deleted_at', null)
+    .order('sort_order', { ascending: true })
+  const phaseCount = phasesData?.length ?? 0
 
   // Resolve theme — auto from event type, or manual override
   const themeKey = resolveTheme(capsule.theme, capsule.event_type)
@@ -182,6 +184,7 @@ supabase
         honourName={capsule.honouree_name}
         eventType={capsule.event_type}
         supportAccounts={supportRes.data ?? []}
+        phases={phasesData ?? []}
       />
     </>
   )

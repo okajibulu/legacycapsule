@@ -62,11 +62,11 @@ interface CapsuleBottomNavProps {
   contributorCount: number
   hasPhases:       boolean
   themeKey:        ThemeKey
-  // -- New props for PremiumsPanel --
   capsuleId:       string
   honourName:      string
   eventType:       string
   supportAccounts: SupportAccount[]
+  phases?:         { id: string; name: string }[]
 }
 
 // Nav tab definition
@@ -141,7 +141,7 @@ function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
 export default function CapsuleBottomNav(props: CapsuleBottomNavProps) {
   const {
     currentPage, themeKey,
-    slug, components, capsuleId, honourName, eventType, supportAccounts,
+    slug, components, capsuleId, honourName, eventType, supportAccounts, phases,
   } = props
 
   const t    = getThemeConfig(themeKey)
@@ -290,6 +290,7 @@ export default function CapsuleBottomNav(props: CapsuleBottomNavProps) {
           eventType={eventType}
           supportAccounts={supportAccounts}
           onClose={() => setPremiumsOpen(false)}
+          phases={phases}
         />
       )}
     </>

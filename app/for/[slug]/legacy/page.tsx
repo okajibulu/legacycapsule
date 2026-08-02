@@ -276,6 +276,7 @@ export default async function LegacyRoomPage(
       honourName={capsule.honouree_name}
       eventType={capsule.event_type}
       supportAccounts={supportAccounts ?? []}
+      phases={phases.map(p => ({ id: p.id, name: p.name }))}
     />
     </>
   )
