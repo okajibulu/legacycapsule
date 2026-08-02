@@ -217,6 +217,7 @@ export async function POST(req: NextRequest) {
         image_url,
         caption:           contributor_name.trim(),
         source:            'dday',
+        is_official_photography: false,
         approved:          autoApprove,
         contributor_name:  contributor_name.trim(),
         contributor_email: contributor_email?.trim() || null,
