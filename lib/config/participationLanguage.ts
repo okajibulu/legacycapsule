@@ -120,12 +120,12 @@ export const PARTICIPATION_LANGUAGE: Record<string, ParticipationLanguage> = {
   },
 
   // ── Chieftaincy ─────────────────────────────────────────────────────────────
-  chieftaincy: {
-    wallTitle:          'Honours Wall',
-    cta:                'Share Your Honours',
-    singular:           'Honour',
-    plural:             'Honours',
-    expressionCategory: 'honour',
+chieftaincy: {
+    wallTitle:          'Encomium Wall',
+    cta:                'Share Your Encomium',
+    singular:           'Encomium',
+    plural:             'Encomiums',
+    expressionCategory: 'chieftaincy',
   },
 
   // ── Thanksgiving Service ────────────────────────────────────────────────────
