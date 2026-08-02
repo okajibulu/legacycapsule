@@ -24,6 +24,7 @@ import type { ThemeKey } from '@/lib/themeConfig'
 import HonoureeRevealPanel from '@/components/HonoureeRevealPanel'
 import OrderHistoryPanel   from '@/components/manage/OrderHistoryPanel'
 import ServicesTab from '@/components/manage/ServicesTab'
+import EventMomentsManager from '@/components/manage/EventMomentsManager'
 import HeroPositionPicker from '@/components/HeroPositionPicker'
 
 interface Capsule {
@@ -46,7 +47,7 @@ interface ProfileSection {
   id: string; section_type: string; custom_title: string | null
   content: string | null; sort_order: number; is_active: boolean
 }
-type Tab = 'overview' | 'setstories' | 'setprofile' | 'settings' | 'services'
+type Tab = 'overview' | 'setstories' | 'moments' | 'setprofile' | 'settings' | 'services'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -535,6 +536,7 @@ function BottomNav({ active, onChange, pendingCount }: { active: Tab; onChange: 
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'overview',    label: 'Overview',   icon: '🏠' },
     { id: 'setstories',  label: 'S/Stories',  icon: '📖' },
+    { id: 'moments',     label: 'Moments',    icon: '📸' },
     { id: 'setprofile',  label: 'S/Profile',  icon: '👤' },
     { id: 'settings',    label: 'Settings',   icon: '⚙️' },
     { id: 'services',    label: 'Services',   icon: '✨' },
@@ -1492,6 +1494,7 @@ export default function ManagePage() {
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
   const [communityTopics, setCommunityTopics] = useState<any[]>([])
+  const [phases, setPhases] = useState<any[]>([])
   const [addingTopic, setAddingTopic] = useState(false)
   const [newTopicText, setNewTopicText] = useState('')
   const [topicSaving, setTopicSaving] = useState(false)
@@ -1534,18 +1537,20 @@ const capRes = await supabase.from('capsules')
     const cap = capRes.data as Capsule
     setCapsule(cap); setHeroImage(cap.hero_image_url)
 
-    const [contribRes, sectionsRes, galleryRes, topicsRes] = await Promise.all([
+const [contribRes, sectionsRes, galleryRes, topicsRes, phasesRes] = await Promise.all([
       supabase.from('contributions').select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, email, status, created_at, include_in_publication, include_in_programme_export').eq('capsule_id', cap.id).is('deleted_at', null).order('created_at', { ascending: false }),
       supabase.from('capsule_profile_sections').select('id, section_type, custom_title, content, sort_order, is_active').eq('capsule_id', cap.id).order('sort_order'),
       supabase.from('capsule_gallery').select('id, image_url, description, sort_order, section_index').eq('capsule_id', cap.id).order('section_index').order('sort_order'),
       supabase.from('community_story_topics').select('id, topic_name, topic_source, status, display_order, category').eq('capsule_id', cap.id).order('display_order', { ascending: true }),
+      supabase.from('capsule_phases').select('id, name, event_date, sort_order').eq('capsule_id', cap.id).is('deleted_at', null).order('sort_order', { ascending: true }),
     ])
 
     if (contribRes.data) setContributions(contribRes.data as Contribution[])
     if (sectionsRes.data) setProfileSections(sectionsRes.data as ProfileSection[])
     if (galleryRes.data) setGalleryPhotos(galleryRes.data)
     if (topicsRes.data) setCommunityTopics(topicsRes.data)
-    setLoading(false)
+    if (phasesRes.data) setPhases(phasesRes.data)
+      setLoading(false)
   }, [slug])
 
   useEffect(() => { fetchAll() }, [fetchAll])
@@ -1780,6 +1785,26 @@ const capRes = await supabase.from('capsules')
                 goldMuted={goldMuted}
                 textPrimary={textPrimary}
                 textFaint={textFaint}
+              />
+            </div>
+          )}
+
+{activeTab === 'moments' && capsule && (
+            <div style={{ padding: '0 16px' }}>
+              <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: goldMuted, margin: '16px 0 4px' }}>Event Moments</p>
+              <p style={{ fontSize: '12px', color: textFaint, margin: '0 0 16px', lineHeight: 1.6 }}>
+                Manage photos from each programme item. Upload official photography, show or hide guest photos, and mark favourites for the publication.
+              </p>
+              <EventMomentsManager
+                capsuleId={capsule.id}
+                capsuleSlug={capsule.slug}
+                phases={phases}
+                gold={gold}
+                goldMuted={goldMuted}
+                textPrimary={textPrimary}
+                textFaint={textFaint}
+                cardBg={cardBg}
+                accentFaint={goldFaint}
               />
             </div>
           )}
