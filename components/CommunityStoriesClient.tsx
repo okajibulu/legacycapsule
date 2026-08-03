@@ -788,7 +788,7 @@ export default function CommunityStoriesClient({ capsule, topics, stories, story
         {/* ── Back to tribute wall ── */}
         <div style={{ textAlign: 'center' as const, marginTop: '24px' }}>
           <Link href={`/for/${capsule.slug}`} style={{ fontSize: '12px', color: textFaint, textDecoration: 'none', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '2px' }}>
-            Back to Tribute Wall
+            Back to The Voices
           </Link>
         </div>
       </div>

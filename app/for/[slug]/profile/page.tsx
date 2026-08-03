@@ -191,7 +191,7 @@ export default async function ProfilePage({ params }: PageProps) {
   const ruleStyle: React.CSSProperties = { flex: 1, height: '1px', background: `linear-gradient(to right, ${t.accentFaint}, transparent)` }
   const ruleRightStyle: React.CSSProperties = { flex: 1, height: '1px', background: `linear-gradient(to left, ${t.accentFaint}, transparent)` }
   const headingLabelStyle: React.CSSProperties = { fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.22em', color: t.accentMuted, margin: 0, whiteSpace: 'nowrap' as const }
-  const cardStyle: React.CSSProperties = { background: 'rgba(255,253,248,0.93)', borderRadius: '14px', padding: '22px 24px', border: `1px solid ${t.accentFaint}`, boxShadow: '0 4px 24px rgba(0,0,0,0.28)' }
+  const cardStyle: React.CSSProperties = { background: 'rgba(245,240,230,0.97)', borderRadius: '14px', padding: '22px 24px', border: `1px solid ${t.accentFaint}`, boxShadow: '0 4px 24px rgba(0,0,0,0.28)' }
   const bodyTextStyle: React.CSSProperties = { fontFamily: "'Playfair Display', Georgia, serif", fontSize: '15px', color: '#1C1014', lineHeight: 1.85, whiteSpace: 'pre-wrap' as const, margin: 0 }
 
   function getSectionTitle(section: { section_type: string; custom_title: string | null }): string {
@@ -206,7 +206,7 @@ export default async function ProfilePage({ params }: PageProps) {
   }
 
   return (
-<div id="top" style={{ minHeight: '100vh', background: t.pageBg, fontFamily: "'DM Sans', sans-serif" }}>
+<div id="top" style={{ minHeight: '100vh', background: t.pageBg, fontFamily: "'DM Sans', sans-serif", overflowX: 'hidden' }}>
       {/* TOP NAV */}
       <div style={{ background: 'rgba(15,10,30,0.96)', borderBottom: `1px solid ${t.accentFaint}`, padding: '12px 16px', position: 'sticky', top: 0, zIndex: 40, backdropFilter: 'blur(12px)' }}>
         <div style={{ maxWidth: '720px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -352,7 +352,7 @@ export default async function ProfilePage({ params }: PageProps) {
                 <div key={photo.id} style={{ borderRadius: '12px', overflow: 'hidden', border: `1px solid ${t.accentFaint}`, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
                   <GalleryLightbox src={photo.image_url} caption={photo.caption ?? ''} alt={`Photo of ${capsule.honouree_name}`} aspectRatio="4/3" />
                   {photo.caption && (
-                    <div style={{ padding: '10px 14px', background: 'rgba(255,253,248,0.95)' }}>
+                    <div style={{ padding: '10px 14px', background: 'rgba(245,240,230,0.97)', borderTop: `1px solid ${t.accentFaint}` }}>
                       <p style={{ fontSize: '12px', color: '#5F5E5A', margin: 0 }}>{photo.caption}</p>
                     </div>
                   )}
