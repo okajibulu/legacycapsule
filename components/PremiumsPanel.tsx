@@ -70,14 +70,7 @@ const PREMIUM_SERVICES: ServiceDef[] = [
     action:  'navigate',
     href:    (s: string) => `/for/${s}/attire`,
   },
-  {
-    key:     'dday_capture',
-    label:   'D-Day Captures',
-    icon:    'circle',
-    tooltip: 'Photo upload portal open on the event day',
-    action:  'navigate',
-    href:    (s: string) => `/for/${s}/dday`,
-  },
+   
   {
     key:     'live_wall',
     label:   'Live Wall',
@@ -286,7 +279,7 @@ export default function PremiumsPanel({
           </div>
         )}
 
-{/* ── Event Moments ── */}
+{/* ── Event Moments — D-Day Guest Capture ── */}
         {phases && phases.length > 0 && (
           <div style={{ margin: '8px 16px 0' }}>
             <div style={{
@@ -303,7 +296,7 @@ export default function PremiumsPanel({
                 textTransform: 'uppercase' as const,
                 color:         goldMuted,
               }}>
-                Event Moments
+                Event Moments — D-Day Guest Capture
               </p>
               <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '6px' }}>
 
