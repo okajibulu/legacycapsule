@@ -53,7 +53,7 @@ interface SupportAccount {
   relationship_to_honouree: string | null
 }
 
-export type CapsulePage = 'tribute' | 'memories' | 'profile' | 'legacy' | 'premiums'
+export type CapsulePage = 'tribute' | 'memories' | 'profile' | 'legacy' | 'premiums' | 'none'
 
 interface CapsuleBottomNavProps {
   slug:            string

@@ -190,7 +190,7 @@ export default async function EventMomentPage({ params }: PageProps) {
 
       <CapsuleBottomNav
         slug={slug}
-        currentPage="tribute"
+        currentPage="none"
         components={capsule.components ?? []}
         contributorCount={capsule.approved_contrib_count ?? 0}
         hasPhases={true}
