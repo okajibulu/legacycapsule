@@ -642,8 +642,8 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         {/* Event Phases */}
         <ServiceCard
           id="phases"
-          title="Event Phases"
-          description="Manage ceremony phases · QR codes · D-Day capture"
+          title="Event Moments — D-Day Guest Capture"
+          description="Manage programme phases · QR codes · Guest photo capture · Official photography"
           icon="◈"
           status="always_on"
         >
