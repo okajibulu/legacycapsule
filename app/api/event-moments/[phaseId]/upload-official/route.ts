@@ -5,10 +5,14 @@
 //            Stores with is_official_photography=true.
 //            Auth-gated — valid organiser session required.
 //            Reuses D-Day compression pipeline (sharp).
+//            Storage upload via direct REST fetch — bypasses
+//            Supabase JS client SharedArrayBuffer restriction
+//            on Vercel serverless runtime.
 // ARCHITECTURE: LC12 Event Moments
 // BUILT BY:  AI16 · Claude Opus 4.6
-// VERSION:   v2.11.9
-// DATE:      1 August 2026
+// UPDATED:   AI17 · Claude Sonnet 4.6 · 3 August 2026
+// VERSION:   v2.11.30
+// DATE:      3 August 2026
 // ============================================================
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -30,7 +34,12 @@ export const maxDuration = 30
 
 // ═══ SECTION 3 — Compression (same config as D-Day) ═══
 
-interface CompressResult { buffer: Buffer; width_px: number; height_px: number; aspect_ratio: number }
+interface CompressResult {
+  buffer:       Buffer
+  width_px:     number
+  height_px:    number
+  aspect_ratio: number
+}
 
 async function compressImage(buffer: Buffer, mimeType: string): Promise<CompressResult> {
   const pipeline = sharp(buffer).resize({
@@ -52,10 +61,35 @@ async function compressImage(buffer: Buffer, mimeType: string): Promise<Compress
   return { buffer: outBuffer, width_px, height_px, aspect_ratio }
 }
 
-// ═══ SECTION 4 — Auth helper ═══
-// Validates organiser session cookie — same pattern as manage dashboard.
+// ═══ SECTION 4 — Direct REST storage upload ═══
+// Bypasses Supabase JS client which triggers SharedArrayBuffer
+// restriction in Vercel serverless. Uses native fetch with
+// Buffer as body — no ArrayBuffer wrapping occurs.
 
+async function uploadToStorageREST(
+  storagePath:  string,
+  buffer:       Buffer,
+  contentType:  string,
+): Promise<void> {
+  const supabaseUrl     = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const serviceRoleKey  = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  const uploadUrl       = `${supabaseUrl}/storage/v1/object/gallery/${storagePath}`
 
+  const res = await fetch(uploadUrl, {
+    method:  'POST',
+    headers: {
+      'Authorization': `Bearer ${serviceRoleKey}`,
+      'Content-Type':  contentType,
+      'x-upsert':      'false',
+    },
+    body: buffer,
+  })
+
+  if (!res.ok) {
+    const detail = await res.text()
+    throw new Error(`Storage REST upload failed: ${res.status} — ${detail}`)
+  }
+}
 
 // ═══ SECTION 5 — POST handler ═══
 
@@ -66,12 +100,10 @@ export async function POST(
   try {
     const { phaseId } = await params
 
-     
-
     // ── Parse form data ────────────────────────────────────────────
-    const formData      = await req.formData()
-    const capsule_id    = formData.get('capsule_id') as string
-    const file          = formData.get('file')       as File | null
+    const formData   = await req.formData()
+    const capsule_id = formData.get('capsule_id') as string
+    const file       = formData.get('file')       as File | null
 
     if (!capsule_id || !file || file.size === 0) {
       return NextResponse.json(
@@ -109,38 +141,32 @@ export async function POST(
       .eq('id', capsule_id)
       .maybeSingle()
 
-     if (!capsule) {
+    if (!capsule) {
       return NextResponse.json({ error: 'Capsule not found' }, { status: 404 })
     }
 
-    // ── Compress ───────────────────────────────────────────────────
-    const arrayBuffer    = await file.arrayBuffer()
-const uint8          = new Uint8Array(arrayBuffer)
-const rawBuffer      = Buffer.allocUnsafe(uint8.byteLength)
-uint8.forEach((byte, i) => rawBuffer.writeUInt8(byte, i))
+    // ── Read + compress ────────────────────────────────────────────
+    const rawBuffer      = Buffer.from(await file.arrayBuffer())
     const compressed     = await compressImage(rawBuffer, file.type)
     const outputMimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
     const outputExt      = file.type === 'image/png' ? 'png'       : 'jpg'
 
-    // ── Upload to storage ──────────────────────────────────────────
+    // ── Upload via REST (bypasses JS client SharedArrayBuffer) ─────
     const storagePath = `${capsule_id}/dday/official-${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${outputExt}`
 
-    const { error: uploadError } = await db.storage
-      .from('gallery')
-      .upload(storagePath, compressed.buffer, {
-        contentType: outputMimeType,
-        upsert:      false,
-      })
-
-    if (uploadError) {
-      console.error('[upload-official] Storage error:', uploadError)
+    try {
+      await uploadToStorageREST(storagePath, compressed.buffer, outputMimeType)
+    } catch (storageErr: any) {
+      console.error('[upload-official] Storage REST error:', storageErr)
       return NextResponse.json(
         { error: 'Upload failed. Please try again.' },
         { status: 500 }
       )
     }
 
-    const { data: urlData } = db.storage.from('gallery').getPublicUrl(storagePath)
+    // ── Build public URL ───────────────────────────────────────────
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const publicUrl   = `${supabaseUrl}/storage/v1/object/public/gallery/${storagePath}`
 
     // ── Insert gallery_items record ────────────────────────────────
     const { data: item, error: insertError } = await db
@@ -148,7 +174,7 @@ uint8.forEach((byte, i) => rawBuffer.writeUInt8(byte, i))
       .insert({
         capsule_id,
         phase_id:                phaseId,
-        image_url:               urlData.publicUrl,
+        image_url:               publicUrl,
         caption:                 'Official Photography',
         source:                  'dday',
         approved:                true,
@@ -156,13 +182,20 @@ uint8.forEach((byte, i) => rawBuffer.writeUInt8(byte, i))
         storage_path:            storagePath,
         width_px:                compressed.width_px,
         height_px:               compressed.height_px,
-        aspect_ratio:            compressed.aspect_ratio,
+        aspect_ratio:            parseFloat(compressed.aspect_ratio.toFixed(3)),
       })
       .select('id')
       .single()
 
     if (insertError) {
-      await db.storage.from('gallery').remove([storagePath])
+      // Best-effort storage cleanup
+      await fetch(
+        `${supabaseUrl}/storage/v1/object/gallery/${storagePath}`,
+        {
+          method:  'DELETE',
+          headers: { 'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}` },
+        }
+      )
       console.error('[upload-official] Insert error:', insertError)
       return NextResponse.json(
         { error: 'Failed to save photo. Please try again.' },
@@ -173,7 +206,7 @@ uint8.forEach((byte, i) => rawBuffer.writeUInt8(byte, i))
     return NextResponse.json({
       ok:              true,
       gallery_item_id: item.id,
-      image_url:       urlData.publicUrl,
+      image_url:       publicUrl,
     })
 
   } catch (e: any) {
