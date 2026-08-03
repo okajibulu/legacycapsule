@@ -176,7 +176,7 @@ export async function POST(
   } catch (e: any) {
     console.error('[upload-official]', e)
     return NextResponse.json(
-      { error: e.message ?? 'Upload failed' },
+      { error: e.message ?? 'Upload failed', detail: String(e) },
       { status: 500 }
     )
   }
