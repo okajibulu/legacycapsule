@@ -240,6 +240,14 @@ export async function PUT(req: NextRequest): Promise<NextResponse> {
 }
 
 // ============================================================
+// SECTION 4B — PATCH: Alias for PUT (used by EditPhaseForm)
+// ============================================================
+
+export async function PATCH(req: NextRequest): Promise<NextResponse> {
+  return PUT(req)
+}
+
+// ============================================================
 // SECTION 5 — DELETE: Soft-delete a phase
 // ============================================================
 

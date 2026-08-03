@@ -381,23 +381,37 @@ export default function EventMomentsManager({
   const activePhase = phases.find(p => p.id === activePhaseId)
 
   // ── Fetch full photo records for active phase ──────────────────────
-  const fetchPhotos = useCallback(async () => {
+ 
+const fetchFullPhotos = useCallback(async () => {
     if (!activePhaseId) return
-    setLoading(true)
     try {
-      const res  = await fetch(`/api/event-moments/${activePhaseId}/manage?capsule_id=${capsuleId}`)
+      const res  = await fetch(`/api/event-moments/${activePhaseId}`)
       const data = await res.json()
-      if (data.ok) setPhotos(data.photos ?? [])
+      if (data.ok) {
+        const all = [
+          ...(data.guest_photos ?? []).map((p: any) => ({
+            ...p,
+            approved:                true,
+            is_official_photography: false,
+            featured_in_publication: false,
+          })),
+          ...(data.official_photos ?? []).map((p: any) => ({
+            ...p,
+            approved:                true,
+            is_official_photography: true,
+            featured_in_publication: false,
+          })),
+        ]
+        setPhotos(all)
+      }
     } catch (e) {
-      console.error('[EventMomentsManager] fetchPhotos error:', e)
-    } finally {
-      setLoading(false)
+      console.error('[EventMomentsManager] fetchFull error:', e)
     }
-  }, [activePhaseId, capsuleId])
+  }, [activePhaseId])
 
   useEffect(() => {
-    if (activePhaseId) fetchPhotos()
-  }, [activePhaseId, fetchPhotos])
+    if (activePhaseId) fetchFullPhotos()
+  }, [activePhaseId, fetchFullPhotos])
 
   // ── Curation action ────────────────────────────────────────────────
   const handleAction = async (photoId: string, action: string) => {
@@ -453,7 +467,7 @@ export default function EventMomentsManager({
 
     if (successCount > 0) {
       setSuccessMsg(`${successCount} photo${successCount > 1 ? 's' : ''} uploaded successfully`)
-      await fetchPhotos()
+      await fetchFullPhotos()
     }
 
     setUploading(false)
