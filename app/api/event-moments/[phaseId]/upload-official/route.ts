@@ -30,19 +30,26 @@ export const maxDuration = 30
 
 // ═══ SECTION 3 — Compression (same config as D-Day) ═══
 
-async function compressImage(buffer: Buffer, mimeType: string): Promise<Buffer> {
-  let pipeline = sharp(buffer).resize({
+interface CompressResult { buffer: Buffer; width_px: number; height_px: number; aspect_ratio: number }
+
+async function compressImage(buffer: Buffer, mimeType: string): Promise<CompressResult> {
+  const pipeline = sharp(buffer).resize({
     width:              1200,
     height:             1200,
     fit:                'inside',
     withoutEnlargement: true,
   })
+  let outBuffer: Buffer
   if (mimeType === 'image/png') {
-    pipeline = pipeline.png({ quality: 82, compressionLevel: 8 })
+    outBuffer = await pipeline.png({ quality: 82, compressionLevel: 8 }).toBuffer()
   } else {
-    pipeline = pipeline.jpeg({ quality: 82, progressive: true })
+    outBuffer = await pipeline.jpeg({ quality: 82, progressive: true }).toBuffer()
   }
-  return pipeline.toBuffer()
+  const meta         = await sharp(outBuffer).metadata()
+  const width_px     = meta.width  ?? 0
+  const height_px    = meta.height ?? 0
+  const aspect_ratio = height_px > 0 ? Math.round((width_px / height_px) * 1000) / 1000 : 1
+  return { buffer: outBuffer, width_px, height_px, aspect_ratio }
 }
 
 // ═══ SECTION 4 — Auth helper ═══
@@ -110,14 +117,14 @@ export async function POST(
     const rawBuffer      = Buffer.from(await file.arrayBuffer())
     const compressed     = await compressImage(rawBuffer, file.type)
     const outputMimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
-    const outputExt      = file.type === 'image/png' ? 'png' : 'jpg'
+    const outputExt      = file.type === 'image/png' ? 'png'       : 'jpg'
 
     // ── Upload to storage ──────────────────────────────────────────
     const storagePath = `${capsule_id}/dday/official-${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${outputExt}`
 
     const { error: uploadError } = await db.storage
       .from('gallery')
-      .upload(storagePath, compressed, {
+      .upload(storagePath, compressed.buffer, {
         contentType: outputMimeType,
         upsert:      false,
       })
@@ -143,8 +150,10 @@ export async function POST(
         source:                  'dday',
         approved:                true,
         is_official_photography: true,
-        contributor_name:        'Official Photography',
         storage_path:            storagePath,
+        width_px:                compressed.width_px,
+        height_px:               compressed.height_px,
+        aspect_ratio:            compressed.aspect_ratio,
       })
       .select('id')
       .single()
