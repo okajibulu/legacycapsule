@@ -576,7 +576,7 @@ export default function EventPhasesSection({ capsuleId, capsuleSlug }: Props) {
   const [adding,      setAdding]      = useState(false)
   const [editingId,   setEditingId]   = useState<string | null>(null)
   const [loading,     setLoading]     = useState(true)
-  const [phaseLimit,  setPhaseLimit]  = useState(2)
+  const [phaseLimit,  setPhaseLimit]  = useState(10)
 
   const fetchPhases = async () => {
     try {
@@ -589,13 +589,6 @@ export default function EventPhasesSection({ capsuleId, capsuleSlug }: Props) {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    fetch(`/api/capsule-by-slug?capsule_id=${capsuleId}`)
-      .then(r => r.json())
-      .then(d => { if (d.phase_limit) setPhaseLimit(d.phase_limit) })
-      .catch(() => {})
-  }, [capsuleId])
 
   useEffect(() => { fetchPhases() }, [capsuleId])
 
