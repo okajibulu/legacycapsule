@@ -40,24 +40,34 @@ const COMPRESS_CONFIG = {
   maxSizeKB:    500,    // soft target; sharp does not guarantee byte size
 }
 
-async function compressImage(buffer: Buffer, mimeType: string): Promise<Buffer> {
-  let pipeline = sharp(buffer)
-    .resize({
-      width:  COMPRESS_CONFIG.maxDimension,
-      height: COMPRESS_CONFIG.maxDimension,
-      fit:    'inside',          // never upscale; preserve aspect ratio
-      withoutEnlargement: true,
-    })
+interface CompressResult {
+  buffer:       Buffer
+  width_px:     number
+  height_px:    number
+  aspect_ratio: number
+}
 
-  // Always output JPEG for photos — consistent storage format
-  // Exception: PNG files with transparency are kept as PNG
+async function compressImage(buffer: Buffer, mimeType: string): Promise<CompressResult> {
+  const pipeline = sharp(buffer).resize({
+    width:              COMPRESS_CONFIG.maxDimension,
+    height:             COMPRESS_CONFIG.maxDimension,
+    fit:                'inside',
+    withoutEnlargement: true,
+  })
+
+  let outBuffer: Buffer
   if (mimeType === 'image/png') {
-    pipeline = pipeline.png({ quality: COMPRESS_CONFIG.jpegQuality, compressionLevel: 8 })
+    outBuffer = await pipeline.png({ quality: COMPRESS_CONFIG.jpegQuality, compressionLevel: 8 }).toBuffer()
   } else {
-    pipeline = pipeline.jpeg({ quality: COMPRESS_CONFIG.jpegQuality, progressive: true })
+    outBuffer = await pipeline.jpeg({ quality: COMPRESS_CONFIG.jpegQuality, progressive: true }).toBuffer()
   }
 
-  return pipeline.toBuffer()
+  const meta         = await sharp(outBuffer).metadata()
+  const width_px     = meta.width  ?? 0
+  const height_px    = meta.height ?? 0
+  const aspect_ratio = height_px > 0 ? Math.round((width_px / height_px) * 1000) / 1000 : 1
+
+  return { buffer: outBuffer, width_px, height_px, aspect_ratio }
 }
 
 // ═══ SECTION 4 — Device fingerprint ═══
@@ -178,8 +188,10 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Compress image ────────────────────────────────────────────────────
-    const rawBuffer      = Buffer.from(await file.arrayBuffer())
-    const compressedBuffer = await compressImage(rawBuffer, file.type)
+    const arrayBuffer    = await file.arrayBuffer()
+const rawBuffer      = Buffer.from(new Uint8Array(arrayBuffer))
+    const compressed     = await compressImage(rawBuffer, file.type)
+    const compressedBuffer = compressed.buffer
     const outputMimeType   = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
     const outputExt        = file.type === 'image/png' ? 'png' : 'jpg'
 
@@ -212,17 +224,18 @@ export async function POST(req: NextRequest) {
     const { data: galleryItem, error: galleryError } = await db
       .from('gallery_items')
       .insert({
-        capsule_id,
-        phase_id:          phase_id || null,
+capsule_id,
+        phase_id:                phase_id || null,
         image_url,
-        caption:           contributor_name.trim(),
-        source:            'dday',
+        caption:                 contributor_name.trim(),
+        source:                  'dday',
+        approved:                autoApprove,
         is_official_photography: false,
-        approved:          autoApprove,
-        contributor_name:  contributor_name.trim(),
-        contributor_email: contributor_email?.trim() || null,
-        device_token:      deviceToken,
-        storage_path:      storagePath,
+        device_token:            deviceToken,
+        storage_path:            storagePath,
+        width_px:                compressed.width_px,
+        height_px:               compressed.height_px,
+        aspect_ratio:            compressed.aspect_ratio,
       })
       .select('id')
       .single()
