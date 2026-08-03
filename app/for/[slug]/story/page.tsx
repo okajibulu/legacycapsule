@@ -112,7 +112,7 @@ export default async function EventStoryPage({ params }: PageProps) {
             <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.16em', background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LEGACY</span>
             <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.16em', color: t.textFaint, marginLeft: '0.1em' }}>CAPSULE</span>
           </Link>
-          <Link href={`/for/${slug}`} style={{ fontSize: '12px', color: t.accentMuted, textDecoration: 'none' }}>← Tribute Room</Link>
+          <Link href={`/for/${slug}`} style={{ fontSize: '12px', color: t.accentMuted, textDecoration: 'none' }}>← The Voices</Link>
         </div>
       </div>
 
@@ -233,7 +233,7 @@ export default async function EventStoryPage({ params }: PageProps) {
       {/* ── BOTTOM NAV ── */}
       <CapsuleBottomNav
         slug={slug}
-        currentPage="memories"
+        currentPage="none"
         components={capsule.components ?? []}
         contributorCount={capsule.approved_contrib_count ?? 0}
         hasPhases={(phases?.length ?? 0) > 0}
@@ -242,6 +242,7 @@ export default async function EventStoryPage({ params }: PageProps) {
         honourName={capsule.honouree_name}
         eventType={capsule.event_type}
         supportAccounts={supportAccounts ?? []}
+        phases={(phases ?? []).map(p => ({ id: p.id, name: p.name }))}
       />
     </div>
   )
