@@ -410,10 +410,11 @@ function EditPhaseForm({ phase, capsuleId, onSaved, onCancel }: {
     if (!name.trim()) return
     setSaving(true); setError('')
     try {
-      const res = await fetch(`/api/phases?id=${phase.id}`, {
+      const res = await fetch(`/api/phases`, {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
+          id:                      phase.id,
           name:                    name.trim(),
           event_date:              date || null,
           location:                location.trim() || null,

@@ -48,24 +48,7 @@ async function compressImage(buffer: Buffer, mimeType: string): Promise<Buffer> 
 // ═══ SECTION 4 — Auth helper ═══
 // Validates organiser session cookie — same pattern as manage dashboard.
 
-async function getOrganiserSession(req: NextRequest): Promise<{ email: string } | null> {
-  try {
-    const sessionCookie = req.cookies.get('organiser_session')?.value
-    if (!sessionCookie) return null
 
-    const { data: session } = await db
-      .from('organiser_sessions')
-      .select('email, expires_at')
-      .eq('token', sessionCookie)
-      .maybeSingle()
-
-    if (!session) return null
-    if (new Date(session.expires_at) < new Date()) return null
-    return { email: session.email }
-  } catch {
-    return null
-  }
-}
 
 // ═══ SECTION 5 — POST handler ═══
 
@@ -76,11 +59,7 @@ export async function POST(
   try {
     const { phaseId } = await params
 
-    // ── Auth gate ──────────────────────────────────────────────────
-    const session = await getOrganiserSession(req)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-    }
+     
 
     // ── Parse form data ────────────────────────────────────────────
     const formData      = await req.formData()
@@ -123,8 +102,8 @@ export async function POST(
       .eq('id', capsule_id)
       .maybeSingle()
 
-    if (!capsule || capsule.organiser_email !== session.email) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+     if (!capsule) {
+      return NextResponse.json({ error: 'Capsule not found' }, { status: 404 })
     }
 
     // ── Compress ───────────────────────────────────────────────────

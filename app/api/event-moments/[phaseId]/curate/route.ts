@@ -22,22 +22,6 @@ const db = createClient(
 
 // ═══ SECTION 2 — Auth helper ═══
 
-async function getOrganiserSession(req: NextRequest): Promise<{ email: string } | null> {
-  try {
-    const sessionCookie = req.cookies.get('organiser_session')?.value
-    if (!sessionCookie) return null
-    const { data: session } = await db
-      .from('organiser_sessions')
-      .select('email, expires_at')
-      .eq('token', sessionCookie)
-      .maybeSingle()
-    if (!session) return null
-    if (new Date(session.expires_at) < new Date()) return null
-    return { email: session.email }
-  } catch {
-    return null
-  }
-}
 
 // ═══ SECTION 3 — PATCH handler ═══
 
