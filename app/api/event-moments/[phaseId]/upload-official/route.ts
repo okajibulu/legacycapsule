@@ -115,7 +115,9 @@ export async function POST(
 
     // ── Compress ───────────────────────────────────────────────────
     const arrayBuffer    = await file.arrayBuffer()
-const rawBuffer      = Buffer.from(new Uint8Array(arrayBuffer))
+const uint8          = new Uint8Array(arrayBuffer)
+const rawBuffer      = Buffer.allocUnsafe(uint8.byteLength)
+uint8.forEach((byte, i) => rawBuffer.writeUInt8(byte, i))
     const compressed     = await compressImage(rawBuffer, file.type)
     const outputMimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
     const outputExt      = file.type === 'image/png' ? 'png'       : 'jpg'
