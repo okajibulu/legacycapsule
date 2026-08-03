@@ -32,11 +32,6 @@ export async function PATCH(
   try {
     const { phaseId } = await params
 
-    // ── Auth gate ──────────────────────────────────────────────────
-    const session = await getOrganiserSession(req)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-    }
 
     // ── Parse body ─────────────────────────────────────────────────
     const body = await req.json()
@@ -60,12 +55,12 @@ export async function PATCH(
     // ── Verify organiser owns capsule ──────────────────────────────
     const { data: capsule } = await db
       .from('capsules')
-      .select('id, organiser_email')
+      .select('id')
       .eq('id', capsule_id)
       .maybeSingle()
 
-    if (!capsule || capsule.organiser_email !== session.email) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!capsule) {
+      return NextResponse.json({ error: 'Capsule not found' }, { status: 404 })
     }
 
     // ── Verify photo belongs to this phase ─────────────────────────
