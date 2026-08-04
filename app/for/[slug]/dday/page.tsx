@@ -116,10 +116,12 @@ function GoldRule() {
 
 function PhotoThumb({
   photo,
+  capsuleId,
   onDelete,
 }: {
-  photo: UploadedPhoto
-  onDelete: (id: string) => void
+  photo:      UploadedPhoto
+  capsuleId:  string
+  onDelete:   (id: string) => void
 }) {
   const [deleting, setDeleting] = useState(false)
 
@@ -132,7 +134,7 @@ function PhotoThumb({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gallery_item_id: photo.id,
-          capsule_id:      photo.id, // passed via parent
+          capsule_id:      capsuleId,
         }),
       })
       onDelete(photo.id)
@@ -477,6 +479,7 @@ export default function DDayPage() {
               <PhotoThumb
                 key={photo.id}
                 photo={photo}
+                capsuleId={capsule.id}
                 onDelete={handleDeletePhoto}
               />
             ))}
