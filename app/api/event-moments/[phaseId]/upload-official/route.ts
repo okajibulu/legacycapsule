@@ -73,7 +73,7 @@ async function uploadToStorageREST(
 ): Promise<void> {
   const supabaseUrl     = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const serviceRoleKey  = process.env.SUPABASE_SERVICE_ROLE_KEY!
-  const uploadUrl       = `${supabaseUrl}/storage/v1/object/gallery/${storagePath}`
+  const uploadUrl       = `${supabaseUrl}/storage/v1/object/tribute-photos/${storagePath}`
 
   const res = await fetch(uploadUrl, {
     method:  'POST',
@@ -166,7 +166,7 @@ export async function POST(
 
     // ── Build public URL ───────────────────────────────────────────
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const publicUrl   = `${supabaseUrl}/storage/v1/object/public/gallery/${storagePath}`
+    const publicUrl   = `${supabaseUrl}/storage/v1/object/public/tribute-photos/${storagePath}`
 
     // ── Insert gallery_items record ────────────────────────────────
     const { data: item, error: insertError } = await db
@@ -190,7 +190,7 @@ export async function POST(
     if (insertError) {
       // Best-effort storage cleanup
       await fetch(
-        `${supabaseUrl}/storage/v1/object/gallery/${storagePath}`,
+        `${supabaseUrl}/storage/v1/object/tribute-photos/${storagePath}`,
         {
           method:  'DELETE',
           headers: { 'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}` },
