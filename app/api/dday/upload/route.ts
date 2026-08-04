@@ -48,7 +48,7 @@ interface CompressResult {
 }
 
 async function compressImage(buffer: Buffer, mimeType: string): Promise<CompressResult> {
-  const pipeline = sharp(buffer).resize({
+const pipeline = sharp(buffer).rotate().resize({
     width:              COMPRESS_CONFIG.maxDimension,
     height:             COMPRESS_CONFIG.maxDimension,
     fit:                'inside',
@@ -188,8 +188,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Compress image ────────────────────────────────────────────────────
-    const arrayBuffer    = await file.arrayBuffer()
-const rawBuffer      = Buffer.from(new Uint8Array(arrayBuffer))
+    const rawBuffer      = Buffer.from(await file.arrayBuffer())
     const compressed     = await compressImage(rawBuffer, file.type)
     const compressedBuffer = compressed.buffer
     const outputMimeType   = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
@@ -199,23 +198,30 @@ const rawBuffer      = Buffer.from(new Uint8Array(arrayBuffer))
     const timestamp   = Date.now()
     const storagePath = `${capsule_id}/dday/${timestamp}-${crypto.randomBytes(6).toString('hex')}.${outputExt}`
 
-    const { error: uploadError } = await db.storage
-      .from('gallery')
-      .upload(storagePath, compressedBuffer, {
-        contentType: outputMimeType,
-        upsert:      false,
-      })
+    const supabaseUrl    = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    const uploadUrl      = `${supabaseUrl}/storage/v1/object/tribute-photos/${storagePath}`
 
-    if (uploadError) {
-      console.error('[dday/upload] Storage upload error:', uploadError)
+    const uploadRes = await fetch(uploadUrl, {
+      method:  'POST',
+      headers: {
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Type':  outputMimeType,
+        'x-upsert':      'false',
+      },
+      body: new Uint8Array(compressedBuffer),
+    })
+
+    if (!uploadRes.ok) {
+      const detail = await uploadRes.text()
+      console.error('[dday/upload] Storage REST error:', uploadRes.status, detail)
       return NextResponse.json(
         { error: 'Photo upload failed. Please try again.' },
         { status: 500 }
       )
     }
 
-    const { data: publicUrlData } = db.storage.from('gallery').getPublicUrl(storagePath)
-    const image_url = publicUrlData.publicUrl
+    const image_url = `${supabaseUrl}/storage/v1/object/public/tribute-photos/${storagePath}`
 
     // ── Insert gallery_items record ───────────────────────────────────────
     // device_token stored for 6-photo limit enforcement — not displayed publicly
@@ -310,7 +316,12 @@ export async function DELETE(req: NextRequest) {
 
     // Delete from storage
     if (item.storage_path) {
-      await db.storage.from('gallery').remove([item.storage_path])
+      const supabaseUrl    = process.env.NEXT_PUBLIC_SUPABASE_URL!
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+      await fetch(`${supabaseUrl}/storage/v1/object/tribute-photos/${item.storage_path}`, {
+        method:  'DELETE',
+        headers: { 'Authorization': `Bearer ${serviceRoleKey}` },
+      })
     }
 
     // Delete record

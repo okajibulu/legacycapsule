@@ -116,11 +116,12 @@ function ManagedPhotoCard({
   return (
     <div style={{
       borderRadius: '12px',
+      overflow:     'hidden',
       border:       `1px solid ${photo.approved ? accentFaint : 'rgba(248,113,113,0.2)'}`,
       background:   'rgba(255,255,255,0.02)',
       position:     'relative',
     }}>
-      <div style={{ aspectRatio: '1', position: 'relative', background: 'rgba(255,255,255,0.04)', borderRadius: '12px 12px 0 0', overflow: 'hidden' }}>
+      <div style={{ aspectRatio: '1', position: 'relative', background: 'rgba(255,255,255,0.04)' }}>
         {!loaded && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.03)' }} />}
         <img
           src={photo.image_url}

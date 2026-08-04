@@ -42,7 +42,7 @@ interface CompressResult {
 }
 
 async function compressImage(buffer: Buffer, mimeType: string): Promise<CompressResult> {
-  const pipeline = sharp(buffer).resize({
+  const pipeline = sharp(buffer).rotate().resize({
     width:              1200,
     height:             1200,
     fit:                'inside',
