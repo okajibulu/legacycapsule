@@ -91,23 +91,22 @@ export async function GET(
 
     const { data: guestPhotos } = await db
       .from('gallery_items')
-      .select('id, image_url, contributor_name, created_at, display_order')
+      .select('id, image_url, contributor_name, created_at, display_order, approved, featured_in_publication')
       .eq('phase_id', phaseId)
       .eq('source', 'dday')
       .eq('is_official_photography', false)
       .eq('approved', true)
-      .order('display_order', { ascending: true })
       .order('created_at', { ascending: false })
       .range(offset, offset + perPage - 1)
 
     const { data: officialPhotos } = await db
       .from('gallery_items')
-      .select('id, image_url, contributor_name, created_at, display_order')
+      .select('id, image_url, contributor_name, created_at, display_order, approved, featured_in_publication')
       .eq('phase_id', phaseId)
       .eq('source', 'dday')
       .eq('is_official_photography', true)
-      .order('display_order', { ascending: true })
       .order('created_at', { ascending: false })
+      .limit(30)
 
     const windowOpen = isWindowOpen(phase.event_date)
 
