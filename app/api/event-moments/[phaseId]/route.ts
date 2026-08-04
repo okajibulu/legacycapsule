@@ -99,7 +99,7 @@ export async function GET(
       .order('created_at', { ascending: false })
       .range(offset, offset + perPage - 1)
 
-    const { data: officialPhotos } = await db
+    const { data: officialPhotos, error: officialError } = await db
       .from('gallery_items')
       .select('id, image_url, contributor_name, created_at, display_order, approved, featured_in_publication')
       .eq('phase_id', phaseId)
@@ -107,6 +107,11 @@ export async function GET(
       .eq('is_official_photography', true)
       .order('created_at', { ascending: false })
       .limit(30)
+
+    if (officialError) {
+      console.error('[event-moments/GET] officialPhotos error:', JSON.stringify(officialError))
+    }
+    console.log('[event-moments/GET] officialPhotos count:', officialPhotos?.length ?? 'null', 'phaseId:', phaseId)
 
     const windowOpen = isWindowOpen(phase.event_date)
 
