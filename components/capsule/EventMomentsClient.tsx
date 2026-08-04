@@ -81,12 +81,7 @@ function isToday(eventDate: string | null): boolean {
 
 function PhotoCard({ photo, t }: { photo: GalleryPhoto; t: ReturnType<typeof getThemeConfig> }) {
   const [loaded, setLoaded] = useState(false)
-  const initials = photo.uploaded_by_name ?? 'Guest'
-    .split(' ')
-    .map(w => w[0] ?? '')
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
+  const hasName = photo.uploaded_by_name && photo.uploaded_by_name.trim().length > 0
 
   return (
     <div style={{
@@ -107,39 +102,43 @@ function PhotoCard({ photo, t }: { photo: GalleryPhoto; t: ReturnType<typeof get
 
       <img
         src={photo.image_url}
-        alt={`${photo.uploaded_by_name ?? 'Guest'} was here`}
+        alt={photo.uploaded_by_name ?? 'Event photo'}
         onLoad={() => setLoaded(true)}
         style={{
-          width:      '100%',
-          height:     '100%',
-          objectFit:  'cover',
-          display:    loaded ? 'block' : 'none',
-          transition: 'opacity 0.3s',
+          width:            '100%',
+          height:           '100%',
+          objectFit:        'cover',
+          objectPosition:   'center',
+          imageOrientation: 'from-image',
+          display:          loaded ? 'block' : 'none',
+          transition:       'opacity 0.3s',
         }}
       />
 
-      {/* Name overlay */}
-      <div style={{
-        position:   'absolute',
-        bottom:     0,
-        left:       0,
-        right:      0,
-        padding:    '20px 8px 8px',
-        background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)',
-      }}>
-        <p style={{
-          margin:        0,
-          fontSize:      '11px',
-          fontWeight:    600,
-          color:         '#fff',
-          letterSpacing: '0.02em',
-          whiteSpace:    'nowrap',
-          overflow:      'hidden',
-          textOverflow:  'ellipsis',
+      {/* Name overlay — only shown when a real name exists */}
+      {hasName && (
+        <div style={{
+          position:   'absolute',
+          bottom:     0,
+          left:       0,
+          right:      0,
+          padding:    '20px 8px 8px',
+          background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)',
         }}>
-          {photo.uploaded_by_name ?? 'Guest'}
-        </p>
-      </div>
+          <p style={{
+            margin:        0,
+            fontSize:      '11px',
+            fontWeight:    600,
+            color:         '#fff',
+            letterSpacing: '0.02em',
+            whiteSpace:    'nowrap',
+            overflow:      'hidden',
+            textOverflow:  'ellipsis',
+          }}>
+            {photo.uploaded_by_name}
+          </p>
+        </div>
+      )}
     </div>
   )
 }
@@ -553,7 +552,7 @@ export default function EventMomentsClient({
               </div>
             )}
           </>
-        ) : (
+        ) : initialOfficialPhotos.length === 0 ? (
           <div style={{
             textAlign:    'center',
             padding:      '32px 20px',
@@ -571,7 +570,7 @@ export default function EventMomentsClient({
               </p>
             )}
           </div>
-        )}
+        ) : null}
 
         {/* ── OFFICIAL PHOTOGRAPHY ── */}
         {initialOfficialPhotos.length > 0 && (
@@ -718,12 +717,13 @@ export default function EventMomentsClient({
           }}>
           <img
             src={lightboxPhoto.image_url}
-            alt={lightboxPhoto.uploaded_by_name ?? 'Official Photography'}
+            alt={lightboxPhoto.uploaded_by_name ?? 'Event photo'}
             style={{
-              maxWidth:     '100%',
-              maxHeight:    '80vh',
-              borderRadius: '12px',
-              objectFit:    'contain',
+              maxWidth:         '100%',
+              maxHeight:        '80vh',
+              borderRadius:     '12px',
+              objectFit:        'contain',
+              imageOrientation: 'from-image',
             }}
           />
           <p style={{
