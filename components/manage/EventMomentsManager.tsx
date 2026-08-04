@@ -4,18 +4,36 @@
 //            Per-phase photo gallery management.
 //            Sections: Guest Eye View, Official Photography.
 //            Actions: show/hide, feature for publication,
-//            upload official photos, photographer token management.
+//            upload official photos, photographer token mgmt,
+//            drag-and-drop reorder for official photos.
 // ARCHITECTURE: LC12 Event Moments Spec
 // BUILT BY:  AI16 · Claude Opus 4.6
-// VERSION:   v2.11.19
-// DATE:      2 August 2026
+// UPDATED:   AI17 · Claude Opus 4.6 · 4 August 2026
+// VERSION:   v2.11.42
+// DATE:      4 August 2026
 // ============================================================
 
 'use client'
 
 // ═══ SECTION 1 — Imports & types ═══
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback }   from 'react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 interface GalleryPhoto {
   id:                      string
@@ -109,7 +127,13 @@ function ManagedPhotoCard({
           src={photo.image_url}
           alt={photo.contributor_name}
           onLoad={() => setLoaded(true)}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: loaded ? 'block' : 'none' }}
+          style={{
+            width:            '100%',
+            height:           '100%',
+            objectFit:        'cover',
+            imageOrientation: 'from-image',
+            display:          loaded ? 'block' : 'none',
+          }}
         />
         <div style={{ position: 'absolute', top: '6px', left: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
           {!photo.approved && (
@@ -159,7 +183,73 @@ function ManagedPhotoCard({
   )
 }
 
-// ═══ SECTION 4 — Photographer token panel sub-component ═══
+// ═══ SECTION 4 — Sortable official photo card ═══
+// Wraps ManagedPhotoCard with @dnd-kit sortable behaviour.
+// Drag handle (⠿) sits top-right — tap/click does not trigger drag.
+
+function SortablePhotoCard({
+  photo, onAction, gold, textFaint, accentFaint,
+}: {
+  photo: GalleryPhoto
+  onAction: (photoId: string, action: string) => void
+  gold: string; textFaint: string; accentFaint: string
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: photo.id })
+
+  const style = {
+    transform:  CSS.Transform.toString(transform),
+    transition,
+    opacity:    isDragging ? 0.5 : 1,
+    position:   'relative' as const,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      {/* Drag handle — top right corner */}
+      <div
+        {...attributes}
+        {...listeners}
+        style={{
+          position:     'absolute',
+          top:          '6px',
+          right:        '6px',
+          zIndex:       10,
+          width:        '24px',
+          height:       '24px',
+          borderRadius: '6px',
+          background:   'rgba(0,0,0,0.55)',
+          display:      'flex',
+          alignItems:   'center',
+          justifyContent: 'center',
+          cursor:       'grab',
+          fontSize:     '14px',
+          color:        'rgba(255,255,255,0.7)',
+          userSelect:   'none',
+          touchAction:  'none',
+        }}
+        title="Drag to reorder"
+      >
+        ⠿
+      </div>
+      <ManagedPhotoCard
+        photo={photo}
+        onAction={onAction}
+        gold={gold}
+        textFaint={textFaint}
+        accentFaint={accentFaint}
+      />
+    </div>
+  )
+}
+
+// ═══ SECTION 5 — Photographer token panel sub-component ═══
 
 function PhotographerTokenPanel({
   phaseId, capsuleId, phaseName, gold, goldMuted, textFaint, accentFaint,
@@ -270,7 +360,6 @@ function PhotographerTokenPanel({
         </button>
       ) : (
         <div>
-          {/* Portal URL display */}
           <div style={{
             padding: '10px 14px', borderRadius: '10px',
             background: 'rgba(226,195,107,0.06)', border: `1px solid rgba(226,195,107,0.2)`,
@@ -279,10 +368,7 @@ function PhotographerTokenPanel({
             <p style={{ margin: '0 0 4px', fontSize: '10px', fontWeight: 700, color: goldMuted, letterSpacing: '0.08em' }}>
               PHOTOGRAPHER UPLOAD LINK
             </p>
-            <p style={{
-              margin: '0 0 6px', fontSize: '11px', color: 'rgba(255,255,255,0.7)',
-              wordBreak: 'break-all', lineHeight: 1.5,
-            }}>
+            <p style={{ margin: '0 0 6px', fontSize: '11px', color: 'rgba(255,255,255,0.7)', wordBreak: 'break-all', lineHeight: 1.5 }}>
               {portalUrl}
             </p>
             {expiresAt && (
@@ -292,46 +378,33 @@ function PhotographerTokenPanel({
             )}
           </div>
 
-          {/* Actions */}
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button
-              onClick={handleCopy}
-              style={{
-                padding: '8px 16px', borderRadius: '16px',
-                background: copied ? 'rgba(74,222,128,0.1)' : 'rgba(226,195,107,0.1)',
-                border: `1px solid ${copied ? 'rgba(74,222,128,0.3)' : 'rgba(226,195,107,0.3)'}`,
-                color: copied ? 'rgba(134,239,172,0.9)' : gold,
-                fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-              }}>
+            <button onClick={handleCopy} style={{
+              padding: '8px 16px', borderRadius: '16px',
+              background: copied ? 'rgba(74,222,128,0.1)' : 'rgba(226,195,107,0.1)',
+              border: `1px solid ${copied ? 'rgba(74,222,128,0.3)' : 'rgba(226,195,107,0.3)'}`,
+              color: copied ? 'rgba(134,239,172,0.9)' : gold,
+              fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+            }}>
               {copied ? '✓ Copied' : '📋 Copy Link'}
             </button>
-
-            <a
+            
               href={`https://wa.me/?text=${encodeURIComponent(`Official Photography Portal for ${phaseName}: ${portalUrl}`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
+              target="_blank" rel="noopener noreferrer"
               style={{
                 padding: '8px 16px', borderRadius: '16px',
-                background: 'rgba(74,222,128,0.06)',
-                border: '1px solid rgba(74,222,128,0.2)',
-                color: 'rgba(134,239,172,0.85)',
-                fontSize: '12px', fontWeight: 600, textDecoration: 'none',
-                display: 'inline-block',
+                background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)',
+                color: 'rgba(134,239,172,0.85)', fontSize: '12px', fontWeight: 600,
+                textDecoration: 'none', display: 'inline-block',
               }}>
               💬 Send via WhatsApp
             </a>
-
-            <button
-              onClick={handleRevoke}
-              disabled={revoking}
-              style={{
-                padding: '8px 16px', borderRadius: '16px',
-                background: 'transparent',
-                border: '1px solid rgba(248,113,113,0.25)',
-                color: 'rgba(248,113,113,0.7)',
-                fontSize: '12px', fontWeight: 600,
-                cursor: revoking ? 'not-allowed' : 'pointer', opacity: revoking ? 0.5 : 1,
-              }}>
+            <button onClick={handleRevoke} disabled={revoking} style={{
+              padding: '8px 16px', borderRadius: '16px', background: 'transparent',
+              border: '1px solid rgba(248,113,113,0.25)', color: 'rgba(248,113,113,0.7)',
+              fontSize: '12px', fontWeight: 600,
+              cursor: revoking ? 'not-allowed' : 'pointer', opacity: revoking ? 0.5 : 1,
+            }}>
               {revoking ? 'Revoking…' : 'Revoke Link'}
             </button>
           </div>
@@ -341,10 +414,10 @@ function PhotographerTokenPanel({
   )
 }
 
-// ═══ SECTION 5 — Section heading sub-component ═══
+// ═══ SECTION 6 — Section heading sub-component ═══
 
-function SectionHeading({ label, count, goldMuted, textFaint, accentFaint }: {
-  label: string; count: number
+function SectionHeading({ label, count, hint, goldMuted, textFaint, accentFaint }: {
+  label: string; count: number; hint?: string
   goldMuted: string; textFaint: string; accentFaint: string
 }) {
   return (
@@ -359,31 +432,43 @@ function SectionHeading({ label, count, goldMuted, textFaint, accentFaint }: {
       <span style={{ fontSize: '10px', color: textFaint }}>
         · {count} {count === 1 ? 'photo' : 'photos'}
       </span>
+      {hint && (
+        <span style={{ marginLeft: 'auto', fontSize: '10px', color: textFaint, opacity: 0.6, fontStyle: 'italic' }}>
+          {hint}
+        </span>
+      )}
     </div>
   )
 }
 
-// ═══ SECTION 6 — Main component ═══
+// ═══ SECTION 7 — Main component ═══
 
 export default function EventMomentsManager({
   capsuleId, capsuleSlug, phases,
   gold, goldMuted, textPrimary, textFaint, cardBg, accentFaint,
 }: EventMomentsManagerProps) {
 
-  const [activePhaseId,  setActivePhaseId]  = useState<string>(phases[0]?.id ?? '')
-  const [photos,         setPhotos]         = useState<GalleryPhoto[]>([])
-  const [loading,        setLoading]        = useState(false)
-  const [uploading,      setUploading]      = useState(false)
-  const [uploadError,    setUploadError]    = useState<string | null>(null)
-  const [successMsg,     setSuccessMsg]     = useState<string | null>(null)
-  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
+  const [activePhaseId,   setActivePhaseId]   = useState<string>(phases[0]?.id ?? '')
+  const [photos,          setPhotos]          = useState<GalleryPhoto[]>([])
+  const [loading,         setLoading]         = useState(false)
+  const [uploading,       setUploading]       = useState(false)
+  const [uploadError,     setUploadError]     = useState<string | null>(null)
+  const [successMsg,      setSuccessMsg]      = useState<string | null>(null)
+  const [uploadProgress,  setUploadProgress]  = useState<{ done: number; total: number } | null>(null)
+  const [reordering,      setReordering]      = useState(false)
+  const [reorderMsg,      setReorderMsg]      = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const activePhase = phases.find(p => p.id === activePhaseId)
 
+  // ── DnD sensors — pointer (mouse) + touch ─────────────────────────
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor,   { activationConstraint: { delay: 200, tolerance: 8 } })
+  )
+
   // ── Fetch full photo records for active phase ──────────────────────
- 
-const fetchFullPhotos = useCallback(async () => {
+  const fetchFullPhotos = useCallback(async () => {
     if (!activePhaseId) return
     try {
       const res  = await fetch(`/api/event-moments/${activePhaseId}?limit=50&manage=1`)
@@ -438,6 +523,49 @@ const fetchFullPhotos = useCallback(async () => {
     }
   }
 
+  // ── Drag end — save new order ──────────────────────────────────────
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const officialPhotos = photos.filter(p => p.is_official_photography)
+    const oldIndex       = officialPhotos.findIndex(p => p.id === active.id)
+    const newIndex       = officialPhotos.findIndex(p => p.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    // Optimistic UI update
+    const reordered = arrayMove(officialPhotos, oldIndex, newIndex)
+    setPhotos(prev => [
+      ...prev.filter(p => !p.is_official_photography),
+      ...reordered,
+    ])
+
+    // Persist to DB
+    setReordering(true)
+    setReorderMsg(null)
+    try {
+      const order = reordered.map((p, i) => ({ id: p.id, display_order: i + 1 }))
+      const res   = await fetch(`/api/event-moments/${activePhaseId}/reorder`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ capsule_id: capsuleId, order }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setReorderMsg('Order saved')
+        setTimeout(() => setReorderMsg(null), 2500)
+      } else {
+        setReorderMsg('Could not save order — please try again')
+        await fetchFullPhotos() // revert to DB state
+      }
+    } catch {
+      setReorderMsg('Could not save order — please try again')
+      await fetchFullPhotos()
+    } finally {
+      setReordering(false)
+    }
+  }
+
   // ── Official photo upload — batched with progress ──────────────────
   const UPLOAD_BATCH_SIZE = 5
 
@@ -453,8 +581,6 @@ const fetchFullPhotos = useCallback(async () => {
     let successCount = 0
     const failedNames: string[] = []
 
-    // Process in batches of UPLOAD_BATCH_SIZE to stay within
-    // Vercel Hobby 10s function timeout per individual upload
     for (let i = 0; i < files.length; i += UPLOAD_BATCH_SIZE) {
       const batch = files.slice(i, i + UPLOAD_BATCH_SIZE)
 
@@ -468,19 +594,14 @@ const fetchFullPhotos = useCallback(async () => {
             body:   form,
           })
           const data = await res.json()
-          if (data.ok) {
-            successCount++
-          } else {
-            failedNames.push(file.name)
-          }
+          if (data.ok) successCount++
+          else failedNames.push(file.name)
         } catch {
           failedNames.push(file.name)
         }
         setUploadProgress(prev => prev ? { ...prev, done: prev.done + 1 } : null)
       }
 
-      // Brief pause between batches — gives the serverless runtime
-      // a moment to breathe between heavy compression cycles
       if (i + UPLOAD_BATCH_SIZE < files.length) {
         await new Promise(resolve => setTimeout(resolve, 800))
       }
@@ -490,7 +611,6 @@ const fetchFullPhotos = useCallback(async () => {
       setSuccessMsg(`${successCount} photo${successCount > 1 ? 's' : ''} uploaded successfully`)
       await fetchFullPhotos()
     }
-
     if (failedNames.length > 0) {
       setUploadError(`${failedNames.length} photo${failedNames.length > 1 ? 's' : ''} failed — please retry them`)
     }
@@ -635,32 +755,44 @@ const fetchFullPhotos = useCallback(async () => {
             </div>
           )}
 
-          {/* ── Official Photography ── */}
+          {/* ── Official Photography — drag-and-drop sortable ── */}
           {officialPhotos.length > 0 && (
             <div style={{ marginBottom: '20px' }}>
               <SectionHeading
                 label="Official Photography"
                 count={officialPhotos.length}
+                hint={reordering ? 'Saving order…' : reorderMsg ?? 'Drag ⠿ to reorder'}
                 goldMuted={goldMuted}
                 textFaint={textFaint}
                 accentFaint={accentFaint}
               />
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                {officialPhotos.map(photo => (
-                  <ManagedPhotoCard
-                    key={photo.id}
-                    photo={photo}
-                    onAction={handleAction}
-                    gold={gold}
-                    textFaint={textFaint}
-                    accentFaint={accentFaint}
-                  />
-                ))}
-              </div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={officialPhotos.map(p => p.id)}
+                  strategy={rectSortingStrategy}
+                >
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                    {officialPhotos.map(photo => (
+                      <SortablePhotoCard
+                        key={photo.id}
+                        photo={photo}
+                        onAction={handleAction}
+                        gold={gold}
+                        textFaint={textFaint}
+                        accentFaint={accentFaint}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             </div>
           )}
 
-          {/* Empty state when no photos at all */}
+          {/* ── Empty state when no photos at all ── */}
           {guestPhotos.length === 0 && officialPhotos.length === 0 && !loading && (
             <div style={{
               textAlign: 'center', padding: '20px',

@@ -129,7 +129,8 @@ export default async function EventMomentPage({ params }: PageProps) {
     .eq('source', 'dday')
     .eq('is_official_photography', true)
     .eq('approved', true)
-    .order('storage_path', { ascending: true })
+    .order('display_order', { ascending: true, nullsFirst: false })
+    .order('storage_path',  { ascending: true })
     .limit(30)
 
   if (officialErr) {

@@ -105,7 +105,8 @@ export async function GET(
       .eq('phase_id', phaseId)
       .eq('source', 'dday')
       .eq('is_official_photography', true)
-      .order('storage_path', { ascending: true })
+      .order('display_order', { ascending: true, nullsFirst: false })
+      .order('storage_path',  { ascending: true })
       .limit(30)
 
     if (officialError) {
