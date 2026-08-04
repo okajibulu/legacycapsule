@@ -1,33 +1,24 @@
-
 /**
  * ============================================================
  * LEGACYCAPSULE — /publication-render/[token]/page.tsx
  * VALNEX, UNIPESSOAL LDA · RevoWorldTech
  * ============================================================
  *
- * Publication render page — used by browser print (Hobby plan)
- * and Puppeteer PDF generation (Pro plan).
+ * Publication render page — browser print path (Hobby plan).
  *
  * UPDATED: AI17 · Claude Opus 4.6 · 4 August 2026
- *   — Full typography overhaul: larger headings, better spacing
- *   — All section backgrounds white — no coloured page fills
- *   — Profile section renderer: all types labelled and styled
- *   — Official Photography split from Guest Captures
- *   — Official Photography appears before Guest Captures
- *   — Tribute cards: larger padding, better line-height
- *   — Section headers: 28px, 3px gold rule, 60px top margin
- *   — Memories renderer added (activates when table populated)
- *   — Repetitive "Official Photography" captions removed
- *   — Photo grids: proper gaps, no coloured backgrounds
- *
- * UPDATED: Claude Sonnet 4.6 · July 2026
- *   — Added renderHonoureeProfile (was empty placeholder)
- *   — Added renderCommunityStories (Community Memories & Stories)
- *   — Added D-Day gallery handling (source = 'dday')
- *   — Fetches capsule_profile_sections and community_story_topics
- *   — Tribute cards improved typography
- *
- *  Security model: unchanged — render_token validated before render.
+ *   — v2.11.49: Profile gallery (capsule_gallery) added
+ *   — v2.11.49: Tribute serial numbers added
+ *   — v2.11.49: Closing message always rendered last
+ *   — v2.11.49: Screen-only A4 instruction banner (hidden on print)
+ *   — v2.11.49: no-print class in style block
+ *   — v2.11.49: page-break-after:avoid on section headers
+ *   — v2.11.49: @page uses explicit 210mm 297mm
+ *   — v2.11.48: Standalone layout (no site chrome)
+ *   — v2.11.47: body tag properly closed, A4 dimensions
+ *   — v2.11.46: Typography overhaul, white backgrounds
+ *   — v2.11.46: Official Photography split from Guest Captures
+ *   — v2.11.46: Memories renderer, profile section renderer
  */
 
 import { notFound } from 'next/navigation';
@@ -99,13 +90,6 @@ interface GalleryItemData {
   display_order: number | null;
 }
 
-interface PhaseData {
-  id: string;
-  name: string;
-  event_date: string | null;
-  location: string | null;
-}
-
 interface GuestData {
   id: string;
   name: string;
@@ -136,6 +120,15 @@ interface MemoryData {
   created_at: string;
 }
 
+interface ProfileGalleryItem {
+  id: string;
+  image_url: string;
+  caption: string | null;
+  section_index: number;
+  section_title: string | null;
+  sort_order: number;
+}
+
 
 // ============================================================
 // SECTION 3 — Signed URL helper
@@ -151,7 +144,9 @@ async function toSignedUrl(rawUrl: string | null): Promise<string> {
     const pathParts = rest.replace(/^(public|sign)\//, '').split('/');
     const bucket   = pathParts[0];
     const filePath = pathParts.slice(1).join('/');
-    const { data } = await adminClient.storage.from(bucket).createSignedUrl(filePath, SIGNED_URL_EXPIRY_SECONDS);
+    const { data } = await adminClient.storage
+      .from(bucket)
+      .createSignedUrl(filePath, SIGNED_URL_EXPIRY_SECONDS);
     return data?.signedUrl ?? rawUrl;
   } catch {
     return rawUrl;
@@ -161,8 +156,7 @@ async function toSignedUrl(rawUrl: string | null): Promise<string> {
 
 // ============================================================
 // SECTION 4 — Theme style definitions
-// All page backgrounds forced to white for print cohesion.
-// Coloured backgrounds removed from tribute cards and sections.
+// All page backgrounds white for print cohesion.
 // ============================================================
 
 interface ThemeStyles {
@@ -181,127 +175,92 @@ interface ThemeStyles {
   pageMarginMm: number;
 }
 
-const THEME_STYLES: Record<PublicationTheme, ThemeStyles> = {
+const THEME_STYLES: Record<string, ThemeStyles> = {
   classic: {
-    pageBg: '#FFFFFF',
-    pageText: '#1C1C1E',
-    secondaryText: '#5F5E5A',
-    accentColor: '#B8960C',
-    headingFont: "'Playfair Display', Georgia, serif",
-    bodyFont: "'Playfair Display', Georgia, serif",
-    coverBg: '#2D1B69',
-    coverTextColor: '#F5F3EE',
-    sectionHeaderBorderColor: '#B8960C',
-    sectionHeaderTextColor: '#2D1B69',
-    sectionHeaderStyle: 'rule-gold',
-    tributeCardBorder: '#E8E4DC',
-    pageMarginMm: 20,
+    pageBg: '#FFFFFF', pageText: '#1C1C1E', secondaryText: '#5F5E5A',
+    accentColor: '#B8960C', headingFont: "'Playfair Display', Georgia, serif",
+    bodyFont: "'Playfair Display', Georgia, serif", coverBg: '#2D1B69',
+    coverTextColor: '#F5F3EE', sectionHeaderBorderColor: '#B8960C',
+    sectionHeaderTextColor: '#2D1B69', sectionHeaderStyle: 'rule-gold',
+    tributeCardBorder: '#E8E4DC', pageMarginMm: 20,
   },
   soft: {
-    pageBg: '#FFFFFF',
-    pageText: '#3D2B2B',
-    secondaryText: '#8B6E6E',
-    accentColor: '#C4918A',
-    headingFont: "'Cormorant Garamond', Georgia, serif",
-    bodyFont: "'Cormorant Garamond', Georgia, serif",
-    coverBg: '#F2E8E4',
-    coverTextColor: '#3D2B2B',
-    sectionHeaderBorderColor: '#C4918A',
-    sectionHeaderTextColor: '#C4918A',
-    sectionHeaderStyle: 'centred-italic',
-    tributeCardBorder: '#EDE0DC',
-    pageMarginMm: 22,
+    pageBg: '#FFFFFF', pageText: '#3D2B2B', secondaryText: '#8B6E6E',
+    accentColor: '#C4918A', headingFont: "'Cormorant Garamond', Georgia, serif",
+    bodyFont: "'Cormorant Garamond', Georgia, serif", coverBg: '#F2E8E4',
+    coverTextColor: '#3D2B2B', sectionHeaderBorderColor: '#C4918A',
+    sectionHeaderTextColor: '#C4918A', sectionHeaderStyle: 'centred-italic',
+    tributeCardBorder: '#EDE0DC', pageMarginMm: 22,
   },
   romantic: {
-    pageBg: '#FFFFFF',
-    pageText: '#1A1A1A',
-    secondaryText: '#6B6560',
-    accentColor: '#C9A96E',
-    headingFont: "'Cormorant Garamond', Georgia, serif",
-    bodyFont: "'Cormorant Garamond', Georgia, serif",
-    coverBg: '#FAF7F2',
-    coverTextColor: '#1A1A1A',
-    sectionHeaderBorderColor: '#C9A96E',
-    sectionHeaderTextColor: '#1A1A1A',
-    sectionHeaderStyle: 'ornamental',
-    tributeCardBorder: '#EDE8DC',
-    pageMarginMm: 22,
+    pageBg: '#FFFFFF', pageText: '#1A1A1A', secondaryText: '#6B6560',
+    accentColor: '#C9A96E', headingFont: "'Cormorant Garamond', Georgia, serif",
+    bodyFont: "'Cormorant Garamond', Georgia, serif", coverBg: '#FAF7F2',
+    coverTextColor: '#1A1A1A', sectionHeaderBorderColor: '#C9A96E',
+    sectionHeaderTextColor: '#1A1A1A', sectionHeaderStyle: 'ornamental',
+    tributeCardBorder: '#EDE8DC', pageMarginMm: 22,
   },
   vibrant: {
-    pageBg: '#FFFFFF',
-    pageText: '#111111',
-    secondaryText: '#555555',
-    accentColor: '#D4830A',
-    headingFont: "'DM Sans', system-ui, sans-serif",
-    bodyFont: "'DM Sans', system-ui, sans-serif",
-    coverBg: '#1A1A2E',
-    coverTextColor: '#FFFFFF',
-    sectionHeaderBorderColor: '#D4830A',
-    sectionHeaderTextColor: '#1A1A2E',
-    sectionHeaderStyle: 'band',
-    tributeCardBorder: '#E0E0E0',
-    pageMarginMm: 18,
+    pageBg: '#FFFFFF', pageText: '#111111', secondaryText: '#555555',
+    accentColor: '#D4830A', headingFont: "'DM Sans', system-ui, sans-serif",
+    bodyFont: "'DM Sans', system-ui, sans-serif", coverBg: '#1A1A2E',
+    coverTextColor: '#FFFFFF', sectionHeaderBorderColor: '#D4830A',
+    sectionHeaderTextColor: '#1A1A2E', sectionHeaderStyle: 'band',
+    tributeCardBorder: '#E0E0E0', pageMarginMm: 18,
   },
   spiritual: {
-    pageBg: '#FFFFFF',
-    pageText: '#2C2416',
-    secondaryText: '#7A6E58',
-    accentColor: '#9B7B2F',
-    headingFont: "'Playfair Display', Georgia, serif",
-    bodyFont: "'Playfair Display', Georgia, serif",
-    coverBg: '#1C1408',
-    coverTextColor: '#FAF9F6',
-    sectionHeaderBorderColor: '#9B7B2F',
-    sectionHeaderTextColor: '#2C2416',
-    sectionHeaderStyle: 'cross',
-    tributeCardBorder: '#EAE4D8',
-    pageMarginMm: 20,
+    pageBg: '#FFFFFF', pageText: '#2C2416', secondaryText: '#7A6E58',
+    accentColor: '#9B7B2F', headingFont: "'Playfair Display', Georgia, serif",
+    bodyFont: "'Playfair Display', Georgia, serif", coverBg: '#1C1408',
+    coverTextColor: '#FAF9F6', sectionHeaderBorderColor: '#9B7B2F',
+    sectionHeaderTextColor: '#2C2416', sectionHeaderStyle: 'cross',
+    tributeCardBorder: '#EAE4D8', pageMarginMm: 20,
   },
 };
 
 
 // ============================================================
-// SECTION 5 — Section header renderer (upgraded)
-// 28px headings, 3px rule, 60px top margin for editorial weight
+// SECTION 5 — Section header renderer
+// page-break-after:avoid keeps heading with first content block.
 // ============================================================
 
 function renderSectionHeader(title: string, styles: ThemeStyles): string {
+  const base = `page-break-after:avoid;`
   switch (styles.sectionHeaderStyle) {
     case 'rule-gold':
-      return `<div style="margin:60px 0 36px; border-bottom:3px solid ${styles.sectionHeaderBorderColor}; padding-bottom:14px;">
+      return `<div style="margin:60px 0 36px; border-bottom:3px solid ${styles.sectionHeaderBorderColor}; padding-bottom:14px; ${base}">
         <h2 style="font-family:${styles.headingFont}; font-size:28px; color:${styles.sectionHeaderTextColor}; font-weight:700; letter-spacing:0.02em; line-height:1.2;">${escapeHtml(title)}</h2>
       </div>`;
     case 'centred-italic':
-      return `<div style="margin:60px 0 36px; text-align:center;">
+      return `<div style="margin:60px 0 36px; text-align:center; ${base}">
         <h2 style="font-family:${styles.headingFont}; font-size:28px; color:${styles.sectionHeaderTextColor}; font-style:italic; font-weight:400; line-height:1.2;">${escapeHtml(title)}</h2>
         <div style="width:80px; height:3px; background:${styles.sectionHeaderBorderColor}; margin:14px auto 0;"></div>
       </div>`;
     case 'ornamental':
-      return `<div style="margin:60px 0 36px; text-align:center;">
+      return `<div style="margin:60px 0 36px; text-align:center; ${base}">
         <div style="font-size:18px; color:${styles.accentColor}; margin-bottom:12px; letter-spacing:0.3em;">✦ &nbsp; ✦ &nbsp; ✦</div>
         <h2 style="font-family:${styles.headingFont}; font-size:28px; color:${styles.sectionHeaderTextColor}; font-weight:600; line-height:1.2;">${escapeHtml(title)}</h2>
         <div style="width:80px; height:2px; background:${styles.sectionHeaderBorderColor}; margin:14px auto 0;"></div>
       </div>`;
     case 'band':
-      return `<div style="margin:60px 0 36px; border-left:6px solid ${styles.sectionHeaderBorderColor}; padding:12px 20px;">
+      return `<div style="margin:60px 0 36px; border-left:6px solid ${styles.sectionHeaderBorderColor}; padding:12px 20px; ${base}">
         <h2 style="font-family:${styles.headingFont}; font-size:28px; color:${styles.sectionHeaderTextColor}; font-weight:700; letter-spacing:0.04em; line-height:1.2;">${escapeHtml(title)}</h2>
       </div>`;
     case 'cross':
-      return `<div style="margin:60px 0 36px; display:flex; align-items:center; gap:16px;">
+      return `<div style="margin:60px 0 36px; display:flex; align-items:center; gap:16px; ${base}">
         <span style="font-size:20px; color:${styles.accentColor}; flex-shrink:0;">✝</span>
         <h2 style="font-family:${styles.headingFont}; font-size:28px; color:${styles.sectionHeaderTextColor}; font-weight:700; line-height:1.2;">${escapeHtml(title)}</h2>
         <div style="flex:1; height:3px; background:${styles.sectionHeaderBorderColor};"></div>
       </div>`;
     default:
-      return `<div style="margin:60px 0 36px; border-bottom:3px solid ${styles.sectionHeaderBorderColor}; padding-bottom:14px;">
+      return `<div style="margin:60px 0 36px; border-bottom:3px solid ${styles.sectionHeaderBorderColor}; padding-bottom:14px; ${base}">
         <h2 style="font-family:${styles.headingFont}; font-size:28px; color:${styles.sectionHeaderTextColor}; font-weight:700; line-height:1.2;">${escapeHtml(title)}</h2>
       </div>`;
   }
 }
 
-// Sub-heading used within sections
 function renderSubHeading(title: string, styles: ThemeStyles): string {
-  return `<div style="margin:32px 0 16px; display:flex; align-items:center; gap:12px;">
+  return `<div style="margin:32px 0 16px; display:flex; align-items:center; gap:12px; page-break-after:avoid;">
     <div style="width:4px; height:20px; background:${styles.accentColor}; flex-shrink:0; border-radius:2px;"></div>
     <h3 style="font-family:${styles.headingFont}; font-size:18px; font-weight:600; color:${styles.sectionHeaderTextColor}; line-height:1.3;">${escapeHtml(title)}</h3>
   </div>`;
@@ -336,9 +295,7 @@ function renderCover(capsule: CapsuleData, heroUrl: string, styles: ThemeStyles)
 
 
 // ============================================================
-// SECTION 7 — Honouree profile renderer (fully rebuilt)
-// All section_types now labelled and styled.
-// biography, occasion, story, appreciation, custom all handled.
+// SECTION 7 — Honouree profile renderer (text sections)
 // ============================================================
 
 function renderHonoureeProfile(
@@ -366,7 +323,6 @@ function renderHonoureeProfile(
     const isAppreciation = s.section_type === 'appreciation'
 
     if (isOccasion) {
-      // Event details get a structured info-block treatment
       return `<div style="margin-bottom:36px; padding:24px 28px; border:1px solid ${styles.tributeCardBorder}; border-radius:12px; border-left:4px solid ${styles.accentColor}; page-break-inside:avoid;">
         ${title ? `<p style="font-family:${styles.headingFont}; font-size:13px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:${styles.accentColor}; margin-bottom:12px;">${escapeHtml(title)}</p>` : ''}
         <p style="font-family:${styles.bodyFont}; font-size:15px; line-height:1.85; color:${styles.pageText}; white-space:pre-wrap;">${content}</p>
@@ -374,7 +330,6 @@ function renderHonoureeProfile(
     }
 
     if (isAppreciation) {
-      // Appreciation messages get letter styling — indented, warm
       return `<div style="margin-bottom:36px; padding:28px 36px; border:1px solid ${styles.tributeCardBorder}; border-radius:12px; page-break-inside:avoid; position:relative;">
         <div style="position:absolute; top:0; left:28px; transform:translateY(-50%); background:#FFFFFF; padding:0 8px;">
           <p style="font-family:${styles.headingFont}; font-size:12px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:${styles.accentColor};">${escapeHtml(title)}</p>
@@ -383,9 +338,8 @@ function renderHonoureeProfile(
       </div>`
     }
 
-    // biography, story, custom — standard prose with sub-heading
     return `<div style="margin-bottom:36px; page-break-inside:avoid;">
-      ${title ? `<div style="margin-bottom:14px; display:flex; align-items:center; gap:12px;">
+      ${title ? `<div style="margin-bottom:14px; display:flex; align-items:center; gap:12px; page-break-after:avoid;">
         <div style="width:4px; height:22px; background:${styles.accentColor}; flex-shrink:0; border-radius:2px;"></div>
         <h3 style="font-family:${styles.headingFont}; font-size:18px; font-weight:600; color:${styles.sectionHeaderTextColor}; line-height:1.3;">${escapeHtml(title)}</h3>
       </div>` : ''}
@@ -405,8 +359,59 @@ function renderHonoureeProfile(
 
 
 // ============================================================
-// SECTION 8 — Tributes renderer (upgraded typography)
-// Larger padding, better line-height, cleaner card borders.
+// SECTION 8 — Profile gallery renderer (capsule_gallery table)
+// Groups by section_index, shows section_title if present.
+// 3-column grid within each gallery section.
+// ============================================================
+
+function renderProfileGallery(
+  galleryItems: ProfileGalleryItem[],
+  styles: ThemeStyles
+): string {
+  if (!galleryItems || galleryItems.length === 0) return '';
+
+  // Group by section_index
+  const sections: Record<number, ProfileGalleryItem[]> = {}
+  galleryItems.forEach(item => {
+    if (!sections[item.section_index]) sections[item.section_index] = []
+    sections[item.section_index].push(item)
+  })
+
+  const COLS = 3
+  const sectionsHtml = Object.entries(sections)
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .map(([idx, items]) => {
+      const title = items[0]?.section_title
+      const rows: ProfileGalleryItem[][] = []
+      for (let i = 0; i < items.length; i += COLS) {
+        rows.push(items.slice(i, i + COLS))
+      }
+
+      const gridHtml = rows.map(row =>
+        `<div style="display:flex; gap:10px; margin-bottom:10px; page-break-inside:avoid;">
+          ${row.map(item => `<div style="flex:1; min-width:0;">
+            <img src="${item.image_url}" alt="${escapeHtml(item.caption ?? '')}" style="width:100%; height:160px; object-fit:cover; border-radius:8px; display:block; image-orientation:from-image;"/>
+            ${item.caption ? `<p style="font-size:9px; color:${styles.secondaryText}; margin-top:5px; text-align:center; font-style:italic;">${escapeHtml(item.caption)}</p>` : ''}
+          </div>`).join('')}
+          ${row.length < COLS ? Array(COLS - row.length).fill(`<div style="flex:1; min-width:0;"></div>`).join('') : ''}
+        </div>`
+      ).join('')
+
+      return `<div style="margin-bottom:32px;">
+        ${title ? renderSubHeading(title, styles) : ''}
+        ${gridHtml}
+      </div>`
+    }).join('')
+
+  return `<div style="page-break-before:always;">
+    ${renderSectionHeader('Photo Gallery', styles)}
+    ${sectionsHtml}
+  </div>`;
+}
+
+
+// ============================================================
+// SECTION 9 — Tributes renderer (with serial numbers)
 // ============================================================
 
 function renderTributes(
@@ -426,15 +431,19 @@ function renderTributes(
 
   if (tributeList.length === 0) return '';
 
-  const cards = tributeList.map(c => {
+  const cards = tributeList.map((c, index) => {
     const name     = c.is_anonymous ? 'A community member' : escapeHtml(c.contributor_name)
     const location = [c.city, c.country].filter(Boolean).map(escapeHtml).join(', ')
     const rel      = c.relationship ? escapeHtml(c.relationship) : ''
+    const serial   = `${index + 1}.`
 
     return `<div data-contribution-id="${c.id}" style="background:#FFFFFF; border:1px solid ${styles.tributeCardBorder}; border-radius:14px; padding:28px 32px; margin-bottom:18px; page-break-inside:avoid;">
-      <p style="font-family:${styles.headingFont}; font-size:16px; font-weight:700; color:${styles.pageText}; margin-bottom:5px;">${name}</p>
-      ${(location || rel) ? `<p style="font-family:${styles.bodyFont}; font-size:11px; color:${styles.secondaryText}; margin-bottom:14px; letter-spacing:0.03em;">${[rel, location].filter(Boolean).join(' · ')}</p>` : '<div style="margin-bottom:14px;"></div>'}
-      <p style="font-family:${styles.bodyFont}; font-size:14px; line-height:1.90; color:${styles.pageText};">${escapeHtml(c.tribute_text ?? '')}</p>
+      <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom:5px;">
+        <span style="font-family:${styles.headingFont}; font-size:13px; font-weight:700; color:${styles.accentColor}; flex-shrink:0; padding-top:2px;">${serial}</span>
+        <p style="font-family:${styles.headingFont}; font-size:16px; font-weight:700; color:${styles.pageText};">${name}</p>
+      </div>
+      ${(location || rel) ? `<p style="font-family:${styles.bodyFont}; font-size:11px; color:${styles.secondaryText}; margin-bottom:14px; letter-spacing:0.03em; padding-left:28px;">${[rel, location].filter(Boolean).join(' · ')}</p>` : '<div style="margin-bottom:14px;"></div>'}
+      <p style="font-family:${styles.bodyFont}; font-size:14px; line-height:1.90; color:${styles.pageText}; padding-left:28px;">${escapeHtml(c.tribute_text ?? '')}</p>
     </div>`
   }).join('')
 
@@ -447,7 +456,7 @@ function renderTributes(
 
 
 // ============================================================
-// SECTION 9 — Community Stories renderer (upgraded)
+// SECTION 10 — Community Stories renderer
 // ============================================================
 
 function renderCommunityStories(
@@ -488,18 +497,12 @@ function renderCommunityStories(
 
 
 // ============================================================
-// SECTION 10 — Memories renderer
-// Activates when capsule_memories table is populated.
-// Grouped by era_label if present; otherwise flat list.
+// SECTION 11 — Memories renderer
 // ============================================================
 
-function renderMemories(
-  memories: MemoryData[],
-  styles: ThemeStyles
-): string {
+function renderMemories(memories: MemoryData[], styles: ThemeStyles): string {
   if (!memories || memories.length === 0) return ''
 
-  // Group by era_label — ungrouped memories go under a default group
   const groups: Record<string, MemoryData[]> = {}
   memories.forEach(m => {
     const key = m.era_label ?? 'Memories'
@@ -533,7 +536,7 @@ function renderMemories(
 
 
 // ============================================================
-// SECTION 11 — Phase photos renderer (organiser-curated slots)
+// SECTION 12 — Phase photos renderer (organiser-curated slots)
 // ============================================================
 
 function renderPhasePhotos(
@@ -570,10 +573,8 @@ function renderPhasePhotos(
 
 
 // ============================================================
-// SECTION 12 — Official Photography renderer (NEW — separated)
-// Shows only is_official_photography=true gallery items.
-// Premium 2-column layout. No repetitive captions.
-// Ordered by display_order (organiser arrangement) then upload order.
+// SECTION 13 — Official Photography renderer
+// 2-column premium grid. Ordered by display_order then upload.
 // ============================================================
 
 function renderOfficialPhotography(
@@ -592,7 +593,6 @@ function renderOfficialPhotography(
 
   if (officialPhotos.length === 0) return ''
 
-  // 2-column grid — premium layout with generous spacing
   const COLS = 2
   const rows: GalleryItemData[][] = []
   for (let i = 0; i < officialPhotos.length; i += COLS) {
@@ -602,7 +602,7 @@ function renderOfficialPhotography(
   const gridHtml = rows.map(row =>
     `<div style="display:flex; gap:16px; margin-bottom:16px; page-break-inside:avoid;">
       ${row.map(photo => `<div style="flex:1; min-width:0;">
-        <img src="${photoUrlMap[photo.id]}" alt="Official Photography" style="width:100%; height:220px; object-fit:cover; border-radius:10px; display:block;"/>
+        <img src="${photoUrlMap[photo.id]}" alt="Official Photography" style="width:100%; height:220px; object-fit:cover; border-radius:10px; display:block; image-orientation:from-image;"/>
       </div>`).join('')}
       ${row.length < COLS ? `<div style="flex:1; min-width:0;"></div>` : ''}
     </div>`
@@ -617,8 +617,7 @@ function renderOfficialPhotography(
 
 
 // ============================================================
-// SECTION 13 — Guest captures renderer (renamed from D-Day)
-// Shows only is_official_photography=false gallery items.
+// SECTION 14 — Guest captures renderer (In The Room)
 // 3-column grid. Contributor name as caption where available.
 // ============================================================
 
@@ -644,7 +643,7 @@ function renderGuestCaptures(
       ${row.map(photo => {
         const name = photo.uploaded_by_name ?? photo.caption ?? ''
         return `<div style="flex:1; min-width:0;">
-          <img src="${photoUrlMap[photo.id]}" alt="${escapeHtml(name)}" style="width:100%; height:150px; object-fit:cover; border-radius:8px; display:block;"/>
+          <img src="${photoUrlMap[photo.id]}" alt="${escapeHtml(name)}" style="width:100%; height:150px; object-fit:cover; border-radius:8px; display:block; image-orientation:from-image;"/>
           ${name ? `<p style="font-size:9px; color:${styles.secondaryText}; margin-top:5px; text-align:center; font-style:italic; letter-spacing:0.02em;">${escapeHtml(name)}</p>` : ''}
         </div>`
       }).join('')}
@@ -661,7 +660,7 @@ function renderGuestCaptures(
 
 
 // ============================================================
-// SECTION 14 — Who Attended renderer
+// SECTION 15 — Who Attended renderer
 // ============================================================
 
 function renderWhoAttended(guests: GuestData[], styles: ThemeStyles): string {
@@ -675,7 +674,7 @@ function renderWhoAttended(guests: GuestData[], styles: ThemeStyles): string {
   }, {} as Record<string, GuestData[]>)
 
   const tiersHtml = Object.entries(byTier).map(([tier, list]) =>
-    `<div style="margin-bottom:24px;">
+    `<div style="margin-bottom:24px; page-break-inside:avoid;">
       <p style="font-size:10px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:${styles.accentColor}; margin-bottom:10px;">${escapeHtml(tier)}</p>
       <div style="columns:3; column-gap:20px;">
         ${list.map(g => `<p style="font-size:13px; color:${styles.pageText}; margin-bottom:5px; break-inside:avoid; line-height:1.5;">${escapeHtml(g.name)}</p>`).join('')}
@@ -692,7 +691,7 @@ function renderWhoAttended(guests: GuestData[], styles: ThemeStyles): string {
 
 
 // ============================================================
-// SECTION 15 — Closing message renderer
+// SECTION 16 — Closing message renderer (always last)
 // ============================================================
 
 function renderClosingMessage(capsule: CapsuleData, styles: ThemeStyles): string {
@@ -714,7 +713,7 @@ function renderClosingMessage(capsule: CapsuleData, styles: ThemeStyles): string
 
 
 // ============================================================
-// SECTION 16 — Utilities
+// SECTION 17 — Utilities
 // ============================================================
 
 function escapeHtml(str: string | null | undefined): string {
@@ -738,7 +737,7 @@ function formatEventDate(dateStr: string | null): string {
 
 
 // ============================================================
-// SECTION 17 — Page component
+// SECTION 18 — Page component
 // ============================================================
 
 export default async function PublicationRenderPage({
@@ -767,68 +766,70 @@ export default async function PublicationRenderPage({
   const capsuleId    = pub.capsule_id;
 
   // ── Fetch all content in parallel ─────────────────────────
-  const [capsuleRes, contribsRes, galleryRes, phasesRes, guestsRes, profileRes, topicsRes, memoriesRes] =
-    await Promise.all([
-      adminClient.from('capsules')
-        .select('id, honouree_name, honouree_title, event_type, event_date, event_tag, hero_image_url, theme, cover_style')
-        .eq('id', capsuleId).single(),
+  const [
+    capsuleRes, contribsRes, galleryRes, guestsRes,
+    profileRes, topicsRes, memoriesRes, profileGalleryRes,
+  ] = await Promise.all([
+    adminClient.from('capsules')
+      .select('id, honouree_name, honouree_title, event_type, event_date, event_tag, hero_image_url, theme, cover_style')
+      .eq('id', capsuleId).single(),
 
-      adminClient.from('contributions')
-        .select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, is_anonymous, story_topic_id, is_dday, created_at')
-        .eq('capsule_id', capsuleId).eq('status', 'approved').is('deleted_at', null).order('created_at'),
+    adminClient.from('contributions')
+      .select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, is_anonymous, story_topic_id, is_dday, created_at')
+      .eq('capsule_id', capsuleId).eq('status', 'approved').is('deleted_at', null).order('created_at'),
 
-      adminClient.from('gallery_items')
-        .select('id, image_url, caption, uploaded_by_name, phase_id, source, is_official_photography, display_order')
-        .eq('capsule_id', capsuleId).eq('approved', true).is('deleted_at', null),
+    adminClient.from('gallery_items')
+      .select('id, image_url, caption, uploaded_by_name, phase_id, source, is_official_photography, display_order')
+      .eq('capsule_id', capsuleId).eq('approved', true).is('deleted_at', null),
 
-      adminClient.from('capsule_phases')
-        .select('id, name, event_date, location')
-        .eq('capsule_id', capsuleId).is('deleted_at', null).order('sort_order'),
+    adminClient.from('guests')
+      .select('id, name, tier')
+      .eq('capsule_id', capsuleId).not('checked_in_at', 'is', null),
 
-      adminClient.from('guests')
-        .select('id, name, tier')
-        .eq('capsule_id', capsuleId).not('checked_in_at', 'is', null),
+    adminClient.from('capsule_profile_sections')
+      .select('id, section_type, custom_title, content, sort_order, is_active')
+      .eq('capsule_id', capsuleId).eq('is_active', true).order('sort_order'),
 
-      adminClient.from('capsule_profile_sections')
-        .select('id, section_type, custom_title, content, sort_order, is_active')
-        .eq('capsule_id', capsuleId).eq('is_active', true).order('sort_order'),
+    adminClient.from('community_story_topics')
+      .select('id, topic_name, display_order')
+      .eq('capsule_id', capsuleId).eq('status', 'active').order('display_order'),
 
-      adminClient.from('community_story_topics')
-        .select('id, topic_name, display_order')
-        .eq('capsule_id', capsuleId).eq('status', 'active').order('display_order'),
+    adminClient.from('capsule_memories')
+      .select('id, contributor_name, memory_text, era_label, relationship, created_at')
+      .eq('capsule_id', capsuleId).order('created_at'),
 
-      // Memories — gracefully returns empty if table doesn't exist yet
-      adminClient.from('capsule_memories')
-        .select('id, contributor_name, memory_text, era_label, relationship, created_at')
-        .eq('capsule_id', capsuleId).order('created_at'),
-    ]);
+    adminClient.from('capsule_gallery')
+      .select('id, image_url, caption, section_index, section_title, sort_order')
+      .eq('capsule_id', capsuleId)
+      .order('section_index', { ascending: true })
+      .order('sort_order', { ascending: true }),
+  ]);
 
   const capsule         = capsuleRes.data  as CapsuleData;
-  const contribs        = (contribsRes.data  ?? []) as ContributionData[];
-  const gallery         = (galleryRes.data   ?? []) as GalleryItemData[];
-  const guests          = (guestsRes.data    ?? []) as GuestData[];
-  const profileSections = (profileRes.data   ?? []) as ProfileSectionData[];
-  const storyTopics     = (topicsRes.data    ?? []) as StoryTopicData[];
-  const memories        = (memoriesRes?.data ?? []) as MemoryData[];
+  const contribs        = (contribsRes.data       ?? []) as ContributionData[];
+  const gallery         = (galleryRes.data         ?? []) as GalleryItemData[];
+  const guests          = (guestsRes.data          ?? []) as GuestData[];
+  const profileSections = (profileRes.data         ?? []) as ProfileSectionData[];
+  const storyTopics     = (topicsRes.data          ?? []) as StoryTopicData[];
+  const memories        = (memoriesRes.data        ?? []) as MemoryData[];
+  const profileGallery  = (profileGalleryRes.data  ?? []) as ProfileGalleryItem[];
 
   if (!capsule) return notFound();
 
   const theme  = layoutConfig.theme ?? 'classic';
-  const styles = THEME_STYLES[theme as PublicationTheme] ?? THEME_STYLES.classic;
+  const styles = THEME_STYLES[theme] ?? THEME_STYLES.classic;
 
-  // ── Resolve signed URLs for all gallery items ─────────────
+  // ── Resolve signed URLs for gallery_items ─────────────────
   const heroUrl = await toSignedUrl(capsule.hero_image_url);
   const photoUrlMap: Record<string, string> = {};
   await Promise.all(gallery.map(async item => {
     photoUrlMap[item.id] = await toSignedUrl(item.image_url);
   }));
 
-  // ── Build enabled sections from layout_config ─────────────
-  const enabledSections = layoutConfig.sections.filter((s: Section) => s.enabled);
-
-  // Closing message is always last — extracted from section loop
-  const closingSection = enabledSections.find((s: Section) => s.type === 'closing_message')
-  const mainSections   = enabledSections.filter((s: Section) => s.type !== 'closing_message')
+  // ── Build sections — closing message always last ───────────
+  const enabledSections  = layoutConfig.sections.filter((s: Section) => s.enabled);
+  const closingSection   = enabledSections.find((s: Section) => s.type === 'closing_message');
+  const mainSections     = enabledSections.filter((s: Section) => s.type !== 'closing_message');
 
   const sectionHtml = [
     // Organiser-controlled sections (excluding closing message)
@@ -848,8 +849,9 @@ export default async function PublicationRenderPage({
           return '';
       }
     }),
-    // Auto-included sections — always after organiser sections
-    // Order: Official Photography → Guest Captures → Community Stories → Memories
+    // Profile gallery — always included when content exists
+    renderProfileGallery(profileGallery, styles),
+    // Auto-included sections — Official first, then Guest, then Stories, then Memories
     renderOfficialPhotography(gallery, photoUrlMap, styles),
     renderGuestCaptures(gallery, photoUrlMap, styles),
     renderCommunityStories(contribs, storyTopics, styles),
@@ -857,6 +859,17 @@ export default async function PublicationRenderPage({
     // Closing message always last
     closingSection ? renderClosingMessage(capsule, styles) : '',
   ].filter(Boolean).join('\n');
+
+  // ── A4 instruction banner (screen only, hidden on print) ───
+  const bannerHtml = `<div class="no-print" style="position:sticky; top:0; left:0; right:0; z-index:9999; background:#1a0845; color:#E2C36B; padding:10px 20px; font-size:12px; font-family:system-ui,sans-serif; display:flex; align-items:center; gap:16px; justify-content:center;">
+    <span>📄</span>
+    <span>In the print dialog: set <strong>Paper size → A4</strong> and <strong>Margins → None</strong> for best results</span>
+  </div>
+  <div class="no-print" style="height:8px;"></div>`;
+
+  const autoPrintScript = shouldAutoPrint
+    ? `<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},1400);});</script>`
+    : '';
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -877,42 +890,17 @@ export default async function PublicationRenderPage({
           }
           @page { size: 210mm 297mm; margin: ${styles.pageMarginMm}mm; }
           img { max-width: 100%; display: block; }
+          .no-print { display: flex; }
           @media print {
-            body { background: #FFFFFF; }
+            .no-print { display: none !important; }
+            body { background: #FFFFFF; margin: 0; padding: 0; }
             * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           }
         `}} />
       </head>
-      <body>
-        {/* ── Print instruction banner — hidden when printed ── */}
-        <div style={{
-          position:        'sticky',
-          top:             0,
-          left:            0,
-          right:           0,
-          zIndex:          9999,
-          background:      '#1a0845',
-          color:           '#E2C36B',
-          padding:         '10px 20px',
-          fontSize:        '12px',
-          fontFamily:      'system-ui, sans-serif',
-          display:         'flex',
-          alignItems:      'center',
-          gap:             '16px',
-          justifyContent:  'center',
-        }}
-          className="no-print"
-        >
-          <span>📄</span>
-          <span>In the print dialog: set <strong>Paper size → A4</strong> and <strong>Margins → None</strong> for best results</span>
-        </div>
-        <div style={{ height: '40px' }} className="no-print" />
-        <div dangerouslySetInnerHTML={{
-        __html: sectionHtml + (shouldAutoPrint
-          ? `<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},1400);});</script>`
-          : '')
-}} />
-      </body>
+      <body dangerouslySetInnerHTML={{
+        __html: bannerHtml + sectionHtml + autoPrintScript
+      }} />
     </html>
   );
 }
