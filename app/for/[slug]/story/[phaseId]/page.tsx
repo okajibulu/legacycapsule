@@ -20,10 +20,18 @@ import EventMomentsClient              from '@/components/capsule/EventMomentsCl
 
 // ═══ SECTION 1 — Supabase client ═══
 
-const db = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getDb() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      global: {
+        fetch: (url, options = {}) =>
+          fetch(url, { ...options, cache: 'no-store' }),
+      },
+    }
+  )
+}
 
 // ═══ SECTION 2 — Types ═══
 
@@ -49,13 +57,13 @@ function isWindowOpen(eventDate: string | null): boolean {
 export async function generateMetadata({ params }: PageProps) {
   const { slug, phaseId } = await params
 
-  const { data: phase } = await db
+  const { data: phase } = await getDb()
     .from('capsule_phases')
     .select('name')
     .eq('id', phaseId)
     .maybeSingle()
 
-  const { data: capsule } = await db
+  const { data: capsule } = await getDb()
     .from('capsules')
     .select('honouree_name')
     .eq('slug', slug)
@@ -75,7 +83,7 @@ export default async function EventMomentPage({ params }: PageProps) {
   const { slug, phaseId } = await params
 
   // ── Fetch capsule ──────────────────────────────────────────────────
-  const { data: capsule, error: capErr } = await db
+  const { data: capsule, error: capErr } = await getDb()
     .from('capsules')
     .select('id, slug, honouree_name, event_type, event_tag, theme, components, page_state, approved_contrib_count')
     .eq('slug', slug)
@@ -86,7 +94,7 @@ export default async function EventMomentPage({ params }: PageProps) {
   if (capsule.page_state === 'draft' || capsule.page_state === 'suspended') return notFound()
 
   // ── Fetch this phase ───────────────────────────────────────────────
-  const { data: phase, error: phaseErr } = await db
+  const { data: phase, error: phaseErr } = await getDb()
     .from('capsule_phases')
     .select('id, capsule_id, name, event_date, location, sort_order, programme')
     .eq('id', phaseId)
@@ -97,7 +105,7 @@ export default async function EventMomentPage({ params }: PageProps) {
   if (phaseErr || !phase) return notFound()
 
   // ── Fetch all phases for prev/next navigation ──────────────────────
-  const { data: allPhases } = await db
+  const { data: allPhases } = await getDb()
     .from('capsule_phases')
     .select('id, name, sort_order')
     .eq('capsule_id', capsule.id)
@@ -106,7 +114,7 @@ export default async function EventMomentPage({ params }: PageProps) {
 
   // ── Fetch initial photos (first 20 guest + all official) ───────────
   const [guestRes, officialRes, guestCountRes] = await Promise.all([
-    db
+    getDb()
       .from('gallery_items')
       .select('id, image_url, contributor_name, created_at, display_order')
       .eq('phase_id', phaseId)
@@ -117,7 +125,7 @@ export default async function EventMomentPage({ params }: PageProps) {
       .order('created_at', { ascending: false })
       .limit(20),
 
-    db
+    getDb()
       .from('gallery_items')
       .select('id, image_url, contributor_name, created_at, display_order')
       .eq('phase_id', phaseId)
@@ -125,7 +133,7 @@ export default async function EventMomentPage({ params }: PageProps) {
       .eq('is_official_photography', true)
       .order('display_order', { ascending: true }),
 
-    db
+    getDb()
       .from('gallery_items')
       .select('id', { count: 'exact', head: true })
       .eq('phase_id', phaseId)
@@ -135,7 +143,7 @@ export default async function EventMomentPage({ params }: PageProps) {
   ])
 
   // ── Fetch support accounts for Premiums panel ──────────────────────
-  const { data: supportAccounts } = await db
+  const { data: supportAccounts } = await getDb()
     .from('capsule_support_accounts')
     .select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, is_active, sort_order, relationship_to_honouree')
     .eq('capsule_id', capsule.id)
