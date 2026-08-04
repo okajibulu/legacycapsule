@@ -826,9 +826,13 @@ export default async function PublicationRenderPage({
   // ── Build enabled sections from layout_config ─────────────
   const enabledSections = layoutConfig.sections.filter((s: Section) => s.enabled);
 
+  // Closing message is always last — extracted from section loop
+  const closingSection = enabledSections.find((s: Section) => s.type === 'closing_message')
+  const mainSections   = enabledSections.filter((s: Section) => s.type !== 'closing_message')
+
   const sectionHtml = [
-    // Organiser-controlled sections from layout_config
-    ...enabledSections.map((section: Section) => {
+    // Organiser-controlled sections (excluding closing message)
+    ...mainSections.map((section: Section) => {
       switch (section.type) {
         case 'cover':
           return renderCover(capsule, heroUrl, styles);
@@ -840,18 +844,18 @@ export default async function PublicationRenderPage({
           return renderPhasePhotos(section as PhasePhotosSection, photoUrlMap, styles);
         case 'who_attended':
           return renderWhoAttended(guests, styles);
-        case 'closing_message':
-          return renderClosingMessage(capsule, styles);
         default:
           return '';
       }
     }),
-    // Auto-included sections — appear when content exists, no toggle needed
+    // Auto-included sections — always after organiser sections
     // Order: Official Photography → Guest Captures → Community Stories → Memories
     renderOfficialPhotography(gallery, photoUrlMap, styles),
     renderGuestCaptures(gallery, photoUrlMap, styles),
     renderCommunityStories(contribs, storyTopics, styles),
     renderMemories(memories, styles),
+    // Closing message always last
+    closingSection ? renderClosingMessage(capsule, styles) : '',
   ].filter(Boolean).join('\n');
 
   return (
@@ -882,7 +886,7 @@ export default async function PublicationRenderPage({
       <body>
         {/* ── Print instruction banner — hidden when printed ── */}
         <div style={{
-          position:        'fixed',
+          position:        'sticky',
           top:             0,
           left:            0,
           right:           0,
