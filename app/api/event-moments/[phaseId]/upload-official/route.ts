@@ -182,7 +182,6 @@ export async function POST(
         storage_path:            storagePath,
         width_px:                compressed.width_px,
         height_px:               compressed.height_px,
-        aspect_ratio:            parseFloat(compressed.aspect_ratio.toFixed(3)),
       })
       .select('id')
       .single()
