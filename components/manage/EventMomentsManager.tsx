@@ -116,12 +116,11 @@ function ManagedPhotoCard({
   return (
     <div style={{
       borderRadius: '12px',
-      overflow:     'hidden',
       border:       `1px solid ${photo.approved ? accentFaint : 'rgba(248,113,113,0.2)'}`,
       background:   'rgba(255,255,255,0.02)',
       position:     'relative',
     }}>
-      <div style={{ aspectRatio: '1', position: 'relative', background: 'rgba(255,255,255,0.04)' }}>
+      <div style={{ aspectRatio: '1', position: 'relative', background: 'rgba(255,255,255,0.04)', borderRadius: '12px 12px 0 0', overflow: 'hidden' }}>
         {!loaded && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.03)' }} />}
         <img
           src={photo.image_url}
@@ -388,7 +387,7 @@ function PhotographerTokenPanel({
             }}>
               {copied ? '✓ Copied' : '📋 Copy Link'}
             </button>
-            
+            <a
               href={`https://wa.me/?text=${encodeURIComponent(`Official Photography Portal for ${phaseName}: ${portalUrl}`)}`}
               target="_blank" rel="noopener noreferrer"
               style={{
