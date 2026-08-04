@@ -376,6 +376,7 @@ export default function EventMomentsManager({
   const [uploading,      setUploading]      = useState(false)
   const [uploadError,    setUploadError]    = useState<string | null>(null)
   const [successMsg,     setSuccessMsg]     = useState<string | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const activePhase = phases.find(p => p.id === activePhaseId)
@@ -385,21 +386,21 @@ export default function EventMomentsManager({
 const fetchFullPhotos = useCallback(async () => {
     if (!activePhaseId) return
     try {
-      const res  = await fetch(`/api/event-moments/${activePhaseId}`)
+      const res  = await fetch(`/api/event-moments/${activePhaseId}?limit=50&manage=1`)
       const data = await res.json()
       if (data.ok) {
         const all = [
           ...(data.guest_photos ?? []).map((p: any) => ({
             ...p,
-            approved:                true,
+            approved:                p.approved ?? true,
             is_official_photography: false,
-            featured_in_publication: false,
+            featured_in_publication: p.featured_in_publication ?? false,
           })),
           ...(data.official_photos ?? []).map((p: any) => ({
             ...p,
-            approved:                true,
+            approved:                p.approved ?? true,
             is_official_photography: true,
-            featured_in_publication: false,
+            featured_in_publication: p.featured_in_publication ?? false,
           })),
         ]
         setPhotos(all)
@@ -437,7 +438,9 @@ const fetchFullPhotos = useCallback(async () => {
     }
   }
 
-  // ── Official photo upload ──────────────────────────────────────────
+  // ── Official photo upload — batched with progress ──────────────────
+  const UPLOAD_BATCH_SIZE = 5
+
   const handleOfficialUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
     if (files.length === 0) return
@@ -445,23 +448,41 @@ const fetchFullPhotos = useCallback(async () => {
     setUploading(true)
     setUploadError(null)
     setSuccessMsg(null)
+    setUploadProgress({ done: 0, total: files.length })
 
     let successCount = 0
+    const failedNames: string[] = []
 
-    for (const file of files) {
-      const form = new FormData()
-      form.append('capsule_id', capsuleId)
-      form.append('file', file)
-      try {
-        const res  = await fetch(`/api/event-moments/${activePhaseId}/upload-official`, {
-          method: 'POST',
-          body:   form,
-        })
-        const data = await res.json()
-        if (data.ok) successCount++
-        else setUploadError(data.error ?? 'Upload failed')
-      } catch {
-        setUploadError('Upload failed — please try again')
+    // Process in batches of UPLOAD_BATCH_SIZE to stay within
+    // Vercel Hobby 10s function timeout per individual upload
+    for (let i = 0; i < files.length; i += UPLOAD_BATCH_SIZE) {
+      const batch = files.slice(i, i + UPLOAD_BATCH_SIZE)
+
+      for (const file of batch) {
+        const form = new FormData()
+        form.append('capsule_id', capsuleId)
+        form.append('file', file)
+        try {
+          const res  = await fetch(`/api/event-moments/${activePhaseId}/upload-official`, {
+            method: 'POST',
+            body:   form,
+          })
+          const data = await res.json()
+          if (data.ok) {
+            successCount++
+          } else {
+            failedNames.push(file.name)
+          }
+        } catch {
+          failedNames.push(file.name)
+        }
+        setUploadProgress(prev => prev ? { ...prev, done: prev.done + 1 } : null)
+      }
+
+      // Brief pause between batches — gives the serverless runtime
+      // a moment to breathe between heavy compression cycles
+      if (i + UPLOAD_BATCH_SIZE < files.length) {
+        await new Promise(resolve => setTimeout(resolve, 800))
       }
     }
 
@@ -470,7 +491,12 @@ const fetchFullPhotos = useCallback(async () => {
       await fetchFullPhotos()
     }
 
+    if (failedNames.length > 0) {
+      setUploadError(`${failedNames.length} photo${failedNames.length > 1 ? 's' : ''} failed — please retry them`)
+    }
+
     setUploading(false)
+    setUploadProgress(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -554,6 +580,11 @@ const fetchFullPhotos = useCallback(async () => {
           {uploading ? 'Uploading…' : '+ Add Official Photos'}
         </label>
 
+        {uploadProgress && (
+          <p style={{ margin: '8px 0 0', fontSize: '11px', color: goldMuted }}>
+            Uploading {uploadProgress.done} of {uploadProgress.total}…
+          </p>
+        )}
         {uploadError && <p style={{ margin: '8px 0 0', fontSize: '11px', color: 'rgba(248,113,113,0.8)' }}>{uploadError}</p>}
         {successMsg  && <p style={{ margin: '8px 0 0', fontSize: '11px', color: 'rgba(134,239,172,0.8)' }}>✓ {successMsg}</p>}
       </div>
