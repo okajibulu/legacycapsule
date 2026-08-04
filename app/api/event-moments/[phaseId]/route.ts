@@ -91,7 +91,7 @@ export async function GET(
 
     const { data: guestPhotos } = await db
       .from('gallery_items')
-      .select('id, image_url, contributor_name, created_at, display_order, approved, featured_in_publication')
+      .select('id, image_url, uploaded_by_name, created_at, display_order, approved, featured_in_publication')
       .eq('phase_id', phaseId)
       .eq('source', 'dday')
       .eq('is_official_photography', false)
@@ -101,7 +101,7 @@ export async function GET(
 
     const { data: officialPhotos, error: officialError } = await db
       .from('gallery_items')
-      .select('id, image_url, contributor_name, created_at, display_order, approved, featured_in_publication')
+      .select('id, image_url, uploaded_by_name, created_at, display_order, approved, featured_in_publication')
       .eq('phase_id', phaseId)
       .eq('source', 'dday')
       .eq('is_official_photography', true)

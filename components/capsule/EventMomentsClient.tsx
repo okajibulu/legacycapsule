@@ -23,11 +23,11 @@ import type { ThemeKey }                  from '@/lib/themeConfig'
 import Link                               from 'next/link'
 
 interface GalleryPhoto {
-  id:               string
-  image_url:        string
-  contributor_name: string
-  created_at:       string
-  display_order:    number | null
+  id:                string
+  image_url:         string
+  uploaded_by_name:  string | null
+  created_at:        string
+  display_order:     number | null
 }
 
 interface PhaseNav {
@@ -81,7 +81,7 @@ function isToday(eventDate: string | null): boolean {
 
 function PhotoCard({ photo, t }: { photo: GalleryPhoto; t: ReturnType<typeof getThemeConfig> }) {
   const [loaded, setLoaded] = useState(false)
-  const initials = photo.contributor_name
+  const initials = photo.uploaded_by_name ?? 'Guest'
     .split(' ')
     .map(w => w[0] ?? '')
     .join('')
@@ -107,7 +107,7 @@ function PhotoCard({ photo, t }: { photo: GalleryPhoto; t: ReturnType<typeof get
 
       <img
         src={photo.image_url}
-        alt={`${photo.contributor_name} was here`}
+        alt={`${photo.uploaded_by_name ?? 'Guest'} was here`}
         onLoad={() => setLoaded(true)}
         style={{
           width:      '100%',
@@ -137,7 +137,7 @@ function PhotoCard({ photo, t }: { photo: GalleryPhoto; t: ReturnType<typeof get
           overflow:      'hidden',
           textOverflow:  'ellipsis',
         }}>
-          {photo.contributor_name}
+          {photo.uploaded_by_name ?? 'Guest'}
         </p>
       </div>
     </div>
@@ -718,7 +718,7 @@ export default function EventMomentsClient({
           }}>
           <img
             src={lightboxPhoto.image_url}
-            alt={lightboxPhoto.contributor_name}
+            alt={lightboxPhoto.uploaded_by_name ?? 'Official Photography'}
             style={{
               maxWidth:     '100%',
               maxHeight:    '80vh',
@@ -732,7 +732,7 @@ export default function EventMomentsClient({
             color:      'rgba(255,255,255,0.7)',
             fontWeight: 600,
           }}>
-            {lightboxPhoto.contributor_name}
+            {lightboxPhoto.uploaded_by_name ?? 'Official Photography'}
           </p>
           <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>
             Tap anywhere to close

@@ -113,7 +113,7 @@ export default async function EventMomentPage({ params }: PageProps) {
   // ── Fetch guest photos (first 20) ──────────────────────────────────
   const { data: guestData } = await db
     .from('gallery_items')
-    .select('id, image_url, contributor_name, created_at, display_order')
+    .select('id, image_url, uploaded_by_name, created_at, display_order')
     .eq('phase_id', phaseId)
     .eq('source', 'dday')
     .eq('is_official_photography', false)
@@ -124,7 +124,7 @@ export default async function EventMomentPage({ params }: PageProps) {
   // ── Fetch official photos (up to 30 per LC12 spec) ─────────────────
   const { data: officialData, error: officialErr } = await db
     .from('gallery_items')
-    .select('id, image_url, contributor_name, created_at, display_order')
+    .select('id, image_url, uploaded_by_name, created_at, display_order')
     .eq('phase_id', phaseId)
     .eq('source', 'dday')
     .eq('is_official_photography', true)
