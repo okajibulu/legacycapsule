@@ -8,8 +8,9 @@
 //            during D-Day window only.
 // ARCHITECTURE: LC12 Event Moments
 // BUILT BY:  AI16 · Claude Opus 4.6
-// VERSION:   v2.11.8
-// DATE:      1 August 2026
+// UPDATED:   AI17 · Claude Sonnet 4.6 · 4 August 2026
+// VERSION:   v2.11.39
+// DATE:      4 August 2026
 // ============================================================
 
 import { notFound }                    from 'next/navigation'
@@ -20,26 +21,23 @@ import EventMomentsClient              from '@/components/capsule/EventMomentsCl
 
 // ═══ SECTION 1 — Supabase client ═══
 
-function getDb() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      global: {
-        fetch: (url, options = {}) =>
-          fetch(url, { ...options, cache: 'no-store' }),
-      },
-    }
-  )
-}
+const db = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-// ═══ SECTION 2 — Types ═══
+// ═══ SECTION 2 — Cache control ═══
+// Force fresh data on every request — this is a live event page
+
+export const revalidate = 0
+
+// ═══ SECTION 3 — Types ═══
 
 interface PageProps {
   params: Promise<{ slug: string; phaseId: string }>
 }
 
-// ═══ SECTION 3 — Window check ═══
+// ═══ SECTION 4 — Window check ═══
 // 6am event day → 6am next day
 
 function isWindowOpen(eventDate: string | null): boolean {
@@ -52,18 +50,18 @@ function isWindowOpen(eventDate: string | null): boolean {
   return now >= open && now < close
 }
 
-// ═══ SECTION 4 — Metadata ═══
+// ═══ SECTION 5 — Metadata ═══
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug, phaseId } = await params
 
-  const { data: phase } = await getDb()
+  const { data: phase } = await db
     .from('capsule_phases')
     .select('name')
     .eq('id', phaseId)
     .maybeSingle()
 
-  const { data: capsule } = await getDb()
+  const { data: capsule } = await db
     .from('capsules')
     .select('honouree_name')
     .eq('slug', slug)
@@ -77,13 +75,13 @@ export async function generateMetadata({ params }: PageProps) {
   }
 }
 
-// ═══ SECTION 5 — Page component ═══
+// ═══ SECTION 6 — Page component ═══
 
 export default async function EventMomentPage({ params }: PageProps) {
   const { slug, phaseId } = await params
 
   // ── Fetch capsule ──────────────────────────────────────────────────
-  const { data: capsule, error: capErr } = await getDb()
+  const { data: capsule, error: capErr } = await db
     .from('capsules')
     .select('id, slug, honouree_name, event_type, event_tag, theme, components, page_state, approved_contrib_count')
     .eq('slug', slug)
@@ -94,7 +92,7 @@ export default async function EventMomentPage({ params }: PageProps) {
   if (capsule.page_state === 'draft' || capsule.page_state === 'suspended') return notFound()
 
   // ── Fetch this phase ───────────────────────────────────────────────
-  const { data: phase, error: phaseErr } = await getDb()
+  const { data: phase, error: phaseErr } = await db
     .from('capsule_phases')
     .select('id, capsule_id, name, event_date, location, sort_order, programme')
     .eq('id', phaseId)
@@ -105,45 +103,51 @@ export default async function EventMomentPage({ params }: PageProps) {
   if (phaseErr || !phase) return notFound()
 
   // ── Fetch all phases for prev/next navigation ──────────────────────
-  const { data: allPhases } = await getDb()
+  const { data: allPhases } = await db
     .from('capsule_phases')
     .select('id, name, sort_order')
     .eq('capsule_id', capsule.id)
     .is('deleted_at', null)
     .order('sort_order', { ascending: true })
 
-  // ── Fetch initial photos (first 20 guest + all official) ───────────
-  const [guestRes, officialRes, guestCountRes] = await Promise.all([
-    getDb()
-      .from('gallery_items')
-      .select('id, image_url, contributor_name, created_at, display_order')
-      .eq('phase_id', phaseId)
-      .eq('source', 'dday')
-      .eq('is_official_photography', false)
-      .eq('approved', true)
-      .order('display_order', { ascending: true })
-      .order('created_at', { ascending: false })
-      .limit(20),
+  // ── Fetch guest photos (first 20) ──────────────────────────────────
+  const { data: guestData } = await db
+    .from('gallery_items')
+    .select('id, image_url, contributor_name, created_at, display_order')
+    .eq('phase_id', phaseId)
+    .eq('source', 'dday')
+    .eq('is_official_photography', false)
+    .eq('approved', true)
+    .order('created_at', { ascending: false })
+    .limit(20)
 
-    getDb()
-      .from('gallery_items')
-      .select('id, image_url, contributor_name, created_at, display_order')
-      .eq('phase_id', phaseId)
-      .eq('source', 'dday')
-      .eq('is_official_photography', true)
-      .order('display_order', { ascending: true }),
+  // ── Fetch official photos (up to 30 per LC12 spec) ─────────────────
+  const { data: officialData, error: officialErr } = await db
+    .from('gallery_items')
+    .select('id, image_url, contributor_name, created_at, display_order')
+    .eq('phase_id', phaseId)
+    .eq('source', 'dday')
+    .eq('is_official_photography', true)
+    .eq('approved', true)
+    .order('created_at', { ascending: false })
+    .limit(30)
 
-    getDb()
-      .from('gallery_items')
-      .select('id', { count: 'exact', head: true })
-      .eq('phase_id', phaseId)
-      .eq('source', 'dday')
-      .eq('is_official_photography', false)
-      .eq('approved', true),
-  ])
+  if (officialErr) {
+    console.error('[phase page] official photos error:', JSON.stringify(officialErr))
+  }
+  console.log('[phase page] official photos found:', officialData?.length ?? 'null', '| phaseId:', phaseId)
+
+  // ── Fetch guest count ──────────────────────────────────────────────
+  const { count: guestTotal } = await db
+    .from('gallery_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('phase_id', phaseId)
+    .eq('source', 'dday')
+    .eq('is_official_photography', false)
+    .eq('approved', true)
 
   // ── Fetch support accounts for Premiums panel ──────────────────────
-  const { data: supportAccounts } = await getDb()
+  const { data: supportAccounts } = await db
     .from('capsule_support_accounts')
     .select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, is_active, sort_order, relationship_to_honouree')
     .eq('capsule_id', capsule.id)
@@ -160,9 +164,9 @@ export default async function EventMomentPage({ params }: PageProps) {
     ? (allPhases ?? [])[phaseIndex + 1]
     : null
 
-  // Parse programme
-  const programme     = phase.programme as any
-  const programmeItems: Array<{ time: string; description: string }> =
+  // ── Parse programme ────────────────────────────────────────────────
+  const programme        = phase.programme as any
+  const programmeItems:  Array<{ time: string; description: string }> =
     programme?.items ?? []
   const programmeSummary: string = programme?.summary ?? ''
 
@@ -177,11 +181,11 @@ export default async function EventMomentPage({ params }: PageProps) {
           event_tag:     capsule.event_tag ?? null,
         }}
         phase={{
-          id:         phase.id,
-          name:       phase.name,
-          event_date: phase.event_date ?? null,
-          location:   phase.location   ?? null,
-          sort_order: phase.sort_order,
+          id:                phase.id,
+          name:              phase.name,
+          event_date:        phase.event_date ?? null,
+          location:          phase.location   ?? null,
+          sort_order:        phase.sort_order,
           programme_summary: programmeSummary,
           programme_items:   programmeItems,
         }}
@@ -189,9 +193,9 @@ export default async function EventMomentPage({ params }: PageProps) {
         prevPhase={prevPhase}
         nextPhase={nextPhase}
         allPhases={allPhases ?? []}
-        initialGuestPhotos={guestRes.data ?? []}
-        initialOfficialPhotos={officialRes.data ?? []}
-        totalGuestCount={guestCountRes.count ?? 0}
+        initialGuestPhotos={guestData    ?? []}
+        initialOfficialPhotos={officialData ?? []}
+        totalGuestCount={guestTotal ?? 0}
         windowOpen={windowOpen}
         themeKey={themeKey}
       />
