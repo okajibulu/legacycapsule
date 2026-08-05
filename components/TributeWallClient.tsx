@@ -408,12 +408,35 @@ function ProfileSummarySection({ section, t, slug }: { section: ProfileSection; 
 }
 
 const RELATIONSHIP_OPTIONS = [
-  'Parent/Guardian','Child','Sibling/Half/Step','Partner/Spouse/Ex',
-  'Extended Family','Father/Mother Figure','Friend','Acquaintance',
-  'Colleague/Professional Connection','Mentor/Teacher','Student/Mentee',
-  'Leader/Guide','Classmate/Alumni','Community','Team/Club Member',
-  'Faith/Spiritual Connection','Caregiver/Healthcare Worker',
-  'Legacy Beneficiary','Supporter/Well-wisher','Other',
+  // ── Immediate family ──
+  'Son/Daughter',
+  'Parent (Mother/Father)',
+  'Sibling (Brother/Sister)',
+  'Grandchild',
+  'Grandparent',
+  'Spouse/Partner',
+  'Former Spouse/Partner',
+  // ── Extended family ──
+  'Extended Family',
+  'In-Law',
+  'Father/Mother Figure',
+  // ── Social ──
+  'Friend',
+  'Acquaintance',
+  'Classmate/Alumni',
+  'Community Member',
+  'Team/Club Member',
+  'Faith/Spiritual Connection',
+  // ── Professional ──
+  'Colleague/Work Connection',
+  'Mentor/Teacher',
+  'Student/Mentee',
+  'Community Leader/Guide',
+  // ── Other ──
+  'Caregiver/Healthcare Worker',
+  'Legacy Beneficiary',
+  'Supporter/Well-wisher',
+  'Other',
 ]
 
 function RelationshipSelect({ selected, onChange, error, t }: {

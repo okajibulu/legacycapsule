@@ -741,9 +741,12 @@ export default function SubmitPage() {
               type="text"
               value={relationship}
               onChange={(e) => setRelationship(e.target.value)}
-              placeholder="e.g. Colleague, Friend, Family"
+              placeholder="e.g. His daughter, A former student, Close friend"
               style={inputStyle}
             />
+            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginTop: '5px', lineHeight: 1.5 }}>
+              Describe how you are connected to {capsule?.honouree_name ?? 'them'}
+            </p>
           </div>
 
           {/* Email — optional, no marker */}
