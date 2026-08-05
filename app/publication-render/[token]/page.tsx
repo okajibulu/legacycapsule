@@ -10,6 +10,8 @@
  *   — v2.11.49: Profile gallery (capsule_gallery) added
  *   — v2.11.49: Tribute serial numbers added
  *   — v2.11.49: Closing message always rendered last
+ *   — v2.11.51: Banner removed; floating print button added (screen only)
+ *   — v2.11.51: Cover height fixed to 297mm (was min-height:100vh — caused page 2 spillover)
  *   — v2.11.49: Screen-only A4 instruction banner (hidden on print)
  *   — v2.11.49: no-print class in style block
  *   — v2.11.49: page-break-after:avoid on section headers
@@ -277,7 +279,7 @@ function renderCover(capsule: CapsuleData, heroUrl: string, styles: ThemeStyles)
     : capsule.honouree_name;
   const dateStr = formatEventDate(capsule.event_date);
 
-  return `<div style="min-height:100vh; background:${styles.coverBg}; color:${styles.coverTextColor}; display:flex; flex-direction:column; justify-content:flex-end; page-break-after:always; position:relative; overflow:hidden;">
+  return `<div style="height:297mm; background:${styles.coverBg}; color:${styles.coverTextColor}; display:flex; flex-direction:column; justify-content:flex-end; page-break-after:always; position:relative; overflow:hidden;">
     ${heroUrl ? `<div style="position:absolute; top:0; left:0; right:0; height:62%; overflow:hidden;">
       <img src="${heroUrl}" alt="" style="width:100%; height:100%; object-fit:cover; object-position:center top;"/>
       <div style="position:absolute; bottom:0; left:0; right:0; height:55%; background:linear-gradient(to bottom, transparent, ${styles.coverBg});"></div>
@@ -875,12 +877,12 @@ export default async function PublicationRenderPage({
     closingSection ? renderClosingMessage(capsule, styles) : '',
   ].filter(Boolean).join('\n');
 
-  // ── A4 instruction banner (screen only, hidden on print) ───
-  const bannerHtml = `<div class="no-print" style="position:sticky; top:0; left:0; right:0; z-index:9999; background:#1a0845; color:#E2C36B; padding:10px 20px; font-size:12px; font-family:system-ui,sans-serif; display:flex; align-items:center; gap:16px; justify-content:center;">
-    <span>📄</span>
-    <span>In the print dialog: set <strong>Paper size → A4</strong> and <strong>Margins → None</strong> for best results</span>
-  </div>
-  <div class="no-print" style="height:8px;"></div>`;
+  // ── Floating print button (screen only, hidden on print) ───
+  const printButtonHtml = `<div class="no-print" style="position:fixed; top:16px; right:16px; z-index:9999;">
+    <button onclick="window.print()" style="display:flex; align-items:center; gap:8px; padding:9px 18px; border-radius:24px; background:#1a0845; border:1px solid rgba(226,195,107,0.35); color:#E2C36B; font-size:12px; font-family:system-ui,sans-serif; font-weight:600; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.3); letter-spacing:0.04em;">
+      <span>🖨</span><span>Print / Save PDF</span>
+    </button>
+  </div>`;
 
   const autoPrintScript = shouldAutoPrint
     ? `<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},1400);});</script>`
@@ -914,7 +916,7 @@ export default async function PublicationRenderPage({
         `}} />
       </head>
       <body dangerouslySetInnerHTML={{
-        __html: bannerHtml + sectionHtml + autoPrintScript
+        __html: printButtonHtml + sectionHtml + autoPrintScript
       }} />
     </html>
   );

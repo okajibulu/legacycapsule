@@ -6,8 +6,9 @@
 // ARCHITECTURE: LC02 LC04
 // BUILT BY:  AI10
 // UPDATED:   AI13 - Claude Sonnet 4.6
-// VERSION:   v2.1.1
-// DATE:      22 July 2026
+// VERSION:   v2.1.2
+// DATE:      5 August 2026
+// UPDATED:   AI18 — delete + hide/show buttons wired to profile section editor
 // ============================================================
 // SECTIONS:
 //   See sub-section headers (// === SECTION N) within file
@@ -230,6 +231,38 @@ function EditField({ label, value, placeholder, onSave, type = 'text', hint }: {
   )
 }
 
+/* -- DELETE SECTION BUTTON — tap-to-confirm -------------- */
+function DeleteSectionButton({ onDelete }: { onDelete: () => void }) {
+  const [confirming, setConfirming] = useState(false)
+  if (confirming) {
+    return (
+      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+        <span style={{ fontSize: '11px', color: textFaint }}>Remove section?</span>
+        <button
+          onClick={() => { onDelete(); setConfirming(false) }}
+          style={{ padding: '5px 10px', borderRadius: '6px', border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.08)', color: 'rgba(248,113,113,0.8)', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+        >
+          Yes, remove
+        </button>
+        <button
+          onClick={() => setConfirming(false)}
+          style={{ padding: '5px 10px', borderRadius: '6px', border: `1px solid ${cardBorder}`, background: 'transparent', color: textFaint, fontSize: '11px', cursor: 'pointer' }}
+        >
+          Cancel
+        </button>
+      </div>
+    )
+  }
+  return (
+    <button
+      onClick={() => setConfirming(true)}
+      style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(248,113,113,0.2)', background: 'transparent', color: 'rgba(248,113,113,0.55)', fontSize: '11px', cursor: 'pointer' }}
+    >
+      ✕ Remove
+    </button>
+  )
+}
+
 /* -- SECTION EDITOR -- NO character limits --------------- */
 function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; sections: ProfileSection[]; onRefresh: () => void }) {
   const [adding, setAdding] = useState(false)
@@ -428,6 +461,21 @@ const handleSaveEdit = async (
     >
       Save
     </button>
+    <button
+      onClick={() => handleToggle(s)}
+      style={{
+        padding: '6px 12px',
+        borderRadius: '8px',
+        border: `1px solid ${cardBorder}`,
+        background: 'transparent',
+        color: s.is_active ? textFaint : goldMuted,
+        fontSize: '11px',
+        cursor: 'pointer',
+      }}
+    >
+      {s.is_active ? 'Hide' : 'Show'}
+    </button>
+    <DeleteSectionButton onDelete={() => handleDelete(s.id)} />
   </div>
 </div>
         </div>
