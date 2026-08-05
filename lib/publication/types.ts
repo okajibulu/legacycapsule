@@ -138,9 +138,14 @@ export type PhotoSlot = FeatureSlot | DoubleSlot | TripleSlot;
 export type SectionType =
   | 'cover'
   | 'honouree_profile'
+  | 'world_map'
   | 'tributes'
   | 'phase_photos'
+  | 'official_photography'
+  | 'guest_captures'
+  | 'memories'
   | 'who_attended'
+  | 'community_stories'
   | 'closing_message';
 
 /** Base fields present on every section. */
@@ -201,6 +206,35 @@ export interface PhasePhotosSection extends SectionBase {
   excluded_photos: string[];
 }
 
+/**
+ * World map — SVG dot map of contributor countries.
+ * Rendered server-side from ip_country data on contributions.
+ * Positioned between Honouree Profile and Tributes.
+ */
+export interface WorldMapSection extends SectionBase {
+  type: 'world_map';
+}
+
+/** Official Photography — organiser-uploaded event photos. */
+export interface OfficialPhotographySection extends SectionBase {
+  type: 'official_photography';
+}
+
+/** Guest Captures — D-Day photos uploaded by guests (In The Room). */
+export interface GuestCapturesSection extends SectionBase {
+  type: 'guest_captures';
+}
+
+/** Memories — entries from capsule_memories table, grouped by era. */
+export interface MemoriesSection extends SectionBase {
+  type: 'memories';
+}
+
+/** Community Stories — approved stories grouped by topic. */
+export interface CommunityStoriesSection extends SectionBase {
+  type: 'community_stories';
+}
+
 /** Who Attended roll call — all checked-in guests. */
 export interface WhoAttendedSection extends SectionBase {
   type: 'who_attended';
@@ -215,8 +249,13 @@ export interface ClosingMessageSection extends SectionBase {
 export type Section =
   | CoverSection
   | HonoureeProfileSection
+  | WorldMapSection
   | TributesSection
   | PhasePhotosSection
+  | OfficialPhotographySection
+  | GuestCapturesSection
+  | MemoriesSection
+  | CommunityStoriesSection
   | WhoAttendedSection
   | ClosingMessageSection;
 

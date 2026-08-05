@@ -1,0 +1,172 @@
+﻿      </main>
+
+      {/* â•â•â• RIGHT PANEL â€” Generate panel â•â•â• */}
+      {/* Desktop: fixed right sidebar | Mobile: sticky bottom bar */}
+      <aside
+        className="
+          flex-shrink-0 flex flex-col
+          border-t border-yellow-400/10 md:border-t-0 md:border-l border-yellow-400/10
+          bg-gradient-to-b from-[#100018] to-[#0a000e]
+          md:w-64 md:overflow-hidden
+          sticky bottom-0 md:static md:bottom-auto
+          z-10 md:z-auto
+        "
+        aria-label="PDF generation panel"
+      >
+        {/* Header â€” hidden on mobile (space-saving) */}
+        <div className="hidden md:block px-4 py-4 border-b border-yellow-400/10">
+          <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-0.5">Publication</p>
+          <p className="text-sm font-bold text-yellow-100 leading-tight">Generate PDF</p>
+        </div>
+
+        {/* Generate button area â€” stacks vertically on desktop, row on mobile */}
+        <div className="flex-1 md:overflow-y-auto px-4 py-3 md:py-4 flex flex-row md:flex-col gap-3 md:gap-0 items-center md:items-stretch overflow-x-auto md:overflow-x-visible">
+
+          {/* â”€â”€ Preview & Download â€” works on Hobby plan â”€â”€ */}
+          <div className="mb-5 pb-5 border-b border-yellow-400/10">
+            <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-3">
+              Download Now
+            </p>
+            <button
+              type="button"
+              onClick={handlePreviewPrint}
+              disabled={previewing || hasUnsavedChanges}
+              className="w-full py-2.5 px-3 rounded-lg text-xs font-bold bg-yellow-400 text-[#0a0010] hover:bg-yellow-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {previewing ? 'Opening previewâ€¦' : 'â¬‡ Preview & Save as PDF'}
+            </button>
+            {hasUnsavedChanges && (
+              <p className="text-[10px] text-white/30 mt-2 text-center">Save changes first</p>
+            )}
+            {previewError && (
+              <p className="text-[10px] text-red-400/70 mt-2 text-center">{previewError}</p>
+            )}
+            <p className="text-[9px] text-white/20 mt-2 leading-relaxed text-center">
+              Opens in a new tab Â· Use browser Print â†’ Save as PDF
+            </p>
+          </div>
+
+          {/* â”€â”€ Distribute â€” two-step: preview then confirm â”€â”€ */}
+          {existingPdfUrl && (
+            <div className="mb-5 pb-5 border-b border-yellow-400/10">
+              <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-3">
+                Distribute
+              </p>
+
+              {/* Step 1 â€” success state */}
+              {distributeResult ? (
+                <div className="rounded-lg bg-green-400/8 border border-green-400/20 p-3 text-center">
+                  <p className="text-[11px] text-green-400/80 font-bold mb-1">
+                    âœ“ Publication sent
+                  </p>
+                  <p className="text-[10px] text-white/30">
+                    {distributeResult.sent} recipient{distributeResult.sent !== 1 ? 's' : ''}
+                    {distributeResult.skipped > 0 ? ` Â· ${distributeResult.skipped} had no email` : ''}
+                  </p>
+                </div>
+
+              ) : showConfirm && recipientPreview ? (
+                /* Step 2 â€” confirm panel */
+                <div className="rounded-lg border border-yellow-400/20 bg-yellow-400/5 p-3">
+                  <p className="text-[10px] text-yellow-400/60 uppercase tracking-wider mb-2">
+                    Publication will be sent to:
+                  </p>
+                  <div className="space-y-1 mb-3">
+                    {recipientPreview.contributors > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-[10px] text-white/50">Tribute contributors</span>
+                        <span className="text-[10px] text-white/70 font-bold">{recipientPreview.contributors}</span>
+                      </div>
+                    )}
+                    {recipientPreview.dday > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-[10px] text-white/50">D-Day photo contributors</span>
+                        <span className="text-[10px] text-white/70 font-bold">{recipientPreview.dday}</span>
+                      </div>
+                    )}
+                    {recipientPreview.subscribers > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-[10px] text-white/50">Publication subscribers</span>
+                        <span className="text-[10px] text-white/70 font-bold">{recipientPreview.subscribers}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between pt-1 border-t border-white/10 mt-1">
+                      <span className="text-[10px] text-yellow-400/60 font-bold">Total recipients</span>
+                      <span className="text-[10px] text-yellow-400 font-bold">{recipientPreview.total}</span>
+                    </div>
+                    {recipientPreview.no_email > 0 && (
+                      <p className="text-[9px] text-white/25 mt-1">
+                        {recipientPreview.no_email} contributor{recipientPreview.no_email !== 1 ? 's' : ''} have no email â€” not included
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleDistribute}
+                      disabled={distributing || recipientPreview.total === 0}
+                      className="flex-1 py-2 rounded-lg text-[11px] font-bold bg-yellow-400 text-[#0a0010] disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {distributing ? 'Sendingâ€¦' : `Send to ${recipientPreview.total}`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowConfirm(false); setRecipientPreview(null) }}
+                      className="px-3 py-2 rounded-lg text-[11px] border border-white/10 text-white/40"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+
+              ) : (
+                /* Step 1 â€” initial button */
+                <>
+                  <button
+                    type="button"
+                    onClick={handlePreviewRecipients}
+                    disabled={previewLoading || hasUnsavedChanges}
+                    className="w-full py-2.5 px-3 rounded-lg text-xs font-bold border border-yellow-400/30 text-yellow-300 hover:bg-yellow-400/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {previewLoading ? 'Checking recipientsâ€¦' : 'âœ‰ Send Publication'}
+                  </button>
+                  <p className="text-[9px] text-white/20 mt-2 leading-relaxed text-center">
+                    Preview who will receive it before sending
+                  </p>
+                </>
+              )}
+
+              {distributeError && (
+                <p className="text-[10px] text-red-400/70 mt-2 text-center">{distributeError}</p>
+              )}
+            </div>
+          )}
+
+          {/* â”€â”€ Auto-generate (Puppeteer â€” Vercel Pro) â”€â”€ */}
+          <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-3">
+            Auto-generate
+          </p>
+          <GenerateButton
+            capsuleId={capsuleId}
+            hasUnsavedChanges={hasUnsavedChanges}
+            existingPdfUrl={existingPdfUrl}
+            existingVersion={existingVersion}
+            onGenerateStart={() => setSaveState('saved')}
+            onGenerateComplete={handleGenerateComplete}
+          />
+        </div>
+
+{/* Footer â€” back link (desktop only) */}
+        <div className="hidden md:block px-4 py-3 border-t border-yellow-400/10 flex-shrink-0">
+          
+            href={`/manage/${capsuleSlug}`}
+            style={{ fontSize: '11px', color: 'rgba(226,195,107,0.4)', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+          >
+            â† Back to Capsule
+          </a>
+        </div>
+      </aside>
+
+    </div>
+  );
+}

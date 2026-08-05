@@ -115,13 +115,29 @@ function AutoSectionPlaceholder({ type }: { type: string }) {
       title:  'Honouree profile is generated from your Capsule content.',
       detail: 'Edit the profile sections in the Capsule Content panel to update what appears here.',
     },
-    who_attended: {
-      title:  'Who Attended is generated from your guest check-in list.',
-      detail: 'Guests marked as checked in will appear in this section.',
+    world_map: {
+      title:  'World Voices Map — shows where contributors joined from.',
+      detail: 'A dot map of every country represented across all voices. Toggle off to exclude it from the publication.',
+    },
+    official_photography: {
+      title:  'Official Photography is included automatically.',
+      detail: 'All photos uploaded by your official photographer appear here. Toggle off to exclude this section.',
+    },
+    guest_captures: {
+      title:  'In The Room — guest photos captured on the day.',
+      detail: 'Photos uploaded by guests via the D-Day portal appear here. Toggle off to exclude this section.',
+    },
+    memories: {
+      title:  'Memories are included automatically.',
+      detail: 'All entries shared in the Memories room are grouped by era and included as a chapter. Toggle off to exclude.',
     },
     community_stories: {
       title:  'Community Memories & Stories are included automatically.',
-      detail: 'All approved stories from the Stories room are organised by topic and included as a chapter.',
+      detail: 'All approved stories from the Stories room are organised by topic and included as a chapter. Toggle off to exclude.',
+    },
+    who_attended: {
+      title:  'Who Attended is generated from your guest check-in list.',
+      detail: 'Guests marked as checked in will appear in this section.',
     },
     closing_message: {
       title:  'The closing message is a fixed LegacyCapsule colophon.',
@@ -465,9 +481,9 @@ const handlePreviewPrint = useCallback(async () => {
   // ── 5.10  Render ──────────────────────────────────────────
 
   return (
-    <div className="flex h-full min-h-0 bg-[#0a0010] text-white overflow-hidden" aria-label="Publication Editor">
+    <div className="flex flex-col md:flex-row h-full min-h-0 bg-[#0a0010] text-white overflow-hidden" aria-label="Publication Editor">
 
-      {/* ═══ LEFT PANEL — Section Navigator ═══ */}
+      {/* ═══ LEFT PANEL (desktop) / TOP STRIP (mobile) — Section Navigator ═══ */}
       <SectionNavigator
         sections={layout.sections}
         activeSection={activeSection}
@@ -478,7 +494,7 @@ const handlePreviewPrint = useCallback(async () => {
 
       {/* ═══ MAIN PANEL — Active section editor ═══ */}
       <main className="flex-1 overflow-y-auto min-w-0" aria-label={`Editing: ${activeSectionLabel}`}>
-        <div className="px-6 py-5 space-y-5 max-w-3xl">
+        <div className="px-4 md:px-6 py-4 md:py-5 space-y-5 max-w-3xl">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-0.5">Editing section</p>
@@ -508,25 +524,38 @@ const handlePreviewPrint = useCallback(async () => {
             />
           )}
 
-          {activeSecData && ['cover', 'honouree_profile', 'who_attended', 'closing_message', 'community_stories'].includes(activeSecData.type) && (
+          {activeSecData && [
+            'cover', 'honouree_profile', 'world_map',
+            'official_photography', 'guest_captures',
+            'memories', 'community_stories',
+            'who_attended', 'closing_message',
+          ].includes(activeSecData.type) && (
             <AutoSectionPlaceholder type={activeSecData.type} />
           )}
         </div>
       </main>
 
       {/* ═══ RIGHT PANEL — Generate panel ═══ */}
+      {/* Desktop: fixed right sidebar | Mobile: sticky bottom bar */}
       <aside
-        className="w-64 flex-shrink-0 flex flex-col border-l border-yellow-400/10 bg-gradient-to-b from-[#100018] to-[#0a000e] overflow-hidden"
+        className="
+          flex-shrink-0 flex flex-col
+          border-t border-yellow-400/10 md:border-t-0 md:border-l border-yellow-400/10
+          bg-gradient-to-b from-[#100018] to-[#0a000e]
+          md:w-64 md:overflow-hidden
+          sticky bottom-0 md:static md:bottom-auto
+          z-10 md:z-auto
+        "
         aria-label="PDF generation panel"
       >
-        {/* Header */}
-        <div className="px-4 py-4 border-b border-yellow-400/10">
+        {/* Header — hidden on mobile (space-saving) */}
+        <div className="hidden md:block px-4 py-4 border-b border-yellow-400/10">
           <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-0.5">Publication</p>
           <p className="text-sm font-bold text-yellow-100 leading-tight">Generate PDF</p>
         </div>
 
-        {/* Generate button area */}
-        <div className="flex-1 overflow-y-auto px-4 py-4">
+        {/* Generate button area — stacks vertically on desktop, row on mobile */}
+        <div className="flex-1 md:overflow-y-auto px-4 py-3 md:py-4 flex flex-row md:flex-col gap-3 md:gap-0 items-center md:items-stretch overflow-x-auto md:overflow-x-visible">
 
           {/* ── Preview & Download — works on Hobby plan ── */}
           <div className="mb-5 pb-5 border-b border-yellow-400/10">
@@ -662,11 +691,12 @@ const handlePreviewPrint = useCallback(async () => {
           />
         </div>
 
-        {/* Footer — back link */}
-        <div className="px-4 py-3 border-t border-yellow-400/10 flex-shrink-0">
+{/* Footer — back link (desktop only) */}
+        <div className="hidden md:block px-4 py-3 border-t border-yellow-400/10 flex-shrink-0">
           <a
-            href={`/manage/${capsuleSlug}`}
-            style={{ fontSize: '11px', color: 'rgba(226,195,107,0.4)', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+            href={'/manage/' + capsuleSlug}
+            className="text-[11px] flex items-center gap-1 no-underline"
+            style={{ color: 'rgba(226,195,107,0.4)' }}
           >
             ← Back to Capsule
           </a>

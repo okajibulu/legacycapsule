@@ -10,6 +10,8 @@
  *   — v2.11.49: Profile gallery (capsule_gallery) added
  *   — v2.11.49: Tribute serial numbers added
  *   — v2.11.49: Closing message always rendered last
+ *   — v2.11.54: World map renderer added (SVG dot map, server-side, no JS dependency)
+ *   — v2.11.54: world_map section type wired into render pipeline
  *   — v2.11.53: Lightbox added — all images clickable to full-screen overlay (screen only, hidden on print)
  *   — v2.11.53: cursor:zoom-in on all pub-body images on screen
  *   — v2.11.52: Body width set to 210mm so mm units resolve correctly on screen
@@ -737,6 +739,95 @@ function renderClosingMessage(capsule: CapsuleData, styles: ThemeStyles): string
 
 
 // ============================================================
+// SECTION 16B — World Map renderer
+// Pure SVG dot map — no JS dependency, prints perfectly.
+// Country centroids mapped to approximate x/y on a
+// simplified equirectangular projection (560×280 viewBox).
+// ============================================================
+
+const COUNTRY_CENTROIDS: Record<string, [number, number]> = {
+  NG: [110, 148], GB: [275, 88],  US: [130, 120], CA: [120, 90],
+  GH: [100, 150], ZA: [118, 185], KE: [138, 158], ET: [135, 148],
+  DE: [290, 90],  FR: [280, 95],  NL: [285, 88],  BE: [282, 90],
+  IE: [268, 88],  IT: [295, 98],  ES: [272, 100], PT: [265, 100],
+  SE: [295, 78],  NO: [290, 75],  DK: [290, 82],  FI: [305, 75],
+  PL: [300, 88],  UA: [310, 90],  RU: [340, 85],  TR: [320, 100],
+  IN: [380, 130], CN: [410, 110], JP: [440, 110], AU: [430, 185],
+  NZ: [460, 195], BR: [175, 170], AR: [168, 190], MX: [120, 135],
+  SG: [420, 158], MY: [415, 155], AE: [350, 128], SA: [340, 130],
+  EG: [315, 122], MA: [270, 115], DZ: [280, 115], TN: [285, 108],
+  CM: [112, 155], SN: [90,  148], CI: [95,  152], TZ: [135, 165],
+  UG: [132, 158], RW: [130, 162], ZM: [125, 172], ZW: [128, 175],
+};
+
+function renderWorldMap(
+  contribs: ContributionData[],
+  styles: ThemeStyles
+): string {
+  // Gather unique countries from approved contributions
+  const countryCounts: Record<string, number> = {};
+  contribs.forEach(c => {
+    if (c.country) {
+      // country field may be full name or ISO code — try to match
+      const key = c.country.trim().toUpperCase().slice(0, 2);
+      countryCounts[key] = (countryCounts[key] ?? 0) + 1;
+    }
+  });
+
+  const countries = Object.keys(countryCounts);
+  if (countries.length === 0) return '';
+
+  const dots = countries
+    .filter(code => COUNTRY_CENTROIDS[code])
+    .map(code => {
+      const [x, y] = COUNTRY_CENTROIDS[code];
+      const count = countryCounts[code];
+      // Scale dot size by contributor count — min 4px, max 10px
+      const r = Math.min(10, 4 + Math.log2(count + 1) * 1.5);
+      return `<circle cx="${x}" cy="${y}" r="${r}" fill="${styles.accentColor}" opacity="0.85"/>
+              <circle cx="${x}" cy="${y}" r="${r + 3}" fill="${styles.accentColor}" opacity="0.15"/>`;
+    }).join('');
+
+  const countryCount = countries.filter(c => COUNTRY_CENTROIDS[c]).length;
+  const totalContribs = contribs.length;
+
+  return `<div style="page-break-before:always; padding:0 0 40px;">
+    ${renderSectionHeader('World Voices Map', styles)}
+    <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic;">
+      Voices gathered from ${countryCount} countr${countryCount !== 1 ? 'ies' : 'y'} across the world — ${totalContribs} voice${totalContribs !== 1 ? 's' : ''} in all
+    </p>
+    <div style="border-radius:16px; overflow:hidden; border:1px solid ${styles.tributeCardBorder}; background:#f8f6f2; padding:24px; margin-bottom:32px;">
+      <svg viewBox="0 0 560 280" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto; display:block;">
+        <!-- Simplified world landmass shapes (equirectangular) -->
+        <!-- North America -->
+        <path d="M80,70 L170,70 L175,80 L165,95 L160,110 L150,130 L140,145 L130,148 L120,145 L105,135 L95,120 L85,100 L80,85 Z" fill="#e8e4dc" stroke="#d4cfc5" stroke-width="0.5"/>
+        <!-- South America -->
+        <path d="M140,155 L185,155 L190,165 L185,180 L180,195 L170,205 L160,200 L152,185 L148,170 L140,160 Z" fill="#e8e4dc" stroke="#d4cfc5" stroke-width="0.5"/>
+        <!-- Europe -->
+        <path d="M255,75 L320,75 L325,85 L318,95 L308,105 L295,108 L278,108 L265,102 L258,92 L255,82 Z" fill="#e8e4dc" stroke="#d4cfc5" stroke-width="0.5"/>
+        <!-- Africa -->
+        <path d="M265,112 L325,112 L330,125 L325,145 L320,160 L315,175 L305,185 L290,188 L275,185 L265,170 L258,155 L255,138 L260,122 Z" fill="#e8e4dc" stroke="#d4cfc5" stroke-width="0.5"/>
+        <!-- Asia -->
+        <path d="M320,75 L460,75 L465,90 L458,110 L448,125 L430,135 L410,138 L385,135 L360,130 L338,128 L325,118 L318,105 L320,88 Z" fill="#e8e4dc" stroke="#d4cfc5" stroke-width="0.5"/>
+        <!-- Australia -->
+        <path d="M400,175 L460,175 L465,185 L458,198 L440,202 L420,200 L408,190 L400,180 Z" fill="#e8e4dc" stroke="#d4cfc5" stroke-width="0.5"/>
+        <!-- Contributor dots (pulsed with outer ring) -->
+        ${dots}
+      </svg>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      ${countries.filter(c => COUNTRY_CENTROIDS[c]).map(code =>
+        `<div style="display:flex; align-items:center; gap:6px; padding:5px 12px; border-radius:20px; border:1px solid ${styles.tributeCardBorder}; background:#FFFFFF;">
+          <div style="width:8px; height:8px; border-radius:50%; background:${styles.accentColor}; flex-shrink:0;"></div>
+          <span style="font-family:${styles.bodyFont}; font-size:11px; color:${styles.secondaryText};">${code} · ${countryCounts[code]}</span>
+        </div>`
+      ).join('')}
+    </div>
+  </div>`;
+}
+
+
+// ============================================================
 // SECTION 17 — Utilities
 // ============================================================
 
@@ -869,6 +960,8 @@ export default async function PublicationRenderPage({
           return renderPhasePhotos(section as PhasePhotosSection, photoUrlMap, styles);
         case 'who_attended':
           return renderWhoAttended(guests, styles);
+        case 'world_map':
+          return renderWorldMap(contribs, styles);
         default:
           return '';
       }
