@@ -10,6 +10,13 @@
  *   — v2.11.49: Profile gallery (capsule_gallery) added
  *   — v2.11.49: Tribute serial numbers added
  *   — v2.11.49: Closing message always rendered last
+ *   — v2.11.53: Lightbox added — all images clickable to full-screen overlay (screen only, hidden on print)
+ *   — v2.11.53: cursor:zoom-in on all pub-body images on screen
+ *   — v2.11.52: Body width set to 210mm so mm units resolve correctly on screen
+ *   — v2.11.52: html background #E8E8E8 for paper-on-desk screen appearance
+ *   — v2.11.52: object-position:top center on official photography and profile gallery
+ *   — v2.11.52: break-inside:avoid added to photo grid rows (prevents phantom repeat)
+ *   — v2.11.52: Filler div visibility:hidden (was empty div — confused print engine)
  *   — v2.11.51: Banner removed; floating print button added (screen only)
  *   — v2.11.51: Cover height fixed to 297mm (was min-height:100vh — caused page 2 spillover)
  *   — v2.11.49: Screen-only A4 instruction banner (hidden on print)
@@ -279,7 +286,7 @@ function renderCover(capsule: CapsuleData, heroUrl: string, styles: ThemeStyles)
     : capsule.honouree_name;
   const dateStr = formatEventDate(capsule.event_date);
 
-  return `<div style="height:297mm; background:${styles.coverBg}; color:${styles.coverTextColor}; display:flex; flex-direction:column; justify-content:flex-end; page-break-after:always; position:relative; overflow:hidden;">
+  return `<div style="height:297mm; max-height:297mm; background:${styles.coverBg}; color:${styles.coverTextColor}; display:flex; flex-direction:column; justify-content:flex-end; page-break-after:always; position:relative; overflow:hidden;">
     ${heroUrl ? `<div style="position:absolute; top:0; left:0; right:0; height:62%; overflow:hidden;">
       <img src="${heroUrl}" alt="" style="width:100%; height:100%; object-fit:cover; object-position:center top;"/>
       <div style="position:absolute; bottom:0; left:0; right:0; height:55%; background:linear-gradient(to bottom, transparent, ${styles.coverBg});"></div>
@@ -392,7 +399,7 @@ function renderProfileGallery(
       const gridHtml = rows.map(row =>
         `<div style="display:flex; gap:10px; margin-bottom:10px; page-break-inside:avoid;">
           ${row.map(item => `<div style="flex:1; min-width:0;">
-            <img src="${item.image_url}" alt="${escapeHtml(item.caption ?? '')}" style="width:100%; height:160px; object-fit:cover; border-radius:8px; display:block; image-orientation:from-image;"/>
+            <img src="${item.image_url}" alt="${escapeHtml(item.caption ?? '')}" style="width:100%; height:160px; object-fit:cover; object-position:top center; border-radius:8px; display:block; image-orientation:from-image;"/>
             ${item.caption ? `<p style="font-size:9px; color:${styles.secondaryText}; margin-top:5px; text-align:center; font-style:italic;">${escapeHtml(item.caption)}</p>` : ''}
           </div>`).join('')}
           ${row.length < COLS ? Array(COLS - row.length).fill(`<div style="flex:1; min-width:0;"></div>`).join('') : ''}
@@ -617,11 +624,11 @@ function renderOfficialPhotography(
   }
 
   const gridHtml = rows.map(row =>
-    `<div style="display:flex; gap:16px; margin-bottom:16px; page-break-inside:avoid;">
+    `<div style="display:flex; gap:16px; margin-bottom:16px; page-break-inside:avoid; break-inside:avoid;">
       ${row.map(photo => `<div style="flex:1; min-width:0;">
-        <img src="${photoUrlMap[photo.id]}" alt="Official Photography" style="width:100%; height:220px; object-fit:cover; border-radius:10px; display:block; image-orientation:from-image;"/>
+        <img src="${photoUrlMap[photo.id]}" alt="Official Photography" style="width:100%; height:220px; object-fit:cover; object-position:top center; border-radius:10px; display:block; image-orientation:from-image;"/>
       </div>`).join('')}
-      ${row.length < COLS ? `<div style="flex:1; min-width:0;"></div>` : ''}
+      ${row.length < COLS ? `<div style="flex:1; min-width:0; visibility:hidden;"></div>` : ''}
     </div>`
   ).join('')
 
@@ -888,6 +895,34 @@ export default async function PublicationRenderPage({
     ? `<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},1400);});</script>`
     : '';
 
+  const lightboxScript = `<div id="lc-lightbox" class="no-print" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.92); align-items:center; justify-content:center; cursor:zoom-out;" onclick="this.style.display='none'; document.body.style.overflow='';">
+    <img id="lc-lightbox-img" src="" alt="" style="max-width:92vw; max-height:92vh; object-fit:contain; border-radius:8px; box-shadow:0 24px 80px rgba(0,0,0,0.8); pointer-events:none;"/>
+    <button onclick="event.stopPropagation(); document.getElementById('lc-lightbox').style.display='none'; document.body.style.overflow='';" style="position:fixed; top:20px; right:24px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); color:#fff; font-size:22px; width:40px; height:40px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1;">✕</button>
+  </div>
+  <script>
+    (function(){
+      function openLightbox(src){
+        var lb=document.getElementById('lc-lightbox');
+        var img=document.getElementById('lc-lightbox-img');
+        img.src=src;
+        lb.style.display='flex';
+        document.body.style.overflow='hidden';
+      }
+      document.addEventListener('click',function(e){
+        var t=e.target;
+        if(t.tagName==='IMG' && t.closest('#lc-lightbox')===null && !t.dataset.nolightbox){
+          openLightbox(t.src);
+        }
+      });
+      document.addEventListener('keydown',function(e){
+        if(e.key==='Escape'){
+          document.getElementById('lc-lightbox').style.display='none';
+          document.body.style.overflow='';
+        }
+      });
+    })();
+  </script>`;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -898,7 +933,12 @@ export default async function PublicationRenderPage({
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
         <style dangerouslySetInnerHTML={{ __html: `
           * { box-sizing: border-box; margin: 0; padding: 0; }
-          html, body {
+          html {
+            background: #E8E8E8;
+          }
+          body {
+            width: 210mm;
+            margin: 0 auto;
             background: #FFFFFF;
             color: ${styles.pageText};
             font-family: ${styles.bodyFont};
@@ -907,16 +947,20 @@ export default async function PublicationRenderPage({
           }
           @page { size: 210mm 297mm; margin: ${styles.pageMarginMm}mm; }
           img { max-width: 100%; display: block; }
+          @media screen {
+            .pub-body img:not([data-nolightbox]) { cursor: zoom-in; }
+          }
           .no-print { display: flex; }
           @media print {
             .no-print { display: none !important; }
-            body { background: #FFFFFF; margin: 0; padding: 0; }
+            html { background: #FFFFFF; }
+            body { width: 100%; margin: 0; padding: 0; background: #FFFFFF; }
             * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           }
         `}} />
       </head>
       <body dangerouslySetInnerHTML={{
-        __html: printButtonHtml + sectionHtml + autoPrintScript
+        __html: printButtonHtml + lightboxScript + `<div class="pub-body">` + sectionHtml + `</div>` + autoPrintScript
       }} />
     </html>
   );
