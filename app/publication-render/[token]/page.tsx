@@ -414,10 +414,25 @@ function renderProfileGallery(
 // SECTION 9 — Tributes renderer (with serial numbers)
 // ============================================================
 
+// Routes participation heading by event type — mirrors platform
+// Participation Language Engine for server-side HTML generation.
+function getTributeHeading(eventType: string): string {
+  switch (eventType) {
+    case 'memorial':    return 'Tributes'
+    case 'wedding':     return 'Blessings'
+    case 'birthday':    return 'Birthday Wishes'
+    case 'graduation':  return 'Congratulations'
+    case 'chieftaincy': return 'Royal Felicitations'
+    case 'dedication':  return 'Dedications'
+    default:            return 'Appreciations'
+  }
+}
+
 function renderTributes(
   section: TributesSection,
   contribs: ContributionData[],
-  styles: ThemeStyles
+  styles: ThemeStyles,
+  eventType: string,
 ): string {
   let tributeList = contribs.filter(c => !c.story_topic_id && !c.is_dday);
 
@@ -448,7 +463,7 @@ function renderTributes(
   }).join('')
 
   return `<div>
-    ${renderSectionHeader('Tributes', styles)}
+    ${renderSectionHeader(getTributeHeading(eventType), styles)}
     <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic; letter-spacing:0.03em;">${tributeList.length} voice${tributeList.length !== 1 ? 's' : ''} gathered</p>
     ${cards}
   </div>`;
@@ -840,7 +855,7 @@ export default async function PublicationRenderPage({
         case 'honouree_profile':
           return renderHonoureeProfile(capsule, profileSections, styles);
         case 'tributes':
-          return renderTributes(section as TributesSection, contribs, styles);
+          return renderTributes(section as TributesSection, contribs, styles, capsule.event_type);
         case 'phase_photos':
           return renderPhasePhotos(section as PhasePhotosSection, photoUrlMap, styles);
         case 'who_attended':

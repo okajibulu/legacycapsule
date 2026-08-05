@@ -44,9 +44,9 @@ export async function generateMetadata({
     ? encodeURIComponent(JSON.stringify(data.cover_attributes)) 
     : ''
 
-  // 3. Assemble the query path including an absolute timestamp cache-buster parameter
-  const cacheBuster = Date.now()
-  let ogImageUrl = `${appUrl}/api/og/${slug}?title=${encodeURIComponent(ogTitle)}&subtitle=${encodeURIComponent(ogSubtitle)}&mode=${layoutMode}&t=${cacheBuster}`
+  // 3. Assemble stable OG image URL — no timestamp cache-buster
+  // WhatsApp and social platforms cache by URL — a changing URL breaks preview display
+  let ogImageUrl = `${appUrl}/api/og/${slug}?title=${encodeURIComponent(ogTitle)}&subtitle=${encodeURIComponent(ogSubtitle)}&mode=${layoutMode}`
   
   if (coverAttributesParam) {
     ogImageUrl += `&cover_attributes=${coverAttributesParam}`
