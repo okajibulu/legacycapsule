@@ -324,8 +324,8 @@ export function getConfirmationMessage(eventType: string, name: string): string 
 
 export function getRelationshipLabel(eventType: string, name: string): string {
   const e = norm(eventType)
-  if (e.includes('wedding')) return `Your connection to the couple`
-  return `Your connection to ${name}`
+  if (e.includes('wedding')) return `Who is the couple to you?`
+  return `Who is ${name} to you?`
 }
 
 export function getProfileLinkLabel(eventType: string, name: string): string {

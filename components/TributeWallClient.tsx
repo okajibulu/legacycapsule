@@ -407,8 +407,7 @@ function ProfileSummarySection({ section, t, slug }: { section: ProfileSection; 
   )
 }
 
-const RELATIONSHIP_OPTIONS = [
-  // ── Immediate family ──
+const GENERAL_RELATIONSHIP_OPTIONS = [
   'Son/Daughter',
   'Parent (Mother/Father)',
   'Sibling (Brother/Sister)',
@@ -416,34 +415,60 @@ const RELATIONSHIP_OPTIONS = [
   'Grandparent',
   'Spouse/Partner',
   'Former Spouse/Partner',
-  // ── Extended family ──
   'Extended Family',
   'In-Law',
   'Father/Mother Figure',
-  // ── Social ──
   'Friend',
   'Acquaintance',
   'Classmate/Alumni',
   'Community Member',
   'Team/Club Member',
   'Faith/Spiritual Connection',
-  // ── Professional ──
   'Colleague/Work Connection',
   'Mentor/Teacher',
   'Student/Mentee',
   'Community Leader/Guide',
-  // ── Other ──
   'Caregiver/Healthcare Worker',
   'Legacy Beneficiary',
   'Supporter/Well-wisher',
   'Other',
 ]
 
-function RelationshipSelect({ selected, onChange, error, t }: {
+const WEDDING_RELATIONSHIP_OPTIONS = [
+  'Friend of the Couple',
+  'Friend of the Bride',
+  'Friend of the Groom',
+  'Parent of the Bride',
+  'Parent of the Groom',
+  'Sibling of the Bride',
+  'Sibling of the Groom',
+  'Grandparent',
+  'Extended Family',
+  'In-Law',
+  'Best Man / Maid of Honour',
+  'Groomsman / Bridesmaid',
+  'Colleague/Work Connection',
+  'Classmate/Alumni',
+  'Community Member',
+  'Faith/Spiritual Connection',
+  'Mentor/Teacher',
+  'Supporter/Well-wisher',
+  'Other',
+]
+
+function getRelationshipOptions(eventType: string): string[] {
+  const e = eventType.toLowerCase()
+  if (e === 'wedding') return WEDDING_RELATIONSHIP_OPTIONS
+  return GENERAL_RELATIONSHIP_OPTIONS
+}
+
+function RelationshipSelect({ selected, onChange, error, t, eventType, honoureeName }: {
   selected: string[]
   onChange: (val: string[]) => void
   error?: string
   t: ThemeConfig
+  eventType: string
+  honoureeName: string
 }) {
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState(false)
@@ -455,7 +480,7 @@ function RelationshipSelect({ selected, onChange, error, t }: {
   return (
     <div style={{ position: 'relative' }}>
       <p style={{ fontSize: '11px', color: t.accentMuted, fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-        How you are connected <span style={{ color: 'rgba(248,113,113,0.8)' }}>*</span>
+        Who is {honoureeName.split(' ')[0]} to you? <span style={{ color: 'rgba(248,113,113,0.8)' }}>*</span>
       </p>
 
       {/* Trigger button */}
@@ -475,7 +500,7 @@ function RelationshipSelect({ selected, onChange, error, t }: {
       >
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, flex: 1 }}>
           {selected.length === 0
-            ? 'Select how you are connected…'
+            ? `Who is ${honoureeName.split(' ')[0]} to you?`
             : selected.length === 1
               ? selected[0]
               : `${selected[0]} +${selected.length - 1} more`
@@ -526,7 +551,7 @@ function RelationshipSelect({ selected, onChange, error, t }: {
   />
 </div>
 
-{RELATIONSHIP_OPTIONS
+{getRelationshipOptions(eventType)
   .filter(opt =>
     opt.toLowerCase().includes(search.toLowerCase())
   )
@@ -1344,6 +1369,8 @@ background:
                     onChange={setFRel}
                     error={(errors as any).rel}
                     t={t}
+                    eventType={capsule.event_type}
+                    honoureeName={capsule.honouree_name}
                   />
 
 <p style={{ fontSize: '11px', color: t.textFaint, lineHeight: 1.65, margin: '0 0 6px', fontStyle: 'italic' }}>
