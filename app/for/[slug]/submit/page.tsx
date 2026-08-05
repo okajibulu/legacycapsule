@@ -35,7 +35,7 @@ const supabase = createClient(
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
 const MIN_CHARS = 20
-const MAX_CHARS = 500
+const MAX_CHARS = 1500
 const MAX_PHOTO_MB = 1
 const TRIBUTE_PHOTOS_BUCKET = 'tribute-photos'
 

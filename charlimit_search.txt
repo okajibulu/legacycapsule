@@ -1,0 +1,212 @@
+﻿
+app\admin\capsule\[id]\page.tsx:75:            <p style={{ fontSize: 
+'13px', color: textPrimary, fontWeight: 500, wordBreak: 'break-all' 
+as const }}>{f.value}</p>
+app\admin\flags\page.tsx:55:                  <p style={{ fontSize: 
+'13px', fontWeight: 500, color: textPrimary }}>{flag.label}</p>
+app\admin\pricing\page.tsx:66:                <p style={{ fontSize: 
+'13px', fontWeight: 500, color: textPrimary }}>{row.label}</p>
+app\api\community-topics\submit\route.ts:190:    return 
+NextResponse.json({ error: 'Submission failed. Please try again.' }, 
+{ status: 500 })
+app\api\publication\distribute\route.ts:126:    return 
+NextResponse.json({ error: 'Failed to load recipients' }, { status: 
+500 })
+app\api\publication\distribute\route.ts:216:    return 
+NextResponse.json({ error: e.message ?? 'Distribution failed' }, { 
+status: 500 })
+app\api\publication\generate\route.ts:34: *   Large publications 
+(500+ tributes, 100 photos/phase) need Pro.
+app\api\tribute\react\route.ts:54:    return NextResponse.json({ 
+error: 'Failed' }, { status: 500 })
+app\book\page.tsx:658:            <input value={verifyCode} 
+onChange={e => 
+setVerifyCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, 
+'').slice(0, 4))} onKeyDown={e => e.key === 'Enter' && 
+verifyCode.length === 4 && handleVerifyCode()} placeholder="A1B2" 
+maxLength={4} style={{ ...inputStyle, textAlign: 'center', fontSize: 
+'28px', fontWeight: 800, letterSpacing: '0.5em', padding: '18px 
+24px', border: verifyError ? '1px solid rgba(248,113,113,0.5)' : 
+verifyCode.length === 4 ? '1px solid rgba(226,195,107,0.55)' : '1px 
+solid rgba(226,195,107,0.22)' }} autoFocus autoComplete="off" />
+app\for\[slug]\edit\[token]\page.tsx:32:const MAX_CHARS = 500
+app\for\[slug]\edit\[token]\page.tsx:337:    // Note: existing 
+tributes may exceed 500 chars — warn but don't block
+app\for\[slug]\edit\[token]\page.tsx:338:    if 
+(message.trim().length > MAX_CHARS)
+app\for\[slug]\edit\[token]\page.tsx:339:      errors.message = 
+`Tribute is over ${MAX_CHARS} characters. Please shorten before 
+saving.`
+app\for\[slug]\edit\[token]\page.tsx:705:  Tributes are limited to 
+500 characters — keep it personal and concise.{' '}
+app\for\[slug]\edit\[token]\page.tsx:715:                color: 
+message.length > MAX_CHARS
+app\for\[slug]\edit\[token]\page.tsx:721:                
+{message.length} / {MAX_CHARS}
+app\for\[slug]\honouree\HonoureePortalClient.tsx:230:            
+<button key={id} onClick={() => setActiveTab(id)} style={{ flex: 1, 
+padding: '8px 4px', borderRadius: '10px', border: `1px solid 
+${activeTab === id ? 'rgba(226,195,107,0.4)' : 
+'rgba(255,255,255,0.06)'}`, background: activeTab === id ? 
+'rgba(226,195,107,0.08)' : 'transparent', color: activeTab === id ? 
+gold : textFaint, fontSize: '10px', fontWeight: activeTab === id ? 
+700 : 500, cursor: 'pointer', letterSpacing: '0.04em', 
+textTransform: 'uppercase' }}>
+app\for\[slug]\submit\page.tsx:38:const MAX_CHARS = 500
+app\for\[slug]\submit\page.tsx:287:    if (message.trim().length > 
+MAX_CHARS)
+app\for\[slug]\submit\page.tsx:288:      errors.message = 'Tribute 
+must be under ' + MAX_CHARS + ' characters'
+app\for\[slug]\submit\page.tsx:716:                color: 
+message.length > MAX_CHARS
+app\for\[slug]\submit\page.tsx:722:                {message.length} 
+/ {MAX_CHARS}
+app\for\[slug]\submit\page.tsx:730:              placeholder={`Share 
+your ${lang?.singular?.toLowerCase() ?? 'voice'} (up to 500 
+characters). For longer stories and memories, use the Community 
+Memories & Stories room.`}
+app\help\page.tsx:78:      { q: 'What is the tribute character 
+limit?', a: 'Tributes are limited to 500 characters — personal, 
+concise, and meaningful. For longer stories, memories, and photos, 
+contributors can use the Community Memories & Stories room within 
+the same capsule.' },
+app\help\page.tsx:91:      { q: 'How is it different from the 
+tribute wall?', a: 'The tribute wall is for concise personal 
+messages — up to 500 characters. The Community Memories & Stories 
+room is for longer, richer content — stories, memories, photos, and 
+reflections that go deeper than a tribute allows.' },
+app\help\page.tsx:502:                      <span style={{ fontSize: 
+'14px', fontWeight: 500, color: isOpen ? gold : textPrimary, 
+lineHeight: 1.4, transition: 'color 0.2s' }}>
+app\manage\[slug]\page.tsx:497:              {/* NO maxLength, NO 
+char counter -- unlimited */}
+app\manage\[slug]\page.tsx:597:          <span style={{ fontSize: 
+'10px', letterSpacing: '0.06em', textTransform: 'uppercase', color: 
+active === tab.id ? gold : 'rgba(255,255,255,0.45)', fontWeight: 
+active === tab.id ? 700 : 500, transition: 'color 0.15s' 
+}}>{tab.label}</span>
+app\start-planning\page.tsx:257:                  <span style={{ 
+fontFamily:"var(--font-heading)", fontSize:"var(--text-lg)", 
+fontWeight:500, color:"var(--lc-charcoal)", lineHeight:1.4 
+}}>{item.q}</span>
+components\honouree\PortalPanels.tsx:753:            <p 
+className="text-sm text-red-400/70 rounded-lg border 
+border-red-400/20 bg-red-500/5 px-4 py-3">
+components\honouree\PortalPanels.tsx:763:                
+className="flex-1 py-3.5 rounded-xl font-bold text-sm 
+bg-gradient-to-b from-yellow-400 to-yellow-500 text-purple-950 
+hover:from-yellow-300 transition-colors disabled:opacity-50"
+components\honouree\PortalPanels.tsx:852:              
+className="px-6 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-b 
+from-yellow-400 to-yellow-500 text-purple-950 hover:from-yellow-300 
+transition-colors disabled:opacity-50"
+components\honouree\PortalPanels.tsx:987:          className="px-6 
+py-2.5 rounded-xl font-bold text-sm bg-gradient-to-b from-yellow-400 
+to-yellow-500 text-purple-950 hover:from-yellow-300 
+transition-colors disabled:opacity-50"
+components\layout\Navigation.tsx:151:            <Link 
+href={`/for/${lastCapsule.slug}`} onClick={() => setMenuOpen(false)} 
+style={{ fontSize: "18px", fontWeight: 500, color: 
+"rgba(226,195,107,0.75)", padding: "12px 0", borderBottom: "1px 
+solid rgba(226,195,107,0.08)", textDecoration: "none", display: 
+"flex", alignItems: "center", gap: "8px" }}>
+components\layout\Navigation.tsx:156:            <Link 
+key={link.href} href={link.href} onClick={() => setMenuOpen(false)} 
+style={{ fontSize: "20px", fontWeight: 500, fontFamily: "'Playfair 
+Display', Georgia, serif", color: "rgba(255,255,255,0.90)", padding: 
+"14px 0", borderBottom: "1px solid rgba(226,195,107,0.08)", 
+textDecoration: "none" }}>{link.label}</Link>
+components\layout\Navigation.tsx:159:            <Link 
+href="/dashboard" onClick={() => setMenuOpen(false)} style={{ 
+fontSize: "20px", fontWeight: 500, fontFamily: "'Playfair Display', 
+Georgia, serif", color: "rgba(255,255,255,0.90)", padding: "14px 0", 
+borderBottom: "1px solid rgba(226,195,107,0.08)", textDecoration: 
+"none" }}>My Capsules</Link>
+components\manage\access-codes\GuestCodeList.tsx:361:    if 
+(isError) { setError(text);   setTimeout(() => setError(''), 5000) }
+components\manage\GuestManagementSection.tsx:449:              <span 
+style={{ fontSize: '13px', fontWeight: scope === opt.key ? 700 : 
+500, color: scope === opt.key ? textPrimary : 
+'rgba(255,255,255,0.65)' }}>{opt.label}</span>
+components\publication\GenerateButton.tsx:321:              : 
+'bg-gradient-to-b from-yellow-400 to-yellow-500 text-purple-950 
+border border-yellow-300/60 shadow-[0_0_20px_rgba(234,179,8,0.3)] 
+hover:from-yellow-300 hover:to-yellow-400 
+hover:shadow-[0_0_28px_rgba(234,179,8,0.5)] active:scale-[0.98]'
+components\CommunityStoriesClient.tsx:54:const STORY_CHAR_LIMIT = 
+2000
+components\CommunityStoriesClient.tsx:446:  const remaining          
+= STORY_CHAR_LIMIT - text.length
+components\CommunityStoriesClient.tsx:463:    if (text.length > 
+STORY_CHAR_LIMIT) { setError(`Story must be ${STORY_CHAR_LIMIT} 
+characters or fewer`); return }
+components\CommunityStoriesClient.tsx:582:              
+maxLength={STORY_CHAR_LIMIT}
+components\TributeWallClient.tsx:66:const MAX_CHARS = 500
+components\TributeWallClient.tsx:155:            <textarea 
+value={editText} onChange={e => setEditText(e.target.value)} 
+maxLength={MAX_CHARS}
+components\TributeWallClient.tsx:774:  const validate = () => { 
+const e: Record<string, string> = {}; if (!fName.trim()) e.name = 
+'Name required'; if (!fEmail.trim() || !fEmail.includes('@')) 
+e.email = 'Valid email required'; if (!fCity.trim()) e.city = 'City 
+required'; if (!fCountry) e.country = 'Country required'; if 
+(fMsg.trim().length < MIN_CHARS) e.msg = `${MIN_CHARS}+ characters`; 
+if (fMsg.trim().length > MAX_CHARS) e.msg = `Over ${MAX_CHARS} 
+limit`; setErrors(e); return !Object.keys(e).length }
+components\TributeWallClient.tsx:808:      setSubmitSuccess(true); 
+setComposerOpen(false); setTimeout(() => setSubmitSuccess(false), 
+3500); poll()
+components\TributeWallClient.tsx:1304:        fontWeight: 500,
+components\TributeWallClient.tsx:1323:        fontWeight: 500,
+components\TributeWallClient.tsx:1344:                    <div 
+style={{ flex: 1 }}><input style={inp} placeholder="Your name *" 
+value={fName} onChange={e => setFName(e.target.value)} 
+maxLength={50} />{errors.name && <p style={{ fontSize: '9px', color: 
+'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' 
+}}>{errors.name}</p>}</div>
+components\TributeWallClient.tsx:1345:                    <div 
+style={{ flex: 1 }}><input type="email" style={inp} placeholder="Add 
+Email" value={fEmail} onChange={e => setFEmail(e.target.value)} 
+maxLength={100} />{errors.email && <p style={{ fontSize: '9px', 
+color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' 
+}}>{errors.email}</p>}</div>
+components\TributeWallClient.tsx:1354:                    <div 
+style={{ flex: 1 }}><input style={inp} placeholder="City *" 
+value={fCity} onChange={e => setFCity(e.target.value)} 
+maxLength={50} />{errors.city && <p style={{ fontSize: '9px', color: 
+'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' 
+}}>{errors.city}</p>}</div>
+components\TributeWallClient.tsx:1356:                      <input 
+style={inp} placeholder="Country *" value={countryQuery || fCountry} 
+onChange={e => { setCountryQuery(e.target.value); setFCountry(''); 
+setShowCountryList(true) }} onFocus={() => setShowCountryList(true)} 
+maxLength={50} />
+components\TributeWallClient.tsx:1377: Keep {lang.plural} limited to 
+500 characters.
+components\TributeWallClient.tsx:1384:                      
+<textarea style={{ ...inp, minHeight: '60px', maxHeight: '90px', 
+resize: 'none', lineHeight: 1.7 }} placeholder="Share your voice…" 
+value={fMsg} onChange={e => setFMsg(e.target.value)} 
+maxLength={MAX_CHARS} rows={3} />
+components\TributeWallClient.tsx:1385:                      <span 
+style={{ position: 'absolute', bottom: '8px', right: '10px', 
+fontSize: '9px', color: fMsg.length > 450 ? t.accentPrimary : 
+t.textFaint, pointerEvents: 'none' 
+}}>{fMsg.length}/{MAX_CHARS}</span>
+components\UsherScanner.tsx:149:            className="w-full 
+bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white 
+font-bold py-3 rounded-lg mt-4 transition"
+components\UsherScanner.tsx:214:              ? 'bg-emerald-950/80 
+border-emerald-500 text-emerald-100'
+components\UsherScanner.tsx:215:              : 'bg-rose-950/80 
+border-rose-500 text-rose-100'
+components\VideoTribute.tsx:60:        setTimeout(() => 
+resolve(null), 5000)
+lib\content\serviceDetails.ts:392:      { q: 'What is the difference 
+between a tribute and a Community Story?', a: 'A tribute is a direct 
+message to or about the honouree — up to 500 characters. A Community 
+Story is a longer narrative about a shared experience, memory, or 
+lesson. Both appear on the capsule but in separate rooms.' },
+
+
