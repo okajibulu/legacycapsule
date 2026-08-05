@@ -40,8 +40,9 @@ export async function generateMetadata({
   const layoutMode = data.cover_attributes?.mode || 'publication' // Fallback to premium publication cover template
   
   // 2. Stringify the custom cover attributes payload safely to convey quotes/accents
-  const coverAttributesParam = data.cover_attributes 
-    ? encodeURIComponent(JSON.stringify(data.cover_attributes)) 
+  const coverAttributesStr   = JSON.stringify(data.cover_attributes ?? {})
+  const coverAttributesParam = coverAttributesStr !== '{}' && coverAttributesStr !== 'null'
+    ? encodeURIComponent(coverAttributesStr)
     : ''
 
   // 3. Assemble stable OG image URL — no timestamp cache-buster
@@ -60,6 +61,7 @@ export async function generateMetadata({
       description: `Add your voice and help preserve the memories and stories that matter most.`,
       url: `${appUrl}/for/${slug}`,
       siteName: 'LegacyCapsule',
+      type: 'website',
       images: [
         {
           url: ogImageUrl,
