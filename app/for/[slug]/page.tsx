@@ -47,11 +47,9 @@ export async function generateMetadata({
 
   // 3. Assemble stable OG image URL — no timestamp cache-buster
   // WhatsApp and social platforms cache by URL — a changing URL breaks preview display
-  let ogImageUrl = `${appUrl}/api/og/${slug}?title=${encodeURIComponent(ogTitle)}&subtitle=${encodeURIComponent(ogSubtitle)}&mode=${layoutMode}`
+  let ogImageUrl = `${appUrl}/api/og/${slug}`
   
-  if (coverAttributesParam) {
-    ogImageUrl += `&cover_attributes=${coverAttributesParam}`
-  }
+   
 
   return {
     title: `${data.honouree_name} · LegacyCapsule`,
