@@ -1,0 +1,20 @@
+﻿
+app\how-it-works\page.tsx:154:      {/* Ways to Honour highlight */}
+components\admin\StatCard.tsx:5:  highlight?: boolean
+components\admin\StatCard.tsx:13:  highlight,
+components\admin\StatCard.tsx:22:            : highlight
+components\admin\StatCard.tsx:34:            : highlight
+components\ActivePremiumsStrip.tsx:7://          profile, and 
+highlights pages when at least one premium is active.
+components\CapsuleBottomNav.tsx:22: *   - Highlights:    always shown
+components\CapsuleBottomNav.tsx:116:  // Tab 4 -- Highlights (always)
+components\CapsuleBottomNav.tsx:119:    label:  'Highlights',
+components\LegacyRoomClient.tsx:4:   Legacy Highlights CLIENT — 
+LC-LEGACYROOM-001
+components\LegacyRoomClient.tsx:452:                Legacy Highlights
+components\TributeWallClient.tsx:1632:{/* Nav links removed — bottom 
+nav provides Highlights, Profile and all navigation */}
+lib\content\serviceDetails.ts:376:      'A dedicated Stories room on 
+your capsule — alongside Tributes, Profile and Legacy Highlights',
+
+

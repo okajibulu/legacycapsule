@@ -1,0 +1,14 @@
+﻿
+app\api\community-topics\submit\route.ts:157:        status: 'pending_review',
+app\api\rsvp\respond\route.ts:149:    // ── Insert tribute if message provided and status is confirmed ──────────
+app\for\[slug]\rsvp\page.tsx:93:    status: string; honouree_name: string; capsule_slug: string; tribute_inserted: boolean
+app\for\[slug]\submit\page.tsx:341:          status: 'pending_review',
+app\manage\[slug]\page.tsx:1607:  const pending = contributions.filter(c => c.status === 'pending_review' || c.status === 'pending')
+components\TributeWallClient.tsx:100:  const isPending = c.status === 'pending_review' || c.status === 'pending'
+components\TributeWallClient.tsx:781:      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, phase_id: phaseId || null, 
+contributor_name: fName.trim(), city: fCity.trim(), country: fCountry, relationship: fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: 
+fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 
+'pending_review', legacy_builder_consent: fConsent, story_topic_id: null }).select('id').single()
+lib\admin\actions.ts:42:    adminClient.from('contributions').select('id', { count: 'exact', head: true }).is('deleted_at', null).in('status', ['pending_review', 'pending']),
+
+
