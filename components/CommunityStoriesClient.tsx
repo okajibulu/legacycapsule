@@ -591,9 +591,39 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess 
   const [customRel,    setCustomRel]    = useState('')
   const [era,          setEra]          = useState('')
   const [photoFiles,   setPhotoFiles]   = useState<File[]>([])
-  const [submitting,   setSubmitting]   = useState(false)
-  const [error,        setError]        = useState('')
+  const [submitting,        setSubmitting]        = useState(false)
+  const [error,             setError]             = useState('')
+  const [showNewTopic,      setShowNewTopic]      = useState(false)
+  const [newTopicText,      setNewTopicText]      = useState('')
+  const [newTopicSaving,    setNewTopicSaving]    = useState(false)
+  const [newTopicSubmitted, setNewTopicSubmitted] = useState(false)
+  const [newTopicError,     setNewTopicError]     = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleNewTopicSubmit = async () => {
+    if (!newTopicText.trim() || newTopicText.trim().length < 10) {
+      setNewTopicError('Please write at least 10 characters.')
+      return
+    }
+    setNewTopicSaving(true); setNewTopicError('')
+    try {
+      const res = await fetch('/api/community-topics', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          capsule_id:   capsule.id,
+          topic_name:   newTopicText.trim(),
+          topic_source: 'community',
+          category:     'General',
+        }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      setNewTopicSubmitted(true)
+    } catch {
+      setNewTopicError('Could not submit. Please try again.')
+    }
+    setNewTopicSaving(false)
+  }
 
   const remaining          = STORY_CHAR_LIMIT - text.length
   const finalRelationship  = relationship === 'Other' ? customRel.trim() : relationship
@@ -716,14 +746,94 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess 
           </select>
 
           {topics.length > 1 && (
-            <select style={{ ...inp, background: '#1a0845' }} value={topicId} onChange={e => setTopicId(e.target.value)}>
-              {topics.map(t => (
-                <option key={t.id} value={t.id}>
-                  {t.topic_name.replace(/\[honouree_name\]/g, capsule.honouree_name).slice(0, 60)}
-                </option>
-              ))}
-            </select>
+            <div>
+              <p style={{ margin: '0 0 6px', fontSize: '11px', color: goldMuted, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>
+                Choose a topic
+              </p>
+              <select
+                style={{ ...inp, background: '#1a0845' }}
+                value={topicId}
+                onChange={e => {
+                  if (e.target.value === '__new__') {
+                    setShowNewTopic(true)
+                    setTopicId(topics[0]?.id ?? '')
+                  } else {
+                    setTopicId(e.target.value)
+                    setShowNewTopic(false)
+                  }
+                }}
+              >
+                {(() => {
+                  const categoryOrder = [
+                    'Personal Memories', 'Childhood & Early Life', 'Work & Achievements',
+                    'Faith & Values', 'Family', 'Funny Moments', 'Legacy & Impact', 'General',
+                  ]
+                  const grouped: Record<string, typeof topics> = {}
+                  topics.forEach(t => {
+                    const cat = t.category ?? 'General'
+                    if (!grouped[cat]) grouped[cat] = []
+                    grouped[cat].push(t)
+                  })
+                  const orderedCats = [
+                    ...categoryOrder.filter(c => grouped[c]),
+                    ...Object.keys(grouped).filter(c => !categoryOrder.includes(c)),
+                  ]
+                  return orderedCats.map(cat => (
+                    <optgroup key={cat} label={cat}>
+                      {grouped[cat].map(t => (
+                        <option key={t.id} value={t.id}>
+                          {t.topic_name.replace(/\[honouree_name\]/g, capsule.honouree_name).slice(0, 70)}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))
+                })()}
+                <optgroup label="─────────────">
+                  <option value="__new__">+ Suggest a new topic…</option>
+                </optgroup>
+              </select>
+            </div>
           )}
+
+          {/* ── Suggest new topic inline ── */}
+          {showNewTopic && (
+            <div style={{ padding: '14px', borderRadius: '12px', background: 'rgba(226,195,107,0.04)', border: '1px solid rgba(226,195,107,0.15)' }}>
+              <p style={{ margin: '0 0 6px', fontSize: '11px', color: goldMuted, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>
+                Suggest a New Topic
+              </p>
+              <p style={{ margin: '0 0 10px', fontSize: '11px', color: textFaint, lineHeight: 1.6 }}>
+                Can't find the right topic? Suggest one. It will be reviewed and added if approved.
+              </p>
+              <textarea
+                style={{ ...inp, minHeight: '72px', resize: 'none' as const, lineHeight: 1.6, marginBottom: '8px' }}
+                placeholder={`e.g. "What did ${capsule.honouree_name.split(' ')[0]} teach you that you still carry today?"`}
+                value={newTopicText}
+                onChange={e => setNewTopicText(e.target.value)}
+                maxLength={200}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <p style={{ margin: 0, fontSize: '10px', color: textFaint }}>{newTopicText.length}/200</p>
+                {newTopicSubmitted && (
+                  <p style={{ margin: 0, fontSize: '11px', color: 'rgba(134,239,172,0.8)', fontWeight: 600 }}>✓ Topic submitted</p>
+                )}
+              </div>
+              {newTopicError && <p style={{ margin: '0 0 8px', fontSize: '11px', color: 'rgba(248,113,113,0.8)' }}>{newTopicError}</p>}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={handleNewTopicSubmit}
+                  disabled={newTopicSaving || !newTopicText.trim() || newTopicSubmitted}
+                  style={{
+                    padding: '8px 18px', borderRadius: '10px', border: 'none',
+                    background: newTopicText.trim() && !newTopicSubmitted ? 'linear-gradient(135deg,#E2C36B,#C8A84A)' : 'rgba(255,255,255,0.06)',
+                    color: newTopicText.trim() && !newTopicSubmitted ? '#1a0845' : textFaint,
+                    fontSize: '12px', fontWeight: 700,
+                    cursor: newTopicText.trim() && !newTopicSubmitted ? 'pointer' : 'not-allowed',
+                    opacity: newTopicSaving ? 0.6 : 1,
+                  }}>
+                  {newTopicSaving ? 'Submitting…' : newTopicSubmitted ? 'Submitted ✓' : 'Submit Topic'}
+                </button>
+                <button
+                  onClick={() => { setShowNewTopic(false);
 
           <div>
             <textarea
