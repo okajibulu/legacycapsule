@@ -35,7 +35,7 @@ const supabase = createClient(
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
 const MIN_CHARS = 20
-const MAX_CHARS = 1500
+const MAX_CHARS = 2000
 const MAX_PHOTO_MB = 1
 const TRIBUTE_PHOTOS_BUCKET = 'tribute-photos'
 
@@ -283,9 +283,9 @@ export default function SubmitPage() {
     if (!city.trim()) errors.city = 'City is required'
     if (!country) errors.country = 'Country is required'
     if (message.trim().length < MIN_CHARS)
-      errors.message = 'Tribute must be at least ' + MIN_CHARS + ' characters'
+      errors.message = 'Message must be at least ' + MIN_CHARS + ' characters'
     if (message.trim().length > MAX_CHARS)
-      errors.message = 'Tribute must be under ' + MAX_CHARS + ' characters'
+      errors.message = 'Message must be under ' + MAX_CHARS + ' characters'
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -727,7 +727,7 @@ export default function SubmitPage() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               style={{ ...inputStyle, resize: 'vertical', lineHeight: '1.6' }}
-              placeholder={`Share your ${lang?.singular?.toLowerCase() ?? 'voice'} (up to 500 characters). For longer stories and memories, use the Community Memories & Stories room.`}
+              placeholder={`Share your ${lang?.singular?.toLowerCase() ?? 'voice'} (up to 2,000 characters). For photos, stories and memories, use the Community Memories & Stories room.`}
             />
             {fieldErrors.message && (
               <p style={{ color: '#f87171', fontSize: '12px', marginTop: '4px' }}>{fieldErrors.message}</p>

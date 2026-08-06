@@ -63,7 +63,7 @@ interface Props {
 
 /* ── CONSTANTS ── */
 const MIN_CHARS = 20
-const MAX_CHARS = 500
+const MAX_CHARS = 2000
 const BUCKET = 'tribute-photos'
 const LS_EMAIL = 'lc_visitor_email'
 const ORNAMENTS: Record<string, string> = {
@@ -1374,7 +1374,7 @@ background:
                   />
 
 <p style={{ fontSize: '11px', color: t.textFaint, lineHeight: 1.65, margin: '0 0 6px', fontStyle: 'italic' }}>
- Keep {lang.plural} limited to 500 characters.
+ Keep {lang.plural} limited to 2000 characters.
   {' '}<span style={{ color: t.accentMuted }}>You can share longer stories in the Community Memories &amp; Stories room.</span>
 </p>
 
@@ -1382,7 +1382,7 @@ background:
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
                     <div style={{ flex: 1, position: 'relative' }}>
                       <textarea style={{ ...inp, minHeight: '60px', maxHeight: '90px', resize: 'none', lineHeight: 1.7 }} placeholder="Share your voice…" value={fMsg} onChange={e => setFMsg(e.target.value)} maxLength={MAX_CHARS} rows={3} />
-                      <span style={{ position: 'absolute', bottom: '8px', right: '10px', fontSize: '9px', color: fMsg.length > 450 ? t.accentPrimary : t.textFaint, pointerEvents: 'none' }}>{fMsg.length}/{MAX_CHARS}</span>
+                      <span style={{ position: 'absolute', bottom: '8px', right: '10px', fontSize: '9px', color: fMsg.length > 1750 ? t.accentPrimary : t.textFaint, pointerEvents: 'none' }}>{fMsg.length}/{MAX_CHARS}</span>
                       {errors.msg && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.msg}</p>}
                     </div>
 <button 

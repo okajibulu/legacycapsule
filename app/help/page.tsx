@@ -13,7 +13,7 @@
    - Extended Validity: 3 months free / 6 months pre-booked (was 90 days)
    - Additional Phase: free=1, paid=2 (was missing this distinction)
    - Getting Started updated for free/pre-booked distinction
-   - Tribute Wall updated for free/pre-booked validity distinction
+   - tribute (voice) Wall updated for free/pre-booked validity distinction
    - Community Stories refundNote removed (it's free)
    - All copy from organiser's mental model, not system perspective
 ========================================================= */
@@ -53,30 +53,30 @@ const SECTIONS = [
     badge: null,
     articles: [
       { q: 'Who is LegacyCapsule for?', a: 'LegacyCapsule is for anyone organising an event that matters. Private individuals planning a milestone birthday, a memorial, a wedding, or a retirement. Professional event planners who want a premium tool that handles guest management, access control, attire coordination, and event-day operations without the complexity. Family members and aspiring planners stepping up to organise for the first time and needing a platform that guides them through every detail. Every service is designed to be used without technical knowledge — if you can use WhatsApp, you can use LegacyCapsule.' },
-      { q: 'How do I create a capsule?', a: 'Go to itslegacycapsule.com/book and follow the steps. Tell us who the event is for, what type of occasion it is, and give your capsule a name. Your tribute wall is ready immediately — no payment required. The whole process takes under three minutes.' },
+      { q: 'How do I create a capsule?', a: 'Go to itslegacycapsule.com/book and follow the steps. Tell us who the event is for, what type of occasion it is, and give your capsule a name. Your tribute (voice) wall is ready immediately — no payment required. The whole process takes under three minutes.' },
       { q: 'Do I need to create an account?', a: 'No account is required to create a free capsule. You verify your email address during the process, and that email becomes your access key. To return to your dashboard, go to /signin and enter your email — we send you a 4-character code each time.' },
       { q: 'How do I share my capsule with guests?', a: 'Once your capsule is set up, your dashboard shows a shareable link in the format itslegacycapsule.com/for/[your-name]. Share it via WhatsApp, email, or any channel you use. No app download required for guests.' },
-      { q: 'What does a free capsule include?', a: 'A free capsule includes a live tribute wall with a world map showing where every tribute came from, a profile page for the honouree, Community Memories & Stories room, a Family Rep portal, one event phase, and 3 months of online availability from when the first tribute arrives. No credit card required.' },
-      { q: 'What does a pre-booked capsule include?', a: 'A pre-booked capsule includes everything a free capsule does, plus two event phases (instead of one), 6 months of online availability (instead of 3), and whichever premium services you choose to add at booking. Your capsule is reserved immediately and goes live when the first tribute arrives.' },
-      { q: 'Can contributors leave tributes from outside Nigeria?', a: 'Yes. Anyone anywhere in the world with the link can leave a tribute. No account, no app, no payment. The world map shows where every voice came from.' },
-      { q: 'When does my capsule go live?', a: 'Your capsule comes to life when the first tribute arrives. Until then, it is set up and waiting — the link is shareable but no content shows yet. This means you can set everything up at your own pace before sharing with guests.' },
+      { q: 'What does a free capsule include?', a: 'A free capsule includes a live tribute (voice) wall with a world map showing where every tribute (voice) came from, a profile page for the honouree, Community Memories & Stories room, a Family Rep portal, one event phase, and 3 months of online availability from when the first tribute (voice) arrives. No credit card required.' },
+      { q: 'What does a pre-booked capsule include?', a: 'A pre-booked capsule includes everything a free capsule does, plus two event phases (instead of one), 6 months of online availability (instead of 3), and whichever premium services you choose to add at booking. Your capsule is reserved immediately and goes live when the first tribute (voice) arrives.' },
+      { q: 'Can contributors leave tributes (voices) from outside Nigeria?', a: 'Yes. Anyone anywhere in the world with the link can leave a tribute. No account, no app, no payment. The world map shows where every voice came from.' },
+      { q: 'When does my capsule go live?', a: 'Your capsule comes to life when the first tribute (voice) arrives. Until then, it is set up and waiting — the link is shareable but no content shows yet. This means you can set everything up at your own pace before sharing with guests.' },
     ]
   },
 
   {
     id: 'tribute_wall',
     icon: '◎',
-    title: 'Tribute Wall & World Map',
+    title: 'tribute (voice) Wall & World Map',
     subtitle: 'The live collection of voices for your event',
     badge: 'Always Free',
     articles: [
-      { q: 'What is the tribute wall?', a: 'The tribute wall is a live page where guests leave written tributes, photos, voice recordings, and video messages for the person being honoured. It updates in real time as you approve submissions. It can be displayed on a screen during the event itself. As tributes arrive, a world map lights up with pins showing where each voice came from.' },
-      { q: 'What is the world map?', a: 'Every tribute is marked with the location it came from. The world map builds a living picture of how far this person\'s story reaches — a pin in Lagos, a message from London, a memory from Toronto. The map is part of every capsule and requires no setup.' },
-      { q: 'How does moderation work?', a: 'Every tribute comes to you first. From your dashboard, you read each submission and approve or decline it with one tap. Only approved tributes appear on the public wall. If a tribute needs adjustment, you can request a correction from the contributor before approving.' },
-      { q: 'Can I display the wall during my event?', a: 'Yes. Open itslegacycapsule.com/for/[your-name]/display on any screen at your venue. Approved tributes animate onto the screen in real time as your guests submit them. Share the display link with your AV team in advance.' },
+      { q: 'What is the tribute (voice) wall?', a: 'The tribute (voice) wall is a live page where guests leave written tributes (voices), photos, voice recordings, and video messages for the person being honoured. It updates in real time as you approve submissions. It can be displayed on a screen during the event itself. As tributes (voices) arrive, a world map lights up with pins showing where each voice came from.' },
+      { q: 'What is the world map?', a: 'Every tribute (voice) is marked with the location it came from. The world map builds a living picture of how far this person\'s story reaches — a pin in Lagos, a message from London, a memory from Toronto. The map is part of every capsule and requires no setup.' },
+      { q: 'How does moderation work?', a: 'Every tribute (voice) comes to you first. From your dashboard, you read each submission and approve or decline it with one tap. Only approved tributes (voices) appear on the public wall. If a tribute (voice) needs adjustment, you can request a correction from the contributor before approving.' },
+      { q: 'Can I display the wall during my event?', a: 'Yes. Open itslegacycapsule.com/for/[your-name]/display on any screen at your venue. Approved tributes (voices) animate onto the screen in real time as your guests submit them. Share the display link with your AV team in advance.' },
       { q: 'Can contributors edit their tribute after submitting?', a: 'Contributors receive an edit link in their submission confirmation email. After editing, the tribute returns to your moderation queue for re-approval before going live again.' },
-      { q: 'What is the tribute character limit?', a: 'Tributes are limited to 500 characters — personal, concise, and meaningful. For longer stories, memories, and photos, contributors can use the Community Memories & Stories room within the same capsule.' },
-      { q: 'How long does my capsule stay online?', a: 'Free capsules stay online for 3 months from when the first tribute arrives. Pre-booked capsules stay online for 6 months. After that, your capsule becomes read-only — existing content is preserved but no new tributes can be submitted. You can extend this from your dashboard using Extended Validity.' },
+      { q: 'What is the tribute character limit?', a: 'tributes (voices) can be up to 2,000 characters — enough to say something meaningful. For longer stories, memories, and photos, contributors can use the Community Memories & Stories room within the same capsule.' },
+      { q: 'How long does my capsule stay online?', a: 'Free capsules stay online for 3 months from when the first tribute arrives. Pre-booked capsules stay online for 6 months. After that, your capsule becomes read-only — existing content is preserved but no new tributes (voices) can be submitted. You can extend this from your dashboard using Extended Validity.' },
     ]
   },
 
@@ -87,9 +87,9 @@ const SECTIONS = [
     subtitle: 'A dedicated room for longer stories and memories',
     badge: 'Always Free',
     articles: [
-      { q: 'What is the Community Memories & Stories room?', a: 'It is a dedicated space within your capsule where contributors share longer stories, memories, and lessons — not just brief tributes. Stories are organised by topic, making it easy to read what different groups of people remember about the honouree.' },
-      { q: 'How is it different from the tribute wall?', a: 'The tribute wall is for concise personal messages — up to 500 characters. The Community Memories & Stories room is for longer, richer content — stories, memories, photos, and reflections that go deeper than a tribute allows.' },
-      { q: 'Who can see it?', a: 'Anyone with your capsule link can access the Community Memories & Stories room. Stories go through the same moderation process as tributes — you approve each one before it appears.' },
+      { q: 'What is the Community Memories & Stories room?', a: 'It is a dedicated space within your capsule where contributors share longer stories, memories, and lessons — not just brief tributes (voices). Stories are organised by topic, making it easy to read what different groups of people remember about the honouree.' },
+      { q: 'How is it different from the tribute wall?', a: 'The message (voices) wall is for personal messages — up to 2,000 characters. The Community Memories & Stories room is for longer, richer content — extended stories, memories, photos, and reflections that go deeper.' },
+      { q: 'Who can see it?', a: 'Anyone with your capsule link can access the Community Memories & Stories room. Stories go through the same moderation process as tributes (voices) — you approve each one before it appears.' },
       { q: 'Is it included in the Digital Publication?', a: 'Yes. When you generate a publication, Community Memories & Stories are automatically organised into chapters by topic and included as a dedicated section of the publication.' },
       { q: 'Is it free?', a: 'Yes. Community Memories & Stories is included in every capsule at no cost — free and pre-booked alike. There is nothing to activate or pay for.' },
     ]
@@ -116,9 +116,9 @@ const SECTIONS = [
     subtitle: 'Private access for the family representative',
     badge: 'Always Free',
     articles: [
-      { q: 'What is the Family Rep Portal?', a: 'A private, token-gated portal for the family representative of the honouree. They can view all tributes, acknowledgements, and expressions of support — without needing access to the full organiser dashboard.' },
+      { q: 'What is the Family Rep Portal?', a: 'A private, token-gated portal for the family representative of the honouree. They can view all tributes (voices), acknowledgements, and expressions of support — without needing access to the full organiser dashboard.' },
       { q: 'How does the family representative access it?', a: 'The organiser generates a secure link from the dashboard and shares it with the family representative. The link expires after a set period for security.' },
-      { q: 'What can the family representative see?', a: 'Approved tributes, Gift of Honour acknowledgements, contributor details, and summary statistics. They cannot approve, decline, or edit content — that remains with the organiser.' },
+      { q: 'What can the family representative see?', a: 'Approved tributes (voices), Gift of Honour acknowledgements, contributor details, and summary statistics. They cannot approve, decline, or edit content — that remains with the organiser.' },
     ]
   },
 
@@ -131,11 +131,11 @@ const SECTIONS = [
     subtitle: 'Hear the voices of the people who showed up',
     badge: 'Premium Add-on',
     articles: [
-      { q: 'What are Voice Tributes?', a: 'Voice Tributes allow contributors to record a personal voice message directly in the browser — no app download needed. Each tribute can include one recording of up to 60 seconds. The recording appears in their tribute card on the wall. Hearing a familiar voice adds a dimension that text cannot replicate.' },
-      { q: 'How does a contributor record?', a: 'On your tribute wall, contributors see a microphone option in the tribute form. They tap to record, tap to stop, preview their recording, and submit. It works on any smartphone or computer with a microphone.' },
+      { q: 'What are Voice Tributes?', a: 'Voice Tributes allow contributors to record a personal voice message directly in the browser — no app download needed. Each tribute (voice)can include one recording of up to 60 seconds. The recording appears in their tribute (voice)card on the wall. Hearing a familiar voice adds a dimension that text cannot replicate.' },
+      { q: 'How does a contributor record?', a: 'On your tribute (voice)wall, contributors see a microphone option in the tribute (voice)form. They tap to record, tap to stop, preview their recording, and submit. It works on any smartphone or computer with a microphone.' },
       { q: 'What is the maximum recording length?', a: '60 seconds — long enough for a meaningful personal message, short enough to remain focused and personal.' },
-      { q: 'Can a contributor submit both a written tribute and a voice recording?', a: 'Yes — they can include both in the same submission. The voice recording supplements the written tribute and both appear together in the tribute card.' },
-      { q: 'Are voice tributes moderated?', a: 'Yes — all voice tributes go through the same approval queue as written tributes. You listen to them before they appear publicly on the wall.' },
+      { q: 'Can a contributor submit both a written tribute (voice)and a voice recording?', a: 'Yes — they can include both in the same submission. The voice recording supplements the written tribute (voice)and both appear together in the tribute (voice)card.' },
+      { q: 'Are voice tributes moderated?', a: 'Yes — all voice tributes go through the same approval queue as written tributes (voices). You listen to them before they appear publicly on the wall.' },
       { q: 'Do contributors need to pay?', a: 'No. Once Voice Tributes are activated on your capsule, all contributors can use them at no additional cost. You pay once to unlock the feature for your event.' },
     ]
   },
@@ -147,8 +147,8 @@ const SECTIONS = [
     subtitle: 'See the faces of the people who showed up',
     badge: 'Premium Add-on',
     articles: [
-      { q: 'What are Video Tributes?', a: 'Video Tributes allow contributors to upload a short video message from their phone or computer. Each tribute can include one video of up to 60 seconds. The video appears in their tribute card with a thumbnail and play button. Seeing someone\'s face as they speak adds a dimension that no written or audio tribute can replicate.' },
-      { q: 'How does a contributor submit a video?', a: 'On your tribute wall, contributors see an option to attach a video to their tribute. They record on their phone camera and upload the file. The video appears in their tribute card after your approval.' },
+      { q: 'What are Video Tributes?', a: 'Video Tributes allow contributors to upload a short video message from their phone or computer. Each tribute (voice)can include one video of up to 60 seconds. The video appears in their tribute (voice) card with a thumbnail and play button. Seeing someone\'s face as they speak adds a dimension that no written or audio tribute can replicate.' },
+      { q: 'How does a contributor submit a video?', a: 'On your tribute (voice)wall, contributors see an option to attach a video to their tribute. They record on their phone camera and upload the file. The video appears in their tribute (voice) card after your approval.' },
       { q: 'What is the maximum video length?', a: '60 seconds. This encourages contributors to be concise and personal — the most memorable video tributes are usually under a minute.' },
       { q: 'What video formats are supported?', a: 'MP4 (the standard format from all smartphone cameras) is fully supported. Most common video formats are accepted.' },
       { q: 'Can a contributor submit both a video and a written tribute?', a: 'Yes — they can include a written message, a photo, and a video in the same submission. All three appear in their tribute card.' },
@@ -220,11 +220,11 @@ const SECTIONS = [
     subtitle: 'A dignified, private channel for guests to express financial support',
     badge: 'Premium Add-on',
     articles: [
-      { q: 'What is Gift of Honour?', a: 'Gift of Honour creates a dignified, organised space within the capsule where guests can contribute financially to the occasion — whether towards the cost of the event, a gift for the honouree, or a family fund. It is not a crowdfunding page. It is a graceful, optional channel for guests who want to give more than words — built into the tribute experience naturally.' },
+      { q: 'What is Gift of Honour?', a: 'Gift of Honour creates a dignified, organised space within the capsule where guests can contribute financially to the occasion — whether towards the cost of the event, a gift for the honouree, or a family fund. It is not a crowdfunding page. It is a graceful, optional channel for guests who want to give more than words — built into the tribute (voice) experience naturally.' },
       { q: 'How do I set it up?', a: 'From your manage dashboard, go to Services and activate Gift of Honour. Then add your payment details — account name, bank, and account number. You can add multiple accounts for different banks or currencies.' },
       { q: 'How do guests use it?', a: 'Guests visiting your capsule see the Gift of Honour section with your payment details. They make a bank transfer directly, then acknowledge their gesture on the platform. You receive a daily digest summarising who contributed and the running total.' },
       { q: 'Does LegacyCapsule handle the money?', a: 'No. LegacyCapsule never touches any financial flow between you and your guests. All transfers go directly between your guest and your bank account. We provide only the display mechanism and the acknowledgement record. We take no transaction fee and handle no funds.' },
-      { q: 'Are amounts shown publicly?', a: 'Never. Amounts are completely private. Only the family representative and organiser can see acknowledgement records. The tribute wall shows only that a Gift of Honour section exists.' },
+      { q: 'Are amounts shown publicly?', a: 'Never. Amounts are completely private. Only the family representative and organiser can see acknowledgement records. The tribute (voice) wall shows only that a Gift of Honour section exists.' },
       { q: 'Can I add a reference guide?', a: 'Yes. Add a reference guide — for example "Please use your name as reference" — which appears alongside your account details to help you reconcile incoming transfers.' },
     ]
   },
@@ -239,12 +239,12 @@ const SECTIONS = [
     badge: 'Premium Add-on',
     articles: [
       { q: 'What is the Digital Publication?', a: 'The Digital Publication brings everything your guests contributed into a single, beautifully assembled record. Every written tribute, voice note, photograph, community memory, honouree profile, and event-day capture — laid out professionally and published as a document that can be shared, downloaded, and returned to for years.' },
-      { q: 'What is included in the publication?', a: 'The publication includes your honouree profile, all approved tributes, Community Memories & Stories organised by topic chapter, event phase photographs, D-Day guest captures, and a who-attended section. You choose which sections to include and in what order.' },
-      { q: 'Can I arrange the order of tributes?', a: 'Yes — the Publication Editor gives you full drag-and-drop control. Group tributes, insert photos between sections, exclude specific entries, and rearrange everything before generating.' },
+      { q: 'What is included in the publication?', a: 'The publication includes your honouree profile, all approved tributes (voices), Community Memories & Stories organised by topic chapter, event phase photographs, D-Day guest captures, and a who-attended section. You choose which sections to include and in what order.' },
+      { q: 'Can I arrange the order of tributes (voices)?', a: 'Yes — the Publication Editor gives you full drag-and-drop control. Group tributes, insert photos between sections, exclude specific entries, and rearrange everything before generating.' },
       { q: 'How many design themes are available?', a: 'Five professional themes — Classic, Soft, Romantic, Vibrant, and Spiritual — each with its own typography, colour palette, and section styling. Choose the one that matches your occasion.' },
       { q: 'How is it distributed?', a: 'Once you are satisfied with the publication, one click sends it to every contributor who provided their email address. Each recipient gets a personal copy with a permanent access link. No printing, no postage, no design fees.' },
       { q: 'Is it suitable for printing?', a: 'Yes — the publication is designed for both screen and print. Families have printed physical copies for guests who are not online.' },
-      { q: 'When should I generate the publication?', a: 'After your event, once you have approved all the tributes you want to include. There is no deadline — take as much time as you need to arrange it before generating.' },
+      { q: 'When should I generate the publication?', a: 'After your event, once you have approved all the tributes (voices) you want to include. There is no deadline — take as much time as you need to arrange it before generating.' },
     ]
   },
 
@@ -255,9 +255,9 @@ const SECTIONS = [
     subtitle: 'Add more chapters to your event story',
     badge: 'Premium Add-on',
     articles: [
-      { q: 'What is an Event Phase?', a: 'An Event Phase is a chapter in your event story. Some occasions have one chapter — the service, the ceremony, the celebration. Others unfold across multiple moments: a wake keep followed by a funeral service and a thanksgiving; a traditional wedding followed by a white wedding and a reception. Each phase gets its own tribute collection window, its own QR code, and its own place in the published record.' },
+      { q: 'What is an Event Phase?', a: 'An Event Phase is a chapter in your event story. Some occasions have one chapter — the service, the ceremony, the celebration. Others unfold across multiple moments: a wake keep followed by a funeral service and a thanksgiving; a traditional wedding followed by a white wedding and a reception. Each phase gets its own tribute (voice) collection window, its own QR code, and its own place in the published record.' },
       { q: 'How many phases are included?', a: 'Free capsules include one event phase. Pre-booked capsules include two. You can add more from your dashboard at any time — one phase per purchase, as many as your occasion needs.' },
-      { q: 'What does each phase include?', a: 'A name, an event date, a location, its own QR code, and a 24-hour D-Day capture window on the event date. The QR code automatically directs guests to the tribute wall before the event, and to the D-Day upload portal on the day itself.' },
+      { q: 'What does each phase include?', a: 'A name, an event date, a location, its own QR code, and a 24-hour D-Day capture window on the event date. The QR code automatically directs guests to the tribute (voice) wall before the event, and to the D-Day upload portal on the day itself.' },
       { q: 'Can I add more than one additional phase?', a: 'Yes. Each purchase adds one phase. A three-day memorial weekend might need three phases. A wedding with a traditional ceremony, church service, and reception might need three. Add as many as your occasion calls for.' },
     ]
   },
@@ -269,9 +269,9 @@ const SECTIONS = [
     subtitle: 'Keep your capsule online and active for longer',
     badge: 'Premium Add-on',
     articles: [
-      { q: 'What is Extended Validity?', a: 'Your capsule stays online and active for a set period from when the first tribute arrives. Free capsules are active for 3 months. Pre-booked capsules are active for 6 months. Extended Validity extends this period so guests can continue visiting and contributing after the standard window closes.' },
+      { q: 'What is Extended Validity?', a: 'Your capsule stays online and active for a set period from when the first tribute (voice) arrives. Free capsules are active for 3 months. Pre-booked capsules are active for 6 months. Extended Validity extends this period so guests can continue visiting and contributing after the standard window closes.' },
       { q: 'When should I purchase it?', a: 'You can purchase Extended Validity at any time — before your capsule goes live, during the active period, or when you receive the expiry notice. Your capsule does not lose existing content when the standard period ends.' },
-      { q: 'Does the capsule lose content when it expires?', a: 'No. Content is never deleted. The capsule becomes read-only — existing tributes, stories, and photos are preserved and visible. Extended Validity makes it active again so new contributions can be accepted.' },
+      { q: 'Does the capsule lose content when it expires?', a: 'No. Content is never deleted. The capsule becomes read-only — existing tributes (voices), stories, and photos are preserved and visible. Extended Validity makes it active again so new contributions can be accepted.' },
       { q: 'Can I purchase it after my capsule has already expired?', a: 'Yes. You can reactivate your capsule from your dashboard even after the standard period has ended.' },
     ]
   },
@@ -282,13 +282,13 @@ const SECTIONS = [
     id: 'dday',
     icon: '◎',
     title: 'D-Day Guest Captures',
-    subtitle: 'Guest photos and tributes on the event day',
+    subtitle: 'Guest photos and tributes (voices) on the event day',
     badge: 'Always Free',
     articles: [
       { q: 'What is D-Day capture?', a: 'D-Day capture is a dedicated experience for guests to share photos and messages on the event day itself. The D-Day portal opens automatically on the event date and closes 24 hours later. Guests scan their QR code on the day — it redirects directly to the upload portal.' },
-      { q: 'What can guests upload?', a: 'Guests can upload a photo or video they have taken at the event, leave a tribute message, or both. Their name and optional email are collected so their contribution is attributed correctly.' },
+      { q: 'What can guests upload?', a: 'Guests can upload a photo or video they have taken at the event, leave a tribute (voice) message, or both. Their name and optional email are collected so their contribution is attributed correctly.' },
       { q: 'Why 24 hours?', a: 'The capture window is fixed at 24 hours starting from 6am on the event date. This is consistent for all capsules and cannot be changed — it ensures D-Day content is genuinely from the event day.' },
-      { q: 'Where do D-Day captures appear?', a: 'D-Day photos appear in a dedicated gallery strip on the Live Wall display and in the D-Day section of the Digital Publication. D-Day tributes are marked separately from pre-event tributes.' },
+      { q: 'Where do D-Day captures appear?', a: 'D-Day photos appear in a dedicated gallery strip on the Live Wall display and in the D-Day section of the Digital Publication. D-Day tributes (voices) are marked separately from pre-event tributes.' },
     ]
   },
 
@@ -296,13 +296,13 @@ const SECTIONS = [
     id: 'live_wall',
     icon: '◇',
     title: 'Live Wall Display',
-    subtitle: 'Full-screen tribute display for your venue screen',
+    subtitle: 'Full-screen tribute (voice) display for your venue screen',
     badge: 'Always Free',
     articles: [
-      { q: 'What is the Live Wall Display?', a: 'The Live Wall Display is a full-screen page designed for projection at your venue. It shows approved tributes arriving in real time — each new approval animates onto the screen with a spotlight moment. Your guests can watch voices arrive as they happen.' },
+      { q: 'What is the Live Wall Display?', a: 'The Live Wall Display is a full-screen page designed for projection at your venue. It shows approved tributes (voices) arriving in real time — each new approval animates onto the screen with a spotlight moment. Your guests can watch voices arrive as they happen.' },
       { q: 'How do I set it up?', a: 'In your Services tab, find the Live Wall section. Copy the display URL or scan the QR code with the venue screen. Share the URL with your AV team before the event so they can have it ready.' },
       { q: 'Does it need any special software?', a: 'No. The Live Wall works in any modern browser on any screen. Open the URL in a browser and it will fill the screen automatically.' },
-      { q: 'How are new tributes approved?', a: 'Use your normal moderation queue in the manage dashboard. Approving a tribute from your phone instantly broadcasts it to the Live Wall display at the venue.' },
+      { q: 'How are new tributes (voices) approved?', a: 'Use your normal moderation queue in the manage dashboard. Approving a tribute from your phone instantly broadcasts it to the Live Wall display at the venue.' },
     ]
   },
 
@@ -318,7 +318,7 @@ const SECTIONS = [
       { q: 'How do I sign back into my dashboard?', a: 'Go to itslegacycapsule.com/signin and enter your email address. We send a 4-character code to your inbox. Enter the code in the browser — you are taken directly to your dashboard. No password to remember.' },
       { q: 'Can I have multiple capsules?', a: 'Yes. One email address can manage multiple capsules. When you sign in with an email that has multiple capsules, you see a listing of all of them.' },
       { q: 'What currencies are accepted?', a: 'We accept Nigerian Naira (₦) via Paystack and major international currencies (€ EUR, £ GBP, $ USD) via Stripe. Your currency is detected automatically based on your location. If the wrong currency shows, contact us.' },
-      { q: 'What is a pre-booked capsule?', a: 'A pre-booked capsule lets you choose your services and pay upfront — before sharing the link with guests. You get two event phases and 6 months of online availability instead of one phase and 3 months. Your capsule goes live when the first tribute arrives, not when you pay. Ideal for events planned months ahead.' },
+      { q: 'What is a pre-booked capsule?', a: 'A pre-booked capsule lets you choose your services and pay upfront — before sharing the link with guests. You get two event phases and 6 months of online availability instead of one phase and 3 months. Your capsule goes live when the first tribute (voice) arrives, not when you pay. Ideal for events planned months ahead.' },
       { q: 'What is "Gift a Capsule"?', a: 'You can purchase a LegacyCapsule as a gift for someone else\'s event. Choose the services you want to include, pay, and the recipient receives a notification explaining what they have received and how to get started.' },
       { q: 'Can I add services after creating a free capsule?', a: 'Yes. From your manage dashboard, go to the Services tab to see everything available. You can add any premium service at any time — your capsule does not need to be pre-booked to unlock premium features.' },
       { q: 'What happens if I need help?', a: 'Contact us through this help page or email hello@itslegacycapsule.com. We respond within 24 hours on business days.' },

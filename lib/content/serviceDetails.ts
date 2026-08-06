@@ -33,7 +33,7 @@ export interface ServiceDetail {
   refundNote:            string            // honest non-refundability statement
 }
 
-// ═══ SECTION 2 — Tribute Experience ═══
+// ═══ SECTION 2 — tribute (voice) Experience ═══
 
 export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
 
@@ -43,28 +43,28 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
     title:   'Voice Tributes',
     icon:    '🎙',
     tagline: 'Hearing a voice is irreplaceable. Preserve them.',
-    summary: 'Let your guests record a personal message in their own voice. Each tribute can include one voice recording — up to 60 seconds — so their words are preserved exactly as spoken. For memorials, retirements, and milestone events, the sound of a familiar voice carries meaning that text alone cannot.',
+    summary: 'Let your guests record a personal message in their own voice. Each tribute (voice) can include one voice recording — up to 60 seconds — so their words are preserved exactly as spoken. For memorials, retirements, and milestone events, the sound of a familiar voice carries meaning that text alone cannot.',
     whatYouGet: [
-      'A voice recording option appears in the tribute form for all your guests',
+      'A voice recording option appears in the tribute (voice) form for all your guests',
       'Each recording is up to 60 seconds — enough for a heartfelt personal message',
-      'Audio plays directly in the tribute card on the wall — no download needed',
+      'Audio plays directly in the tribute (voice) card on the wall — no download needed',
       'You review and approve voice tributes in the same moderation queue as written tributes',
       'Audio is stored securely and included in the permanent capsule record',
       'Guests can re-record before submitting if they want to try again',
     ],
     contributorExperience: [
-      'Guests see a microphone option in the tribute form — tap to record, tap to stop',
+      'Guests see a microphone option in the tribute (voice) form — tap to record, tap to stop',
       'They can play back their recording before submitting to make sure they are happy with it',
-      'Their voice plays alongside their name and photo in their tribute card',
+      'Their voice plays alongside their name and photo in their tribute (voice) card',
       'No app to download, no account to create — works in any modern browser on any device',
     ],
     bestFor: ['Memorial & Funeral', 'Retirement', 'Milestone Birthday', 'Graduation', 'Ordination'],
     exampleUseCase: 'A memorial capsule for a beloved community figure receives 23 voice tributes from friends across three continents. A childhood friend records from Lagos. A former colleague records from Toronto. A family member who cannot travel records from her hospital bed. When the family plays these back in the weeks after the service, they hear voices they may never otherwise have captured — a permanent record of how this person was felt by those who knew him.',
     faqs: [
       { q: 'What devices support voice recording?', a: 'Voice recording works on all modern smartphones, tablets and computers with a microphone. Chrome, Safari, Firefox and Edge are all supported. No app or plugin required.' },
-      { q: 'Can a guest submit both a written tribute and a voice recording?', a: 'Yes — they can include both in the same submission. The voice recording supplements the written tribute and both appear together in the tribute card.' },
+      { q: 'Can a guest submit both a written tribute (voice) and a voice recording?', a: 'Yes — they can include both in the same submission. The voice recording supplements the written tribute and both appear together in the tribute (voice) card.' },
       { q: 'Are voice tributes moderated before appearing on the wall?', a: 'Yes — all voice tributes go through the same approval queue as written tributes. You listen to them before they appear publicly.' },
-      { q: 'What is the maximum recording length?', a: 'Sixty seconds per recording. This is enough for a meaningful personal message while keeping the tribute wall accessible for all visitors.' },
+      { q: 'What is the maximum recording length?', a: 'Sixty seconds per recording. This is enough for a meaningful personal message while keeping the tribute (voice) wall accessible for all visitors.' },
     ],
     refundNote: 'Voice Tributes is activated immediately on payment and is non-refundable. Guests can submit voice recordings at any point during your capsule\'s active period.',
   },
@@ -74,29 +74,29 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
     id:      'video_tributes',
     title:   'Video Tributes',
     icon:    '🎬',
-    tagline: 'A face, a voice, an expression. The most personal tribute of all.',
-    summary: 'Give your guests the option to record a short video message. Each tribute can include one video — up to 60 seconds — making their presence felt even if they couldn\'t be there in person. Seeing someone\'s face as they speak adds a dimension that no written or audio tribute can replicate.',
+    tagline: 'A face, a voice, an expression. The most personal tribute (voice) of all.',
+    summary: 'Give your guests the option to record a short video message. Each tribute (voice) can include one video — up to 60 seconds — making their presence felt even if they couldn\'t be there in person. Seeing someone\'s face as they speak adds a dimension that no written or audio tribute (voice) can replicate.',
     whatYouGet: [
-      'A video upload option in the tribute form — guests record on their phone and upload directly',
+      'A video upload option in the tribute (voice) form — guests record on their phone and upload directly',
       'Videos up to 60 seconds — concise, personal, powerful',
-      'Video plays inline in the tribute card — no external links, no redirects',
+      'Video plays inline in the tribute (voice) card — no external links, no redirects',
       'Same moderation queue as all other tributes — you review before anything goes live',
       'Videos are included in the permanent capsule record and accessible to the family at any time',
-      'Mobile-optimised playback — plays smoothly on any device visiting the tribute wall',
+      'Mobile-optimised playback — plays smoothly on any device visiting the tribute (voice) wall',
     ],
     contributorExperience: [
-      'Guests record their video on their phone camera, then upload it in the tribute form',
-      'The video plays in their tribute card alongside their name, location, and relationship',
+      'Guests record their video on their phone camera, then upload it in the tribute (voice) form',
+      'The video plays in their tribute (voice) card alongside their name, location, and relationship',
       'No technical knowledge required — if they can send a WhatsApp video, they can submit a video tribute',
       'They receive the same Keepsake Card confirmation as all other contributors',
     ],
     bestFor: ['Retirement', 'Milestone Birthday', 'Wedding', 'Graduation', 'Memorial & Funeral'],
-    exampleUseCase: 'A daughter organises a 70th birthday capsule for her mother and activates Video Tributes. Grandchildren in Australia record short videos at the kitchen table. A lifelong friend records herself holding up an old photograph as she speaks. A former student records from his office in London. When the family gathers at the birthday dinner, the tribute wall becomes a living room of faces — people who could not be there in person, present in the next best way.',
+    exampleUseCase: 'A daughter organises a 70th birthday capsule for her mother and activates Video Tributes. Grandchildren in Australia record short videos at the kitchen table. A lifelong friend records herself holding up an old photograph as she speaks. A former student records from his office in London. When the family gathers at the birthday dinner, the tribute (voice) wall becomes a living room of faces — people who could not be there in person, present in the next best way.',
     faqs: [
-      { q: 'How do guests record their video?', a: 'They record using their phone\'s camera as normal, then upload the file in the tribute form. No special equipment or app is required.' },
+      { q: 'How do guests record their video?', a: 'They record using their phone\'s camera as normal, then upload the file in the tribute (voice) form. No special equipment or app is required.' },
       { q: 'What is the maximum video length?', a: 'Sixty seconds. This encourages guests to be concise and personal — the most memorable video tributes are usually under a minute.' },
       { q: 'What video formats are supported?', a: 'MP4 (the standard format from all smartphone cameras) is fully supported. Most common video formats are accepted.' },
-      { q: 'Can a guest submit both a video and a written tribute?', a: 'Yes — they can include a written message, a photo, and a video in the same submission. All three appear in their tribute card.' },
+      { q: 'Can a guest submit both a video and a written tribute?', a: 'Yes — they can include a written message, a photo, and a video in the same submission. All three appear in their tribute (voice) card.' },
     ],
     refundNote: 'Video Tributes is activated immediately on payment and is non-refundable. Guests can submit video tributes at any point during your capsule\'s active period.',
   },
@@ -215,11 +215,11 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
     tagline: 'A dignified, organised way for guests to show their love financially.',
     summary: 'Give guests who want to express their support financially a dignified, organised way to do so. You set up the details — guests contribute directly — and it all lives within the capsule experience. Designed for the African cultural context where financial support during significant events is an important expression of love and respect.',
     whatYouGet: [
-      'A dedicated section on the tribute wall showing your bank details or payment channels',
+      'A dedicated section on the tribute (voice) wall showing your bank details or payment channels',
       'Full control over which payment methods to display — bank transfer, mobile money, or any channel you choose',
       'A private acknowledgement flow — guests note their support and you receive a daily digest',
       'A running total so the family always knows the cumulative position',
-      'Full privacy — amounts and details are never shown publicly on the tribute wall',
+      'Full privacy — amounts and details are never shown publicly on the tribute (voice) wall',
       'Multiple payment channels for different banks or currencies',
     ],
     contributorExperience: [
@@ -229,9 +229,9 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
       'No amounts are displayed publicly — only the family sees the details',
     ],
     bestFor: ['Retirement', 'Memorial & Funeral', 'Chieftaincy', 'Thanksgiving Service', 'Ordination', 'Milestone Birthday', 'Wedding'],
-    exampleUseCase: 'A family hosting a traditional chieftaincy installation adds Gift of Honour to their capsule. Guests from the UK, Nigeria and the US see the family\'s Zenith Bank account and UK bank details presented tastefully alongside the tribute wall. Over the three days of the ceremony, 47 guests acknowledge their support. The family representative receives a midnight digest each day summarising who contributed and the running total — without needing to monitor the capsule manually.',
+    exampleUseCase: 'A family hosting a traditional chieftaincy installation adds Gift of Honour to their capsule. Guests from the UK, Nigeria and the US see the family\'s Zenith Bank account and UK bank details presented tastefully alongside the tribute (voice) wall. Over the three days of the ceremony, 47 guests acknowledge their support. The family representative receives a midnight digest each day summarising who contributed and the running total — without needing to monitor the capsule manually.',
     faqs: [
-      { q: 'Are amounts shown publicly?', a: 'Never. Amounts are completely private. Only the family representative and organiser can see the acknowledgement records. The tribute wall shows only that a Gift of Honour section exists.' },
+      { q: 'Are amounts shown publicly?', a: 'Never. Amounts are completely private. Only the family representative and organiser can see the acknowledgement records. The tribute (voice) wall shows only that a Gift of Honour section exists.' },
       { q: 'Can I add multiple payment channels?', a: 'Yes — add as many payment methods as needed: bank transfer, mobile money, PayPal, or any other channel you choose.' },
       { q: 'How does the family know when someone has contributed?', a: 'A daily digest email is sent at midnight to the family representative, listing every new acknowledgement received that day and the cumulative total. One clear summary per day.' },
       { q: 'Does LegacyCapsule handle the money?', a: 'No. LegacyCapsule displays your payment details and records acknowledgements. The actual transfer happens directly between the guest and your bank account. We take no transaction fee and handle no funds.' },
@@ -259,7 +259,7 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
     ],
     contributorExperience: [
       'Each contributor receives a personal email when the publication is ready',
-      'Their tribute appears in the published record, attributed to them by name',
+      'Their tribute (voice) appears in the published record, attributed to them by name',
       'They can download and share the publication with anyone',
       'Their participation is permanently acknowledged in a document designed to be kept',
     ],
@@ -281,13 +281,13 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
     title:   'Additional Event Phase',
     icon:    '📅',
     tagline: 'Another chapter in your event story.',
-    summary: 'Add another chapter to your event story. Each additional phase opens a separate tribute collection window — perfect for occasions that unfold across multiple days or settings. A memorial might span a wake keep, a funeral service, and a thanksgiving. A wedding might include a traditional ceremony, a church service, and a reception.',
+    summary: 'Add another chapter to your event story. Each additional phase opens a separate tribute (voice) collection window — perfect for occasions that unfold across multiple days or settings. A memorial might span a wake keep, a funeral service, and a thanksgiving. A wedding might include a traditional ceremony, a church service, and a reception.',
     whatYouGet: [
       'One additional event phase with its own name, date, and location',
-      'A separate tribute collection window for that phase',
+      'A separate tribute (voice) collection window for that phase',
       'Its own QR code — directing guests to the right experience at the right time',
       'Included as a distinct chapter in the Digital Publication if you generate one',
-      'The QR code is context-aware: before the event it opens the tribute wall; on the day it opens the D-Day capture portal',
+      'The QR code is context-aware: before the event it opens the tribute (voice) wall; on the day it opens the D-Day capture portal',
     ],
     contributorExperience: [
       'Guests see each phase as a chapter in the event story',
@@ -299,7 +299,7 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
     faqs: [
       { q: 'How many phases are included in my capsule?', a: 'Free capsules include one event phase. Pre-booked capsules include two. You can add more from your dashboard at any time, one at a time.' },
       { q: 'Can I add more than one additional phase?', a: 'Yes. Each purchase adds one phase. Add as many as your occasion needs.' },
-      { q: 'What does each phase include?', a: 'A name, an event date, a location, its own QR code, and a 24-hour D-Day capture window on the event date. The QR code directs guests to the tribute wall before the event and to the D-Day upload portal on the day itself.' },
+      { q: 'What does each phase include?', a: 'A name, an event date, a location, its own QR code, and a 24-hour D-Day capture window on the event date. The QR code directs guests to the tribute (voice) wall before the event and to the D-Day upload portal on the day itself.' },
     ],
     refundNote: 'Additional Event Phase is activated immediately on payment and is non-refundable.',
   },
@@ -327,7 +327,7 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
     bestFor: ['Memorial & Funeral', 'Retirement', 'Anniversary', 'Milestone Birthday'],
     exampleUseCase: 'A memorial capsule reaches its 6-month mark with 112 tributes and a published record. A cousin discovers the capsule link eight months after the funeral and wants to visit. The organiser purchases Extended Validity from the dashboard — the capsule stays live and the cousin reads every tribute, hears every voice note, and sees the published record. The story remains accessible for as long as the family wants it to be.',
     faqs: [
-      { q: 'How long does my capsule stay online without Extended Validity?', a: 'Free capsules are online for 3 months from when the first tribute arrives. Pre-booked capsules are online for 6 months. After that, the capsule becomes read-only — existing content is preserved but no new tributes can be submitted.' },
+      { q: 'How long does my capsule stay online without Extended Validity?', a: 'Free capsules are online for 3 months from when the first tribute (voice) arrives. Pre-booked capsules are online for 6 months. After that, the capsule becomes read-only — existing content is preserved but no new tributes can be submitted.' },
       { q: 'Does the capsule lose content when it expires?', a: 'No. Content is never deleted. The capsule becomes read-only. Extended Validity makes it active again so new contributions can be accepted.' },
       { q: 'Can I purchase Extended Validity after my capsule has already expired?', a: 'Yes. You can reactivate your capsule from your dashboard even after the standard period has ended.' },
     ],
@@ -383,13 +383,13 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
     contributorExperience: [
       'Guests see a "Share a Story" option — separate from leaving a tribute',
       'They choose or suggest a topic, then write their story with an optional photo',
-      'They receive the same Keepsake Card confirmation as tribute contributors',
+      'They receive the same Keepsake Card confirmation as tribute (voice) contributors',
       'Their story appears in its topic chapter, attributed to them by name',
     ],
     bestFor: ['Retirement', 'Memorial & Funeral', 'Chieftaincy', 'Graduation', 'Anniversary'],
     exampleUseCase: 'A retirement capsule for a 43-year university career activates Community Stories. Default topics are pre-loaded: "A Lesson I Learned", "A Moment I\'ll Never Forget", "Career Stories". Former students add stories across 8 topics — 34 stories in total. A colleague adds the only entry to a topic they proposed: "The Argument That Changed My Mind". When the family reads the Stories room, they discover a version of his career they had never fully known — told in the words of the people who lived it alongside him.',
     faqs: [
-      { q: 'What is the difference between a tribute and a Community Story?', a: 'A tribute is a direct message to or about the honouree — up to 500 characters. A Community Story is a longer narrative about a shared experience, memory, or lesson. Both appear on the capsule but in separate rooms.' },
+      { q: 'What is the difference between a tribute (voice) and a Community Story?', a: 'A tribute (voice) is a direct message to or about the honouree — up to 2,000 characters. A Community Story is a longer narrative about a shared experience, memory, or lesson. Both appear on the capsule but in separate rooms.' },
       { q: 'Can I set the topics in advance?', a: 'Yes — add custom topics from your dashboard before sharing the capsule. Default topics are suggested automatically based on your event type.' },
       { q: 'Do Community Stories appear in the Digital Publication?', a: 'Yes — stories appear as topic chapters in the publication, separate from the tributes section.' },
       { q: 'Is Community Memories & Stories free?', a: 'Yes. It is included in every capsule at no cost — free and pre-booked alike. There is nothing to activate or purchase.' },
@@ -413,7 +413,7 @@ export const ALL_SERVICE_IDS = Object.keys(SERVICE_DETAILS)
 // Extended Validity is NOT included — it appears only in ServicesTab.
 
 export const BOOKING_SERVICE_ORDER = [
-  // Tribute Experience
+  // tribute (voice) Experience
   'audio_tributes',
   'video_tributes',
   // Event Services
