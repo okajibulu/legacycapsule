@@ -833,7 +833,13 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess 
                   {newTopicSaving ? 'Submitting…' : newTopicSubmitted ? 'Submitted ✓' : 'Submit Topic'}
                 </button>
                 <button
-                  onClick={() => { setShowNewTopic(false);
+                  onClick={() => { setShowNewTopic(false); setNewTopicText(''); setNewTopicError('') }}
+                  style={{ padding: '8px 14px', borderRadius: '10px', border: `1px solid ${cardBorder}`, background: 'transparent', color: textFaint, fontSize: '12px', cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
           <div>
             <textarea
