@@ -720,23 +720,173 @@ function renderWhoAttended(guests: GuestData[], styles: ThemeStyles): string {
 
 // ============================================================
 // SECTION 16 — Closing message renderer (always last)
+// Premium LC brand page — emotional mission, version in small print.
+// AI18 · 6 Aug 2026
 // ============================================================
 
-function renderClosingMessage(capsule: CapsuleData, styles: ThemeStyles): string {
-  return `<div style="page-break-before:always; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:80vh; text-align:center; padding:80px 60px;">
-    <div style="width:48px; height:3px; background:${styles.accentColor}; margin-bottom:40px; border-radius:2px;"></div>
-    <p style="font-family:${styles.headingFont}; font-size:26px; color:${styles.pageText}; font-style:italic; margin-bottom:20px; line-height:1.5; max-width:420px;">
-      "Events end. Legacies don't."
-    </p>
-    <p style="font-family:${styles.bodyFont}; font-size:14px; color:${styles.secondaryText}; line-height:1.85; max-width:380px; margin-bottom:48px;">
-      This publication was assembled from the voices of those who love and remember ${escapeHtml(capsule.honouree_name)}.
-      It is a permanent record — kept for all who contributed, and for those who come after.
-    </p>
-    <p style="font-family:${styles.bodyFont}; font-size:10px; color:${styles.secondaryText}; opacity:0.45; letter-spacing:0.18em; text-transform:uppercase;">
-      LegacyCapsule · VALNEX, UNIPESSOAL LDA · RevoWorldTech
-    </p>
-    <div style="width:48px; height:3px; background:${styles.accentColor}; margin-top:40px; border-radius:2px;"></div>
-  </div>`;
+function renderClosingMessage(
+  capsule: CapsuleData,
+  styles: ThemeStyles,
+  version?: number | null
+): string {
+  const versionLine = version
+    ? `<p style="font-family:${styles.bodyFont}; font-size:9px; color:${styles.secondaryText}; opacity:0.25; letter-spacing:0.14em; margin:0 0 6px;">
+        Publication v${version}
+      </p>`
+    : ''
+
+  const generatedDate = new Date().toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'long', year: 'numeric'
+  })
+
+  return `<div style="
+    page-break-before:always;
+    height:297mm;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:80px 72px;
+    position:relative;
+    background:${styles.coverBg ?? styles.pageBg ?? '#FFFFFF'};
+    overflow:hidden;
+  ">
+
+    <!-- Subtle background texture — two faint radial glows -->
+    <div style="
+      position:absolute; top:-10%; left:-10%; width:60%; height:60%;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(226,195,107,0.06) 0%, transparent 70%);
+      pointer-events:none;
+    "></div>
+    <div style="
+      position:absolute; bottom:-10%; right:-10%; width:60%; height:60%;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(226,195,107,0.04) 0%, transparent 70%);
+      pointer-events:none;
+    "></div>
+
+    <!-- Content wrapper -->
+    <div style="position:relative; z-index:1; max-width:460px; width:100%;">
+
+      <!-- Top gold rule -->
+      <div style="
+        width:40px; height:2px; margin:0 auto 52px;
+        background:${styles.accentColor};
+        border-radius:1px;
+      "></div>
+
+      <!-- LC wordmark -->
+      <p style="
+        font-family:${styles.bodyFont};
+        font-size:9px; font-weight:800;
+        letter-spacing:0.36em;
+        text-transform:uppercase;
+        color:${styles.accentColor};
+        margin:0 0 48px;
+        opacity:0.7;
+      ">LEGACYCAPSULE</p>
+
+      <!-- Primary mission statement -->
+      <p style="
+        font-family:${styles.headingFont};
+        font-size:28px;
+        font-style:italic;
+        font-weight:400;
+        color:${styles.coverTextColor ?? styles.pageText};
+        line-height:1.45;
+        margin:0 0 28px;
+        letter-spacing:-0.01em;
+      ">
+        "Events end.<br/>Legacies don't."
+      </p>
+
+      <!-- Gold separator -->
+      <div style="
+        width:24px; height:1px; margin:0 auto 28px;
+        background:${styles.accentColor}; opacity:0.4;
+      "></div>
+
+      <!-- Honouree-specific statement -->
+      <p style="
+        font-family:${styles.bodyFont};
+        font-size:14px;
+        color:${styles.coverTextColor ?? styles.pageText};
+        line-height:1.9;
+        margin:0 0 24px;
+        opacity:0.8;
+      ">
+        This publication was assembled from the voices of those<br/>
+        who love and remember
+        <span style="font-weight:700;">${escapeHtml(capsule.honouree_name)}</span>.
+      </p>
+
+      <!-- The deeper thought -->
+      <p style="
+        font-family:${styles.bodyFont};
+        font-size:13px;
+        color:${styles.coverTextColor ?? styles.pageText};
+        line-height:1.9;
+        margin:0 0 52px;
+        opacity:0.55;
+        max-width:380px;
+        margin-left:auto; margin-right:auto;
+      ">
+        Every voice in these pages is a permanent record — not just of
+        an occasion, but of the lives it touched, the bonds it honoured,
+        and the love that travelled across cities, countries and generations
+        to arrive here.
+      </p>
+
+      <!-- Bottom LC identity -->
+      <div style="margin-bottom:52px;">
+        <p style="
+          font-family:${styles.bodyFont};
+          font-size:10px;
+          color:${styles.coverTextColor ?? styles.pageText};
+          letter-spacing:0.22em;
+          text-transform:uppercase;
+          opacity:0.35;
+          margin:0 0 6px;
+        ">
+          VALNEX, UNIPESSOAL LDA · REVOWORLDTECH
+        </p>
+        <p style="
+          font-family:${styles.bodyFont};
+          font-size:10px;
+          color:${styles.coverTextColor ?? styles.pageText};
+          letter-spacing:0.14em;
+          text-transform:uppercase;
+          opacity:0.2;
+          margin:0;
+        ">
+          itslegacycapsule.com
+        </p>
+      </div>
+
+      <!-- Bottom gold rule -->
+      <div style="
+        width:40px; height:2px; margin:0 auto 28px;
+        background:${styles.accentColor};
+        border-radius:1px;
+      "></div>
+
+      <!-- Version + date — barely visible, tucked at bottom -->
+      ${versionLine}
+      <p style="
+        font-family:${styles.bodyFont};
+        font-size:9px;
+        color:${styles.coverTextColor ?? styles.pageText};
+        opacity:0.18;
+        letter-spacing:0.1em;
+        margin:0;
+      ">
+        Generated ${generatedDate}
+      </p>
+
+    </div>
+  </div>`
 }
 
 
@@ -1160,7 +1310,7 @@ export default async function PublicationRenderPage({
     renderCommunityStories(contribs, storyTopics, styles),
     renderMemories(memories, styles),
     // Closing message always last
-    closingSection ? renderClosingMessage(capsule, styles) : '',
+    closingSection ? renderClosingMessage(capsule, styles, pub.version ?? null) : '',
   ].filter(Boolean).join('\n');
 
   // ── Floating print button (screen only, hidden on print) ───
