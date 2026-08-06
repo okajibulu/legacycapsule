@@ -410,6 +410,12 @@ function AddTopicInline({ capsuleId, category, honoureeName, onAdded }: {
           <p style={{ margin: '0 0 10px', fontSize: '11px', color: goldMuted, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
             Suggest a Topic
           </p>
+          <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(226,195,107,0.06)', border: '1px solid rgba(226,195,107,0.15)', marginBottom: '10px' }}>
+            <p style={{ margin: 0, fontSize: '11px', color: goldMuted, lineHeight: 1.6 }}>
+              📂 You are adding a topic under <strong style={{ color: gold }}>{category}</strong>.
+              Your topic will only appear in this category, so make sure it fits here.
+            </p>
+          </div>
           <p style={{ margin: '0 0 10px', fontSize: '12px', color: textFaint, lineHeight: 1.6 }}>
             Propose a question or memory prompt others can respond to about {honoureeName}.
           </p>
