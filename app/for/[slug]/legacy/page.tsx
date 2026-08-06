@@ -192,7 +192,6 @@ function computeVoiceMetrics(
   })
   const topCountries = Object.entries(countryCounts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
     .map(([name, count]) => ({ name, count }))
   const topCountry = topCountries[0]
   const internationalCount = topCountry

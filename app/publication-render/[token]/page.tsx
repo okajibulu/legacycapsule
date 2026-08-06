@@ -237,6 +237,10 @@ const THEME_STYLES: Record<string, ThemeStyles> = {
 // page-break-after:avoid keeps heading with first content block.
 // ============================================================
 
+// ── Section padding — consistent horizontal breathing room ──
+// Applied to all section outer wrappers for screen and print consistency.
+const SECTION_WRAP = `padding:0 ${24}px;`
+
 function renderSectionHeader(title: string, styles: ThemeStyles): string {
   const base = `page-break-after:avoid;`
   switch (styles.sectionHeaderStyle) {
@@ -364,7 +368,7 @@ function renderHonoureeProfile(
     ? `${capsule.honouree_title} ${capsule.honouree_name}`
     : capsule.honouree_name;
 
-  return `<div style="page-break-before:always;">
+  return `<div style="page-break-before:always; ${SECTION_WRAP}">
     ${renderSectionHeader(displayName, styles)}
     ${sectionsHtml}
   </div>`;
@@ -416,7 +420,7 @@ function renderProfileGallery(
       </div>`
     }).join('')
 
-  return `<div style="page-break-before:always;">
+  return `<div style="page-break-before:always; ${SECTION_WRAP}">
     ${renderSectionHeader('Photo Gallery', styles)}
     ${sectionsHtml}
   </div>`;
@@ -475,7 +479,7 @@ function renderTributes(
     </div>`
   }).join('')
 
-  return `<div>
+  return `<div style="${SECTION_WRAP}">
     ${renderSectionHeader(getTributeHeading(eventType), styles)}
     <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic; letter-spacing:0.03em;">${tributeList.length} voice${tributeList.length !== 1 ? 's' : ''} gathered</p>
     ${cards}
@@ -517,7 +521,7 @@ function renderCommunityStories(
     </div>`
   }).join('')
 
-  return `<div style="page-break-before:always;">
+  return `<div style="page-break-before:always; ${SECTION_WRAP}">
     ${renderSectionHeader('Community Memories & Stories', styles)}
     ${topicsHtml}
   </div>`;
@@ -555,7 +559,7 @@ function renderMemories(memories: MemoryData[], styles: ThemeStyles): string {
       : `<div style="margin-bottom:18px;">${itemsHtml}</div>`
   }).join('')
 
-  return `<div style="page-break-before:always;">
+  return `<div style="page-break-before:always; ${SECTION_WRAP}">
     ${renderSectionHeader('Memories', styles)}
     <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic;">${memories.length} memor${memories.length !== 1 ? 'ies' : 'y'} shared</p>
     ${groupsHtml}
@@ -636,7 +640,7 @@ function renderOfficialPhotography(
     </div>`
   ).join('')
 
-  return `<div style="page-break-before:always;">
+  return `<div style="page-break-before:always; ${SECTION_WRAP}">
     ${renderSectionHeader('Official Photography', styles)}
     <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic;">${officialPhotos.length} photograph${officialPhotos.length !== 1 ? 's' : ''}</p>
     ${gridHtml}
@@ -679,7 +683,7 @@ function renderGuestCaptures(
     </div>`
   ).join('')
 
-  return `<div style="page-break-before:always;">
+  return `<div style="page-break-before:always; ${SECTION_WRAP}">
     ${renderSectionHeader('In The Room', styles)}
     <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic;">${guestPhotos.length} guest photograph${guestPhotos.length !== 1 ? 's' : ''} — moments captured by those who were there</p>
     ${gridHtml}
@@ -710,7 +714,7 @@ function renderWhoAttended(guests: GuestData[], styles: ThemeStyles): string {
     </div>`
   ).join('')
 
-  return `<div style="page-break-before:always;">
+  return `<div style="page-break-before:always; ${SECTION_WRAP}">
     ${renderSectionHeader('Who Attended', styles)}
     <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic;">${guests.length} guest${guests.length !== 1 ? 's' : ''} verified at this event</p>
     ${tiersHtml}
@@ -950,7 +954,6 @@ function renderCollectionIntelligence(
   })
   const topCountries = Object.entries(countryCounts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
 
   // Time
   const sorted = [...contribs].sort(
@@ -1023,8 +1026,8 @@ function renderCollectionIntelligence(
     </div>`
   }
 
-  return `<div style="page-break-before:always; padding:0 0 40px;">
-    ${renderSectionHeader(`Collection Intelligence`, styles)}
+  return `<div style="page-break-before:always; padding:0 0 40px; ${SECTION_WRAP}">
+    ${renderSectionHeader(`Capsule Highlights`, styles)}
     <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic;">
       A study of ${total} ${total === 1 ? lang.singular.toLowerCase() : lang.plural.toLowerCase()} gathered for this occasion.
     </p>
@@ -1055,13 +1058,13 @@ function renderCollectionIntelligence(
 
       <!-- Right column: Distribution + Countries -->
       <div>
-        <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">Length Distribution</p>
+        <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">Message Character Lengths Breakdown</p>
         <div style="background:#FFFFFF; border-radius:12px; padding:14px 16px; border:1px solid rgba(0,0,0,0.07); margin-bottom:20px;">
           ${distribution.map(d => distBar(d.label, d.count)).join('')}
         </div>
 
         ${topCountries.length > 0 ? `
-        <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">Top Countries</p>
+        <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">Contribution Countries Breakdown</p>
         <div style="background:#FFFFFF; border-radius:12px; padding:14px 16px; border:1px solid rgba(0,0,0,0.07);">
           ${topCountries.map(([name, count], i) => countryBar(name, count, i + 1)).join('')}
         </div>
@@ -1093,17 +1096,61 @@ const COUNTRY_CENTROIDS: Record<string, [number, number]> = {
   UG: [132, 158], RW: [130, 162], ZM: [125, 172], ZW: [128, 175],
 };
 
+// Full country name → ISO 2-letter code lookup
+// Covers all countries that appear in LC contributor data
+const COUNTRY_NAME_TO_ISO: Record<string, string> = {
+  'Nigeria': 'NG', 'Ghana': 'GH', 'Kenya': 'KE', 'Uganda': 'UG',
+  'Tanzania': 'TZ', 'South Africa': 'ZA', 'Ethiopia': 'ET',
+  'Rwanda': 'RW', 'Zambia': 'ZM', 'Zimbabwe': 'ZW',
+  'Cameroon': 'CM', 'Senegal': 'SN', "Côte d'Ivoire": 'CI',
+  'Ivory Coast': 'CI', 'Egypt': 'EG', 'Morocco': 'MA',
+  'Algeria': 'DZ', 'Tunisia': 'TN',
+  'United Kingdom': 'GB', 'UK': 'GB', 'England': 'GB',
+  'Germany': 'DE', 'France': 'FR', 'Netherlands': 'NL',
+  'Belgium': 'BE', 'Ireland': 'IE', 'Italy': 'IT',
+  'Spain': 'ES', 'Portugal': 'PT', 'Sweden': 'SE',
+  'Norway': 'NO', 'Denmark': 'DK', 'Finland': 'FI',
+  'Poland': 'PL', 'Ukraine': 'UA', 'Russia': 'RU',
+  'Turkey': 'TR', 'Switzerland': 'CH', 'Austria': 'AT',
+  'United States': 'US', 'United States of America': 'US',
+  'USA': 'US', 'Canada': 'CA', 'Mexico': 'MX',
+  'Brazil': 'BR', 'Argentina': 'AR', 'Colombia': 'CO',
+  'Jamaica': 'JM', 'Trinidad and Tobago': 'TT',
+  'Australia': 'AU', 'New Zealand': 'NZ',
+  'India': 'IN', 'China': 'CN', 'Japan': 'JP',
+  'Singapore': 'SG', 'Malaysia': 'MY',
+  'Saudi Arabia': 'SA', 'UAE': 'AE',
+  'United Arab Emirates': 'AE', 'Qatar': 'QA',
+}
+
+function countryToIso(name: string): string {
+  // Try exact match first
+  if (COUNTRY_NAME_TO_ISO[name]) return COUNTRY_NAME_TO_ISO[name]
+  // Try case-insensitive match
+  const lower = name.toLowerCase()
+  const found = Object.entries(COUNTRY_NAME_TO_ISO).find(
+    ([k]) => k.toLowerCase() === lower
+  )
+  if (found) return found[1]
+  // Already an ISO code — return as-is
+  if (/^[A-Z]{2}$/.test(name.trim())) return name.trim()
+  return ''
+}
+
 function renderWorldMap(
   contribs: ContributionData[],
   styles: ThemeStyles
 ): string {
-  // Gather unique countries from approved contributions
+  // Gather unique countries — resolve full names to ISO codes
   const countryCounts: Record<string, number> = {};
+  const countryLabels: Record<string, string> = {}; // ISO → display name
   contribs.forEach(c => {
-    if (c.country) {
-      // country field may be full name or ISO code — try to match
-      const key = c.country.trim().toUpperCase().slice(0, 2);
-      countryCounts[key] = (countryCounts[key] ?? 0) + 1;
+    if (c.country && c.country.trim() !== 'Not Listed') {
+      const iso = countryToIso(c.country.trim());
+      if (iso) {
+        countryCounts[iso] = (countryCounts[iso] ?? 0) + 1;
+        countryLabels[iso] = c.country.trim(); // store display name for pill
+      }
     }
   });
 
@@ -1124,7 +1171,7 @@ function renderWorldMap(
   const countryCount = countries.filter(c => COUNTRY_CENTROIDS[c]).length;
   const totalContribs = contribs.length;
 
-  return `<div style="page-break-before:always; padding:0 0 40px;">
+  return `<div style="page-break-before:always; padding:0 0 40px; ${SECTION_WRAP}">
     ${renderSectionHeader('World Voices Map', styles)}
     <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic;">
       Voices gathered from ${countryCount} countr${countryCount !== 1 ? 'ies' : 'y'} across the world — ${totalContribs} voice${totalContribs !== 1 ? 's' : ''} in all
@@ -1152,7 +1199,7 @@ function renderWorldMap(
       ${countries.filter(c => COUNTRY_CENTROIDS[c]).map(code =>
         `<div style="display:flex; align-items:center; gap:6px; padding:5px 12px; border-radius:20px; border:1px solid ${styles.tributeCardBorder}; background:#FFFFFF;">
           <div style="width:8px; height:8px; border-radius:50%; background:${styles.accentColor}; flex-shrink:0;"></div>
-          <span style="font-family:${styles.bodyFont}; font-size:11px; color:${styles.secondaryText};">${code} · ${countryCounts[code]}</span>
+          <span style="font-family:${styles.bodyFont}; font-size:11px; color:${styles.secondaryText};">${countryLabels[code] ?? code} · ${countryCounts[code]}</span>
         </div>`
       ).join('')}
     </div>

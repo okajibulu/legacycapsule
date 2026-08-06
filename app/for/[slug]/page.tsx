@@ -51,12 +51,20 @@ export async function generateMetadata({
   
    
 
+  const eventContext = data.event_tag ?? null
+  const ogPageTitle = eventContext
+    ? `${data.honouree_name} — ${eventContext}`
+    : data.honouree_name
+  const ogDescription = eventContext
+    ? `${eventContext} — Add your voice and help preserve the memories and stories that matter most.`
+    : `A tribute collection for ${data.honouree_name}. Add your voice and help build a permanent record.`
+
   return {
-    title: `${data.honouree_name} · LegacyCapsule`,
-    description: `Add your voice and help preserve the memories and stories that matter most.`,
+    title: `${ogPageTitle} · LegacyCapsule`,
+    description: ogDescription,
     openGraph: {
-      title: `${data.honouree_name} · LegacyCapsule`,
-      description: `Add your voice and help preserve the memories and stories that matter most.`,
+      title: `${ogPageTitle} · LegacyCapsule`,
+      description: ogDescription,
       url: `${appUrl}/for/${slug}`,
       siteName: 'LegacyCapsule',
       type: 'website',
@@ -65,14 +73,14 @@ export async function generateMetadata({
           url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: `${data.honouree_name} · LegacyCapsule`,
+          alt: `${ogPageTitle} · LegacyCapsule`,
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${data.honouree_name} · LegacyCapsule`,
-      description: `Add your voice and help preserve the memories and stories that matter most.`,
+      title: `${ogPageTitle} · LegacyCapsule`,
+      description: ogDescription,
       images: [ogImageUrl],
     },
   }

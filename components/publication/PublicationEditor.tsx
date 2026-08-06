@@ -148,6 +148,10 @@ function AutoSectionPlaceholder({ type }: { type: string }) {
       title:  'Who Attended is generated from your guest check-in list.',
       detail: 'Guests marked as checked in will appear in this section.',
     },
+    collection_intelligence: {
+      title:  'Capsule Highlights — analytics and insights from this collection.',
+      detail: 'Automatically rendered before the voices section. Includes character stats, distribution, and country breakdown.',
+    },
     closing_message: {
       title:  'The closing message is a fixed LegacyCapsule colophon.',
       detail: 'It appears at the end of every publication.',
@@ -171,6 +175,78 @@ function AutoSectionPlaceholder({ type }: { type: string }) {
 // ============================================================
 // SECTION 5 — Main component
 // ============================================================
+
+// ── Distribution Intelligence Panel ───────────────────────
+// Shows persistent email stats — unique emails, sent counts,
+// which version each cohort received.
+function DistributionSummary({
+  capsuleId,
+  pubVersion,
+}: {
+  capsuleId: string
+  pubVersion: number | null
+}) {
+  const [stats, setStats] = useState<{
+    total: number
+    already_received: number
+    will_receive_now: number
+    version: number
+    no_email: number
+  } | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!capsuleId) return
+    setLoading(true)
+    fetch(`/api/publication/distribute?capsule_id=${capsuleId}&preview=1`)
+      .then(r => r.json())
+      .then(d => { if (!d.error) setStats(d) })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [capsuleId])
+
+  if (loading) return (
+    <div className="mb-3 p-2.5 rounded-lg border border-white/8 text-center" style={{ background: 'rgba(255,255,255,0.02)' }}>
+      <p className="text-[9px] text-white/20">Loading email stats…</p>
+    </div>
+  )
+
+  if (!stats) return null
+
+  return (
+    <div className="mb-3 p-2.5 rounded-lg border border-white/8" style={{ background: 'rgba(255,255,255,0.02)' }}>
+      <p className="text-[9px] text-yellow-400/50 uppercase tracking-wider font-bold mb-2">
+        Email Distribution
+      </p>
+      <div className="space-y-1.5">
+        <div className="flex justify-between items-baseline">
+          <span className="text-[10px] text-white/40">Unique emails in system</span>
+          <span className="text-[10px] text-white/70 font-bold">{stats.total}</span>
+        </div>
+        {stats.already_received > 0 && (
+          <div className="flex justify-between items-baseline">
+            <span className="text-[10px] text-white/40">
+              Received v{stats.version}
+            </span>
+            <span className="text-[10px] text-green-400/70 font-bold">{stats.already_received}</span>
+          </div>
+        )}
+        {stats.will_receive_now > 0 && (
+          <div className="flex justify-between items-baseline">
+            <span className="text-[10px] text-white/40">Yet to receive</span>
+            <span className="text-[10px] text-yellow-400/70 font-bold">{stats.will_receive_now}</span>
+          </div>
+        )}
+        {stats.no_email > 0 && (
+          <div className="flex justify-between items-baseline">
+            <span className="text-[10px] text-white/30">No email on file</span>
+            <span className="text-[10px] text-white/25">{stats.no_email}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function PublicationEditor({
   capsuleId,
@@ -660,17 +736,17 @@ export default function PublicationEditor({
             {/* Current version info */}
             {currentToken && (
               <div className="mb-3 p-2.5 rounded-lg border border-white/8" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-2">
                   <span className="text-[9px] text-yellow-400/50 uppercase tracking-wider font-bold">
                     Current Version
                   </span>
                   {pubVersion && (
-                    <span className="text-[9px] text-white/25 font-mono">v{pubVersion}</span>
+                    <span className="text-[11px] text-yellow-300 font-bold font-mono">v{pubVersion}</span>
                   )}
                 </div>
                 {currentGeneratedAt && (
-                  <p className="text-[10px] text-white/30 mb-2">
-                    {new Date(currentGeneratedAt).toLocaleDateString('en-GB', {
+                  <p className="text-[10px] text-white/40 mb-2">
+                    Generated {new Date(currentGeneratedAt).toLocaleDateString('en-GB', {
                       day: 'numeric', month: 'short', year: 'numeric'
                     })}
                   </p>
@@ -683,6 +759,11 @@ export default function PublicationEditor({
                   Open Publication ↗
                 </button>
               </div>
+            )}
+
+            {/* Distribution intelligence — persistent summary */}
+            {currentToken && (
+              <DistributionSummary capsuleId={capsuleId} pubVersion={pubVersion} />
             )}
 
             {hasUnsavedChanges && (
