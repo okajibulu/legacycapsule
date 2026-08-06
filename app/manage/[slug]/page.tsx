@@ -269,10 +269,12 @@ function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; 
   const [newType, setNewType] = useState('')
   const [newTitle, setNewTitle] = useState('')
   const [newContent, setNewContent] = useState('')
-  const [drafts, setDrafts] = useState<
+  const [drafts, setDrafts] = useState
   Record<string, { title: string; content: string }>
 >({})
   const [saving, setSaving] = useState(false)
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [savedId, setSavedId] = useState<string | null>(null)
  
   const allTypes = [...SUMMARY_SECTION_TYPES, ...PROFILE_SECTION_TYPES]
   const selectedTypeDef = allTypes.find(t => t.type === newType)
