@@ -10,6 +10,8 @@
  *   — v2.11.49: Profile gallery (capsule_gallery) added
  *   — v2.11.49: Tribute serial numbers added
  *   — v2.11.49: Closing message always rendered last
+ *   — v2.11.58: Collection Intelligence renderer added (metrics page between world map and tributes)
+ *   — v2.11.58: renderCollectionIntelligence() — voice metrics, distribution, countries, time intel
  *   — v2.11.54: World map renderer added (SVG dot map, server-side, no JS dependency)
  *   — v2.11.54: world_map section type wired into render pipeline
  *   — v2.11.53: Lightbox added — all images clickable to full-screen overlay (screen only, hidden on print)
@@ -739,6 +741,187 @@ function renderClosingMessage(capsule: CapsuleData, styles: ThemeStyles): string
 
 
 // ============================================================
+// SECTION 16A — Collection Intelligence renderer
+// Premium metrics page inserted between World Map and Tributes.
+// Named individuals excluded — collective metrics only.
+// ============================================================
+
+function renderCollectionIntelligence(
+  contribs: ContributionData[],
+  styles: ThemeStyles,
+  eventType: string
+): string {
+  if (contribs.length === 0) return ''
+
+  // Compute metrics
+  const lengths = contribs
+    .map(c => (c.tribute_text ?? '').length)
+    .filter(l => l > 0)
+    .sort((a, b) => a - b)
+
+  const total = contribs.length
+  const totalChars = lengths.reduce((s, l) => s + l, 0)
+  const avgLength = Math.round(totalChars / (lengths.length || 1))
+  const mid = Math.floor(lengths.length / 2)
+  const medianLength = lengths.length % 2 === 0
+    ? Math.round((lengths[mid - 1] + lengths[mid]) / 2)
+    : lengths[mid]
+  const shortestLength = lengths[0] ?? 0
+  const longestLength = lengths[lengths.length - 1] ?? 0
+  const over500 = lengths.filter(l => l > 500).length
+  const over500Pct = Math.round((over500 / total) * 10) / 10
+  const over1000 = lengths.filter(l => l > 1000).length
+  const over1000Pct = Math.round((over1000 / total) * 10) / 10
+
+  // Distribution
+  const buckets = [
+    { label: 'Under 100',    min: 0,    max: 99   },
+    { label: '100–300',      min: 100,  max: 300  },
+    { label: '301–500',      min: 301,  max: 500  },
+    { label: '501–750',      min: 501,  max: 750  },
+    { label: '751–1,000',    min: 751,  max: 1000 },
+    { label: '1,001–1,500',  min: 1001, max: 1500 },
+    { label: '1,501–2,000',  min: 1501, max: 2000 },
+    { label: 'Over 2,000',   min: 2001, max: Infinity },
+  ]
+  const distribution = buckets
+    .map(b => ({
+      label: b.label,
+      count: lengths.filter(l => l >= b.min && l <= b.max).length,
+    }))
+    .filter(d => d.count > 0)
+  const maxBucketCount = Math.max(...distribution.map(d => d.count))
+
+  // Countries
+  const countryCounts: Record<string, number> = {}
+  contribs.forEach(c => {
+    const co = c.country?.trim()
+    if (co) countryCounts[co] = (countryCounts[co] ?? 0) + 1
+  })
+  const topCountries = Object.entries(countryCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+
+  // Time
+  const sorted = [...contribs].sort(
+    (a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime()
+  )
+  const firstDate = sorted[0]?.created_at
+  const lastDate = sorted[sorted.length - 1]?.created_at
+  const spanDays = firstDate && lastDate
+    ? Math.max(1, Math.ceil((new Date(lastDate).getTime() - new Date(firstDate).getTime()) / 86400000))
+    : 1
+  const avgPerDay = (total / spanDays).toFixed(1)
+  const dayCounts: Record<string, number> = {}
+  contribs.forEach(c => {
+    if (c.created_at) {
+      const day = new Date(c.created_at).toISOString().slice(0, 10)
+      dayCounts[day] = (dayCounts[day] ?? 0) + 1
+    }
+  })
+  const topDay = Object.entries(dayCounts).sort((a, b) => b[1] - a[1])[0]
+  const mostActiveDayStr = topDay
+    ? `${new Date(topDay[0]).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · ${topDay[1]} voices`
+    : null
+
+  // Participation language
+  const langMap: Record<string, { singular: string; plural: string }> = {
+    chieftaincy:     { singular: 'Encomium',        plural: 'Encomiums' },
+    birthday:        { singular: 'Wish',             plural: 'Wishes' },
+    wedding:         { singular: 'Blessing',         plural: 'Blessings' },
+    graduation:      { singular: 'Congratulation',   plural: 'Congratulations' },
+    ordination:      { singular: 'Blessing',         plural: 'Blessings' },
+    award_ceremony:  { singular: 'Honour',           plural: 'Honours' },
+    memorial:        { singular: 'Tribute',          plural: 'Tributes' },
+    thanksgiving:    { singular: 'Gratitude',        plural: 'Gratitude Messages' },
+    retirement:      { singular: 'Appreciation',     plural: 'Appreciations' },
+  }
+  const lang = langMap[eventType] ?? { singular: 'Voice', plural: 'Voices' }
+
+  const metricRow = (label: string, value: string) =>
+    `<div style="display:flex; justify-content:space-between; align-items:baseline; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.06);">
+      <span style="font-family:${styles.bodyFont}; font-size:12px; color:${styles.secondaryText};">${label}</span>
+      <span style="font-family:${styles.bodyFont}; font-size:13px; font-weight:700; color:${styles.pageText};">${value}</span>
+    </div>`
+
+  const distBar = (label: string, count: number) => {
+    const pct = Math.round((count / total) * 100)
+    const barPct = maxBucketCount > 0 ? Math.round((count / maxBucketCount) * 100) : 0
+    return `<div style="margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+        <span style="font-family:${styles.bodyFont}; font-size:11px; color:${styles.secondaryText};">${label}</span>
+        <span style="font-family:${styles.bodyFont}; font-size:11px; font-weight:700; color:${styles.pageText};">${count} <span style="font-weight:400; color:${styles.secondaryText};">(${pct}%)</span></span>
+      </div>
+      <div style="height:6px; border-radius:3px; background:rgba(0,0,0,0.07); overflow:hidden;">
+        <div style="height:100%; border-radius:3px; width:${barPct}%; background:${styles.accentColor};"></div>
+      </div>
+    </div>`
+  }
+
+  const countryBar = (name: string, count: number, rank: number) => {
+    const pct = Math.round((count / total) * 100)
+    return `<div style="margin-bottom:10px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+        <span style="font-size:10px; font-weight:800; color:${styles.accentColor}; width:16px; text-align:center;">${rank}</span>
+        <span style="font-family:${styles.bodyFont}; font-size:12px; font-weight:600; color:${styles.pageText}; flex:1;">${name}</span>
+        <span style="font-family:${styles.bodyFont}; font-size:12px; font-weight:700; color:${styles.pageText};">${count}</span>
+        <span style="font-family:${styles.bodyFont}; font-size:10px; color:${styles.secondaryText}; width:34px; text-align:right;">${pct}%</span>
+      </div>
+      <div style="margin-left:24px; height:4px; border-radius:2px; background:rgba(0,0,0,0.07);">
+        <div style="height:100%; border-radius:2px; width:${pct}%; background:${styles.accentColor};"></div>
+      </div>
+    </div>`
+  }
+
+  return `<div style="page-break-before:always; padding:0 0 40px;">
+    ${renderSectionHeader(`Collection Intelligence`, styles)}
+    <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic;">
+      A study of ${total} ${total === 1 ? lang.singular.toLowerCase() : lang.plural.toLowerCase()} gathered for this occasion.
+    </p>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:32px;">
+
+      <!-- Left column: Key metrics -->
+      <div>
+        <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">The ${lang.plural}</p>
+        <div style="background:#FFFFFF; border-radius:12px; padding:4px 16px; border:1px solid rgba(0,0,0,0.07);">
+          ${metricRow(`Total ${lang.plural.toLowerCase()}`, total.toLocaleString())}
+          ${metricRow('Total characters written', totalChars.toLocaleString())}
+          ${metricRow(`Average ${lang.singular.toLowerCase()} length`, `${avgLength.toLocaleString()} characters`)}
+          ${metricRow(`Median ${lang.singular.toLowerCase()} length`, `≈${medianLength.toLocaleString()} characters`)}
+          ${metricRow('Shortest', `${shortestLength.toLocaleString()} characters`)}
+          ${metricRow('Longest', `${longestLength.toLocaleString()} characters`)}
+          ${over500 > 0 ? metricRow(`Over 500 characters`, `${over500} (${over500Pct}%)`) : ''}
+          ${over1000 > 0 ? metricRow(`Over 1,000 characters`, `${over1000} (${over1000Pct}%)`) : ''}
+        </div>
+
+        <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:20px 0 12px;">When They Arrived</p>
+        <div style="background:#FFFFFF; border-radius:12px; padding:4px 16px; border:1px solid rgba(0,0,0,0.07);">
+          ${mostActiveDayStr ? metricRow('Most active day', mostActiveDayStr) : ''}
+          ${metricRow('Gathering span', `${spanDays} day${spanDays !== 1 ? 's' : ''}`)}
+          ${metricRow(`Average per day`, `${avgPerDay} ${lang.plural.toLowerCase()}`)}
+        </div>
+      </div>
+
+      <!-- Right column: Distribution + Countries -->
+      <div>
+        <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">Length Distribution</p>
+        <div style="background:#FFFFFF; border-radius:12px; padding:14px 16px; border:1px solid rgba(0,0,0,0.07); margin-bottom:20px;">
+          ${distribution.map(d => distBar(d.label, d.count)).join('')}
+        </div>
+
+        ${topCountries.length > 0 ? `
+        <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">Top Countries</p>
+        <div style="background:#FFFFFF; border-radius:12px; padding:14px 16px; border:1px solid rgba(0,0,0,0.07);">
+          ${topCountries.map(([name, count], i) => countryBar(name, count, i + 1)).join('')}
+        </div>
+        ` : ''}
+      </div>
+    </div>
+  </div>`
+}
+
+// ============================================================
 // SECTION 16B — World Map renderer
 // Pure SVG dot map — no JS dependency, prints perfectly.
 // Country centroids mapped to approximate x/y on a
@@ -954,14 +1137,17 @@ export default async function PublicationRenderPage({
           return renderCover(capsule, heroUrl, styles);
         case 'honouree_profile':
           return renderHonoureeProfile(capsule, profileSections, styles);
-        case 'tributes':
-          return renderTributes(section as TributesSection, contribs, styles, capsule.event_type);
+        case 'tributes': {
+          const collIntelHtml = renderCollectionIntelligence(contribs, styles, capsule.event_type ?? 'retirement')
+          return collIntelHtml + renderTributes(section as TributesSection, contribs, styles, capsule.event_type)
+        }
         case 'phase_photos':
           return renderPhasePhotos(section as PhasePhotosSection, photoUrlMap, styles);
         case 'who_attended':
           return renderWhoAttended(guests, styles);
         case 'world_map':
           return renderWorldMap(contribs, styles);
+        // collection_intelligence renders inside the tributes case — no separate case needed
         default:
           return '';
       }

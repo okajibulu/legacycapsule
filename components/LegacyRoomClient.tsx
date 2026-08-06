@@ -16,6 +16,16 @@
      5. Publication Status — collection state + future download CTA
 
    OWNER: AI7 — Phase 2
+   UPDATED: AI18 · 6 Aug 2026
+     — VoiceMetrics + ActivityItem exported types
+     — 8-stat collection overview (2 rows)
+     — Inside the Voices section (metrics + distribution + time)
+     — Where the World Showed Up (ranked countries + continents)
+     — Who Showed Up (relationship intelligence + attribution)
+     — Multi-source activity feed (voices/memories/moments) with type pills
+     — Live publication status (3 states)
+     — Participation language engine wired throughout (no hardcoded labels)
+     — 60s polling updated to all 3 sources
 ========================================================= */
 
 import { useState, useEffect, useCallback } from 'react'
@@ -23,6 +33,50 @@ import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import { getThemeConfig } from '@/lib/themeConfig'
 import type { ThemeKey, ThemeConfig } from '@/lib/themeConfig'
+import { getParticipationLanguage } from '@/lib/utils/getParticipationLanguage'
+
+// ── Exported types — used by server page for prop typing ──
+export interface VoiceMetrics {
+  total: number
+  totalChars: number
+  avgLength: number
+  medianLength: number
+  shortestLength: number
+  longestLength: number
+  over500: number
+  over500Pct: number
+  over1000: number
+  over1000Pct: number
+  distribution: Array<{ label: string; count: number; pct: number }>
+  mostActiveDay: { date: string; count: number } | null
+  spanDays: number
+  avgPerDay: number
+  topRelationships: Array<{ label: string; count: number }>
+  distinctRelationships: number
+  topCountries: Array<{ name: string; count: number }>
+  continents: Array<{ name: string; count: number }>
+  internationalPct: number
+  singleCountries: number
+  attributionCount: number
+  attributionPct: number
+  consentCount: number
+  consentPct: number
+  emailCount: number
+  emailPct: number
+  photoCount: number
+  photoPct: number
+  anonymousCount: number
+}
+
+export interface ActivityItem {
+  id: string
+  contributor_name: string
+  city: string
+  country: string
+  created_at: string
+  thumbnail_url: string | null
+  activity_type: 'voice' | 'memory' | 'moment'
+}
 
 /* ── TYPES ── */
 interface Capsule {
@@ -46,10 +100,7 @@ interface Builder {
   ref_count: number; recognition_tier: string; rank_position: number | null
 }
 
-interface Activity {
-  id: string; contributor_name: string; city: string; country: string
-  created_at: string; thumbnail_url: string | null
-}
+// ActivityItem is now exported above — no local interface needed
 
 interface GalleryPhoto {
   id: string; image_url: string; description: string | null
@@ -57,9 +108,28 @@ interface GalleryPhoto {
 }
 
 interface Props {
-  capsule: Capsule; summary: Summary; builders: Builder[]
-  showBuilders: boolean; recentActivity: Activity[]
-  galleryPhotos: GalleryPhoto[]; themeKey: ThemeKey
+  capsule: Capsule
+  summary: Summary
+  builders: Builder[]
+  showBuilders: boolean
+  recentActivity: ActivityItem[]
+  galleryPhotos: GalleryPhoto[]
+  themeKey: ThemeKey
+  voiceMetrics: VoiceMetrics
+  storiesCount: number
+  momentsCount: number
+  topBuilder: {
+    contributor_name: string
+    display_name: string
+    ref_count: number
+    recognition_tier: string
+  } | null
+  publicationStatus: {
+    generationStatus: string
+    version: number
+    generatedAt: string | null
+    sentCount: number
+  } | null
 }
 
 /* ── TIER CONFIG ── */
@@ -167,31 +237,41 @@ function BuilderCard({ builder, t }: { builder: Builder; t: ThemeConfig }) {
 }
 
 /* =========================================================
-   ACTIVITY ROW — single recent contribution
+   ACTIVITY ROW — single recent activity item (voice/memory/moment)
 ========================================================= */
-function ActivityRow({ item, t }: { item: Activity; t: ThemeConfig }) {
+const ACTIVITY_PILL: Record<string, { label: string; color: string; bg: string }> = {
+  voice:  { label: 'VOICE',  color: 'rgba(226,195,107,0.9)', bg: 'rgba(226,195,107,0.1)' },
+  memory: { label: 'MEMORY', color: 'rgba(147,197,253,0.9)', bg: 'rgba(147,197,253,0.1)' },
+  moment: { label: 'MOMENT', color: 'rgba(134,239,172,0.9)', bg: 'rgba(134,239,172,0.1)' },
+}
+
+function ActivityRow({ item, t, lang }: {
+  item: ActivityItem; t: ThemeConfig; lang: { singular: string; plural: string }
+}) {
   const timeAgo = getTimeAgo(item.created_at)
+  const pill = ACTIVITY_PILL[item.activity_type]
+  const pillLabel = item.activity_type === 'voice' ? lang.singular.toUpperCase() : pill.label
 
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '10px',
-      padding: '10px 0',
+      padding: '12px 0',
       borderBottom: `1px solid rgba(255,255,255,0.04)`,
     }}>
-      {/* Thumbnail or initials */}
+      {/* Avatar */}
       {item.thumbnail_url ? (
         <div style={{
-          width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden',
+          width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden',
           flexShrink: 0, border: `1px solid rgba(226,195,107,0.15)`,
         }}>
           <img src={item.thumbnail_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
       ) : (
         <div style={{
-          width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0,
+          width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
           background: 'rgba(226,195,107,0.08)', border: `1px solid rgba(226,195,107,0.15)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '10px', fontWeight: 700, color: t.accentMuted,
+          fontSize: '11px', fontWeight: 700, color: t.accentMuted,
         }}>
           {item.contributor_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
         </div>
@@ -199,13 +279,22 @@ function ActivityRow({ item, t }: { item: Activity; t: ThemeConfig }) {
 
       {/* Name + location */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{
-          fontSize: '12px', fontWeight: 600, color: t.textHeading, margin: 0,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {item.contributor_name}
-        </p>
-        <p style={{ fontSize: '10px', color: t.textFaint, margin: '1px 0 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+          <p style={{
+            fontSize: '12px', fontWeight: 600, color: t.textHeading, margin: 0,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {item.contributor_name}
+          </p>
+          <span style={{
+            fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em',
+            padding: '1px 6px', borderRadius: '4px', flexShrink: 0,
+            color: pill.color, background: pill.bg,
+          }}>
+            {pillLabel}
+          </span>
+        </div>
+        <p style={{ fontSize: '10px', color: t.textFaint, margin: 0 }}>
           {[item.city, item.country].filter(Boolean).join(' · ')}
         </p>
       </div>
@@ -314,19 +403,101 @@ function Section({ title, subtitle, children, t }: {
 }
 
 /* =========================================================
+   METRIC ROW — label + value pair
+========================================================= */
+function MetricRow({ label, value, accent, t }: {
+  label: string; value: string; accent?: boolean; t: ThemeConfig
+}) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+      padding: '9px 0', borderBottom: `1px solid rgba(255,255,255,0.04)`,
+    }}>
+      <span style={{ fontSize: '12px', color: t.textFaint, lineHeight: 1.4 }}>{label}</span>
+      <span style={{
+        fontSize: '13px', fontWeight: 700,
+        color: accent ? t.accentPrimary : t.textHeading,
+        textAlign: 'right', maxWidth: '55%',
+      }}>{value}</span>
+    </div>
+  )
+}
+
+/* =========================================================
+   DISTRIBUTION BAR — pure CSS horizontal bar chart
+========================================================= */
+function DistributionBar({ label, count, pct, maxCount, t }: {
+  label: string; count: number; pct: number; maxCount: number; t: ThemeConfig
+}) {
+  if (count === 0) return null
+  const barWidth = maxCount > 0 ? Math.round((count / maxCount) * 100) : 0
+  return (
+    <div style={{ marginBottom: '8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+        <span style={{ fontSize: '11px', color: t.textFaint }}>{label}</span>
+        <span style={{ fontSize: '11px', color: t.textMuted, fontWeight: 600 }}>
+          {count} <span style={{ color: t.textFaint, fontWeight: 400 }}>({pct}%)</span>
+        </span>
+      </div>
+      <div style={{
+        height: '6px', borderRadius: '3px',
+        background: 'rgba(255,255,255,0.06)', overflow: 'hidden',
+      }}>
+        <div style={{
+          height: '100%', borderRadius: '3px',
+          width: `${barWidth}%`,
+          background: `linear-gradient(to right, ${t.accentPrimary}, rgba(226,195,107,0.5))`,
+          transition: 'width 0.6s ease',
+        }} />
+      </div>
+    </div>
+  )
+}
+
+/* =========================================================
+   RANKED BAR — for top countries and relationships
+========================================================= */
+function RankedBar({ label, count, total, rank, t }: {
+  label: string; count: number; total: number; rank: number; t: ThemeConfig
+}) {
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0
+  return (
+    <div style={{ marginBottom: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+        <span style={{
+          fontSize: '9px', fontWeight: 800, color: t.accentMuted,
+          width: '16px', textAlign: 'center', flexShrink: 0,
+        }}>{rank}</span>
+        <span style={{ fontSize: '12px', color: t.textHeading, flex: 1, fontWeight: 600 }}>{label}</span>
+        <span style={{ fontSize: '12px', color: t.accentPrimary, fontWeight: 700 }}>{count}</span>
+        <span style={{ fontSize: '10px', color: t.textFaint, width: '36px', textAlign: 'right' }}>{pct}%</span>
+      </div>
+      <div style={{ marginLeft: '24px', height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.06)' }}>
+        <div style={{
+          height: '100%', borderRadius: '2px', width: `${pct}%`,
+          background: `linear-gradient(to right, ${t.accentPrimary}, rgba(226,195,107,0.4))`,
+        }} />
+      </div>
+    </div>
+  )
+}
+
+/* =========================================================
    MAIN COMPONENT
 ========================================================= */
 export default function LegacyRoomClient({
   capsule, summary, builders, showBuilders, recentActivity, galleryPhotos, themeKey,
+  voiceMetrics, storiesCount, momentsCount, topBuilder, publicationStatus,
 }: Props) {
   const t = getThemeConfig(themeKey)
+  const lang = getParticipationLanguage(capsule.event_type)
   const supabaseClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
   /* ── STATE ── */
-  const [activity, setActivity] = useState<Activity[]>(recentActivity)
+  const [activity, setActivity] = useState<ActivityItem[]>(recentActivity)
   const [lightboxPhoto, setLightboxPhoto] = useState<GalleryPhoto | null>(null)
 
   /* ── DERIVED ── */
@@ -336,18 +507,57 @@ export default function LegacyRoomClient({
   const heroZoom = capsule.hero_image_zoom ?? 150
   const heroFit = capsule.hero_image_fit ?? 'height'
 
-  /* ── 60s ACTIVITY POLLING ── */
+  /* ── 60s ACTIVITY POLLING — all 3 sources ── */
   const pollActivity = useCallback(async () => {
     try {
-      const { data } = await supabaseClient
-        .from('contributions')
-        .select('id, contributor_name, city, country, created_at, thumbnail_url')
-        .eq('capsule_id', capsule.id)
-        .eq('status', 'approved')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-        .limit(10)
-      if (data) setActivity(data as Activity[])
+      const [voicesRes, storiesRes, momentsRes] = await Promise.all([
+        supabaseClient
+          .from('contributions')
+          .select('id, contributor_name, city, country, created_at, thumbnail_url')
+          .eq('capsule_id', capsule.id)
+          .eq('status', 'approved')
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false })
+          .limit(3),
+        supabaseClient
+          .from('community_stories')
+          .select('id, contributor_name, city, country, created_at')
+          .eq('capsule_id', capsule.id)
+          .eq('status', 'approved')
+          .order('created_at', { ascending: false })
+          .limit(3),
+        supabaseClient
+          .from('gallery_items')
+          .select('id, contributor_name, ip_country, created_at')
+          .eq('capsule_id', capsule.id)
+          .eq('source', 'dday')
+          .eq('approved', true)
+          .order('created_at', { ascending: false })
+          .limit(3),
+      ])
+      const merged: ActivityItem[] = [
+        ...(voicesRes.data ?? []).map((v: any) => ({
+          id: v.id, contributor_name: v.contributor_name,
+          city: v.city ?? '', country: v.country ?? '',
+          created_at: v.created_at, thumbnail_url: v.thumbnail_url ?? null,
+          activity_type: 'voice' as const,
+        })),
+        ...(storiesRes.data ?? []).map((s: any) => ({
+          id: s.id, contributor_name: s.contributor_name,
+          city: s.city ?? '', country: s.country ?? '',
+          created_at: s.created_at, thumbnail_url: null,
+          activity_type: 'memory' as const,
+        })),
+        ...(momentsRes.data ?? []).map((m: any) => ({
+          id: m.id, contributor_name: m.contributor_name ?? 'Guest',
+          city: '', country: m.ip_country ?? '',
+          created_at: m.created_at, thumbnail_url: null,
+          activity_type: 'moment' as const,
+        })),
+      ]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 3)
+      setActivity(merged)
     } catch {}
   }, [capsule.id])
 
@@ -512,13 +722,239 @@ export default function LegacyRoomClient({
 
           {/* ── SECTION 1: COLLECTION OVERVIEW ── */}
           <Section title="Collection Overview" t={t}>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <StatCard value={summary.contributor_count} label="Voices Gathered" accent t={t} />
-              <StatCard value={summary.photo_count} label="Memories Preserved" t={t} />
+            {/* Row 1 — Primary */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+              <StatCard value={summary.contributor_count} label={`${lang.plural} Gathered`} accent t={t} />
               <StatCard value={summary.country_count} label="Countries" t={t} />
-              <StatCard value={summary.share_count} label="Times Shared" t={t} />
+              <StatCard value={voiceMetrics.distinctRelationships} label="Walks of Life" t={t} />
+              <StatCard value={voiceMetrics.spanDays} label="Days of Gathering" t={t} />
+            </div>
+            {/* Row 2 — Secondary */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <StatCard value={summary.photo_count} label="Photos" t={t} />
+              <StatCard value={storiesCount} label="Stories" t={t} />
+              <StatCard value={momentsCount} label="Moments" t={t} />
+              <StatCard value={summary.legacy_builder_count} label="Builders" t={t} />
             </div>
           </Section>
+
+          {/* ── SECTION B: INSIDE THE VOICES ── */}
+          {voiceMetrics.total > 0 && (
+            <Section
+              title={`Inside the ${lang.plural}`}
+              subtitle={`A closer look at what this collection contains`}
+              t={t}
+            >
+              {/* Key numbers */}
+              <div style={{
+                borderRadius: '14px', overflow: 'hidden',
+                background: 'rgba(255,255,255,0.02)',
+                border: `1px solid rgba(255,255,255,0.06)`,
+                padding: '4px 16px', marginBottom: '16px',
+              }}>
+                <MetricRow
+                  label={`Total ${lang.plural.toLowerCase()}`}
+                  value={voiceMetrics.total.toLocaleString()}
+                  accent t={t}
+                />
+                <MetricRow
+                  label="Total characters written"
+                  value={voiceMetrics.totalChars.toLocaleString()}
+                  t={t}
+                />
+                <MetricRow
+                  label={`Average ${lang.singular.toLowerCase()} length`}
+                  value={`${voiceMetrics.avgLength.toLocaleString()} characters`}
+                  t={t}
+                />
+                <MetricRow
+                  label={`Median ${lang.singular.toLowerCase()} length`}
+                  value={`≈${voiceMetrics.medianLength.toLocaleString()} characters`}
+                  t={t}
+                />
+                <MetricRow
+                  label="Shortest"
+                  value={`${voiceMetrics.shortestLength.toLocaleString()} characters`}
+                  t={t}
+                />
+                <MetricRow
+                  label="Longest"
+                  value={`${voiceMetrics.longestLength.toLocaleString()} characters`}
+                  t={t}
+                />
+                {voiceMetrics.over500 > 0 && (
+                  <MetricRow
+                    label={`${lang.plural} over 500 characters`}
+                    value={`${voiceMetrics.over500} (${voiceMetrics.over500Pct}%)`}
+                    t={t}
+                  />
+                )}
+                {voiceMetrics.over1000 > 0 && (
+                  <MetricRow
+                    label={`${lang.plural} over 1,000 characters`}
+                    value={`${voiceMetrics.over1000} (${voiceMetrics.over1000Pct}%)`}
+                    t={t}
+                  />
+                )}
+                {voiceMetrics.emailCount > 0 && (
+                  <MetricRow
+                    label="Contributors with email on file"
+                    value={`${voiceMetrics.emailCount} (${voiceMetrics.emailPct}%)`}
+                    t={t}
+                  />
+                )}
+                {voiceMetrics.consentCount > 0 && (
+                  <MetricRow
+                    label="Legacy Builder opt-ins"
+                    value={`${voiceMetrics.consentCount} (${voiceMetrics.consentPct}%)`}
+                    t={t}
+                  />
+                )}
+              </div>
+
+              {/* Distribution chart */}
+              {voiceMetrics.distribution.some(d => d.count > 0) && (
+                <div style={{
+                  borderRadius: '14px', background: 'rgba(255,255,255,0.02)',
+                  border: `1px solid rgba(255,255,255,0.06)`,
+                  padding: '14px 16px', marginBottom: '16px',
+                }}>
+                  <p style={{
+                    fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
+                    letterSpacing: '0.16em', color: t.accentMuted, margin: '0 0 12px',
+                  }}>
+                    Length Distribution
+                  </p>
+                  {(() => {
+                    const maxCount = Math.max(...voiceMetrics.distribution.map(d => d.count))
+                    return voiceMetrics.distribution.map(d => (
+                      <DistributionBar
+                        key={d.label}
+                        label={d.label}
+                        count={d.count}
+                        pct={d.pct}
+                        maxCount={maxCount}
+                        t={t}
+                      />
+                    ))
+                  })()}
+                </div>
+              )}
+
+              {/* Time intelligence */}
+              <div style={{
+                borderRadius: '14px', background: 'rgba(255,255,255,0.02)',
+                border: `1px solid rgba(255,255,255,0.06)`,
+                padding: '4px 16px',
+              }}>
+                {voiceMetrics.mostActiveDay && (
+                  <MetricRow
+                    label="Most active day"
+                    value={`${voiceMetrics.mostActiveDay.date} · ${voiceMetrics.mostActiveDay.count} ${voiceMetrics.mostActiveDay.count === 1 ? lang.singular.toLowerCase() : lang.plural.toLowerCase()}`}
+                    accent t={t}
+                  />
+                )}
+                <MetricRow
+                  label="Gathering span"
+                  value={`${voiceMetrics.spanDays} day${voiceMetrics.spanDays !== 1 ? 's' : ''}`}
+                  t={t}
+                />
+                <MetricRow
+                  label={`Average ${lang.plural.toLowerCase()} per day`}
+                  value={`${voiceMetrics.avgPerDay}`}
+                  t={t}
+                />
+              </div>
+            </Section>
+          )}
+
+          {/* ── SECTION C: WHERE THE WORLD SHOWED UP ── */}
+          {voiceMetrics.topCountries.length > 0 && (
+            <Section
+              title="Where the World Showed Up"
+              subtitle={`${voiceMetrics.topCountries.length} countr${voiceMetrics.topCountries.length !== 1 ? 'ies' : 'y'} represented`}
+              t={t}
+            >
+              <div style={{ marginBottom: '16px' }}>
+                {voiceMetrics.topCountries.map((c, i) => (
+                  <RankedBar
+                    key={c.name}
+                    label={c.name}
+                    count={c.count}
+                    total={voiceMetrics.total}
+                    rank={i + 1}
+                    t={t}
+                  />
+                ))}
+              </div>
+
+              {/* Continent breakdown */}
+              {voiceMetrics.continents.length > 1 && (
+                <div style={{
+                  display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px',
+                }}>
+                  {voiceMetrics.continents.map(c => (
+                    <div key={c.name} style={{
+                      padding: '5px 12px', borderRadius: '20px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: `1px solid rgba(255,255,255,0.08)`,
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                    }}>
+                      <span style={{ fontSize: '11px', color: t.textFaint }}>{c.name}</span>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: t.accentMuted }}>{c.count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* International insight */}
+              {voiceMetrics.internationalPct > 0 && voiceMetrics.topCountries.length > 1 && (
+                <p style={{
+                  fontSize: '12px', color: t.textFaint, lineHeight: 1.65,
+                  fontStyle: 'italic', margin: '0 0 8px',
+                }}>
+                  {voiceMetrics.internationalPct}% of {lang.plural.toLowerCase()} joined from outside {voiceMetrics.topCountries[0]?.name}.
+                  {voiceMetrics.singleCountries > 0 && ` ${voiceMetrics.singleCountries} countr${voiceMetrics.singleCountries !== 1 ? 'ies' : 'y'} sent exactly one ${lang.singular.toLowerCase()}.`}
+                </p>
+              )}
+            </Section>
+          )}
+
+          {/* ── SECTION D: WHO SHOWED UP ── */}
+          {voiceMetrics.topRelationships.length > 0 && (
+            <Section
+              title="Who Showed Up"
+              subtitle={`${voiceMetrics.distinctRelationships} distinct connection${voiceMetrics.distinctRelationships !== 1 ? 's' : ''} to ${capsule.honouree_name}`}
+              t={t}
+            >
+              <div style={{ marginBottom: '12px' }}>
+                {voiceMetrics.topRelationships.map((r, i) => (
+                  <RankedBar
+                    key={r.label}
+                    label={r.label}
+                    count={r.count}
+                    total={voiceMetrics.total}
+                    rank={i + 1}
+                    t={t}
+                  />
+                ))}
+              </div>
+              {voiceMetrics.attributionCount > 0 && (
+                <div style={{
+                  padding: '12px 14px', borderRadius: '12px',
+                  background: 'rgba(226,195,107,0.04)',
+                  border: `1px solid rgba(226,195,107,0.12)`,
+                }}>
+                  <p style={{ fontSize: '12px', color: t.textFaint, lineHeight: 1.65, margin: 0 }}>
+                    <span style={{ color: t.accentPrimary, fontWeight: 700 }}>
+                      {voiceMetrics.attributionCount} {voiceMetrics.attributionCount === 1 ? lang.singular.toLowerCase() : lang.plural.toLowerCase()}
+                    </span>
+                    {' '}({voiceMetrics.attributionPct}%) arrived through a shared link from within this community.
+                  </p>
+                </div>
+              )}
+            </Section>
+          )}
 
           {/* ── SECTION 2: LEGACY BUILDERS ── */}
           {!showBuilders && (
@@ -531,9 +967,27 @@ export default function LegacyRoomClient({
           {showBuilders && (
             <Section
               title="Legacy Builders"
-              subtitle="Helping more family and friends become part of this collection"
+              subtitle="Those who helped bring more voices into this collection"
               t={t}
             >
+              {/* Top builder highlight */}
+              {topBuilder && topBuilder.ref_count > 1 && (
+                <div style={{
+                  padding: '14px 16px', borderRadius: '12px', marginBottom: '12px',
+                  background: 'linear-gradient(135deg, rgba(226,195,107,0.08), rgba(226,195,107,0.03))',
+                  border: `1px solid rgba(226,195,107,0.2)`,
+                }}>
+                  <p style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.16em', color: t.accentMuted, margin: '0 0 4px' }}>
+                    Most Active Builder
+                  </p>
+                  <p style={{ fontSize: '14px', fontWeight: 700, color: t.accentPrimary, margin: '0 0 2px', fontFamily: "'Playfair Display', Georgia, serif" }}>
+                    {topBuilder.display_name || topBuilder.contributor_name}
+                  </p>
+                  <p style={{ fontSize: '12px', color: t.textFaint, margin: 0 }}>
+                    Brought {topBuilder.ref_count} {topBuilder.ref_count === 1 ? lang.singular.toLowerCase() : lang.plural.toLowerCase()} into this collection
+                  </p>
+                </div>
+              )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {builders.map(builder => (
                   <BuilderCard key={builder.id} builder={builder} t={t} />
@@ -552,7 +1006,7 @@ export default function LegacyRoomClient({
                 padding: '4px 14px',
               }}>
                 {activity.map((item, idx) => (
-                  <ActivityRow key={item.id} item={item} t={t} />
+                  <ActivityRow key={item.id} item={item} t={t} lang={lang} />
                 ))}
               </div>
             </Section>
@@ -597,25 +1051,75 @@ export default function LegacyRoomClient({
 
           {/* ── SECTION 5: PUBLICATION STATUS ── */}
           <Section title="Publication Status" t={t}>
-            <div style={{
-              padding: '20px 18px', borderRadius: '14px', textAlign: 'center',
-              background: 'rgba(255,255,255,0.02)',
-              border: `1px solid rgba(255,255,255,0.06)`,
-            }}>
-              <div style={{ fontSize: '24px', marginBottom: '10px' }}>✦</div>
-              <p style={{
-                fontSize: '13px', fontWeight: 600, color: t.textHeading, margin: '0 0 6px',
-                fontFamily: "'Playfair Display', Georgia, serif",
+            {publicationStatus && publicationStatus.generationStatus === 'complete' && publicationStatus.sentCount > 0 ? (
+              /* Distributed */
+              <div style={{
+                padding: '18px 18px', borderRadius: '14px',
+                background: 'rgba(74,222,128,0.04)',
+                border: `1px solid rgba(74,222,128,0.15)`,
               }}>
-                A permanent record is being assembled
-              </p>
-              <p style={{
-                fontSize: '11px', color: t.textFaint, lineHeight: 1.6, margin: 0,
-                maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto',
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '20px' }}>✦</span>
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: 'rgba(134,239,172,0.9)', margin: 0 }}>
+                      Publication distributed
+                    </p>
+                    <p style={{ fontSize: '11px', color: t.textFaint, margin: '2px 0 0' }}>
+                      Version {publicationStatus.version} · Sent to {publicationStatus.sentCount} recipient{publicationStatus.sentCount !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+                <p style={{ fontSize: '11px', color: t.textFaint, lineHeight: 1.65, margin: 0 }}>
+                  Every {lang.singular.toLowerCase()} in this collection has been preserved in a permanent digital keepsake.
+                </p>
+              </div>
+            ) : publicationStatus && publicationStatus.generationStatus === 'complete' ? (
+              /* Generated, not yet sent */
+              <div style={{
+                padding: '18px 18px', borderRadius: '14px',
+                background: 'rgba(226,195,107,0.04)',
+                border: `1px solid rgba(226,195,107,0.15)`,
               }}>
-                Every voice gathered here will be preserved in a digital publication — a lasting record for generations to come.
-              </p>
-            </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '20px' }}>◈</span>
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: t.accentPrimary, margin: 0 }}>
+                      Publication ready
+                    </p>
+                    <p style={{ fontSize: '11px', color: t.textFaint, margin: '2px 0 0' }}>
+                      Version {publicationStatus.version} · Awaiting distribution
+                    </p>
+                  </div>
+                </div>
+                <p style={{ fontSize: '11px', color: t.textFaint, lineHeight: 1.65, margin: 0 }}>
+                  The keepsake publication has been generated and will be distributed to contributors soon.
+                </p>
+              </div>
+            ) : (
+              /* Pending / not yet generated */
+              <div style={{
+                padding: '18px 18px', borderRadius: '14px', textAlign: 'center',
+                background: 'rgba(255,255,255,0.02)',
+                border: `1px solid rgba(255,255,255,0.06)`,
+              }}>
+                <div style={{ fontSize: '22px', marginBottom: '10px' }}>✦</div>
+                <p style={{
+                  fontSize: '13px', fontWeight: 600, color: t.textHeading, margin: '0 0 6px',
+                  fontFamily: "'Playfair Display', Georgia, serif",
+                }}>
+                  A permanent record is being assembled
+                </p>
+                <p style={{
+                  fontSize: '11px', color: t.textFaint, lineHeight: 1.65, margin: 0,
+                  maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto',
+                }}>
+                  {voiceMetrics.total > 0
+                    ? `${voiceMetrics.total} ${voiceMetrics.total === 1 ? lang.singular.toLowerCase() : lang.plural.toLowerCase()} gathered so far — all will be preserved in a digital keepsake for generations to come.`
+                    : `Every ${lang.singular.toLowerCase()} gathered here will be preserved in a digital publication — a lasting record for all who contributed.`
+                  }
+                </p>
+              </div>
+            )}
           </Section>
 
           {/* ── PAGE NAVIGATION ── */}

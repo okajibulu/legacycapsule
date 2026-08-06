@@ -1,0 +1,10 @@
+﻿
+app\for\[slug]\legacy\page.tsx:14:import LegacyRoomClient from 
+'@/components/LegacyRoomClient'
+app\for\[slug]\legacy\page.tsx:190:      <LegacyRoomClient
+components\LegacyRoomClient.tsx:5:   FILE: 
+components/LegacyRoomClient.tsx
+components\LegacyRoomClient.tsx:319:export default function 
+LegacyRoomClient({
+
+

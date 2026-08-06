@@ -1,0 +1,951 @@
+﻿
+app\about\page.tsx:234:            <a 
+href="https://revoworldtech.com" target="_blank" rel="noopener 
+noreferrer"
+app\about\page.tsx:250:            <Link href="/book" 
+className="btn-primary btn-primary-lg">Start Your Capsule</Link>
+app\about\page.tsx:251:            <Link href="/examples" 
+className="btn-secondary btn-primary-lg">See Live Examples</Link>
+app\admin\capsule\[id]\page.tsx:56:        <Link 
+href="/admin/capsule" style={{ fontSize: '12px', color: textFaint, 
+textDecoration: 'none' }}>← Capsules</Link>
+app\admin\capsule\[id]\page.tsx:84:          <a 
+href={`https://itslegacycapsule.com/for/${capsule.slug}`} 
+target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', 
+color: gold, textDecoration: 'none', padding: '4px 10px', 
+borderRadius: '6px', border: `1px solid rgba(226,195,107,0.2)` 
+}}>Tribute Wall ↗</a>
+app\admin\capsule\[id]\page.tsx:85:          <a 
+href={`https://itslegacycapsule.com/manage/${capsule.slug}`} 
+target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', 
+color: gold, textDecoration: 'none', padding: '4px 10px', 
+borderRadius: '6px', border: `1px solid rgba(226,195,107,0.2)` 
+}}>Manage Dashboard ↗</a>
+app\admin\capsule\page.tsx:49:          <Link key={c.id} 
+href={`/admin/capsule/${c.id}`} style={{
+app\admin\dashboard\page.tsx:31:    <Link href={href} style={{
+app\admin\dashboard\page.tsx:65:          <QuickAction 
+href="/admin/moderation" label="Review Moderation" 
+sub={`${stats.pendingModeration} tributes awaiting review`} />
+app\admin\dashboard\page.tsx:66:          <QuickAction 
+href="/admin/capsules" label="View All Capsules" sub="Search, 
+filter, manage" />
+app\admin\dashboard\page.tsx:67:          <QuickAction 
+href="/admin/clients" label="Client Accounts" sub="Organisers and 
+their capsules" />
+app\admin\dashboard\page.tsx:68:          <QuickAction 
+href="/admin/pricing" label="Pricing Config" sub="Edit component 
+prices" />
+app\admin\dashboard\page.tsx:69:          <QuickAction 
+href="/admin/flags" label="Feature Flags" sub="Toggle platform 
+features" />
+app\admin\resellers\page.tsx:74:                {count} attributed 
+capsule{count !== 1 ? 's' : ''}
+app\admin\resellers\page.tsx:81:              <p 
+className="text-[10px] text-white/25">attributed revenue</p>
+app\admin\AdminShell.tsx:103:        <Link href="/admin/dashboard" 
+style={{ textDecoration: 'none' }}>
+app\admin\AdminShell.tsx:114:            <Link key={item.href} 
+href={item.href} style={{
+app\admin\AdminShell.tsx:131:        <Link href="/" style={{ 
+fontSize: '11px', color: textFaint, textDecoration: 'none', display: 
+'block', marginBottom: '8px' }}>← Back to site</Link>
+app\api\access-codes\send\route.ts:224:              <a 
+href="${d.capsuleUrl}" style="display:inline-block;padding:11px 
+28px;background:rgba(226,195,107,0.1);border:1px solid rgba(226,195,1
+07,0.28);color:#E2C36B;font-family:Arial,sans-serif;font-size:13px;fo
+nt-weight:600;text-decoration:none;border-radius:8px;letter-spacing:0
+.04em;">
+app\api\capsule\honouree-reveal\route.ts:130:              <a 
+href="${portalUrl}" style="display:inline-block;padding:14px 36px;bor
+der-radius:10px;background:linear-gradient(135deg,#D4AE2A,#B8960C);co
+lor:#0D0820;font-size:15px;font-weight:700;text-decoration:none;lette
+r-spacing:0.04em;">
+app\api\checkout\send-payment-link\route.ts:186:        <a 
+href="${d.checkoutUrl}" style="display:inline-block;padding:14px 40px
+;background:linear-gradient(135deg,#E2C36B,#C9A84E);color:#1a0845;fon
+t-family:Arial,sans-serif;font-size:14px;font-weight:700;text-decorat
+ion:none;border-radius:10px;letter-spacing:0.06em;">
+app\api\checkout\send-payment-link\route.ts:191:          <a 
+href="${d.capsuleUrl}" style="color:rgba(226,195,107,0.4);text-decora
+tion:none;">${d.capsuleUrl}</a>
+app\api\circles\portal\route.ts:236:              <a 
+href="${d.portalUrl}" style="display:inline-block;padding:14px 40px;b
+ackground:linear-gradient(135deg,#E2C36B,#C8A84A);color:#1a0845;font-
+family:Arial,sans-serif;font-size:14px;font-weight:800;text-decoratio
+n:none;border-radius:10px;letter-spacing:0.04em;">
+app\api\cron\notify-pending\routerrr.tsx:153:            <a 
+href="${manageUrl}" style="display:inline-block;padding:13px 32px;bor
+der-radius:30px;background:linear-gradient(135deg,#E2C36B,rgba(226,19
+5,107,0.7));color:#1a0845;font-size:14px;font-weight:700;text-decorat
+ion:none;letter-spacing:0.04em;">
+app\api\cron\notify-pending\routerrr.tsx:170:          LegacyCapsule 
+· <a href="https://itslegacycapsule.com" style="color:rgba(226,195,10
+7,0.3);text-decoration:none;">itslegacycapsule.com</a>
+app\api\email\approval\route.ts:40:      .select('id, capsule_id, 
+contributor_name, city, country, tribute_text, thumbnail_url, email, 
+ref_code, edit_token')
+app\api\email\approval\route.ts:75:    if (!contribution.ref_code) {
+app\api\email\approval\route.ts:114:      refCode:          
+contribution.ref_code ?? null,
+app\api\email\contact\route.ts:98:                                   
+ <a href="mailto:${email.trim()}" style="color:rgba(226,195,107,0.8);
+text-decoration:none;">${email.trim()}</a>
+app\api\email\contact\route.ts:125:                              
+href="mailto:${email.trim()}?subject=Re: 
+${encodeURIComponent(emailSubject)}"
+app\api\email\correction-request\route.ts:175:          <a 
+href="${d.editLink}" style="display:inline-block;padding:14px 32px;ba
+ckground:linear-gradient(135deg,#E2C36B,#C8A84A);color:#1a0d3a;font-f
+amily:Arial,sans-serif;font-weight:700;font-size:14px;text-decoration
+:none;border-radius:8px;letter-spacing:0.04em;">
+app\api\email\gift-notification\route.ts:130:              <a 
+href="${d.manageUrl}" style="display:inline-block;padding:14px 28px;b
+ackground:linear-gradient(135deg,#E2C36B,#C8A84A);color:#1a0d3a;font-
+family:Arial,sans-serif;font-weight:700;font-size:13px;text-decoratio
+n:none;border-radius:8px;letter-spacing:0.04em;">
+app\api\email\gift-notification\route.ts:135:              <a 
+href="${d.capsuleUrl}" style="display:inline-block;padding:14px 28px;
+background:rgba(226,195,107,0.1);color:#E2C36B;font-family:Arial,sans
+-serif;font-weight:600;font-size:13px;text-decoration:none;border-rad
+ius:8px;border:1px solid 
+rgba(226,195,107,0.3);letter-spacing:0.04em;">
+app\api\email\gift-notification\route.ts:233:            <a 
+href="${d.capsuleUrl}" style="display:inline-block;padding:14px 40px;
+border-radius:30px;background:linear-gradient(135deg,#E2C36B,rgba(226
+,195,107,0.75));color:#1a0845;font-size:14px;font-weight:700;text-dec
+oration:none;letter-spacing:0.04em;">
+app\api\email\gift-notification\route.ts:254:          <a 
+href="https://itslegacycapsule.com" style="color:rgba(226,195,107,0.3
+5);text-decoration:none;">itslegacycapsule.com</a>
+app\api\email\gift-schedule\route.ts:149:              <a 
+href="${d.manageUrl}" style="display:inline-block;padding:14px 28px;b
+ackground:linear-gradient(135deg,#E2C36B,#C8A84A);color:#1a0d3a;font-
+family:Arial,sans-serif;font-weight:700;font-size:13px;text-decoratio
+n:none;border-radius:8px;letter-spacing:0.04em;">Open Your Dashboard 
+&#8594;</a>
+app\api\email\gift-schedule\route.ts:152:              <a 
+href="${d.capsuleUrl}" style="display:inline-block;padding:14px 28px;
+background:rgba(226,195,107,0.1);color:#E2C36B;font-family:Arial,sans
+-serif;font-weight:600;font-size:13px;text-decoration:none;border-rad
+ius:8px;border:1px solid 
+rgba(226,195,107,0.3);letter-spacing:0.04em;">View Tribute Wall 
+&#8594;</a>
+app\api\email\gift-schedule\route.ts:217:            <a 
+href="${d.manageUrl}" style="display:inline-block;padding:14px 40px;b
+order-radius:30px;background:linear-gradient(135deg,#E2C36B,rgba(226,
+195,107,0.75));color:#1a0845;font-size:14px;font-weight:700;text-deco
+ration:none;letter-spacing:0.04em;">Open My Dashboard &#8594;</a>
+app\api\email\submission-confirmation\route.ts:148:                
+<a href="${editLink}"
+app\api\email\submission-confirmation\route.ts:159:                
+<a href="${capsuleUrl}"
+app\api\email\verify-code\route.ts:414:              <a 
+href="${d.capsuleUrl}" style="display:block;padding:12px 
+16px;border-radius:10px;background:rgba(226,195,107,0.07);border:1px 
+solid rgba(226,195,107,0.2);color:#E2C36B;font-size:13px;font-weight:
+600;text-decoration:none;word-break:break-all;">
+app\api\email\verify-code\route.ts:427:              <a 
+href="${d.manageUrl}" style="display:inline-block;padding:13px 28px;b
+order-radius:10px;background:linear-gradient(135deg,#E2C36B,#C9A84E);
+color:#1a0845;font-size:13px;font-weight:700;text-decoration:none;let
+ter-spacing:0.04em;">
+app\api\email\verify-code\route.ts:449:                  <a 
+href="${d.signinUrl}" 
+style="color:rgba(226,195,107,0.55);text-decoration:none;"> 
+itslegacycapsule.com/signin</a>
+app\api\publication\distribute\route.ts:267:              <a 
+href="${d.publicationUrl}" style="display:inline-block;padding:14px 3
+6px;background:linear-gradient(135deg,#E2C36B,#C9A84E);color:#1a0845;
+font-family:Arial,sans-serif;font-size:14px;font-weight:700;text-deco
+ration:none;border-radius:10px;letter-spacing:0.06em;">
+app\api\publication\distribute\route.ts:271:                Or visit 
+the capsule: <a href="${d.capsuleUrl}" 
+style="color:rgba(226,195,107,0.5);">${d.capsuleUrl}</a>
+app\api\rep\invite\route.ts:133:                    <a 
+href="${portalUrl}" style="display:inline-block;padding:14px 40px;bor
+der-radius:30px;background:linear-gradient(135deg,#E2C36B,rgba(226,19
+5,107,0.75));color:#1a0845;font-size:14px;font-weight:700;text-decora
+tion:none;letter-spacing:0.04em;">
+app\api\rep\invite\route.ts:174:                <a 
+href="https://itslegacycapsule.com" style="color:rgba(226,195,107,0.3
+5);text-decoration:none;">itslegacycapsule.com</a>
+app\api\rep\request-access\route.ts:135:        <a 
+href="${portalUrl}" style="display:inline-block;padding:14px 36px;bor
+der-radius:30px;background:linear-gradient(135deg,#E2C36B,rgba(226,19
+5,107,0.7));color:#1a0845;font-size:14px;font-weight:700;text-decorat
+ion:none;">Open My Portal →</a>
+app\api\rep\request-access\route.ts:151:      LegacyCapsule · <a 
+href="https://itslegacycapsule.com" style="color:rgba(226,195,107,0.3
+5);text-decoration:none;">itslegacycapsule.com</a>
+app\api\rep\request-access\route.ts:163:      <a href="${l.url}" 
+style="font-size:12px;color:#E2C36B;text-decoration:none;">Open 
+Portal →</a>
+app\api\rep\request-access\route.ts:197:      LegacyCapsule · <a 
+href="https://itslegacycapsule.com" style="color:rgba(226,195,107,0.3
+5);text-decoration:none;">itslegacycapsule.com</a>
+app\api\rep\resend\route.ts:125:              <a href="${portalUrl}" 
+style="display:inline-block;padding:14px 36px;border-radius:30px;back
+ground:linear-gradient(135deg,#E2C36B,rgba(226,195,107,0.7));color:#1
+a0845;font-size:14px;font-weight:700;text-decoration:none;letter-spac
+ing:0.04em;">Open My Portal →</a>
+app\api\rep\resend\route.ts:138:            <a 
+href="https://itslegacycapsule.com" style="color:rgba(226,195,107,0.3
+5);text-decoration:none;">itslegacycapsule.com</a>
+app\api\rep\respond\route.ts:125:              <a href="${wallUrl}" 
+style="display:inline-block;padding:12px 32px;border-radius:30px;back
+ground:linear-gradient(135deg,#E2C36B,rgba(226,195,107,0.7));color:#1
+a0845;font-size:13px;font-weight:700;text-decoration:none;">
+app\api\rep\respond\route.ts:132:                LegacyCapsule · <a 
+href="https://itslegacycapsule.com" style="color:rgba(226,195,107,0.3
+5);text-decoration:none;">itslegacycapsule.com</a>
+app\api\rsvp\invite\route.ts:352:              <a 
+href="${d.rsvpUrl}" style="display:inline-block;padding:14px 40px;bac
+kground:linear-gradient(135deg,#E2C36B,#C8A84A);color:#1a0845;font-fa
+mily:Arial,sans-serif;font-size:14px;font-weight:800;text-decoration:
+none;border-radius:10px;letter-spacing:0.04em;">
+app\api\rsvp\invite\route.ts:362:              <a 
+href="${declineUrl}" style="font-family:Arial,sans-serif;font-size:12
+px;color:rgba(255,255,255,0.3);text-decoration:underline;">
+app\api\share\record\route.ts:7://          Deduplicates by 
+(ref_code, ip_hash, UTC calendar day).
+app\api\share\record\route.ts:8://          Updates share_count in 
+capsule_participation_summary.
+app\api\share\record\route.ts:101:    // The UNIQUE INDEX on 
+(ref_code, ip_hash, utc_date) handles deduplication.
+app\api\share\record\route.ts:109:        ref_code: refCode,
+app\api\share\record\route.ts:122:    // ── Update share_count in 
+participation summary ────────────────────────
+app\api\share\record\route.ts:128:        .select('share_count')
+app\api\share\record\route.ts:136:            share_count: 
+(existing.share_count ?? 0) + 1,
+app\api\share\record\route.ts:141:        // Summary row doesn't 
+exist yet — create it with share_count = 1
+app\api\share\record\route.ts:147:              share_count: 1,
+app\api\share\record\route.ts:151:              
+legacy_builder_count: 0,
+app\api\share\record\route.ts:152:              
+attributed_contrib_count: 0,
+app\api\webhooks\stripe\route.ts:155:            <a 
+href="${manageUrl}" style="display:inline-block;padding:14px 40px;bor
+der-radius:30px;background:linear-gradient(135deg,#E2C36B,rgba(226,19
+5,107,0.75));color:#1a0845;font-size:14px;font-weight:700;text-decora
+tion:none;letter-spacing:0.04em;">
+app\api\webhooks\stripe\route.ts:179:          <a 
+href="https://itslegacycapsule.com" style="color:rgba(226,195,107,0.3
+5);text-decoration:none;">itslegacycapsule.com</a>
+app\book\page.tsx:174:    <Link href="/" style={{ textDecoration: 
+'none', display: 'block', textAlign: 'center', padding: '28px 0 
+20px' }}>
+app\book\page.tsx:751:                    
+href={`/help?section=${item.helpKey}&ref=booking`}
+app\book\page.tsx:841:                          <a 
+href={`/help?section=${svcId}&ref=booking`} target="_blank" 
+rel="noopener noreferrer" style={{ fontSize: '11px', color: 
+'rgba(226,195,107,0.5)', textDecoration: 'none', fontWeight: 600 }}>
+app\book\page.tsx:916:            <Link href={`/manage/${capsuleSlug 
+|| slug}`} style={{ display: 'block', padding: '14px', borderRadius: 
+'12px', textDecoration: 'none', background: goldBtn, color: 
+'#1a0845', fontSize: '14px', fontWeight: 700, letterSpacing: 
+'0.04em', textAlign: 'center', boxShadow: '0 4px 24px 
+rgba(226,195,107,0.3)' }}>
+app\book\page.tsx:920:          <Link href={`/for/${capsuleSlug || 
+slug}`} target="_blank" style={{ display: 'block', padding: '13px', 
+borderRadius: '12px', textDecoration: 'none', border: '1px solid 
+rgba(226,195,107,0.22)', background: 'rgba(226,195,107,0.05)', 
+color: 'rgba(226,195,107,0.75)', fontSize: '13px', fontWeight: 600, 
+textAlign: 'center', letterSpacing: '0.04em' }}>
+app\dashboard\page.tsx:61:      href={`/manage/${capsule.slug}`}
+app\dashboard\page.tsx:215:          <Link href="/" style={{ 
+textDecoration: 'none' }}>
+app\dashboard\page.tsx:233:            <Link href="/book" style={{ 
+display: 'inline-block', padding: '12px 28px', borderRadius: '12px', 
+background: `linear-gradient(135deg, ${gold}, 
+rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '14px', 
+fontWeight: 700, textDecoration: 'none' }}>Start Your First 
+Capsule</Link>
+app\dashboard\page.tsx:243:          <Link href="/book" style={{ 
+display: 'flex', alignItems: 'center', justifyContent: 'center', 
+gap: '8px', padding: '14px', borderRadius: '12px', border: `1px 
+dashed rgba(226,195,107,0.22)`, background: 'transparent', color: 
+goldMuted, textDecoration: 'none', fontSize: '13px', fontWeight: 
+600, marginTop: '8px', letterSpacing: '0.04em' }}>
+app\examples\page.tsx:39:        <Link href="/book" style={{ 
+display: 'inline-block', padding: '14px 32px', borderRadius: '14px', 
+background: 'linear-gradient(135deg, #E2C36B, #C9A84E)', color: 
+'#1a0845', fontSize: '15px', fontWeight: 700, textDecoration: 
+'none', letterSpacing: '0.04em' }}>
+app\examples\page.tsx:44:          <Link href="/" style={{ fontSize: 
+'13px', color: 'rgba(226,195,107,0.5)', textDecoration: 'none' }}>← 
+Back to home</Link>
+app\features\[service]\page.tsx:64:          <Link href="/book" 
+style={{ fontSize: '12px', color: styles.goldMuted, textDecoration: 
+'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+app\features\[service]\page.tsx:166:            href="/"
+app\for\[slug]\attire\page.tsx:92:          <a href="/" style={{ 
+textDecoration: 'none' }}>
+app\for\[slug]\attire\page.tsx:96:          <a href={`/for/${slug}`} 
+style={{ fontSize: '12px', color: t.accentMuted, textDecoration: 
+'none' }}>← Tribute Room</a>
+app\for\[slug]\attire\page.tsx:139:          <a 
+href={`/for/${slug}`} style={{ padding: '10px 22px', borderRadius: 
+'24px', textDecoration: 'none', border: `1px solid 
+${t.accentFaint}`, color: t.accentMuted, fontSize: '13px', 
+fontWeight: 600 }}>← Tribute Room</a>
+app\for\[slug]\attire\page.tsx:140:          <a 
+href={`/for/${slug}/profile`} style={{ padding: '10px 22px', 
+borderRadius: '24px', textDecoration: 'none', border: `1px solid 
+${t.accentFaint}`, color: t.accentPrimary, fontSize: '13px', 
+fontWeight: 600 }}>View Profile →</a>
+app\for\[slug]\dday\page.tsx:374:          <Link 
+href={`/for/${slug}`} style={{ color: goldMuted, textDecoration: 
+'none', fontWeight: 600 }}>
+app\for\[slug]\dday\page.tsx:506:              ref={fileRef}
+app\for\[slug]\dday\page.tsx:551:          <Link 
+href={`/for/${slug}`} style={{ color: goldMuted, textDecoration: 
+'none', fontWeight: 600 }}>
+app\for\[slug]\dday\page.tsx:596:            href={`/for/${slug}`}
+app\for\[slug]\edit\[token]\page.tsx:17:import { COUNTRIES, 
+getInitials, formatTributeDate } from '@/lib/tributeWallHelpers'
+app\for\[slug]\edit\[token]\page.tsx:177:          
+{formatTributeDate(createdAt)}
+app\for\[slug]\edit\[token]\page.tsx:453:            href={'/for/' + 
+slug}
+app\for\[slug]\edit\[token]\page.tsx:482:            href={'/for/' + 
+slug}
+app\for\[slug]\edit\[token]\page.tsx:532:              href={'/for/' 
++ slug}
+app\for\[slug]\edit\[token]\page.tsx:632:            href={'/for/' + 
+slug}
+app\for\[slug]\edit\[token]\page.tsx:777:              
+ref={photoInputRef}
+app\for\[slug]\honouree\HonoureePortalClient.tsx:192:          <Link 
+href="/" style={{ textDecoration: 'none', flexShrink: 0 }}>
+app\for\[slug]\legacy\page.tsx:54:    .select('contributor_count, 
+photo_count, country_count, share_count')
+app\for\[slug]\legacy\page.tsx:93:      
+legacy_builder_activation_threshold,
+app\for\[slug]\legacy\page.tsx:117:    
+.from('capsule_legacy_builders')
+app\for\[slug]\legacy\page.tsx:184:  const threshold = 
+capsule.legacy_builder_activation_threshold ?? 10
+app\for\[slug]\legacy\page.tsx:185:  const attributedCount = 
+summary?.attributed_contrib_count ?? 0
+app\for\[slug]\legacy\page.tsx:186:  const showBuilders = 
+attributedCount >= threshold && (builders?.length ?? 0) > 0
+app\for\[slug]\legacy\page.tsx:210:        share_count: 0,
+app\for\[slug]\legacy\page.tsx:211:        legacy_builder_count: 0,
+app\for\[slug]\legacy\page.tsx:212:        attributed_contrib_count: 
+0,
+app\for\[slug]\profile\page.tsx:213:          <a href="/" style={{ 
+textDecoration: 'none' }}>
+app\for\[slug]\profile\page.tsx:218:            <a 
+href={`/for/${slug}`} style={{ fontSize: '12px', color: 
+t.accentMuted, textDecoration: 'none', letterSpacing: '0.04em' }}>← 
+The Voices</a>
+app\for\[slug]\profile\page.tsx:246:        <a href={`/for/${slug}`} 
+style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', 
+padding: '10px 24px', borderRadius: '24px', background: 
+`linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, 
+color: '#1a0845', fontSize: '13px', fontWeight: 700, textDecoration: 
+'none', letterSpacing: '0.04em', boxShadow: '0 4px 16px 
+rgba(0,0,0,0.25)' }}>
+app\for\[slug]\rsvp\page.tsx:668:              
+href={`/for/${result.capsule_slug}`}
+app\for\[slug]\story\page.tsx:111:          <Link href="/" style={{ 
+textDecoration: 'none' }}>
+app\for\[slug]\story\page.tsx:115:          <Link 
+href={`/for/${slug}`} style={{ fontSize: '12px', color: 
+t.accentMuted, textDecoration: 'none' }}>← The Voices</Link>
+app\for\[slug]\story\page.tsx:150:                  
+href={`/for/${slug}/story/${phase.id}`}
+app\for\[slug]\submit\page.tsx:19:import { COUNTRIES, getInitials, 
+formatTributeDate } from '@/lib/tributeWallHelpers'
+app\for\[slug]\submit\page.tsx:176:          {formatTributeDate(new 
+Date().toISOString())}
+app\for\[slug]\submit\page.tsx:342:          legacy_builder_consent: 
+consent,
+app\for\[slug]\submit\page.tsx:360:            .eq('ref_code', 
+arrivalRef)
+app\for\[slug]\submit\page.tsx:364:            ref_code: arrivalRef,
+app\for\[slug]\submit\page.tsx:410:          <Link href={'/' } 
+style={{ color: '#D4AE2A', fontSize: '13px', textDecoration: 'none' 
+}}>
+app\for\[slug]\submit\page.tsx:489:                href={whatsappUrl}
+app\for\[slug]\submit\page.tsx:522:              href={'/for/' + 
+slug}
+app\for\[slug]\submit\page.tsx:625:            href={'/for/' + slug}
+app\for\[slug]\submit\page.tsx:799:              ref={photoInputRef}
+app\for-planners\page.tsx:13:        <Link href="/" style={{ 
+textDecoration: 'none' }}>
+app\for-planners\page.tsx:21:        <Link href="/book" style={{
+app\for-planners\page.tsx:68:          <a 
+href="mailto:planners@itslegacycapsule.com" style={{
+app\for-planners\page.tsx:79:            <Link href="/" style={{ 
+fontSize: '12px', color: 'rgba(226,195,107,0.45)', textDecoration: 
+'none', letterSpacing: '0.06em' }}>
+app\for-you\page.tsx:13:        <Link href="/" style={{ 
+textDecoration: 'none' }}>
+app\for-you\page.tsx:21:        <Link href="/book" style={{
+app\for-you\page.tsx:54:          <Link href="/book" style={{
+app\for-you\page.tsx:65:            <Link href="/" style={{ 
+fontSize: '12px', color: 'rgba(226,195,107,0.45)', textDecoration: 
+'none', letterSpacing: '0.06em' }}>
+app\gift\page.tsx:13:        <Link href="/" style={{ textDecoration: 
+'none' }}>
+app\gift\page.tsx:21:        <Link href="/book" style={{
+app\gift\page.tsx:68:          <a 
+href="mailto:hello@itslegacycapsule.com" style={{
+app\gift\page.tsx:79:            <Link href="/" style={{ fontSize: 
+'12px', color: 'rgba(226,195,107,0.45)', textDecoration: 'none', 
+letterSpacing: '0.06em' }}>
+app\help\page.tsx:289:      { q: 'What can guests upload?', a: 
+'Guests can upload a photo or video they have taken at the event, 
+leave a tribute (voice) message, or both. Their name and optional 
+email are collected so their contribution is attributed correctly.' 
+},
+app\help\page.tsx:450:                href={`#${s.id}`}
+app\help\page.tsx:469:              <Link 
+href="mailto:hello@itslegacycapsule.com" style={{ color: goldMuted 
+}}>email us directly</Link>
+app\help\page.tsx:528:          <Link 
+href="mailto:hello@itslegacycapsule.com" style={{ display: 
+'inline-block', padding: '10px 24px', borderRadius: '10px', 
+background: `linear-gradient(135deg, ${gold}, #C9A84E)`, color: 
+'#1a0845', fontSize: '13px', fontWeight: 700, textDecoration: 'none' 
+}}>
+app\how-it-works\page.tsx:92:        <Link href="/book" style={{ 
+display: 'inline-block', padding: '13px 28px', borderRadius: '12px', 
+background: `linear-gradient(135deg, ${gold}, #C9A84E)`, color: 
+'#1a0845', fontSize: '14px', fontWeight: 700, textDecoration: 
+'none', letterSpacing: '0.04em' }}>
+app\how-it-works\page.tsx:162:          <Link href="/book" style={{ 
+display: 'inline-block', padding: '11px 24px', borderRadius: '10px', 
+background: `linear-gradient(135deg, ${gold}, #C9A84E)`, color: 
+'#1a0845', fontSize: '13px', fontWeight: 700, textDecoration: 'none' 
+}}>
+app\how-it-works\page.tsx:172:        <Link href="/book" style={{ 
+display: 'inline-block', padding: '14px 36px', borderRadius: '14px', 
+background: `linear-gradient(135deg, ${gold}, #C9A84E)`, color: 
+'#1a0845', fontSize: '15px', fontWeight: 700, textDecoration: 
+'none', letterSpacing: '0.04em', boxShadow: '0 8px 32px 
+rgba(226,195,107,0.25)' }}>
+app\how-it-works\page.tsx:176:          <Link href="/" style={{ 
+fontSize: '13px', color: goldMuted, textDecoration: 'none' }}>← Back 
+to home</Link>
+app\manage\[slug]\attire\page.tsx:271:          {p.proof_url && 
+<span> · <a href={p.proof_url} target="_blank" rel="noopener 
+noreferrer" style={{ color: goldMuted, textDecoration: 'underline' 
+}}>View proof</a></span>}
+app\manage\[slug]\attire\page.tsx:405:          <Link 
+href={`/manage/${slug}`} style={{ fontSize: '12px', color: 
+goldMuted, textDecoration: 'none' }}>← Dashboard</Link>
+app\manage\[slug]\attire\page.tsx:411:          <Link 
+href={publicUrl} target="_blank" style={{ fontSize: '10px', 
+fontWeight: 700, padding: '4px 10px', borderRadius: '20px', 
+background: 'rgba(74,222,128,0.08)', border: '1px solid 
+rgba(74,222,128,0.25)', color: 'rgba(134,239,172,0.9)', 
+textDecoration: 'none', letterSpacing: '0.08em', textTransform: 
+'uppercase' as const }}>
+app\manage\[slug]\checkin\page.tsx:203:          ref={inputRef}
+app\manage\[slug]\page.tsx:1669:      <Link href="/signin" style={{ 
+padding: '12px 28px', borderRadius: '12px', background: 
+`linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: 
+'#1a0845', fontSize: '14px', fontWeight: 700, textDecoration: 
+'none', letterSpacing: '0.04em' }}>Sign In →</Link>
+app\manage\[slug]\page.tsx:1670:      <Link href={`/for/${slug}`} 
+style={{ fontSize: '13px', color: goldMuted, textDecoration: 'none' 
+}}>View the tribute wall instead</Link>
+app\manage\[slug]\page.tsx:1679:      <Link href={`/for/${slug}`} 
+style={{ fontSize: '13px', color: goldMuted, textDecoration: 'none' 
+}}>View the tribute wall</Link>
+app\manage\[slug]\page.tsx:1694:            <Link href="/" style={{ 
+textDecoration: 'none', flexShrink: 0 }}>
+app\manage\[slug]\page.tsx:1704:            <a href={`/for/${slug}`} 
+target="_blank" rel="noopener noreferrer" style={{ flexShrink: 0, 
+fontSize: '10px', fontWeight: 700, padding: '4px 10px', 
+borderRadius: '20px', background: 'rgba(74,222,128,0.08)', border: 
+'1px solid rgba(74,222,128,0.25)', color: 'rgba(134,239,172,0.9)', 
+letterSpacing: '0.08em', textTransform: 'uppercase', textDecoration: 
+'none' }}>View Live ↗</a>
+app\manage\[slug]\page.tsx:1754:                  <a href={b.href ?? 
+'#'} onClick={!b.href ? (e) => { e.preventDefault(); 
+setActiveTab('services') } : undefined}
+app\manage\[slug]\page.tsx:1798:                <Link 
+href={`https://wa.me/?text=${encodeURIComponent(`Add your voice to 
+${capsule.honouree_name}'s story — ${capsuleUrl}`)}`} 
+target="_blank" rel="noopener noreferrer" style={{ display: 'flex', 
+alignItems: 'center', justifyContent: 'center', gap: '8px', padding: 
+'10px', borderRadius: '10px', background: 'rgba(74,222,128,0.05)', 
+border: '1px solid rgba(74,222,128,0.18)', color: 
+'rgba(134,239,172,0.85)', textDecoration: 'none', fontSize: '13px', 
+fontWeight: 600 }}>💬 Share via WhatsApp</Link>
+app\pricing\page.tsx:111:          <Link href="/book" style={{ 
+display: 'block', padding: '14px', borderRadius: '12px', background: 
+`linear-gradient(135deg, ${gold}, #C9A84E)`, color: '#1a0845', 
+fontSize: '15px', fontWeight: 700, textDecoration: 'none', 
+textAlign: 'center', letterSpacing: '0.04em', boxShadow: '0 4px 24px 
+rgba(226,195,107,0.3)' }}>
+app\pricing\page.tsx:163:            <strong style={{ color: 
+textPrimary }}>Payments in Nigerian Naira (₦)</strong> — All 
+transactions are processed securely via Paystack. International 
+payment options are coming soon. If you are outside Nigeria and need 
+to pay now, <Link href="mailto:hello@itslegacycapsule.com" style={{ 
+color: gold }}>contact us</Link> and we will arrange an invoice.
+app\pricing\page.tsx:183:          <Link href="/book" style={{ 
+display: 'inline-block', padding: '14px 36px', borderRadius: '14px', 
+background: `linear-gradient(135deg, ${gold}, #C9A84E)`, color: 
+'#1a0845', fontSize: '15px', fontWeight: 700, textDecoration: 
+'none', letterSpacing: '0.04em', boxShadow: '0 8px 32px 
+rgba(226,195,107,0.25)' }}>
+app\pricing\page.tsx:187:            <Link href="/how-it-works" 
+style={{ fontSize: '13px', color: goldMuted, textDecoration: 'none' 
+}}>See how it works first →</Link>
+app\publication-render\[token]\page.tsx:1024:        <link 
+rel="preconnect" href="https://fonts.googleapis.com" />
+app\publication-render\[token]\page.tsx:1025:        <link 
+rel="preconnect" href="https://fonts.gstatic.com" 
+crossOrigin="anonymous" />
+app\publication-render\[token]\page.tsx:1026:        <link href="http
+s://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400
+;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,
+600;1,300;1,400&family=DM+Sans:wght@400;500;700&display=swap" 
+rel="stylesheet" />
+app\resellers\page.tsx:13:        <Link href="/" style={{ 
+textDecoration: 'none' }}>
+app\resellers\page.tsx:21:        <Link href="/book" style={{
+app\resellers\page.tsx:67:          <a 
+href="mailto:resellers@itslegacycapsule.com" style={{
+app\resellers\page.tsx:78:            <Link href="/" style={{ 
+fontSize: '12px', color: 'rgba(226,195,107,0.45)', textDecoration: 
+'none', letterSpacing: '0.06em' }}>
+app\signin\page.tsx:134:      <Link href="/" style={{ 
+textDecoration: 'none', marginBottom: '40px' }}>
+app\signin\page.tsx:182:              <Link href="/book" style={{ 
+color: goldMuted, textDecoration: 'none' }}>Create a capsule free 
+→</Link>
+app\start-planning\page.tsx:111:            <Link 
+href="/book?path=aspiring" className="btn-primary 
+btn-primary-lg">Start Your First Capsule</Link>
+app\start-planning\page.tsx:112:            <Link href="/examples" 
+className="btn-ghost btn-primary-lg">See What's Possible</Link>
+app\start-planning\page.tsx:284:            <Link 
+href="/book?path=aspiring" className="btn-primary 
+btn-primary-lg">Start Your First Capsule</Link>
+app\start-planning\page.tsx:285:            <Link href="/pricing" 
+className="btn-ghost btn-primary-lg">See Pricing</Link>
+app\layout.tsx:25:        <link rel="preconnect" 
+href="https://fonts.googleapis.com" />
+app\layout.tsx:26:        <link rel="preconnect" 
+href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+app\layout.tsx:28:          href="https://fonts.googleapis.com/css2?f
+amily=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,30
+0;1,400;1,600&family=Cormorant+SC:wght@400;500;600;700&family=Playfai
+r+Display:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=DM+San
+s:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9.
+.40,300;1,9..40,400&display=swap"
+app\page.tsx:186:      href={card.href}
+app\page.tsx:467:        <Link href="/book" className="btn-primary 
+btn-primary-lg"
+app\page.tsx:471:        <Link href="/#showcase"
+app\page.tsx:883:                    <Link href="/#showcase" style={{
+app\page.tsx:975:                      href={clickable ? 
+`/for/${cap.slug}` : undefined}
+app\page.tsx:1134:            <Link href="/book" 
+className="btn-primary btn-primary-lg">
+app\page.tsx:1137:            <Link href="/pricing" 
+className="btn-ghost btn-primary-lg">
+components\admin\AdminShell.tsx:65:                href={href}
+components\capsule\EventMomentsClient.tsx:280:          <Link 
+href={`/for/${capsule.slug}/story`}
+components\capsule\EventMomentsClient.tsx:286:              <Link 
+href={`/for/${capsule.slug}/story/${prevPhase.id}`}
+components\capsule\EventMomentsClient.tsx:292:              <Link 
+href={`/for/${capsule.slug}/story/${nextPhase.id}`}
+components\capsule\EventMomentsClient.tsx:476:              
+href={ddayUrl}
+components\capsule\EventMomentsClient.tsx:535:              <div 
+ref={loaderRef} style={{ textAlign: 'center', paddingBottom: '16px' 
+}}>
+components\capsule\EventMomentsClient.tsx:663:            <Link 
+href={`/for/${capsule.slug}/story/${prevPhase.id}`} style={{
+components\capsule\EventMomentsClient.tsx:675:          <Link 
+href={`/for/${capsule.slug}/story`} style={{
+components\capsule\EventMomentsClient.tsx:687:            <Link 
+href={`/for/${capsule.slug}/story/${nextPhase.id}`} style={{
+components\capsule\PhotographerPortalClient.tsx:330:              
+ref={fileInputRef}
+components\honouree\PortalShell.tsx:291:        href={`/for/${slug}`}
+components\layout\Footer.tsx:120:                href={link.href}
+components\layout\Footer.tsx:174:            href={link.href}
+components\layout\Navigation.tsx:82:          <Link href="/" 
+style={{ display: "flex", alignItems: "center", textDecoration: 
+"none", flexShrink: 0 }}>
+components\layout\Navigation.tsx:91:              <Link 
+href={`/for/${lastCapsule.slug}`} style={{
+components\layout\Navigation.tsx:104:              <Link 
+key={link.href} href={link.href} style={{
+components\layout\Navigation.tsx:118:                <Link 
+href="/dashboard" className="lc-nav-desktop" style={{ fontSize: 
+"14px", color: "rgba(245,243,238,0.70)", textDecoration: "none", 
+letterSpacing: "0.02em", transition: "color 0.2s" }}
+components\layout\Navigation.tsx:126:                <Link 
+href="/signin" className="lc-nav-desktop" style={{ fontSize: "14px", 
+color: "rgba(245,243,238,0.60)", textDecoration: "none", 
+letterSpacing: "0.02em", transition: "color 0.2s" }}
+components\layout\Navigation.tsx:130:                <Link 
+href="/book" className="lc-nav-desktop" style={{ padding: "9px 
+20px", borderRadius: "24px", background: "linear-gradient(135deg, 
+#E2C36B, #C9A84E)", color: "#1a0845", fontSize: "13px", fontWeight: 
+700, letterSpacing: "0.04em", textDecoration: "none", whiteSpace: 
+"nowrap", boxShadow: "0 4px 16px rgba(226,195,107,0.25)" }}>Start 
+Your Capsule</Link>
+components\layout\Navigation.tsx:151:            <Link 
+href={`/for/${lastCapsule.slug}`} onClick={() => setMenuOpen(false)} 
+style={{ fontSize: "18px", fontWeight: 500, color: 
+"rgba(226,195,107,0.75)", padding: "12px 0", borderBottom: "1px 
+solid rgba(226,195,107,0.08)", textDecoration: "none", display: 
+"flex", alignItems: "center", gap: "8px" }}>
+components\layout\Navigation.tsx:156:            <Link 
+key={link.href} href={link.href} onClick={() => setMenuOpen(false)} 
+style={{ fontSize: "20px", fontWeight: 500, fontFamily: "'Playfair 
+Display', Georgia, serif", color: "rgba(255,255,255,0.90)", padding: 
+"14px 0", borderBottom: "1px solid rgba(226,195,107,0.08)", 
+textDecoration: "none" }}>{link.label}</Link>
+components\layout\Navigation.tsx:159:            <Link 
+href="/dashboard" onClick={() => setMenuOpen(false)} style={{ 
+fontSize: "20px", fontWeight: 500, fontFamily: "'Playfair Display', 
+Georgia, serif", color: "rgba(255,255,255,0.90)", padding: "14px 0", 
+borderBottom: "1px solid rgba(226,195,107,0.08)", textDecoration: 
+"none" }}>My Capsules</Link>
+components\layout\Navigation.tsx:166:              <Link 
+href="/dashboard" onClick={() => setMenuOpen(false)} style={{ 
+padding: "16px", borderRadius: "14px", textAlign: "center", 
+background: "linear-gradient(135deg, #E2C36B, #C9A84E)", color: 
+"#1a0845", fontSize: "16px", fontWeight: 700, letterSpacing: 
+"0.04em", textDecoration: "none" }}>My Capsules</Link>
+components\layout\Navigation.tsx:171:              <Link 
+href="/book" onClick={() => setMenuOpen(false)} style={{ padding: 
+"16px", borderRadius: "14px", textAlign: "center", background: 
+"linear-gradient(135deg, #E2C36B, #C9A84E)", color: "#1a0845", 
+fontSize: "16px", fontWeight: 700, letterSpacing: "0.04em", 
+textDecoration: "none" }}>Start Your Capsule</Link>
+components\layout\Navigation.tsx:172:              <Link 
+href="/signin" onClick={() => setMenuOpen(false)} style={{ padding: 
+"15px", borderRadius: "14px", textAlign: "center", border: "1px 
+solid rgba(226,195,107,0.25)", background: "transparent", color: 
+"rgba(226,195,107,0.75)", fontSize: "15px", fontWeight: 600, 
+textDecoration: "none" }}>Sign In</Link>
+components\manage\access-codes\AccessCardPrint.tsx:731:              
+  ref={bgInputRef}
+components\manage\access-codes\AccessCardPrint.tsx:784:              
+  ref={logoInputRef}
+components\manage\access-codes\BulkGuestImport.tsx:448:              
+ref={fileRef}
+components\manage\guests\GuestModule.tsx:173:          
+href={`/manage/${capsule.slug}`}
+components\manage\EventMomentsManager.tsx:331:    <div 
+ref={setNodeRef} style={style}>
+components\manage\EventMomentsManager.tsx:466:              
+href={`https://wa.me/?text=${encodeURIComponent(`Official 
+Photography Portal for ${phaseName}: ${portalUrl}`)}`}
+components\manage\EventMomentsManager.tsx:810:        <input 
+ref={fileInputRef} type="file" 
+accept="image/jpeg,image/jpg,image/png,image/webp,image/heic"
+components\manage\EventPhasesSection.tsx:208:                
+href={`/for/${slug}/story/${phase.id}`}
+components\manage\EventPhasesSection.tsx:221:              
+href={printUrl}
+components\manage\GuestManagementSection.tsx:375:              
+href="#capacity-packs"
+components\manage\ServicesTab.tsx:114:      ref={cardRef}
+components\manage\ServicesTab.tsx:144:            <Link 
+href={externalLink} style={{ fontSize: '11px', fontWeight: 700, 
+padding: '5px 12px', borderRadius: '20px', background: goldFaint, 
+border: `1px solid rgba(226,195,107,0.25)`, color: gold, 
+textDecoration: 'none' }}>Open →</Link>
+components\manage\ServicesTab.tsx:183:              
+href={learnMoreUrl}
+components\manage\ServicesTab.tsx:307:            <a 
+href={displayUrl} target="_blank" rel="noopener noreferrer"
+components\manage\ServicesTab.tsx:689:            
+learnMoreUrl="/help?section=guest_management&ref=dashboard"
+components\manage\ServicesTab.tsx:709:            
+learnMoreUrl="/help?section=access_codes&ref=dashboard"
+components\manage\ServicesTab.tsx:728:            
+learnMoreUrl="/help?section=ways_to_honour&ref=dashboard"
+components\manage\ServicesTab.tsx:750:            
+learnMoreUrl="/help?section=publication&ref=dashboard"
+components\manage\ServicesTab.tsx:770:            
+learnMoreUrl="/help?section=attire&ref=dashboard"
+components\manage\ServicesTab.tsx:789:            
+learnMoreUrl="/help?section=audio_tributes&ref=dashboard"
+components\manage\ServicesTab.tsx:808:            
+learnMoreUrl="/help?section=video_tributes&ref=dashboard"
+components\publication\GenerateButton.tsx:376:          href={pdfUrl}
+components\publication\PublicationEditor.tsx:697:            
+href={'/manage/' + capsuleSlug}
+components\ActivePremiumsStrip.tsx:114:              
+href={service.href(slug)}
+components\AnimatedWorldMap.tsx:162:          
+href="/world-map-simple.svg"
+components\CapsuleBottomNav.tsx:274:              href={tab.href!}
+components\CommunityStoriesClient.tsx:590:            <input 
+ref={fileInputRef} type="file" accept="image/*" multiple 
+onChange={handlePhotos} style={{ display: 'none' }} />
+components\CommunityStoriesClient.tsx:790:          <Link 
+href={`/for/${capsule.slug}`} style={{ fontSize: '12px', color: 
+textFaint, textDecoration: 'none', borderBottom: '1px solid 
+rgba(255,255,255,0.1)', paddingBottom: '2px' }}>
+components\GalleryEditor.tsx:202:                      ref={el => { 
+fileRefs.current[`${si}-${photo.sort_order}`] = el }}
+components\HeroPositionPicker.tsx:184:        ref={containerRef}
+components\LegacyRoomClient.tsx:39:  country_count: number; 
+share_count: number
+components\LegacyRoomClient.tsx:40:  legacy_builder_count: number; 
+attributed_contrib_count: number
+components\LegacyRoomClient.tsx:67:  lead_legacy_builder: { label: 
+'Lead Legacy Builder', badge: '◆', glow: 'rgba(226,195,107,0.4)' },
+components\LegacyRoomClient.tsx:68:  legacy_builder:      { label: 
+'Legacy Builder',      badge: '◇', glow: 'rgba(226,195,107,0.25)' },
+components\LegacyRoomClient.tsx:108:  const isLead = 
+builder.recognition_tier === 'lead_legacy_builder'
+components\LegacyRoomClient.tsx:381:            <Link href="/" 
+style={{ textDecoration: 'none', flexShrink: 0 }}>
+components\LegacyRoomClient.tsx:394:              <Link 
+href={`/for/${capsule.slug}`} style={{
+components\LegacyRoomClient.tsx:400:              <Link 
+href={`/for/${capsule.slug}/profile`} style={{
+components\LegacyRoomClient.tsx:519:              <StatCard 
+value={summary.share_count} label="Times Shared" t={t} />
+components\LegacyRoomClient.tsx:626:            <Link 
+href={`/for/${capsule.slug}`} style={{
+components\LegacyRoomClient.tsx:634:            <Link 
+href={`/for/${capsule.slug}/profile`} style={{
+components\PremiumsPanel.tsx:185:      href={service.href!(slug)}
+components\PremiumsPanel.tsx:306:                    
+href={`/for/${slug}/story/${phase.id}`}
+components\StorySubmissionPanel.tsx:306:                    
+ref={fileRef}
+components\TributeWallClient.tsx:347:        <a 
+href="mailto:hello@itslegacycapsule.com" style={{ display: 
+'inline-block', fontSize: '12px', padding: '10px 22px', 
+borderRadius: '24px', fontWeight: 700, background: 
+`linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, 
+color: '#1a0845', textDecoration: 'none' }}>Get in touch</a>
+components\TributeWallClient.tsx:397:        <Link 
+href={`/for/${slug}/profile`} style={{ textDecoration: 'none' }}>
+components\TributeWallClient.tsx:665:// LC-PARTICIPATION-001: 
+Capture ?ref= from URL on arrival
+components\TributeWallClient.tsx:687:          .select('ref_code')
+components\TributeWallClient.tsx:691:          .not('ref_code', 
+'is', null)
+components\TributeWallClient.tsx:694:        if (data?.ref_code) 
+setMyRefCode(data.ref_code)
+components\TributeWallClient.tsx:746:    const shareUrl = myRefCode 
+? capsuleUrl + '?ref=' + myRefCode : capsuleUrl
+components\TributeWallClient.tsx:781:      const { data: nc, error: 
+ie } = await supabaseClient.from('contributions').insert({ 
+capsule_id: capsule.id, phase_id: phaseId || null, contributor_name: 
+fName.trim(), city: fCity.trim(), country: fCountry, relationship: 
+fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), 
+email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, 
+audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: 
+coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: 
+coords?.country ?? null, status: 'pending_review', 
+legacy_builder_consent: fConsent, story_topic_id: null 
+}).select('id').single()
+components\TributeWallClient.tsx:785:     // LC-PARTICIPATION-001: 
+Record attribution if visitor arrived via ?ref= link
+components\TributeWallClient.tsx:792:            .eq('ref_code', 
+refFromSession)
+components\TributeWallClient.tsx:796:            ref_code: 
+refFromSession,
+components\TributeWallClient.tsx:962:  <Link href="/" style={{ 
+textDecoration: 'none', flexShrink: 0 }}>
+components\TributeWallClient.tsx:990:      
+href={`/for/${capsule.slug}/profile`}
+components\TributeWallClient.tsx:1004:        
+href={`/manage/${capsule.slug}`}
+components\TributeWallClient.tsx:1201:                <input 
+ref={heroPhotoRef} type="file" accept="image/*" 
+onChange={handleHeroUpload} style={{ display: 'none' }} />
+components\TributeWallClient.tsx:1349:                    <input 
+ref={photoRef} type="file" accept="image/*" onChange={handlePhoto} 
+style={{ display: 'none' }} />
+components\TributeWallClient.tsx:1355:                    <div 
+style={{ flex: 1, position: 'relative' }} ref={countryRef}>
+components\TributeWallClient.tsx:1498:              <div 
+ref={bottomRef} />
+components\TributeWallClient.tsx:1562:                <Link 
+href={`/for/${capsule.slug}/profile`} style={{ fontSize: '12px', 
+color: t.accentMuted, textDecoration: 'none', letterSpacing: 
+'0.06em' }}>
+components\TributeWallClient.tsx:1615:          const shareUrl = 
+myRefCode ? capsuleUrl + '?ref=' + myRefCode : capsuleUrl
+components\VideoTribute.tsx:137:          <input ref={fileRef} 
+type="file" accept="video/*" onChange={handleSelect} style={{ 
+display: 'none' }} />
+lib\content\serviceDetails.ts:262:      'Their tribute (voice) 
+appears in the published record, attributed to them by name',
+lib\content\serviceDetails.ts:295:      'Their contributions are 
+attributed to the correct phase automatically',
+lib\content\serviceDetails.ts:387:      'Their story appears in its 
+topic chapter, attributed to them by name',
+lib\participation\refCode.ts:33: * Uniqueness enforced by UNIQUE 
+constraint on contributions.ref_code.
+lib\participation\refCode.ts:55:      .update({ ref_code: code })
+lib\participation\refCode.ts:57:      .is('ref_code', null) // only 
+write if not already assigned
+lib\participation\refCode.ts:111:    // 4. Count share events → 
+share_count
+lib\participation\refCode.ts:117:    // 5. Count approved 
+contributions WITH attribution rows → attributed_contrib_count
+lib\participation\refCode.ts:119:    const { data: attributedData } 
+= await adminClient
+lib\participation\refCode.ts:124:    const attributedIds = new 
+Set((attributedData ?? []).map(r => r.contribution_id))
+lib\participation\refCode.ts:127:    let attributedApprovedCount = 0
+lib\participation\refCode.ts:128:    if (attributedIds.size > 0) {
+lib\participation\refCode.ts:135:        .in('id', 
+Array.from(attributedIds))
+lib\participation\refCode.ts:137:      attributedApprovedCount = 
+count ?? 0
+lib\participation\refCode.ts:140:    // 6. Count legacy builders → 
+legacy_builder_count
+lib\participation\refCode.ts:142:      
+.from('capsule_legacy_builders')
+lib\participation\refCode.ts:155:          share_count: shareCount 
+?? 0,
+lib\participation\refCode.ts:156:          legacy_builder_count: 
+builderCount ?? 0,
+lib\participation\refCode.ts:157:          attributed_contrib_count: 
+attributedApprovedCount,
+lib\participation\refCode.ts:188:// Only runs if 
+attributed_contrib_count >= activation threshold.
+lib\participation\refCode.ts:202:      
+.select('legacy_builder_activation_threshold')
+lib\participation\refCode.ts:206:    const threshold = 
+capsuleData?.legacy_builder_activation_threshold ?? 10
+lib\participation\refCode.ts:210:      
+.select('attributed_contrib_count')
+lib\participation\refCode.ts:214:    const attributedCount = 
+summaryData?.attributed_contrib_count ?? 0
+lib\participation\refCode.ts:216:    if (attributedCount < 
+threshold) {
+lib\participation\refCode.ts:224:      .select('id, 
+contributor_name, ref_code, legacy_builder_consent')
+lib\participation\refCode.ts:228:      .not('ref_code', 'is', null)
+lib\participation\refCode.ts:232:    // ── For each contribution 
+with a ref_code, count how many
+lib\participation\refCode.ts:243:      // Count approved 
+contributions attributed to this ref code
+lib\participation\refCode.ts:244:      const { data: 
+attributedContribs } = await adminClient
+lib\participation\refCode.ts:247:        .eq('ref_code', 
+contrib.ref_code)
+lib\participation\refCode.ts:250:      // Cross-check: only count if 
+the attributed contribution is approved
+lib\participation\refCode.ts:252:      if (attributedContribs && 
+attributedContribs.length > 0) {
+lib\participation\refCode.ts:253:        const attrIds = 
+attributedContribs.map(a => a.contribution_id)
+lib\participation\refCode.ts:269:          refCode: contrib.ref_code,
+lib\participation\refCode.ts:270:          consent: 
+contrib.legacy_builder_consent ?? false,
+lib\participation\refCode.ts:284:      
+.from('capsule_legacy_builders')
+lib\participation\refCode.ts:301:          ? 'lead_legacy_builder'
+lib\participation\refCode.ts:303:            ? 'legacy_builder'
+lib\participation\refCode.ts:313:        
+.from('capsule_legacy_builders')
+lib\participation\refCode.ts:320:            ref_code: 
+builder.refCode,
+lib\participation\refCode.ts:371:          
+.from('capsule_legacy_builders')
+lib\participation\refCode.ts:378:    // ── Update 
+legacy_builder_count in summary ──
+lib\participation\refCode.ts:380:      
+.from('capsule_legacy_builders')
+lib\participation\refCode.ts:388:        legacy_builder_count: 
+finalBuilderCount ?? 0,
+lib\participation\refCode.ts:529:              <a 
+href="${capsuleUrl}" style="display:inline-block;padding:12px 28px;ba
+ckground:linear-gradient(180deg,#2D1B69,#1a0f35);color:#F5F3EE;font-s
+ize:13px;font-weight:bold;text-decoration:none;border-radius:8px;lett
+er-spacing:0.5px;">View the Collection</a>
+lib\participation\refCode.ts:538:          <p 
+style="margin:0;font-size:11px;"><a href="${APP_URL}" style="color:rg
+ba(255,255,255,0.2);text-decoration:none;">itslegacycapsule.com</a></
+p>
+lib\participation\refCode.ts:564:      
+.from('capsule_legacy_builders')
+lib\email.ts:185:          <a href="${capsuleUrl}" 
+style="display:inline-block;padding:12px 32px;border-radius:10px;back
+ground:linear-gradient(135deg,#D4AE2A,#B8960C);color:#0D0820;font-siz
+e:14px;font-weight:700;text-decoration:none;letter-spacing:0.05em;">
+lib\email.ts:196:          ${editUrl ? `<p style="font-family:Arial,s
+ans-serif;font-size:12px;color:rgba(255,255,255,0.4);text-align:cente
+r;margin:0 0 10px;">Want to make a change? <a href="${editUrl}" 
+style="color:rgba(226,195,107,0.7);text-decoration:underline;">Edit 
+your ${lang.singular.toLowerCase()}</a></p>` : ''}
+lib\email.ts:197:          <a href="${params.refCode ? capsuleUrl + 
+'?ref=' + params.refCode : capsuleUrl}" 
+style="display:inline-block;padding:10px 
+24px;border-radius:8px;background:rgba(212,174,42,0.12);border:1px 
+solid rgba(212,174,42,0.25);color:rgba(212,174,42,0.8);font-size:13px
+;font-weight:600;text-decoration:none;letter-spacing:0.03em;">
+lib\email.ts:201:            ${params.refCode ? capsuleUrl + '?ref=' 
++ params.refCode : capsuleUrl}
+lib\email.ts:290:            <a href="${verifyUrl}" 
+style="display:inline-block;padding:13px 36px;border-radius:10px;back
+ground:linear-gradient(135deg,#D4AE2A,#B8960C);color:#0D0820;font-siz
+e:15px;font-weight:700;text-decoration:none;letter-spacing:0.04em;">
+lib\email.ts:299:            <a href="${manageUrl}" style="font-size:
+13px;color:#B8960C;text-decoration:none;">${manageUrl}</a>
+lib\honoureeEmail.ts:71:          <p 
+style="margin:0;font-size:11px;"><a href="${APP_URL}" style="color:rg
+ba(255,255,255,0.2);text-decoration:none;">itslegacycapsule.com</a></
+p>
+lib\honoureeEmail.ts:148:  const inner = `<table width="100%" 
+cellpadding="0" cellspacing="0"><tr><td style="padding:36px 40px 
+32px;">${bodyContent}</td></tr><tr><td style="padding:0 40px 
+32px;text-align:center;"><a href="${capsuleUrl}" 
+style="display:inline-block;padding:12px 28px;background:linear-gradi
+ent(180deg,#2D1B69,#1a0f35);color:#F5F3EE;font-size:13px;font-weight:
+bold;text-decoration:none;border-radius:8px;letter-spacing:0.5px;">Vi
+ew the Capsule</a></td></tr></table>`
+lib\honoureeEmail.ts:198:    const inner = `<table width="100%" 
+cellpadding="0" cellspacing="0"><tr><td style="padding:36px 40px 
+32px;">${bodyContent}</td></tr><tr><td style="padding:0 40px 
+32px;text-align:center;"><a href="${capsuleUrl}" 
+style="display:inline-block;padding:12px 28px;background:linear-gradi
+ent(180deg,#2D1B69,#1a0f35);color:#F5F3EE;font-size:13px;font-weight:
+bold;text-decoration:none;border-radius:8px;">View the 
+Capsule</a></td></tr></table>`
+lib\honoureeEmail.ts:232:    const inner = `<table width="100%" 
+cellpadding="0" cellspacing="0"><tr><td style="padding:36px 40px 
+32px;"><p 
+style="color:#1C1C1E;font-size:15px;line-height:1.8;margin:0 0 
+16px;">Dear ${firstName},</p><p 
+style="color:#1C1C1E;font-size:15px;line-height:1.8;margin:0 0 
+24px;">${params.body.replace(/\n/g, '<br/>')}</p><p style="color:#1C1
+C1E;font-size:15px;line-height:1.8;margin:0;"><strong>${params.honour
+eeName}</strong></p></td></tr><tr><td style="padding:0 40px 
+32px;text-align:center;"><a href="${capsuleUrl}" 
+style="display:inline-block;padding:12px 28px;background:linear-gradi
+ent(180deg,#2D1B69,#1a0f35);color:#F5F3EE;font-size:13px;font-weight:
+bold;text-decoration:none;border-radius:8px;">View the 
+Capsule</a></td></tr></table>`
+lib\honoureeEmail.ts:283:        <a href="${capsuleUrl}" 
+style="display:inline-block;padding:12px 28px;background:linear-gradi
+ent(180deg,#2D1B69,#1a0f35);color:#F5F3EE;font-size:13px;font-weight:
+bold;text-decoration:none;border-radius:8px;">View the Capsule</a>
+lib\tributeWallHelpers.ts:18:export function 
+formatTributeDate(dateStr: string): string {
+lib\verification.ts:72:        <a href="${verifyUrl}"
+lib\verification.ts:147:        <a href="${verifyUrl}"
+lib\verification.ts:166:          <a 
+href="${APP_URL}/for/${capsuleSlug}"
+
+
