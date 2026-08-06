@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
     // ── Build public URL ───────────────────────────────────────
     const publicUrl = `${supabaseUrl}/storage/v1/object/public/tribute-photos/${storagePath}`
 
-    // ── Save to capsules.og_image_url ──────────────────────────
+    // ── Save to capsules.og_image_url ────────────────────────
     const { error: updateError } = await db
       .from('capsules')
       .update({ og_image_url: publicUrl })
