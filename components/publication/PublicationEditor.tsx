@@ -21,6 +21,15 @@
  *     works on Vercel Hobby plan without Puppeteer.
  *   - handlePreviewPrint: calls /api/publication/preview-token,
  *     opens /publication-render/[token]?autoPrint=1 in new tab.
+ *
+ * Changes AI18 (6 Aug 2026):
+ *   - GenerateButton retired (Puppeteer unavailable on Hobby plan)
+ *   - handlePreviewPrint retired — replaced by handleRegenerate
+ *   - Deliberate regeneration: organiser controls when new version is created
+ *   - "Open Publication ↗" uses stored render_token — always shows last version
+ *   - Tiered distribution: Family Preview → Named Send → Full Distribution
+ *   - Version-aware distribution with Option C resend logic
+ *   - New API routes consumed: family-preview, named-send, distribute (updated)
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -47,7 +56,7 @@ import {
 import SectionNavigator from './SectionNavigator';
 import PhotoSection     from './PhotoSection';
 import TributeSection, { type ContributionDisplay } from './TributeSection';
-import GenerateButton   from './GenerateButton';
+// GenerateButton retired — Puppeteer unavailable on Vercel Hobby plan.
 
 
 // ============================================================
@@ -176,19 +185,45 @@ export default function PublicationEditor({
   const [pubId,           setPubId]            = useState<string | null>(null);
   const [existingPdfUrl,  setExistingPdfUrl]   = useState<string | null>(null);
   const [existingVersion, setExistingVersion]  = useState<number | null>(null);
-  const [saveState,       setSaveState]        = useState<EditorSaveState>('saved');
-  const [previewing,      setPreviewing]       = useState(false);
-  const [previewError,    setPreviewError]     = useState<string | null>(null);
-  const [distributing,    setDistributing]     = useState(false);
-  const [distributeError, setDistributeError]  = useState<string | null>(null);
-  const [distributeResult, setDistributeResult] = useState<{ sent: number; skipped: number } | null>(null);
-  const [recipientPreview, setRecipientPreview] = useState<{
-    contributors: number; dday: number; subscribers: number; total: number; no_email: number
+  const [saveState,            setSaveState]            = useState<EditorSaveState>('saved');
+  const [distributing,         setDistributing]         = useState(false);
+  const [distributeError,      setDistributeError]      = useState<string | null>(null);
+  const [distributeResult,     setDistributeResult]     = useState<{ sent: number; skipped: number } | null>(null);
+  const [recipientPreview,     setRecipientPreview]     = useState<{
+    contributors: number; dday: number; subscribers: number; total: number; no_email: number;
+    version?: number; already_received?: number; will_receive_now?: number;
   } | null>(null);
-  const [previewLoading,  setPreviewLoading]   = useState(false);
-  const [showConfirm,     setShowConfirm]      = useState(false);
-  const [initialising,    setInitialising]     = useState(true);
-  const [initError,       setInitError]        = useState<string | null>(null);
+  const [previewLoading,       setPreviewLoading]       = useState(false);
+  const [showConfirm,          setShowConfirm]          = useState(false);
+  const [initialising,         setInitialising]         = useState(true);
+  const [initError,            setInitError]            = useState<string | null>(null);
+  const [includePrevious,      setIncludePrevious]      = useState(false);
+  const [pubVersion,           setPubVersion]           = useState<number | null>(null);
+  const [alreadyReceived,      setAlreadyReceived]      = useState<number>(0);
+  const [willReceiveNow,       setWillReceiveNow]       = useState<number>(0);
+
+  // ── Generation state ──────────────────────────────────────
+  const [currentToken,         setCurrentToken]         = useState<string | null>(null);
+  const [currentGeneratedAt,   setCurrentGeneratedAt]   = useState<string | null>(null);
+  const [regenerating,         setRegenerating]         = useState(false);
+  const [regenError,           setRegenError]           = useState<string | null>(null);
+
+  // ── Family preview state ──────────────────────────────────
+  const [familyPreviewSending, setFamilyPreviewSending] = useState(false);
+  const [familyPreviewSent,    setFamilyPreviewSent]    = useState(false);
+  const [familyPreviewError,   setFamilyPreviewError]   = useState<string | null>(null);
+  const [familyPreviewVersion, setFamilyPreviewVersion] = useState<number | null>(null);
+  const [familyPreviewAt,      setFamilyPreviewAt]      = useState<string | null>(null);
+
+  // ── Named send state ─────────────────────────────────────
+  const [namedSendEmail,       setNamedSendEmail]       = useState('');
+  const [namedSendName,        setNamedSendName]        = useState('');
+  const [namedSending,         setNamedSending]         = useState(false);
+  const [namedSendError,       setNamedSendError]       = useState<string | null>(null);
+  const [namedSends,           setNamedSends]           = useState<Array<{
+    id: string; recipient_name: string; recipient_email: string;
+    version_sent: number; sent_at: string;
+  }>>([]);
 
   const hasUnsavedChanges = saveState === 'unsaved' || saveState === 'saving';
 
@@ -250,13 +285,16 @@ export default function PublicationEditor({
 
         const { data: pubRow } = await supabase
           .from('publications')
-          .select('pdf_url, version, generation_status')
+          .select('pdf_url, version, generation_status, render_token, generated_at')
           .eq('id', pub_id)
           .maybeSingle();
         if (pubRow?.pdf_url) {
           setExistingPdfUrl(pubRow.pdf_url);
           setExistingVersion(pubRow.version);
         }
+        if (pubRow?.render_token) setCurrentToken(pubRow.render_token);
+        if (pubRow?.generated_at) setCurrentGeneratedAt(pubRow.generated_at);
+        if (pubRow?.version)      setPubVersion(pubRow.version);
 
         const allPhotoIds = getAllPhotoIds(layout_config);
         if (allPhotoIds.length > 0) {
@@ -367,40 +405,89 @@ export default function PublicationEditor({
     [mutate]
   );
 
-  // ── 5.7  Preview & print handler (AI7 — Hobby plan PDF) ──
-  // Generates a short-lived render token, opens the publication
-  // render page in a new tab with autoPrint=1 so the browser
-  // print dialog fires automatically. User saves as PDF.
-
-const handlePreviewPrint = useCallback(async () => {
-    if (!capsuleId) return;
-    setPreviewing(true);
-    setPreviewError(null);
-    // Open window immediately before async call — prevents popup blocker
-    const previewWindow = window.open('', '_blank');
-    if (!previewWindow) {
-      setPreviewError('Please allow popups for this site and try again');
-      setPreviewing(false);
-      return;
-    }
+  // ── 5.7  Regenerate publication ───────────────────────────
+  // Deliberate organiser action — generates new token, stores it.
+  // Organiser can view current version at any time via Open button.
+  const handleRegenerate = useCallback(async () => {
+    if (!capsuleId) return
+    setRegenerating(true)
+    setRegenError(null)
     try {
       const res = await fetch('/api/publication/preview-token', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ capsuleId }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.token) throw new Error(data.error ?? 'Failed to generate preview');
-      previewWindow.location.href = `/publication-render/${data.token}?autoPrint=1`;
+        body:    JSON.stringify({ capsuleId }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.token) throw new Error(data.error ?? 'Failed to regenerate')
+      setCurrentToken(data.token)
+      setCurrentGeneratedAt(new Date().toISOString())
+      setExistingPdfUrl(data.token)
     } catch (err) {
-      previewWindow.close();
-      setPreviewError(err instanceof Error ? err.message : 'Preview failed');
+      setRegenError(err instanceof Error ? err.message : 'Regeneration failed')
     } finally {
-      setPreviewing(false);
+      setRegenerating(false)
     }
-  }, [capsuleId]);
+  }, [capsuleId])
 
-  // ── 5.7b  Distribute — two-step: preview recipients then confirm send ──
+  // ── 5.7b  Family preview ──────────────────────────────────
+  const handleFamilyPreview = useCallback(async () => {
+    if (!capsuleId) return
+    setFamilyPreviewSending(true)
+    setFamilyPreviewError(null)
+    try {
+      const res  = await fetch('/api/publication/family-preview', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ capsuleId, capsule_slug: capsuleSlug }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to send preview')
+      setFamilyPreviewSent(true)
+      setFamilyPreviewVersion(data.version)
+      setFamilyPreviewAt(new Date().toISOString())
+    } catch (err) {
+      setFamilyPreviewError(err instanceof Error ? err.message : 'Failed to send')
+    } finally {
+      setFamilyPreviewSending(false)
+    }
+  }, [capsuleId, capsuleSlug])
+
+  // ── 5.7c  Named send ─────────────────────────────────────
+  const handleNamedSend = useCallback(async () => {
+    if (!capsuleId || !namedSendEmail.trim()) return
+    setNamedSending(true)
+    setNamedSendError(null)
+    try {
+      const res  = await fetch('/api/publication/named-send', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          capsule_id:      capsuleId,
+          capsule_slug:    capsuleSlug,
+          recipient_name:  namedSendName.trim() || 'Guest',
+          recipient_email: namedSendEmail.trim(),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Send failed')
+      setNamedSends(prev => [{
+        id:              Date.now().toString(),
+        recipient_name:  namedSendName.trim() || 'Guest',
+        recipient_email: namedSendEmail.trim(),
+        version_sent:    data.version ?? 1,
+        sent_at:         new Date().toISOString(),
+      }, ...prev])
+      setNamedSendEmail('')
+      setNamedSendName('')
+    } catch (err) {
+      setNamedSendError(err instanceof Error ? err.message : 'Send failed')
+    } finally {
+      setNamedSending(false)
+    }
+  }, [capsuleId, capsuleSlug, namedSendEmail, namedSendName])
+
+  // ── 5.7d  Full distribution ───────────────────────────────
   const handlePreviewRecipients = useCallback(async () => {
     if (!capsuleId) return
     setPreviewLoading(true)
@@ -410,6 +497,9 @@ const handlePreviewPrint = useCallback(async () => {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed to load recipients')
       setRecipientPreview(data)
+      setPubVersion(data.version ?? null)
+      setAlreadyReceived(data.already_received ?? 0)
+      setWillReceiveNow(data.will_receive_now ?? data.total)
       setShowConfirm(true)
     } catch (err) {
       setDistributeError(err instanceof Error ? err.message : 'Failed to load recipients')
@@ -428,7 +518,11 @@ const handlePreviewPrint = useCallback(async () => {
       const res  = await fetch('/api/publication/distribute', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ capsule_id: capsuleId, capsule_slug: capsuleSlug }),
+        body:    JSON.stringify({
+          capsule_id:                  capsuleId,
+          capsule_slug:                capsuleSlug,
+          include_previous_recipients: includePrevious,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Distribution failed')
@@ -439,7 +533,7 @@ const handlePreviewPrint = useCallback(async () => {
     } finally {
       setDistributing(false)
     }
-  }, [capsuleId, capsuleSlug, existingPdfUrl]);
+  }, [capsuleId, capsuleSlug, existingPdfUrl, includePrevious])
 
 
   // ── 5.8  Loading and error states ─────────────────────────
@@ -554,141 +648,238 @@ const handlePreviewPrint = useCallback(async () => {
           <p className="text-sm font-bold text-yellow-100 leading-tight">Generate PDF</p>
         </div>
 
-        {/* Generate button area — stacks vertically on desktop, row on mobile */}
-        <div className="flex-1 md:overflow-y-auto px-4 py-3 md:py-4 flex flex-row md:flex-col gap-3 md:gap-0 items-center md:items-stretch overflow-x-auto md:overflow-x-visible">
+        {/* Generate button area */}
+        <div className="flex-1 md:overflow-y-auto px-4 py-3 md:py-4 space-y-0">
 
-          {/* ── Preview & Download — works on Hobby plan ── */}
-          <div className="mb-5 pb-5 border-b border-yellow-400/10">
-            <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-3">
-              Download Now
+          {/* ══ TIER 0 — Publication Generation ══ */}
+          <div className="pb-4 mb-4 border-b border-yellow-400/10">
+            <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-2">
+              Publication
             </p>
+
+            {/* Current version info */}
+            {currentToken && (
+              <div className="mb-3 p-2.5 rounded-lg border border-white/8" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[9px] text-yellow-400/50 uppercase tracking-wider font-bold">
+                    Current Version
+                  </span>
+                  {pubVersion && (
+                    <span className="text-[9px] text-white/25 font-mono">v{pubVersion}</span>
+                  )}
+                </div>
+                {currentGeneratedAt && (
+                  <p className="text-[10px] text-white/30 mb-2">
+                    {new Date(currentGeneratedAt).toLocaleDateString('en-GB', {
+                      day: 'numeric', month: 'short', year: 'numeric'
+                    })}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => window.open(`/publication-render/${currentToken}`, '_blank')}
+                  className="w-full py-2 px-3 rounded-lg text-[11px] font-bold border border-yellow-400/25 text-yellow-300 hover:bg-yellow-400/8 transition-colors"
+                >
+                  Open Publication ↗
+                </button>
+              </div>
+            )}
+
+            {hasUnsavedChanges && (
+              <p className="text-[10px] text-white/30 mb-2 text-center">Save changes before regenerating</p>
+            )}
+
             <button
               type="button"
-              onClick={handlePreviewPrint}
-              disabled={previewing || hasUnsavedChanges}
-              className="w-full py-2.5 px-3 rounded-lg text-xs font-bold bg-yellow-400 text-[#0a0010] hover:bg-yellow-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleRegenerate}
+              disabled={regenerating || hasUnsavedChanges}
+              className={`w-full py-2.5 px-3 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                currentToken
+                  ? 'border border-yellow-400/25 text-yellow-300/70 hover:bg-yellow-400/8'
+                  : 'bg-yellow-400 text-[#0a0010] hover:bg-yellow-300'
+              }`}
             >
-              {previewing ? 'Opening preview…' : '⬇ Preview & Save as PDF'}
+              {regenerating ? 'Generating…' : currentToken ? '↻ Regenerate Publication' : 'Generate Publication'}
             </button>
-            {hasUnsavedChanges && (
-              <p className="text-[10px] text-white/30 mt-2 text-center">Save changes first</p>
+
+            {regenError && (
+              <p className="text-[10px] text-red-400/70 mt-1.5 text-center">{regenError}</p>
             )}
-            {previewError && (
-              <p className="text-[10px] text-red-400/70 mt-2 text-center">{previewError}</p>
-            )}
-            <p className="text-[9px] text-white/20 mt-2 leading-relaxed text-center">
-              Opens in a new tab · Use browser Print → Save as PDF
+            <p className="text-[9px] text-white/15 mt-1.5 leading-relaxed text-center">
+              {currentToken
+                ? 'Creates a fresh version with all current content.'
+                : 'Generate to create the publication for the first time.'
+              }
             </p>
           </div>
 
-          {/* ── Distribute — two-step: preview then confirm ── */}
-          {existingPdfUrl && (
-            <div className="mb-5 pb-5 border-b border-yellow-400/10">
-              <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-3">
-                Distribute
+          {/* ══ TIER 1 — Family Preview ══ */}
+          {currentToken && (
+            <div className="pb-4 mb-4 border-b border-yellow-400/10">
+              <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-2">Family Preview</p>
+              {(familyPreviewSent || familyPreviewAt) && (
+                <div className="rounded-lg border border-green-400/20 p-2.5 mb-2" style={{ background: 'rgba(74,222,128,0.05)' }}>
+                  <p className="text-[10px] text-green-400/80 font-bold">✓ Preview sent</p>
+                  {familyPreviewVersion && (
+                    <p className="text-[9px] text-white/30 mt-0.5">v{familyPreviewVersion} · Family Representative</p>
+                  )}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={handleFamilyPreview}
+                disabled={familyPreviewSending || hasUnsavedChanges}
+                className="w-full py-2 px-3 rounded-lg text-[11px] font-bold border border-yellow-400/25 text-yellow-300 hover:bg-yellow-400/8 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {familyPreviewSending ? 'Sending…' : familyPreviewAt ? 'Resend Family Preview' : 'Send to Family Rep →'}
+              </button>
+              {familyPreviewError && (
+                <p className="text-[10px] text-red-400/70 mt-1.5">{familyPreviewError}</p>
+              )}
+              <p className="text-[9px] text-white/20 mt-1.5 leading-relaxed">
+                Family Representative receives it before anyone else.
               </p>
+            </div>
+          )}
 
-              {/* Step 1 — success state */}
+          {/* ══ TIER 2 — Named Send ══ */}
+          {currentToken && (
+            <div className="pb-4 mb-4 border-b border-yellow-400/10">
+              <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-2">Named Send</p>
+              <div className="space-y-1.5 mb-2">
+                <input
+                  type="text"
+                  placeholder="Recipient name"
+                  value={namedSendName}
+                  onChange={e => setNamedSendName(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-md text-[11px] bg-white/5 border border-white/10 text-white/70 placeholder:text-white/25 focus:outline-none focus:border-yellow-400/30"
+                />
+                <input
+                  type="email"
+                  placeholder="Email address *"
+                  value={namedSendEmail}
+                  onChange={e => setNamedSendEmail(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-md text-[11px] bg-white/5 border border-white/10 text-white/70 placeholder:text-white/25 focus:outline-none focus:border-yellow-400/30"
+                />
+                <button
+                  type="button"
+                  onClick={handleNamedSend}
+                  disabled={namedSending || !namedSendEmail.trim() || hasUnsavedChanges}
+                  className="w-full py-1.5 rounded-md text-[11px] font-bold border border-yellow-400/20 text-yellow-400/70 hover:bg-yellow-400/8 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {namedSending ? 'Sending…' : 'Send →'}
+                </button>
+              </div>
+              {namedSendError && (
+                <p className="text-[10px] text-red-400/70 mb-1.5">{namedSendError}</p>
+              )}
+              {namedSends.length > 0 && (
+                <div className="space-y-1 mt-2">
+                  {namedSends.slice(0, 4).map(s => (
+                    <div key={s.id} className="flex items-center justify-between gap-1">
+                      <span className="text-[9px] text-white/40 truncate flex-1">
+                        {s.recipient_name || s.recipient_email}
+                      </span>
+                      <span className="text-[9px] text-white/20 flex-shrink-0">v{s.version_sent}</span>
+                    </div>
+                  ))}
+                  {namedSends.length > 4 && (
+                    <p className="text-[9px] text-white/20">+{namedSends.length - 4} more</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ══ TIER 3 — Full Distribution ══ */}
+          {currentToken && (
+            <div className="pb-2">
+              <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-2">Full Distribution</p>
+
               {distributeResult ? (
-                <div className="rounded-lg bg-green-400/8 border border-green-400/20 p-3 text-center">
-                  <p className="text-[11px] text-green-400/80 font-bold mb-1">
-                    ✓ Publication sent
-                  </p>
-                  <p className="text-[10px] text-white/30">
-                    {distributeResult.sent} recipient{distributeResult.sent !== 1 ? 's' : ''}
-                    {distributeResult.skipped > 0 ? ` · ${distributeResult.skipped} had no email` : ''}
+                <div className="rounded-lg border border-green-400/20 p-2.5 mb-2" style={{ background: 'rgba(74,222,128,0.05)' }}>
+                  <p className="text-[10px] text-green-400/80 font-bold mb-0.5">✓ Publication sent</p>
+                  <p className="text-[9px] text-white/30">
+                    {distributeResult.sent} sent · {distributeResult.skipped} skipped
                   </p>
                 </div>
-
               ) : showConfirm && recipientPreview ? (
-                /* Step 2 — confirm panel */
-                <div className="rounded-lg border border-yellow-400/20 bg-yellow-400/5 p-3">
-                  <p className="text-[10px] text-yellow-400/60 uppercase tracking-wider mb-2">
-                    Publication will be sent to:
+                <div className="rounded-lg border border-yellow-400/20 p-3 mb-2" style={{ background: 'rgba(226,195,107,0.04)' }}>
+                  <p className="text-[9px] text-yellow-400/60 uppercase tracking-wider mb-2">
+                    Confirm send{pubVersion ? ` — v${pubVersion}` : ''}
                   </p>
-                  <div className="space-y-1 mb-3">
-                    {recipientPreview.contributors > 0 && (
+                  <div className="space-y-1 mb-2">
+                    <div className="flex justify-between">
+                      <span className="text-[9px] text-white/40">Total unique emails</span>
+                      <span className="text-[9px] text-white/60 font-bold">{recipientPreview.total}</span>
+                    </div>
+                    {alreadyReceived > 0 && (
                       <div className="flex justify-between">
-                        <span className="text-[10px] text-white/50">Tribute contributors</span>
-                        <span className="text-[10px] text-white/70 font-bold">{recipientPreview.contributors}</span>
+                        <span className="text-[9px] text-white/40">Already received v{pubVersion}</span>
+                        <span className="text-[9px] text-white/40">{alreadyReceived}</span>
                       </div>
                     )}
-                    {recipientPreview.dday > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-[10px] text-white/50">D-Day photo contributors</span>
-                        <span className="text-[10px] text-white/70 font-bold">{recipientPreview.dday}</span>
-                      </div>
-                    )}
-                    {recipientPreview.subscribers > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-[10px] text-white/50">Publication subscribers</span>
-                        <span className="text-[10px] text-white/70 font-bold">{recipientPreview.subscribers}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between pt-1 border-t border-white/10 mt-1">
-                      <span className="text-[10px] text-yellow-400/60 font-bold">Total recipients</span>
-                      <span className="text-[10px] text-yellow-400 font-bold">{recipientPreview.total}</span>
+                    <div className="flex justify-between">
+                      <span className="text-[9px] text-yellow-400/60 font-bold">Will receive now</span>
+                      <span className="text-[9px] text-yellow-400 font-bold">{willReceiveNow}</span>
                     </div>
                     {recipientPreview.no_email > 0 && (
-                      <p className="text-[9px] text-white/25 mt-1">
-                        {recipientPreview.no_email} contributor{recipientPreview.no_email !== 1 ? 's' : ''} have no email — not included
+                      <p className="text-[9px] text-white/20 mt-1">
+                        {recipientPreview.no_email} have no email — excluded
                       </p>
                     )}
                   </div>
+                  {alreadyReceived > 0 && (
+                    <label className="flex items-center gap-2 mb-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includePrevious}
+                        onChange={e => setIncludePrevious(e.target.checked)}
+                        className="w-3 h-3 rounded accent-yellow-400"
+                      />
+                      <span className="text-[9px] text-white/40">
+                        Also resend to {alreadyReceived} who received this version
+                      </span>
+                    </label>
+                  )}
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={handleDistribute}
-                      disabled={distributing || recipientPreview.total === 0}
-                      className="flex-1 py-2 rounded-lg text-[11px] font-bold bg-yellow-400 text-[#0a0010] disabled:opacity-40 disabled:cursor-not-allowed"
+                      disabled={distributing || willReceiveNow === 0}
+                      className="flex-1 py-1.5 rounded-lg text-[11px] font-bold bg-yellow-400 text-[#0a0010] disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      {distributing ? 'Sending…' : `Send to ${recipientPreview.total}`}
+                      {distributing ? 'Sending…' : `Send to ${includePrevious ? recipientPreview.total : willReceiveNow}`}
                     </button>
                     <button
                       type="button"
                       onClick={() => { setShowConfirm(false); setRecipientPreview(null) }}
-                      className="px-3 py-2 rounded-lg text-[11px] border border-white/10 text-white/40"
+                      className="px-2.5 py-1.5 rounded-lg text-[10px] border border-white/10 text-white/40"
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
-
               ) : (
-                /* Step 1 — initial button */
-                <>
-                  <button
-                    type="button"
-                    onClick={handlePreviewRecipients}
-                    disabled={previewLoading || hasUnsavedChanges}
-                    className="w-full py-2.5 px-3 rounded-lg text-xs font-bold border border-yellow-400/30 text-yellow-300 hover:bg-yellow-400/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {previewLoading ? 'Checking recipients…' : '✉ Send Publication'}
-                  </button>
-                  <p className="text-[9px] text-white/20 mt-2 leading-relaxed text-center">
-                    Preview who will receive it before sending
-                  </p>
-                </>
+                <button
+                  type="button"
+                  onClick={handlePreviewRecipients}
+                  disabled={previewLoading || hasUnsavedChanges}
+                  className="w-full py-2 px-3 rounded-lg text-[11px] font-bold border border-yellow-400/25 text-yellow-300/70 hover:bg-yellow-400/8 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {previewLoading ? 'Loading…' : '✉ Review & Send to All'}
+                </button>
               )}
 
               {distributeError && (
-                <p className="text-[10px] text-red-400/70 mt-2 text-center">{distributeError}</p>
+                <p className="text-[10px] text-red-400/70 mt-1.5">{distributeError}</p>
               )}
+              <p className="text-[9px] text-white/15 mt-1.5 leading-relaxed">
+                Sends to all contributors, D-Day guests and subscribers.
+              </p>
             </div>
           )}
 
-          {/* ── Auto-generate (Puppeteer — Vercel Pro) ── */}
-          <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-3">
-            Auto-generate
-          </p>
-          <GenerateButton
-            capsuleId={capsuleId}
-            hasUnsavedChanges={hasUnsavedChanges}
-            existingPdfUrl={existingPdfUrl}
-            existingVersion={existingVersion}
-            onGenerateStart={() => setSaveState('saved')}
-            onGenerateComplete={handleGenerateComplete}
-          />
         </div>
 
 {/* Footer — back link (desktop only) */}
