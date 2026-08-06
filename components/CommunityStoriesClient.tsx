@@ -589,7 +589,7 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess 
   const [text,         setText]         = useState('')
   const [relationship, setRelationship] = useState('')
   const [customRel,    setCustomRel]    = useState('')
-  const [era,          setEra]          = useState('')
+   
   const [photoFiles,   setPhotoFiles]   = useState<File[]>([])
   const [submitting,        setSubmitting]        = useState(false)
   const [error,             setError]             = useState('')
@@ -655,7 +655,7 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess 
           contributor_email:     email.trim() || undefined,
           tribute_text:          text.trim(),
           relationship:          finalRelationship || undefined,
-          era:                   era || undefined,
+           
           relationship_category: relationship || undefined,
         }),
       })
@@ -740,10 +740,7 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess 
             <input style={inp} placeholder="Describe your relationship..." value={customRel} onChange={e => setCustomRel(e.target.value)} />
           )}
 
-          <select style={{ ...inp, background: '#1a0845' }} value={era} onChange={e => setEra(e.target.value)}>
-            <option value="">When was this? (optional)</option>
-            {ERA_OPTIONS.map(e => <option key={e} value={e}>{e}</option>)}
-          </select>
+           
 
           {topics.length > 1 && (
             <div>
