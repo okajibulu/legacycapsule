@@ -1,0 +1,2962 @@
+﻿
+app\admin\capsule\[id]\page.tsx:6:   - Shows: rep email, issued 
+date, last accessed, expires,
+app\admin\capsule\[id]\page.tsx:40:    .select('id, honouree_email, 
+created_at, last_accessed_at, expires_at, session_type')
+app\admin\capsule\[id]\page.tsx:68:          { label: 'Organiser', 
+value: capsule.organiser_email },
+app\admin\capsule\[id]\page.tsx:121:                      
+{token.honouree_email}
+app\admin\capsule\page.tsx:60:              <p style={{ fontSize: 
+'11px', color: textFaint }}>{c.organiser_email} · {c.event_type}</p>
+app\admin\clients\page.tsx:32:          <div key={client.email} 
+style={{ borderRadius: '12px', background: cardBg, border: '1px 
+solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+app\admin\clients\page.tsx:34:              <p style={{ fontSize: 
+'13px', fontWeight: 600, color: gold }}>{client.email}</p>
+app\admin\dashboard\page.tsx:56:        <StatCard label="Pending 
+Verify" value={stats.pendingVerification} sub="awaiting email" 
+alert={stats.pendingVerification > 0} />
+app\admin\moderation\page.tsx:17:  email: string | null; status: 
+string; created_at: string
+app\admin\moderation\page.tsx:53:    const res  = await 
+fetch('/api/email/correction-request', {
+app\admin\moderation\page.tsx:97:                {item.email && 
+item.status !== 'pending_correction' && item.status !== 'flagged' && 
+(
+app\api\access-codes\generate\route.ts:208:        'id, name, email, 
+tier, participant_type, section_id, '
+app\api\access-codes\generate\route.ts:233:      email:            
+string | null
+app\api\access-codes\generate\route.ts:240:      valid_from:       
+string | null
+app\api\access-codes\generate\route.ts:321:          guest_email:    
+  guest.email          ?? null,
+app\api\access-codes\generate\route.ts:329:          valid_from:     
+  guest.valid_from     ?? effectiveConfig.checkin_opens_at  ?? null,
+app\api\access-codes\list\route.ts:25:        id, guest_id, 
+guest_name, guest_email, participant_type,
+app\api\access-codes\send\route.ts:3:// PURPOSE: Send access codes 
+via email to all guests (or a subset).
+app\api\access-codes\send\route.ts:5://          Premium email 
+template — branded, event-specific.
+app\api\access-codes\send\route.ts:13:import { Resend }              
+      from 'resend'
+app\api\access-codes\send\route.ts:25:const resend  = new 
+Resend(process.env.RESEND_API_KEY!)
+app\api\access-codes\send\route.ts:61:        id, guest_name, 
+guest_email, numeric_code, qr_payload,
+app\api\access-codes\send\route.ts:65:      .not('guest_email', 
+'is', null)
+app\api\access-codes\send\route.ts:76:        { error: 'No guests 
+with email addresses found' },
+app\api\access-codes\send\route.ts:85:      if (!code.guest_email) { 
+skipped++; continue }
+app\api\access-codes\send\route.ts:99:        await 
+resend.emails.send({
+app\api\access-codes\send\route.ts:100:          from:    
+'LegacyCapsule <events@itslegacycapsule.com>',
+app\api\access-codes\send\route.ts:101:          to:      
+code.guest_email,
+app\api\access-codes\send\route.ts:102:          subject: `Your 
+Access Code — ${eventLabel}`,
+app\api\access-codes\send\route.ts:103:          html:    
+accessCodeEmailHtml({
+app\api\access-codes\send\route.ts:123:      } catch (emailErr) {
+app\api\access-codes\send\route.ts:124:        
+console.error(`[access-codes/send] Failed for ${code.guest_email}:`, 
+emailErr)
+app\api\access-codes\send\route.ts:138:// SECTION 4 — Email template
+app\api\access-codes\send\route.ts:139:// Premium branded access 
+code email.
+app\api\access-codes\send\route.ts:144:function 
+accessCodeEmailHtml(d: {
+app\api\access-codes\validate\route.ts:59:        id, capsule_id, 
+guest_id, participant_type, guest_name, guest_email,
+app\api\access-codes\validate\route.ts:100:        valid_from: 
+accessCode.valid_from,
+app\api\account\delete\route.ts:4:   when NO active capsules remain 
+under the email.
+app\api\account\delete\route.ts:18:    const { email, confirmation, 
+capsuleId } = await request.json()
+app\api\account\delete\route.ts:20:    if (!email || confirmation 
+!== 'DELETE') {
+app\api\account\delete\route.ts:24:    const normalised = 
+email.trim().toLowerCase()
+app\api\account\delete\route.ts:32:        .eq('organiser_email', 
+normalised)
+app\api\account\delete\route.ts:41:        .eq('organiser_email', 
+normalised)
+app\api\account\delete\route.ts:59:      .eq('organiser_email', 
+normalised)
+app\api\account\delete\route.ts:66:      await 
+supabase.from('profiles').delete().eq('email', normalised)
+app\api\account\delete\route.ts:69:      const authUser = 
+users?.find((u: any) => u.email === normalised)
+app\api\attire\orders\route.ts:57:      id, capsule_id, variant_id, 
+guest_name, phone, email,
+app\api\attire\orders\route.ts:90:    email?: string
+app\api\attire\orders\route.ts:157:      email: body.email?.trim() 
+|| null,
+app\api\auth\signin\route.ts:3:   Generates a 4-char sign-in code 
+and sends via Resend.
+app\api\auth\signin\route.ts:4:   Stores in email_verifications 
+table (type: 'signin').
+app\api\auth\signin\route.ts:9:import { Resend } from 'resend'
+app\api\auth\signin\route.ts:15:const resend = new 
+Resend(process.env.RESEND_API_KEY)
+app\api\auth\signin\route.ts:26:    const { email } = await 
+request.json()
+app\api\auth\signin\route.ts:27:    if (!email?.includes('@')) 
+return NextResponse.json({ error: 'Valid email required' }, { 
+status: 400 })
+app\api\auth\signin\route.ts:29:    const normalised = 
+email.trim().toLowerCase()
+app\api\auth\signin\route.ts:31:    // Check if this email has any 
+capsules in the DB
+app\api\auth\signin\route.ts:40:      .eq('organiser_email', 
+normalised)
+app\api\auth\signin\route.ts:45:        error: "We don't have an 
+account for this email. Check the email or create a capsule first.",
+app\api\auth\signin\route.ts:53:    // Delete any existing 
+unverified signin codes for this email
+app\api\auth\signin\route.ts:54:    await 
+supabase.from('email_verifications').delete()
+app\api\auth\signin\route.ts:55:      .eq('email', 
+normalised).eq('type', 'signin').is('verified_at', null)
+app\api\auth\signin\route.ts:58:    const { error: insertError } = 
+await supabase.from('email_verifications').insert({
+app\api\auth\signin\route.ts:59:      email: normalised,
+app\api\auth\signin\route.ts:62:      record_id: normalised, // use 
+email as record_id for signin
+app\api\auth\signin\route.ts:72:    // Send email
+app\api\auth\signin\route.ts:73:    await resend.emails.send({
+app\api\auth\signin\route.ts:74:      from: 'LegacyCapsule 
+<noreply@itslegacycapsule.com>',
+app\api\auth\signin\route.ts:75:      to: email,
+app\api\auth\signin\route.ts:76:      subject: `Your sign-in code: 
+${code}`,
+app\api\auth\signin\route.ts:77:      html: `
+app\api\auth\signin\route.ts:111:                        If you 
+didn't request this, you can safely ignore this email.<br/>
+app\api\auth\verify-signin\route.ts:19:    const { email, code } = 
+await request.json()
+app\api\auth\verify-signin\route.ts:20:    if (!email || !code) 
+return NextResponse.json({ valid: false, error: 'Missing fields' }, 
+{ status: 400 })
+app\api\auth\verify-signin\route.ts:22:    const normalised = 
+email.trim().toLowerCase()
+app\api\auth\verify-signin\route.ts:26:      
+.from('email_verifications')
+app\api\auth\verify-signin\route.ts:28:      .eq('email', normalised)
+app\api\auth\verify-signin\route.ts:41:      await 
+supabase.from('email_verifications').delete().eq('id', data.id)
+app\api\auth\verify-signin\route.ts:51:    await 
+supabase.from('email_verifications')
+app\api\auth\verify-signin\route.ts:59:        email: normalised, 
+email_confirm: true,
+app\api\auth\verify-signin\route.ts:64:        // User exists — get 
+by email
+app\api\auth\verify-signin\route.ts:66:        const existing = 
+users?.find((u: any) => u.email === normalised)
+app\api\auth\verify-signin\route.ts:81:          { id: userId, 
+email: normalised, role: 'organiser' },
+app\api\auth\verify-signin\route.ts:88:          email: normalised,
+app\api\auth\verify-signin\route.ts:111:      .eq('organiser_email', 
+normalised)
+app\api\auth\verify-signin\route.ts:129:        
+.eq('organiser_email', normalised)
+app\api\capsule\honouree-reveal\route.ts:8: * POST — Send the 
+Capsule Reveal email to the honouree/subject.
+app\api\capsule\honouree-reveal\route.ts:12: *   1. Validate 
+capsule_id + honouree_email
+app\api\capsule\honouree-reveal\route.ts:14: *   3. Send the Reveal 
+email via Resend
+app\api\capsule\honouree-reveal\route.ts:18: * Body: { capsule_id: 
+string, honouree_email: string }
+app\api\capsule\honouree-reveal\route.ts:24:import { Resend } from 
+'resend'
+app\api\capsule\honouree-reveal\route.ts:35:const resend = new 
+Resend(process.env.RESEND_API_KEY!)
+app\api\capsule\honouree-reveal\route.ts:52:// SECTION 3 — Reveal 
+email HTML builder
+app\api\capsule\honouree-reveal\route.ts:55:function 
+buildRevealEmailHtml(params: {
+app\api\capsule\honouree-reveal\route.ts:163:  let body: { 
+capsule_id: string; honouree_email: string }
+app\api\capsule\honouree-reveal\route.ts:171:  const { capsule_id, 
+honouree_email } = body
+app\api\capsule\honouree-reveal\route.ts:173:  if (!capsule_id || 
+!honouree_email?.includes('@')) {
+app\api\capsule\honouree-reveal\route.ts:175:      { error: 
+'capsule_id and a valid honouree_email are required.' },
+app\api\capsule\honouree-reveal\route.ts:211:      honouree_email: 
+honouree_email.trim().toLowerCase(),
+app\api\capsule\honouree-reveal\route.ts:221:  // ── 4.5 Send Reveal 
+email ─────────────────────────────
+app\api\capsule\honouree-reveal\route.ts:230:    const { error: 
+sendErr } = await resend.emails.send({
+app\api\capsule\honouree-reveal\route.ts:231:      from: 
+`LegacyCapsule <noreply@itslegacycapsule.com>`,
+app\api\capsule\honouree-reveal\route.ts:232:      to: 
+honouree_email.trim().toLowerCase(),
+app\api\capsule\honouree-reveal\route.ts:234:      html: 
+buildRevealEmailHtml({
+app\api\capsule\honouree-reveal\route.ts:246:      
+console.error('[honouree-reveal] Resend error:', sendErr)
+app\api\capsule\honouree-reveal\route.ts:247:      return 
+NextResponse.json({ error: 'Email send failed.' }, { status: 500 })
+app\api\capsule\honouree-reveal\route.ts:251:    return 
+NextResponse.json({ error: 'Email send failed.' }, { status: 500 })
+app\api\checkout\bundle\route.ts:90:      organiser_email,
+app\api\checkout\bundle\route.ts:92:      recipient_email,
+app\api\checkout\bundle\route.ts:103:    // organiser_email can be 
+empty string - look it up from capsule if missing
+app\api\checkout\bundle\route.ts:104:    let email = 
+organiser_email?.trim() || ''
+app\api\checkout\bundle\route.ts:105:    if (!email) {
+app\api\checkout\bundle\route.ts:108:        
+.select('organiser_email')
+app\api\checkout\bundle\route.ts:111:      email = 
+cap?.organiser_email ?? ''
+app\api\checkout\bundle\route.ts:185:          recipient_email: 
+recipient_email ?? null,
+app\api\checkout\bundle\route.ts:200:      customer_email: email || 
+undefined,
+app\api\checkout\bundle\route.ts:207:        recipient_email: 
+recipient_email ?? '',
+app\api\checkout\feature\route.ts:42:    const { capsule_id, 
+capsule_slug, feature_id, organiser_email } = body
+app\api\checkout\feature\route.ts:45:    if (!capsule_id || 
+!capsule_slug || !feature_id || !organiser_email) {
+app\api\checkout\feature\route.ts:47:        { error: 'Missing 
+required fields: capsule_id, capsule_slug, feature_id, 
+organiser_email' },
+app\api\checkout\feature\route.ts:72:      organiser_email,
+app\api\checkout\send-payment-link\route.ts:3://          the 
+checkout URL to a third party (friend, family, sponsor) via email.
+app\api\checkout\send-payment-link\route.ts:14:import { Resend }     
+               from 'resend'
+app\api\checkout\send-payment-link\route.ts:21:const resend = new 
+Resend(process.env.RESEND_API_KEY!)
+app\api\checkout\send-payment-link\route.ts:55:      payer_email,
+app\api\checkout\send-payment-link\route.ts:59:    if (!capsule_id 
+|| !capsule_slug || !feature_ids?.length || !payer_email || 
+!payer_name) {
+app\api\checkout\send-payment-link\route.ts:71:        
+organiser_email: payer_email,
+app\api\checkout\send-payment-link\route.ts:88:    // Send email to 
+payer
+app\api\checkout\send-payment-link\route.ts:89:    await 
+resend.emails.send({
+app\api\checkout\send-payment-link\route.ts:90:      from:    
+'LegacyCapsule <events@itslegacycapsule.com>',
+app\api\checkout\send-payment-link\route.ts:91:      to:      
+payer_email,
+app\api\checkout\send-payment-link\route.ts:92:      subject: 
+`Payment request for ${honouree_name}'s LegacyCapsule`,
+app\api\checkout\send-payment-link\route.ts:93:      html:    
+paymentLinkEmailHtml({
+app\api\checkout\send-payment-link\route.ts:114:// SECTION 4 -- 
+Email template
+app\api\checkout\send-payment-link\route.ts:117:function 
+paymentLinkEmailHtml(d: {
+app\api\checkout\route.ts:22:      organiser_email,
+app\api\checkout\route.ts:28:    if (!capsule_id || !capsule_slug || 
+!tier || !pricing_keys?.length || !organiser_email) {
+app\api\checkout\route.ts:30:        { error: 'Missing required 
+fields: capsule_id, capsule_slug, tier, pricing_keys, 
+organiser_email' },
+app\api\checkout\route.ts:55:      organiser_email,
+app\api\circles\portal\route.ts:3:// PURPOSE: Generate a Circle 
+Leader portal link and send the welcome email.
+app\api\circles\portal\route.ts:15:import { Resend }                 
+   from 'resend'
+app\api\circles\portal\route.ts:24:const resend  = new 
+Resend(process.env.RESEND_API_KEY!)
+app\api\circles\portal\route.ts:67:      organiser_email,
+app\api\circles\portal\route.ts:81:      .select('id, name, 
+leader_name, leader_email, portal_token')
+app\api\circles\portal\route.ts:89:    if (!circle.leader_email) {
+app\api\circles\portal\route.ts:91:        { error: 'This circle has 
+no leader email address. Add one before sending the portal link.' },
+app\api\circles\portal\route.ts:110:        honouree_email: 
+circle.leader_email,   // reuse existing column for leader email
+app\api\circles\portal\route.ts:126:    // ── Send welcome email to 
+circle leader ────────────────────────────────
+app\api\circles\portal\route.ts:131:    await resend.emails.send({
+app\api\circles\portal\route.ts:132:      from:    'LegacyCapsule 
+<events@itslegacycapsule.com>',
+app\api\circles\portal\route.ts:133:      to:      
+circle.leader_email,
+app\api\circles\portal\route.ts:134:      subject: `Your coordinator 
+access — ${eventLabel}`,
+app\api\circles\portal\route.ts:135:      html:    
+circleLeaderWelcomeHtml({
+app\api\circles\portal\route.ts:150:        actor_name:  
+organiser_email ?? 'Organiser',
+app\api\circles\portal\route.ts:151:        actor_ref:   
+organiser_email ?? '',
+app\api\circles\portal\route.ts:156:        metadata:    { 
+leader_email: circle.leader_email, leader_name: circle.leader_name },
+app\api\circles\portal\route.ts:163:      sent_to:    
+circle.leader_email,
+app\api\circles\portal\route.ts:172:// ═══ SECTION 4 — Circle leader 
+welcome email template ═══
+app\api\circles\route.ts:124:      leader_name, leader_email, 
+leader_phone,
+app\api\circles\route.ts:126:      organiser_email,
+app\api\circles\route.ts:146:        leader_email:  
+leader_email?.trim()?.toLowerCase() ?? null,
+app\api\circles\route.ts:160:      actor_name:  organiser_email ?? 
+'Organiser',
+app\api\circles\route.ts:161:      actor_ref:   organiser_email ?? 
+'',
+app\api\circles\route.ts:166:      metadata:    { leader_name, 
+leader_email },
+app\api\circles\route.ts:181:    const { id, capsule_id, 
+organiser_email, ...updates } = body
+app\api\circles\route.ts:190:      'leader_email', 'leader_phone', 
+'sort_order',
+app\api\circles\route.ts:209:      actor_name:  organiser_email ?? 
+'Organiser',
+app\api\circles\route.ts:210:      actor_ref:   organiser_email ?? 
+'',
+app\api\circles\route.ts:231:    const organiser_email = 
+req.nextUrl.searchParams.get('organiser_email')
+app\api\circles\route.ts:250:      actor_name:  organiser_email ?? 
+'Organiser',
+app\api\circles\route.ts:251:      actor_ref:   organiser_email ?? 
+'',
+app\api\community-topics\submit\route.ts:27:    const email = 
+(fd.get('email') as string)?.trim() ?? ''
+app\api\community-topics\submit\route.ts:148:        email: email || 
+null,
+app\api\community-topics\submit\route.ts:164:    // ── SECTION: Send 
+submission confirmation email ───────────
+app\api\community-topics\submit\route.ts:166:    if (email) {
+app\api\community-topics\submit\route.ts:168:        await fetch(`${p
+rocess.env.NEXT_PUBLIC_APP_URL}/api/email/submission-confirmation`, {
+app\api\community-topics\submit\route.ts:173:            email,
+app\api\community-topics\submit\route.ts:179:        // Email 
+failure is non-critical
+app\api\community-topics\[topicId]\approve\route.ts:4:// Auth: 
+Organiser email verified against capsule
+app\api\community-topics\[topicId]\approve\route.ts:23:    const { 
+organiser_email } = await req.json()
+app\api\community-topics\[topicId]\approve\route.ts:42:      
+.select('organiser_email')
+app\api\community-topics\[topicId]\approve\route.ts:46:    if 
+(!capsule || capsule.organiser_email !== organiser_email) {
+app\api\community-topics\route.ts:73:    const { capsule_id, 
+topic_name, capsule_slug, organiser_email } = body
+app\api\community-topics\route.ts:81:    // Verify organiser access 
+(capsule must exist and email must match)
+app\api\community-topics\route.ts:84:      .select('id, 
+organiser_email')
+app\api\community-topics\route.ts:92:    if (organiser_email && 
+capsule.organiser_email !== organiser_email) {
+app\api\contributions\pending\route.ts:25:      .select('id, 
+contributor_name, city, country, tribute_text, thumbnail_url, email, 
+created_at, is_dday, story_topic_id')
+app\api\cron\notify-pending\routerrr.tsx:12:import { Resend } from 
+'resend'
+app\api\cron\notify-pending\routerrr.tsx:18:const resend = new 
+Resend(process.env.RESEND_API_KEY)
+app\api\cron\notify-pending\routerrr.tsx:69:      .select('id, slug, 
+honouree_name, organiser_email, page_state, event_date, created_at, 
+notification_frequency, organiser_last_notified_at')
+app\api\cron\notify-pending\routerrr.tsx:78:    let emailsSent = 0
+app\api\cron\notify-pending\routerrr.tsx:111:      await 
+resend.emails.send({
+app\api\cron\notify-pending\routerrr.tsx:112:        from: 
+'LegacyCapsule <hello@itslegacycapsule.com>',
+app\api\cron\notify-pending\routerrr.tsx:113:        to: 
+capsule.organiser_email,
+app\api\cron\notify-pending\routerrr.tsx:114:        subject: 
+`${count} new tribute${count > 1 ? 's' : ''} awaiting approval — 
+${capsule.honouree_name}`,
+app\api\cron\notify-pending\routerrr.tsx:115:        html: `
+app\api\cron\notify-pending\routerrr.tsx:179:      }).catch(err => 
+console.error(`Email failed for ${capsule.organiser_email}:`, err))
+app\api\cron\notify-pending\routerrr.tsx:194:      emailsSent++
+app\api\cron\notify-pending\routerrr.tsx:197:    return 
+NextResponse.json({ sent: emailsSent })
+app\api\dday\upload\route.ts:118:    const contributor_email = 
+formData.get('contributor_email') as string | null
+app\api\email\appreciation\route.ts:3: * LEGACYCAPSULE — 
+app/api/email/appreciation/route.ts
+app\api\email\appreciation\route.ts:7: * POST — Send appreciation 
+email(s) from the honouree portal.
+app\api\email\appreciation\route.ts:10: *   individual  — one email 
+to one contributor
+app\api\email\appreciation\route.ts:11: *   collective  — one 
+personalised email to all reachable contributors
+app\api\email\appreciation\route.ts:28:  sendAppreciationEmail,
+app\api\email\appreciation\route.ts:29:  sendCollectiveEmail,
+app\api\email\appreciation\route.ts:30:}                             
+       from '@/lib/honoureeEmail';
+app\api\email\appreciation\route.ts:86:    
+.from('honouree_email_templates')
+app\api\email\appreciation\route.ts:108:      .select('id, 
+contributor_name, email, tribute_text')
+app\api\email\appreciation\route.ts:113:    if (!contrib || 
+!contrib.email) {
+app\api\email\appreciation\route.ts:115:        { error: 
+'Contributor not found or has no email.' },
+app\api\email\appreciation\route.ts:122:    const result = await 
+sendAppreciationEmail({
+app\api\email\appreciation\route.ts:130:      contributorEmail: 
+contrib.email,
+app\api\email\appreciation\route.ts:142:    return 
+NextResponse.json({ ok: true, resend_id: result.resendId });
+app\api\email\appreciation\route.ts:148:    // Fetch all approved 
+contributors with emails
+app\api\email\appreciation\route.ts:151:      .select('id, 
+contributor_name, email, country, is_anonymous')
+app\api\email\appreciation\route.ts:156:      .not('email', 'is', 
+null);
+app\api\email\appreciation\route.ts:159:    const reachable   = 
+allContribs.filter(c => c.email && c.contributor_name);
+app\api\email\appreciation\route.ts:180:    const result = await 
+sendCollectiveEmail({
+app\api\email\appreciation\route.ts:192:        email:          
+c.email!,
+app\api\email\approval\route.ts:2:// APPROVAL EMAIL ROUTE
+app\api\email\approval\route.ts:3:// Route: POST /api/email/approval
+app\api\email\approval\route.ts:5:// D27: Sends Keepsake Card — 
+premium HTML email, not plain text.
+app\api\email\approval\route.ts:6:// Never import email functions 
+directly into client components.
+app\api\email\approval\route.ts:11:import { sendKeepsakeCard } from 
+'@/lib/email'
+app\api\email\approval\route.ts:40:      .select('id, capsule_id, 
+contributor_name, city, country, tribute_text, thumbnail_url, email, 
+ref_code, edit_token')
+app\api\email\approval\route.ts:48:    // No email — nothing to send
+app\api\email\approval\route.ts:49:    if (!contribution.email) {
+app\api\email\approval\route.ts:50:      return NextResponse.json({ 
+ok: true, skipped: 'no email on record' })
+app\api\email\approval\route.ts:106:      contributorEmail: 
+contribution.email,
+app\api\email\approval\route.ts:121:    console.error('Approval 
+email route error:', err)
+app\api\email\contact\route.ts:2:   app/api/email/contact/route.ts
+app\api\email\contact\route.ts:4:   from the organiser dashboard. 
+Sends to LC team via Resend.
+app\api\email\contact\route.ts:9:     email: string
+app\api\email\contact\route.ts:17:import { Resend } from 'resend'
+app\api\email\contact\route.ts:19:const resend = new 
+Resend(process.env.RESEND_API_KEY)
+app\api\email\contact\route.ts:21:const TEAM_EMAIL = 
+'hello@itslegacycapsule.com'
+app\api\email\contact\route.ts:27:    const { name, email, message, 
+capsule, subject } = body
+app\api\email\contact\route.ts:29:    if (!name?.trim() || 
+!email?.trim() || !message?.trim()) {
+app\api\email\contact\route.ts:36:    const emailSubject = subject 
+?? `Capsule enquiry from ${name}`
+app\api\email\contact\route.ts:38:    // Email to the LC team
+app\api\email\contact\route.ts:39:    await resend.emails.send({
+app\api\email\contact\route.ts:40:      from: `LegacyCapsule 
+<${FROM}>`,
+app\api\email\contact\route.ts:41:      to: TEAM_EMAIL,
+app\api\email\contact\route.ts:42:      replyTo: email.trim(),
+app\api\email\contact\route.ts:43:      subject: emailSubject,
+app\api\email\contact\route.ts:44:      html: `
+app\api\email\contact\route.ts:79:                              
+${emailSubject}
+app\api\email\contact\route.ts:96:                                  
+<p style="margin:0;font-size:10px;text-transform:uppercase;letter-spa
+cing:0.1em;color:rgba(226,195,107,0.55);">Email</p>
+app\api\email\contact\route.ts:98:                                   
+ <a href="mailto:${email.trim()}" style="color:rgba(226,195,107,0.8);
+text-decoration:none;">${email.trim()}</a>
+app\api\email\contact\route.ts:125:                              
+href="mailto:${email.trim()}?subject=Re: 
+${encodeURIComponent(emailSubject)}"
+app\api\email\contact\route.ts:156:    await resend.emails.send({
+app\api\email\contact\route.ts:157:      from: `LegacyCapsule 
+<${FROM}>`,
+app\api\email\contact\route.ts:158:      to: email.trim(),
+app\api\email\contact\route.ts:159:      subject: 'We received your 
+message',
+app\api\email\contact\route.ts:160:      html: `
+app\api\email\contact\route.ts:255:    console.error('Contact email 
+error:', error)
+app\api\email\contact\route.ts:256:    // Return success anyway — 
+don't alarm the user over email failures
+app\api\email\correction-request\route.ts:2:// FILE: 
+app/api/email/correction-request/route.ts
+app\api\email\correction-request\route.ts:3:// PURPOSE: Send a 
+correction request email to a contributor.
+app\api\email\correction-request\route.ts:12:import { Resend }       
+             from 'resend'
+app\api\email\correction-request\route.ts:23:const resend  = new 
+Resend(process.env.RESEND_API_KEY!)
+app\api\email\correction-request\route.ts:69:      .select('id, 
+capsule_id, contributor_name, email, edit_token, correction_count, 
+status')
+app\api\email\correction-request\route.ts:74:    if (!contrib.email) 
+return NextResponse.json({ error: 'Contributor has no email address' 
+}, { status: 400 })
+app\api\email\correction-request\route.ts:117:    // ── Send 
+correction request email ─────────────────────────────────────────
+app\api\email\correction-request\route.ts:118:    await 
+resend.emails.send({
+app\api\email\correction-request\route.ts:119:      from:    
+'LegacyCapsule <memories@itslegacycapsule.com>',
+app\api\email\correction-request\route.ts:120:      to:      
+contrib.email,
+app\api\email\correction-request\route.ts:121:      subject: 
+`${contrib.contributor_name}, we have ${template.subject_suffix}`,
+app\api\email\correction-request\route.ts:122:      html:    
+correctionEmailHtml({
+app\api\email\correction-request\route.ts:140:// SECTION 4 — Email 
+template
+app\api\email\correction-request\route.ts:144:function 
+correctionEmailHtml(d: {
+app\api\email\correction-request\route.ts:183:            <p style="m
+argin:0;font-family:Arial,sans-serif;font-size:12px;color:rgba(255,25
+5,255,0.45);line-height:1.7;">If you believe your tribute is fine as 
+submitted and no changes are needed, simply reply to this email and 
+we will review it again.</p>
+app\api\email\eoh-digest\route.ts:1:// FILE: 
+app/api/email/eoh-digest/route.ts
+app\api\email\eoh-digest\route.ts:3://          to the honouree 
+portal email (family rep or honouree directly).
+app\api\email\eoh-digest\route.ts:4://          Called by Resend 
+scheduled send mechanism.
+app\api\email\eoh-digest\route.ts:12:import { Resend } from 'resend'
+app\api\email\eoh-digest\route.ts:23:const resend = new 
+Resend(process.env.RESEND_API_KEY!)
+app\api\email\eoh-digest\route.ts:41:      .select('honouree_name, 
+event_type, organiser_email')
+app\api\email\eoh-digest\route.ts:49:    // Fetch honouree portal 
+email
+app\api\email\eoh-digest\route.ts:52:      .select('honouree_email')
+app\api\email\eoh-digest\route.ts:58:    const recipientEmail = 
+portal?.honouree_email ?? capsule.organiser_email
+app\api\email\eoh-digest\route.ts:66:      .select('supporter_name, 
+supporter_email, amount_acknowledged, method_label, acknowledged_at')
+app\api\email\eoh-digest\route.ts:85:    await resend.emails.send({
+app\api\email\eoh-digest\route.ts:86:      from: 'LegacyCapsule 
+<memories@itslegacycapsule.com>',
+app\api\email\eoh-digest\route.ts:87:      to: recipientEmail,
+app\api\email\eoh-digest\route.ts:88:      
+...(capsule.organiser_email !== recipientEmail && { cc: 
+capsule.organiser_email }),
+app\api\email\eoh-digest\route.ts:89:      subject: 
+`${todayGifters.length} new expression${todayGifters.length !== 1 ? 
+'s' : ''} of honour for ${capsule.honouree_name} -- Daily Summary`,
+app\api\email\eoh-digest\route.ts:90:      html: eohDigestHtml({
+app\api\email\eoh-digest\route.ts:105:    return NextResponse.json({ 
+ok: true, sent_to: recipientEmail, gifter_count: todayGifters.length 
+})
+app\api\email\eoh-digest\route.ts:114:// SECTION 3 -- EOH Digest 
+email template
+app\api\email\gift-notification\route.ts:1:// FILE: 
+app/api/email/gift-notification/route.ts
+app\api\email\gift-notification\route.ts:2:// PURPOSE: Sends capsule 
+access email to the gift recipient after payment.
+app\api\email\gift-notification\route.ts:3://          Also sends a 
+warm organiser confirmation (separate from recipient email).
+app\api\email\gift-notification\route.ts:8://   -- Organiser 
+confirmation email added (was missing -- B3)
+app\api\email\gift-notification\route.ts:9://   -- Raw capsule URL 
+removed from recipient email footer
+app\api\email\gift-notification\route.ts:10://   -- organiser_email 
+param accepted from webhook caller
+app\api\email\gift-notification\route.ts:15:import { Resend }        
+            from 'resend'
+app\api\email\gift-notification\route.ts:25:const resend  = new 
+Resend(process.env.RESEND_API_KEY!)
+app\api\email\gift-notification\route.ts:34:    const { 
+recipient_email, capsule_slug, capsule_id, organiser_email } = await 
+req.json()
+app\api\email\gift-notification\route.ts:36:    if (!recipient_email 
+|| !capsule_slug) {
+app\api\email\gift-notification\route.ts:37:      return 
+NextResponse.json({ error: 'recipient_email and capsule_slug 
+required' }, { status: 400 })
+app\api\email\gift-notification\route.ts:43:      
+.select('honouree_name, event_type, event_tag, organiser_email')
+app\api\email\gift-notification\route.ts:54:    const orgEmail    = 
+organiser_email ?? capsule.organiser_email
+app\api\email\gift-notification\route.ts:57:    await 
+resend.emails.send({
+app\api\email\gift-notification\route.ts:58:      from:    
+'LegacyCapsule <memories@itslegacycapsule.com>',
+app\api\email\gift-notification\route.ts:59:      to:      
+recipient_email,
+app\api\email\gift-notification\route.ts:60:      subject: `A 
+LegacyCapsule has been created in honour of 
+${capsule.honouree_name}`,
+app\api\email\gift-notification\route.ts:61:      html:    
+recipientEmailHtml({ honoureeName: capsule.honouree_name, occasion, 
+capsuleUrl, manageUrl }),
+app\api\email\gift-notification\route.ts:65:    if (orgEmail && 
+orgEmail !== recipient_email) {
+app\api\email\gift-notification\route.ts:66:      await 
+resend.emails.send({
+app\api\email\gift-notification\route.ts:67:        from:    
+'LegacyCapsule <events@itslegacycapsule.com>',
+app\api\email\gift-notification\route.ts:68:        to:      
+orgEmail,
+app\api\email\gift-notification\route.ts:69:        subject: `Your 
+gift capsule for ${capsule.honouree_name} has been sent`,
+app\api\email\gift-notification\route.ts:70:        html:    
+organiserConfirmEmailHtml({ honoureeName: capsule.honouree_name, 
+occasion, capsuleUrl, manageUrl }),
+app\api\email\gift-notification\route.ts:83:// SECTION 3 -- 
+Recipient email template
+app\api\email\gift-notification\route.ts:87:function 
+recipientEmailHtml(d: {
+app\api\email\gift-notification\route.ts:174:// SECTION 4 -- 
+Organiser confirmation email template
+app\api\email\gift-notification\route.ts:178:function 
+organiserConfirmEmailHtml(d: {
+app\api\email\gift-schedule\route.ts:1:// FILE: 
+app/api/email/gift-schedule/route.ts
+app\api\email\gift-schedule\route.ts:2:// PURPOSE: Schedules a gift 
+capsule notification email via Resend scheduledAt.
+app\api\email\gift-schedule\route.ts:5://          Uses Resend 
+scheduled send -- no Vercel cron required.
+app\api\email\gift-schedule\route.ts:11:import { Resend }            
+        from 'resend'
+app\api\email\gift-schedule\route.ts:18:const resend  = new 
+Resend(process.env.RESEND_API_KEY!)
+app\api\email\gift-schedule\route.ts:23:// Body: { capsule_id, 
+capsule_slug, recipient_email, gift_deliver_at, organiser_email }
+app\api\email\gift-schedule\route.ts:28:    const { capsule_id, 
+capsule_slug, recipient_email, gift_deliver_at, organiser_email } = 
+await req.json()
+app\api\email\gift-schedule\route.ts:30:    if (!capsule_id || 
+!capsule_slug || !recipient_email || !gift_deliver_at) {
+app\api\email\gift-schedule\route.ts:31:      return 
+NextResponse.json({ error: 'capsule_id, capsule_slug, 
+recipient_email and gift_deliver_at required' }, { status: 400 })
+app\api\email\gift-schedule\route.ts:44:      
+.select('honouree_name, event_type, event_tag, organiser_email')
+app\api\email\gift-schedule\route.ts:53:    const orgEmail   = 
+organiser_email ?? capsule.organiser_email
+app\api\email\gift-schedule\route.ts:61:        
+gift_recipient_email:  recipient_email,
+app\api\email\gift-schedule\route.ts:65:    // Schedule recipient 
+email via Resend scheduledAt
+app\api\email\gift-schedule\route.ts:66:    const { data: 
+scheduledEmail, error: scheduleError } = await resend.emails.send({
+app\api\email\gift-schedule\route.ts:67:      from:        
+'LegacyCapsule <memories@itslegacycapsule.com>',
+app\api\email\gift-schedule\route.ts:68:      to:          
+recipient_email,
+app\api\email\gift-schedule\route.ts:69:      subject:     `A 
+LegacyCapsule has been created in honour of 
+${capsule.honouree_name}`,
+app\api\email\gift-schedule\route.ts:71:      html:        
+recipientEmailHtml({ honoureeName: capsule.honouree_name, occasion, 
+capsuleUrl, manageUrl }),
+app\api\email\gift-schedule\route.ts:75:      
+console.error('[gift-schedule] Resend schedule error:', 
+scheduleError)
+app\api\email\gift-schedule\route.ts:79:    // Store the Resend 
+email ID so it can be cancelled/rescheduled later
+app\api\email\gift-schedule\route.ts:80:    if (scheduledEmail?.id) {
+app\api\email\gift-schedule\route.ts:83:        .update({ 
+gift_resend_id: scheduledEmail.id })
+app\api\email\gift-schedule\route.ts:88:    if (orgEmail) {
+app\api\email\gift-schedule\route.ts:96:      await 
+resend.emails.send({
+app\api\email\gift-schedule\route.ts:97:        from:    
+'LegacyCapsule <events@itslegacycapsule.com>',
+app\api\email\gift-schedule\route.ts:98:        to:      orgEmail,
+app\api\email\gift-schedule\route.ts:99:        subject: `Your gift 
+capsule delivery is scheduled -- ${capsule.honouree_name}`,
+app\api\email\gift-schedule\route.ts:100:        html:    
+organiserScheduleConfirmHtml({
+app\api\email\gift-schedule\route.ts:102:          recipientEmail: 
+recipient_email,
+app\api\email\gift-schedule\route.ts:120:// SECTION 3 -- Recipient 
+email template (same as gift-notification)
+app\api\email\gift-schedule\route.ts:123:function 
+recipientEmailHtml(d: { honoureeName: string; occasion: string; 
+capsuleUrl: string; manageUrl: string }) {
+app\api\email\gift-schedule\route.ts:172:// SECTION 4 -- Organiser 
+schedule confirmation email
+app\api\email\gift-schedule\route.ts:177:  recipientEmail: string
+app\api\email\gift-schedule\route.ts:204:              The capsule 
+for <strong 
+style="color:rgba(255,255,255,0.85);">${d.honoureeName}</strong> has 
+been prepared. We will deliver it to <strong 
+style="color:rgba(255,255,255,0.85);">${d.recipientEmail}</strong> 
+at the time you chose.
+app\api\email\submission-confirmation\route.ts:4:import { Resend } 
+from 'resend'
+app\api\email\submission-confirmation\route.ts:7:// SUBMISSION 
+CONFIRMATION EMAIL — Path A, Step 1
+app\api\email\submission-confirmation\route.ts:8:// Route: POST 
+/api/email/submission-confirmation
+app\api\email\submission-confirmation\route.ts:9:// Triggered 
+immediately on tribute submission if contributor provided email.
+app\api\email\submission-confirmation\route.ts:18:const resend = new 
+Resend(process.env.RESEND_API_KEY!)
+app\api\email\submission-confirmation\route.ts:27:// Creates a 
+unique token in email_verifications table for the contributor
+app\api\email\submission-confirmation\route.ts:36:  await 
+adminClient.from('email_verifications').insert({
+app\api\email\submission-confirmation\route.ts:47:// EMAIL TEMPLATE
+app\api\email\submission-confirmation\route.ts:48:// Warm, premium 
+HTML. Inline styles throughout for email client compatibility.
+app\api\email\submission-confirmation\route.ts:49:// FROM: 
+noreply@itslegacycapsule.com — confirmed domain.
+app\api\email\submission-confirmation\route.ts:51:function 
+buildSubmissionEmail({
+app\api\email\submission-confirmation\route.ts:199:      
+contributorEmail,
+app\api\email\submission-confirmation\route.ts:206:    if 
+(!contributionId || !capsuleSlug || !contributorName || 
+!contributorEmail) {
+app\api\email\submission-confirmation\route.ts:208:        { error: 
+'contributionId, capsuleSlug, contributorName and contributorEmail 
+are required' },
+app\api\email\submission-confirmation\route.ts:220:    // ── Build 
+and send email ───────────────────────────────────────────────
+app\api\email\submission-confirmation\route.ts:221:    const html = 
+buildSubmissionEmail({
+app\api\email\submission-confirmation\route.ts:230:    const { 
+error: sendError } = await resend.emails.send({
+app\api\email\submission-confirmation\route.ts:231:      from: 
+'LegacyCapsule <noreply@itslegacycapsule.com>',
+app\api\email\submission-confirmation\route.ts:232:      to: 
+contributorEmail,
+app\api\email\submission-confirmation\route.ts:233:      subject: 
+'Your ' + (lang?.singular?.toLowerCase() ?? 'voice') + ' has been 
+received — ' + (subjectName ?? 'LegacyCapsule'),
+app\api\email\submission-confirmation\route.ts:238:      
+console.error('Resend error:', sendError)
+app\api\email\submission-confirmation\route.ts:239:      return 
+NextResponse.json({ error: 'Email send failed' }, { status: 500 })
+app\api\email\verify-code\route.ts:2:   FILE PATH: 
+app/api/email/verify-code/route.ts — v4
+app\api\email\verify-code\route.ts:3:   Uses email_verifications 
+table — purpose built.
+app\api\email\verify-code\route.ts:6:   - email         → organiser 
+email
+app\api\email\verify-code\route.ts:17:   POST — generate, store, 
+send verification code email
+app\api\email\verify-code\route.ts:18:   PUT  — validate, mark 
+verified, send welcome email
+app\api\email\verify-code\route.ts:20:   Welcome email variants (v4):
+app\api\email\verify-code\route.ts:26:   - Welcome email now 
+path-aware (free vs pre-booked)
+app\api\email\verify-code\route.ts:27:   - Pre-booked capsule email 
+reflects reserved state
+app\api\email\verify-code\route.ts:28:   - Free capsule email 
+reflects pending-until-first-tribute state
+app\api\email\verify-code\route.ts:34:import { Resend } from 'resend'
+app\api\email\verify-code\route.ts:41:const resend  = new 
+Resend(process.env.RESEND_API_KEY)
+app\api\email\verify-code\route.ts:59:    const { capsuleId, 
+capsuleSlug, organiserEmail, honoureeName } = await request.json()
+app\api\email\verify-code\route.ts:61:    if (!capsuleId || 
+!organiserEmail) {
+app\api\email\verify-code\route.ts:70:      
+.from('email_verifications')
+app\api\email\verify-code\route.ts:78:      
+.from('email_verifications')
+app\api\email\verify-code\route.ts:80:        email:             
+organiserEmail.trim().toLowerCase(),
+app\api\email\verify-code\route.ts:93:    // Send verification code 
+email
+app\api\email\verify-code\route.ts:94:    await resend.emails.send({
+app\api\email\verify-code\route.ts:95:      from:    FROM,
+app\api\email\verify-code\route.ts:96:      to:      organiserEmail,
+app\api\email\verify-code\route.ts:97:      subject: `Your 
+verification code: ${code}`,
+app\api\email\verify-code\route.ts:98:      html:    
+verificationEmailHtml({ code, honoureeName, capsuleSlug }),
+app\api\email\verify-code\route.ts:110:   PUT — Validate submitted 
+code, send welcome email
+app\api\email\verify-code\route.ts:124:      
+.from('email_verifications')
+app\api\email\verify-code\route.ts:125:      .select('id, email, 
+expires_at, verified_at')
+app\api\email\verify-code\route.ts:142:      
+.from('email_verifications')
+app\api\email\verify-code\route.ts:153:      const orgEmail = 
+verification.email
+app\api\email\verify-code\route.ts:155:      const authUser = { 
+user: users.find(u => u.email === orgEmail) ?? null }
+app\api\email\verify-code\route.ts:166:          email:             
+orgEmail,
+app\api\email\verify-code\route.ts:167:          email_confirm:     
+true,
+app\api\email\verify-code\route.ts:175:            .eq('email', 
+orgEmail)
+app\api\email\verify-code\route.ts:185:          { id: userId, 
+email: orgEmail, role: 'organiser' },
+app\api\email\verify-code\route.ts:197:    // ── Welcome email — 
+path-aware ────────────────────────────────────────────
+app\api\email\verify-code\route.ts:198:    // Gift path: welcome 
+email sent by gift-notification route, not here
+app\api\email\verify-code\route.ts:202:        .select('slug, 
+honouree_name, organiser_email, event_type')
+app\api\email\verify-code\route.ts:206:      if 
+(capsule?.organiser_email) {
+app\api\email\verify-code\route.ts:212:        await 
+resend.emails.send({
+app\api\email\verify-code\route.ts:213:          from:    FROM,
+app\api\email\verify-code\route.ts:214:          to:      
+capsule.organiser_email,
+app\api\email\verify-code\route.ts:215:          subject: isBooked
+app\api\email\verify-code\route.ts:218:          html: 
+welcomeEmailHtml({
+app\api\email\verify-code\route.ts:253:   SECTION — Verification 
+code email template
+app\api\email\verify-code\route.ts:255:   Same for all paths — just 
+confirms email ownership.
+app\api\email\verify-code\route.ts:257:function 
+verificationEmailHtml(d: {
+app\api\email\verify-code\route.ts:282:                Verify your 
+email
+app\api\email\verify-code\route.ts:316:                If you did 
+not request this, you can safely ignore this email.
+app\api\email\verify-code\route.ts:337:   SECTION — Welcome email 
+template
+app\api\email\verify-code\route.ts:341:function welcomeEmailHtml(d: {
+app\api\email\verify-code\route.ts:450:                  using this 
+email address.
+app\api\email\verify-contributor\route.ts:5:  const { email, 
+contributorName, contributionId, honoreeName, capsuleSlug } = await 
+req.json()
+app\api\email\verify-contributor\route.ts:9:      email, 
+contributorName, contributionId, honoreeName, capsuleSlug
+app\api\email\verify-organiser\route.ts:5:  const { email, 
+capsuleId, capsuleSlug, honoreeName } = await req.json()
+app\api\email\verify-organiser\route.ts:9:      email, capsuleId, 
+capsuleSlug, honoreeName
+app\api\event-moments\[phaseId]\upload-official\route.ts:140:      
+.select('id, organiser_email')
+app\api\guests\route.ts:11: * Columns: id, capsule_id, community_id, 
+name, phone, email,
+app\api\guests\route.ts:96:      id, capsule_id, name, phone, email, 
+tier,
+app\api\guests\route.ts:128:    email?: string
+app\api\guests\route.ts:167:      email: body.email?.trim() || null,
+app\api\guests\route.ts:198:    email?: string | null
+app\api\guests\route.ts:219:  if (body.email !== undefined) 
+updates.email = body.email?.trim() || null
+app\api\honouree\acknowledgement\route.ts:4://          Sends 
+auto-ack email to supporter via sendSupportThankYou.
+app\api\honouree\acknowledgement\route.ts:8://   — Added EOH daily 
+digest scheduling via Resend scheduledAt
+app\api\honouree\acknowledgement\route.ts:16: * 3. If supporter 
+provided email → fire sendSupportThankYou (auto-ack)
+app\api\honouree\acknowledgement\route.ts:17: * 4. Schedule / 
+reschedule midnight UTC digest to honouree portal email
+app\api\honouree\acknowledgement\route.ts:24: *   supporter_email?:  
+ string  (optional — contributor may skip)
+app\api\honouree\acknowledgement\route.ts:30:import { 
+sendSupportThankYou }       from '@/lib/honoureeEmail'
+app\api\honouree\acknowledgement\route.ts:31:import { Resend }       
+             from 'resend'
+app\api\honouree\acknowledgement\route.ts:42:const resend = new 
+Resend(process.env.RESEND_API_KEY!)
+app\api\honouree\acknowledgement\route.ts:56:    supporter_email?:   
+string
+app\api\honouree\acknowledgement\route.ts:65:  const { capsule_id, 
+support_account_id, supporter_name, supporter_email } = body
+app\api\honouree\acknowledgement\route.ts:78:    .select('id, slug, 
+event_type, honouree_name, organiser_email')
+app\api\honouree\acknowledgement\route.ts:109:      supporter_email: 
+supporter_email?.trim() || null,
+app\api\honouree\acknowledgement\route.ts:120:  // ── 2.5  
+Auto-acknowledgement email to supporter ──────────────────────────
+app\api\honouree\acknowledgement\route.ts:122:  let emailSent = false
+app\api\honouree\acknowledgement\route.ts:124:  if 
+(supporter_email?.trim()) {
+app\api\honouree\acknowledgement\route.ts:131:      supporterEmail: 
+supporter_email.trim(),
+app\api\honouree\acknowledgement\route.ts:144:      emailSent = true
+app\api\honouree\acknowledgement\route.ts:149:  // Pattern: each new 
+submission cancels the existing Resend scheduled send
+app\api\honouree\acknowledgement\route.ts:157:    // Fetch honouree 
+portal email — primary digest recipient
+app\api\honouree\acknowledgement\route.ts:160:      
+.select('honouree_email')
+app\api\honouree\acknowledgement\route.ts:166:    const 
+digestRecipient = portal?.honouree_email ?? capsule.organiser_email
+app\api\honouree\acknowledgement\route.ts:171:      .select('id, 
+resend_email_id')
+app\api\honouree\acknowledgement\route.ts:177:    if 
+(existing?.resend_email_id) {
+app\api\honouree\acknowledgement\route.ts:179:        await 
+resend.emails.cancel(existing.resend_email_id)
+app\api\honouree\acknowledgement\route.ts:246:    const digestResult 
+= await resend.emails.send({
+app\api\honouree\acknowledgement\route.ts:247:      from:        
+'LegacyCapsule <memories@itslegacycapsule.com>',
+app\api\honouree\acknowledgement\route.ts:249:      
+...(digestRecipient !== capsule.organiser_email && { cc: 
+capsule.organiser_email }),
+app\api\honouree\acknowledgement\route.ts:250:      subject:     
+count + ' expression' + (count !== 1 ? 's' : '') + ' of honour for ' 
++ capsule.honouree_name + ' - Daily Summary',
+app\api\honouree\acknowledgement\route.ts:252:      html:        
+digestHtml,
+app\api\honouree\acknowledgement\route.ts:261:        
+resend_email_id: digestResult.data?.id ?? null,
+app\api\honouree\acknowledgement\route.ts:274:    email_sent: 
+emailSent,
+app\api\honouree\broadcast\route.ts:13:import { sendBroadcastEmail } 
+       from '@/lib/honoureeEmail';
+app\api\honouree\broadcast\route.ts:21:  let body: { capsule_id: 
+string; subject: string; body: string };
+app\api\honouree\broadcast\route.ts:56:  // ── Fetch recipients 
+(approved, have email) ───────────────
+app\api\honouree\broadcast\route.ts:59:    
+.select('contributor_name, email')
+app\api\honouree\broadcast\route.ts:63:    .not('email', 'is', null);
+app\api\honouree\broadcast\route.ts:65:  const recipients = 
+(contribs ?? []).filter(c => c.email && c.contributor_name);
+app\api\honouree\broadcast\route.ts:84:  const result = await 
+sendBroadcastEmail({
+app\api\honouree\broadcast\route.ts:91:    recipients:   
+recipients.map(r => ({ name: r.contributor_name, email: r.email! })),
+app\api\photographer\token\generate\route.ts:24:async function 
+getOrganiserSession(req: NextRequest): Promise<{ email: string } | 
+null> {
+app\api\photographer\token\generate\route.ts:30:      
+.select('email, expires_at')
+app\api\photographer\token\generate\route.ts:34:    return { email: 
+data.email }
+app\api\photographer\token\generate\route.ts:59:      .select('id, 
+organiser_email')
+app\api\photographer\token\generate\route.ts:63:    if (!capsule || 
+capsule.organiser_email !== session.email) {
+app\api\photographer\token\revoke\route.ts:19:async function 
+getOrganiserSession(req: NextRequest): Promise<{ email: string } | 
+null> {
+app\api\photographer\token\revoke\route.ts:25:      .select('email, 
+expires_at')
+app\api\photographer\token\revoke\route.ts:29:    return { email: 
+data.email }
+app\api\photographer\token\revoke\route.ts:52:      .select('id, 
+organiser_email')
+app\api\photographer\token\revoke\route.ts:56:    if (!capsule || 
+capsule.organiser_email !== session.email) {
+app\api\publication\distribute\route.ts:7://          Recipients 
+(deduped by email):
+app\api\publication\distribute\route.ts:8://            1. Tribute 
+contributors with email (contributions table)
+app\api\publication\distribute\route.ts:9://            2. D-Day 
+photo contributors with email (gallery_items source='dday')
+app\api\publication\distribute\route.ts:12://          
+Deduplication: Set on lowercase email — nobody receives twice.
+app\api\publication\distribute\route.ts:21:import { Resend }         
+           from 'resend'
+app\api\publication\distribute\route.ts:30:const resend  = new 
+Resend(process.env.RESEND_API_KEY!)
+app\api\publication\distribute\route.ts:34:// Returns a deduped map 
+of email → { name, source }
+app\api\publication\distribute\route.ts:38:  no_email:   number
+app\api\publication\distribute\route.ts:41:  let no_email = 0
+app\api\publication\distribute\route.ts:46:    
+.select('contributor_name, email')
+app\api\publication\distribute\route.ts:52:    if (c.email?.trim()) {
+app\api\publication\distribute\route.ts:53:      const key = 
+c.email.trim().toLowerCase()
+app\api\publication\distribute\route.ts:58:      no_email++
+app\api\publication\distribute\route.ts:65:    
+.select('contributor_name, contributor_email')
+app\api\publication\distribute\route.ts:68:    
+.not('contributor_email', 'is', null)
+app\api\publication\distribute\route.ts:71:    if 
+(d.contributor_email?.trim()) {
+app\api\publication\distribute\route.ts:72:      const key = 
+d.contributor_email.trim().toLowerCase()
+app\api\publication\distribute\route.ts:82:    .select('name, email')
+app\api\publication\distribute\route.ts:86:    if (s.email?.trim()) {
+app\api\publication\distribute\route.ts:87:      const key = 
+s.email.trim().toLowerCase()
+app\api\publication\distribute\route.ts:94:  return { recipients, 
+no_email }
+app\api\publication\distribute\route.ts:106:    const { recipients, 
+no_email } = await collectRecipients(capsule_id)
+app\api\publication\distribute\route.ts:121:      no_email,
+app\api\publication\distribute\route.ts:172:    const { recipients, 
+no_email } = await collectRecipients(capsule_id)
+app\api\publication\distribute\route.ts:175:      return 
+NextResponse.json({ sent: 0, skipped: 0, no_email })
+app\api\publication\distribute\route.ts:178:    // ── Send emails 
+───────────────────────────────────────────────────────
+app\api\publication\distribute\route.ts:182:    for (const [email, { 
+name }] of recipients) {
+app\api\publication\distribute\route.ts:184:        await 
+resend.emails.send({
+app\api\publication\distribute\route.ts:185:          from:    
+'LegacyCapsule <events@itslegacycapsule.com>',
+app\api\publication\distribute\route.ts:186:          to:      email,
+app\api\publication\distribute\route.ts:187:          subject: `The 
+keepsake publication is ready — ${eventLabel}`,
+app\api\publication\distribute\route.ts:188:          html:    
+publicationEmailHtml({
+app\api\publication\distribute\route.ts:199:      } catch (emailErr) 
+{
+app\api\publication\distribute\route.ts:200:        
+console.error(`[publication/distribute] Failed for ${email}:`, 
+emailErr)
+app\api\publication\distribute\route.ts:212:    return 
+NextResponse.json({ sent, skipped, no_email })
+app\api\publication\distribute\route.ts:220:// ═══ SECTION 5 — Email 
+template ═══
+app\api\publication\distribute\route.ts:222:function 
+publicationEmailHtml(d: {
+app\api\publication\generate\route.ts:333:    //       in sync so 
+the editor and distribution email can read it
+app\api\publication\subscribe\route.ts:3:// PURPOSE: Register an 
+email address to receive the capsule publication.
+app\api\publication\subscribe\route.ts:5://          Deduplication: 
+unique index on (capsule_id, LOWER(email)) returns 409.
+app\api\publication\subscribe\route.ts:26:    const { capsule_id, 
+name, email, source } = await req.json()
+app\api\publication\subscribe\route.ts:28:    if (!capsule_id || 
+!email?.trim()) {
+app\api\publication\subscribe\route.ts:30:        { error: 
+'capsule_id and email are required' },
+app\api\publication\subscribe\route.ts:35:    // Basic email 
+validation
+app\api\publication\subscribe\route.ts:36:    const emailClean = 
+email.trim().toLowerCase()
+app\api\publication\subscribe\route.ts:37:    if 
+(!emailClean.includes('@') || !emailClean.includes('.')) {
+app\api\publication\subscribe\route.ts:39:        { error: 'Please 
+provide a valid email address' },
+app\api\publication\subscribe\route.ts:52:        email:  emailClean,
+app\api\publication\subscribe\route.ts:90:      .select('id, name, 
+email, source, subscribed_at, sent_at')
+app\api\rep\invite\route.ts:3:   Generates Family Rep portal token + 
+sends invite email
+app\api\rep\invite\route.ts:5:     -- repName now used in email 
+greeting
+app\api\rep\invite\route.ts:6:     -- Raw token URL removed from 
+email body (security)
+app\api\rep\invite\route.ts:11:import { Resend } from 'resend'
+app\api\rep\invite\route.ts:18:const resend = new 
+Resend(process.env.RESEND_API_KEY)
+app\api\rep\invite\route.ts:28:      .select('id, slug, 
+honouree_name, event_type, family_rep_name, family_rep_email, 
+organiser_email')
+app\api\rep\invite\route.ts:33:    if (!capsule.family_rep_email) 
+return NextResponse.json({ error: 'No family rep email set' }, { 
+status: 400 })
+app\api\rep\invite\route.ts:45:        honouree_email: 
+capsule.family_rep_email,
+app\api\rep\invite\route.ts:55:    // Send invite email via Resend
+app\api\rep\invite\route.ts:59:    await resend.emails.send({
+app\api\rep\invite\route.ts:60:      from: 'LegacyCapsule 
+<hello@itslegacycapsule.com>',
+app\api\rep\invite\route.ts:61:      to: capsule.family_rep_email,
+app\api\rep\invite\route.ts:62:      subject: `Your Family Rep 
+Access -- ${honourName}'s LegacyCapsule`,
+app\api\rep\invite\route.ts:63:      html: `
+app\api\rep\invite\route.ts:143:                      This link is 
+private and unique to you. Please do not forward this email.<br/>
+app\api\rep\request-access\route.ts:5:   Given an email, finds all 
+active honouree_portal_tokens
+app\api\rep\request-access\route.ts:6:   for that email across all 
+capsules, and sends each
+app\api\rep\request-access\route.ts:7:   portal link to that email.
+app\api\rep\request-access\route.ts:9:   Security: Never reveals 
+whether email exists or not —
+app\api\rep\request-access\route.ts:11:   One email send per active 
+capsule token found.
+app\api\rep\request-access\route.ts:13:   Body: { email: string }
+app\api\rep\request-access\route.ts:17:import { Resend } from 
+'resend'
+app\api\rep\request-access\route.ts:23:const resend = new 
+Resend(process.env.RESEND_API_KEY)
+app\api\rep\request-access\route.ts:28:    const { email } = await 
+request.json()
+app\api\rep\request-access\route.ts:30:    if (!email?.trim() || 
+!email.includes('@')) {
+app\api\rep\request-access\route.ts:31:      return 
+NextResponse.json({ error: 'Valid email required.' }, { status: 400 
+})
+app\api\rep\request-access\route.ts:34:    const normalised = 
+email.trim().toLowerCase()
+app\api\rep\request-access\route.ts:36:    // Find all active tokens 
+for this email
+app\api\rep\request-access\route.ts:40:      .eq('honouree_email', 
+normalised)
+app\api\rep\request-access\route.ts:44:    // Always return success 
+— never reveal if email exists
+app\api\rep\request-access\route.ts:69:    // Send one email per 
+capsule — or one combined email if multiple
+app\api\rep\request-access\route.ts:75:      await 
+resend.emails.send({
+app\api\rep\request-access\route.ts:76:        from: 'LegacyCapsule 
+<hello@itslegacycapsule.com>',
+app\api\rep\request-access\route.ts:78:        subject: `Your portal 
+access — ${capsule.honouree_name}'s LegacyCapsule`,
+app\api\rep\request-access\route.ts:79:        html: 
+singleCapsuleEmail(capsule.honouree_name, portalUrl),
+app\api\rep\request-access\route.ts:82:      // Multiple capsules — 
+one combined email with all links
+app\api\rep\request-access\route.ts:88:      await 
+resend.emails.send({
+app\api\rep\request-access\route.ts:89:        from: 'LegacyCapsule 
+<hello@itslegacycapsule.com>',
+app\api\rep\request-access\route.ts:91:        subject: `Your Family 
+Rep portal access — LegacyCapsule`,
+app\api\rep\request-access\route.ts:92:        html: 
+multiCapsuleEmail(links),
+app\api\rep\request-access\route.ts:105:/* ── Email templates ── */
+app\api\rep\request-access\route.ts:107:function 
+singleCapsuleEmail(honourName: string, portalUrl: string): string {
+app\api\rep\request-access\route.ts:159:function 
+multiCapsuleEmail(links: { name: string; url: string }[]): string {
+app\api\rep\resend\route.ts:2:   app/api/rep/resend/route.ts
+app\api\rep\resend\route.ts:4:   Resends an existing family rep 
+portal access link.
+app\api\rep\resend\route.ts:6:   active token for that email + 
+capsule combination.
+app\api\rep\resend\route.ts:9:   Body: { capsuleId, slug, repEmail }
+app\api\rep\resend\route.ts:13:import { Resend } from 'resend'
+app\api\rep\resend\route.ts:20:const resend = new 
+Resend(process.env.RESEND_API_KEY)
+app\api\rep\resend\route.ts:24:    const { capsuleId, slug, repEmail 
+} = await request.json()
+app\api\rep\resend\route.ts:25:    if (!capsuleId || !slug || 
+!repEmail) {
+app\api\rep\resend\route.ts:47:      .eq('honouree_email', repEmail)
+app\api\rep\resend\route.ts:69:          honouree_email: repEmail,
+app\api\rep\resend\route.ts:82:    await resend.emails.send({
+app\api\rep\resend\route.ts:83:      from: 'LegacyCapsule 
+<hello@itslegacycapsule.com>',
+app\api\rep\resend\route.ts:84:      to: repEmail,
+app\api\rep\resend\route.ts:85:      subject: `Your Family Rep 
+Access — ${honourName}'s LegacyCapsule`,
+app\api\rep\resend\route.ts:86:      html: `
+app\api\rep\resend\route.ts:150:    console.error('Rep resend 
+error:', err)
+app\api\rep\resend\route.ts:151:    return NextResponse.json({ 
+error: 'Failed to resend' }, { status: 500 })
+app\api\rep\respond\route.ts:5:   - Sends email to contributor
+app\api\rep\respond\route.ts:9:import { Resend } from 'resend'
+app\api\rep\respond\route.ts:15:const resend = new 
+Resend(process.env.RESEND_API_KEY)
+app\api\rep\respond\route.ts:54:    // Fetch contribution + capsule 
+for email
+app\api\rep\respond\route.ts:57:      .select('contributor_name, 
+email, tribute_text')
+app\api\rep\respond\route.ts:67:    // Send email to contributor if 
+they have one
+app\api\rep\respond\route.ts:68:    if (contribution?.email && 
+capsule) {
+app\api\rep\respond\route.ts:71:      await resend.emails.send({
+app\api\rep\respond\route.ts:72:        from: 'LegacyCapsule 
+<hello@itslegacycapsule.com>',
+app\api\rep\respond\route.ts:73:        to: contribution.email,
+app\api\rep\respond\route.ts:74:        subject: `The family of 
+${capsule.honouree_name} has responded to your tribute`,
+app\api\rep\respond\route.ts:75:        html: `
+app\api\rep\respond\route.ts:143:      }).catch(err => 
+console.error('Email error:', err))
+app\api\rsvp\invite\route.ts:3:// PURPOSE: Send personalised RSVP 
+invitation emails to guests.
+app\api\rsvp\invite\route.ts:5://          Supports full send (all 
+guests with email), circle-scoped send
+app\api\rsvp\invite\route.ts:6://          (all guests in a specific 
+circle), and individual resend.
+app\api\rsvp\invite\route.ts:16:import { Resend }                    
+from 'resend'
+app\api\rsvp\invite\route.ts:25:const resend  = new 
+Resend(process.env.RESEND_API_KEY!)
+app\api\rsvp\invite\route.ts:64:      organiser_email,
+app\api\rsvp\invite\route.ts:80:    // ── Test mode: send one 
+preview email to organiser ────────────────────────
+app\api\rsvp\invite\route.ts:86:        await resend.emails.send({
+app\api\rsvp\invite\route.ts:87:          from:    'LegacyCapsule 
+<events@itslegacycapsule.com>',
+app\api\rsvp\invite\route.ts:89:          subject: `[PREVIEW] You 
+are personally invited — ${eventLabel}`,
+app\api\rsvp\invite\route.ts:90:          html:    rsvpInviteHtml({
+app\api\rsvp\invite\route.ts:107:        return NextResponse.json({ 
+error: 'Could not send test email. Please try again.' }, { status: 
+500 })
+app\api\rsvp\invite\route.ts:123:      .select('id, name, email, 
+tier, rsvp_token, rsvp_status, circle_id')
+app\api\rsvp\invite\route.ts:126:      .not('email', 'is', null)   
+// only guests with email addresses
+app\api\rsvp\invite\route.ts:133:    // Default (no scope): all 
+guests with email
+app\api\rsvp\invite\route.ts:141:        { error: 'No guests with 
+email addresses found for this scope.' },
+app\api\rsvp\invite\route.ts:146:    // ── Send emails 
+────────────────────────────────────────────────────────
+app\api\rsvp\invite\route.ts:167:        // Build and send email
+app\api\rsvp\invite\route.ts:168:        await resend.emails.send({
+app\api\rsvp\invite\route.ts:169:          from:    'LegacyCapsule 
+<events@itslegacycapsule.com>',
+app\api\rsvp\invite\route.ts:170:          to:      guest.email!,
+app\api\rsvp\invite\route.ts:171:          subject: is_reminder
+app\api\rsvp\invite\route.ts:174:          html: rsvpInviteHtml({
+app\api\rsvp\invite\route.ts:198:          actor_name:  
+organiser_email ?? 'Organiser',
+app\api\rsvp\invite\route.ts:199:          actor_ref:   
+organiser_email ?? '',
+app\api\rsvp\invite\route.ts:206:      } catch (emailErr) {
+app\api\rsvp\invite\route.ts:207:        
+console.error(`[rsvp/invite] Failed for ${guest.email}:`, emailErr)
+app\api\rsvp\invite\route.ts:230:// ═══ SECTION 5 — Email template 
+═══
+app\api\rsvp\invite\route.ts:232:// Premium branded RSVP invitation 
+email.
+app\api\rsvp\invite\route.ts:234:// No forms in email — clicking 
+goes to the RSVP page.
+app\api\rsvp\respond\route.ts:72:        { error: 'Invalid RSVP 
+link. Please use the link from your invitation email.' },
+app\api\rsvp\respond\route.ts:88:      .select('id, capsule_id, 
+name, email, tier, rsvp_status, rsvp_responded_at')
+app\api\rsvp\respond\route.ts:162:            email:            
+guest.email ?? null,
+app\api\rsvp\respond\route.ts:181:      actor_ref:   guest.email ?? 
+rsvp_token.slice(0, 8),
+app\api\rsvp\verify\route.ts:52:      { error: 'This invitation link 
+is not recognised. Please check your email for the correct link.', 
+token_valid: false },
+app\api\share\record\route.ts:32:  'keepsake_email',
+app\api\verify\route.ts:20:    .from("email_verifications")
+app\api\verify\route.ts:49:  await db.from("email_verifications")
+app\api\verify\route.ts:71:      `${APP_URL}/manage/${capsule?.slug}?
+activated=true&email=${encodeURIComponent(verification.email)}`
+app\api\verify\route.ts:76:    // Mark contribution as email verified
+app\api\verify\route.ts:78:      .update({ email_verified: true })
+app\api\webhooks\paystack\route.ts:88:        const recipient_email 
+= metadata?.recipient_email ?? verified.metadata?.recipient_email
+app\api\webhooks\paystack\route.ts:92:        if (book_mode === 
+'gift' && recipient_email && capsule_slug) {
+app\api\webhooks\paystack\route.ts:94:            await fetch(`${proc
+ess.env.NEXT_PUBLIC_APP_URL}/api/email/gift-notification`, {
+app\api\webhooks\paystack\route.ts:97:              body:    
+JSON.stringify({ recipient_email, capsule_slug, capsule_id }),
+app\api\webhooks\stripe\route.ts:5://   -- Step 3 added: payment 
+confirmation email to organiser after unlock
+app\api\webhooks\stripe\route.ts:6://   -- Warm thank-you tone in 
+confirmation email
+app\api\webhooks\stripe\route.ts:13:import { Resend }                
+         from 'resend'
+app\api\webhooks\stripe\route.ts:16:const resend = new 
+Resend(process.env.RESEND_API_KEY!)
+app\api\webhooks\stripe\route.ts:20:// SECTION 1 -- Feature labels 
+for confirmation email
+app\api\webhooks\stripe\route.ts:42:// SECTION 2 -- Payment 
+confirmation email
+app\api\webhooks\stripe\route.ts:45:async function 
+sendPaymentConfirmationEmail(payment_id: string, featureIds: 
+string[]): Promise<void> {
+app\api\webhooks\stripe\route.ts:50:      .select('capsule_id, 
+amount, currency, organiser_email')
+app\api\webhooks\stripe\route.ts:58:      .select('honouree_name, 
+slug, organiser_email')
+app\api\webhooks\stripe\route.ts:64:    const recipientEmail = 
+payment.organiser_email ?? capsule.organiser_email
+app\api\webhooks\stripe\route.ts:65:    if (!recipientEmail) return
+app\api\webhooks\stripe\route.ts:84:    await resend.emails.send({
+app\api\webhooks\stripe\route.ts:85:      from:    'LegacyCapsule 
+<events@itslegacycapsule.com>',
+app\api\webhooks\stripe\route.ts:86:      to:      recipientEmail,
+app\api\webhooks\stripe\route.ts:87:      subject: `Payment 
+confirmed -- ${capsule.honouree_name}'s LegacyCapsule`,
+app\api\webhooks\stripe\route.ts:88:      html: `<!DOCTYPE html>
+app\api\webhooks\stripe\route.ts:189:  } catch (emailErr) {
+app\api\webhooks\stripe\route.ts:190:    // Non-blocking -- log but 
+never fail the webhook over an email
+app\api\webhooks\stripe\route.ts:191:    console.error('[stripe 
+webhook] Payment confirmation email failed:', emailErr)
+app\api\webhooks\stripe\route.ts:237:        // Step 3: send payment 
+confirmation email to organiser
+app\api\webhooks\stripe\route.ts:243:        await 
+sendPaymentConfirmationEmail(payment_id, featureIds)
+app\api\webhooks\stripe\route.ts:246:        if (metadata.book_mode 
+=== 'gift' && metadata.recipient_email && metadata.capsule_slug) {
+app\api\webhooks\stripe\route.ts:252:              // Schedule via 
+Resend scheduledAt -- no cron needed
+app\api\webhooks\stripe\route.ts:253:              await 
+fetch(`${APP_URL}/api/email/gift-schedule`, {
+app\api\webhooks\stripe\route.ts:259:                  
+recipient_email: metadata.recipient_email,
+app\api\webhooks\stripe\route.ts:261:                  
+organiser_email: metadata.organiser_email,
+app\api\webhooks\stripe\route.ts:266:              await 
+fetch(`${APP_URL}/api/email/gift-notification`, {
+app\api\webhooks\stripe\route.ts:270:                  
+recipient_email: metadata.recipient_email,
+app\api\webhooks\stripe\route.ts:273:                  
+organiser_email: metadata.organiser_email,
+app\auth\callback\route.ts:6:   1. User clicks magic link in email
+app\auth\callback\route.ts:48:    const email = 
+user.email?.toLowerCase()
+app\auth\callback\route.ts:50:    if (!email) {
+app\auth\callback\route.ts:51:      return NextResponse.redirect(new 
+URL('/signin?error=no_email', request.url))
+app\auth\callback\route.ts:58:      .eq('email', email)
+app\auth\callback\route.ts:70:          email: email,
+app\auth\callback\route.ts:86:    // Find all capsules this email 
+organises
+app\auth\callback\route.ts:90:      .eq('organiser_email', email)
+app\book\page.tsx:255:  const [organiserEmail, setOrganiserEmail] = 
+useState('')
+app\book\page.tsx:257:  const [recipientEmail, setRecipientEmail] = 
+useState('')
+app\book\page.tsx:307:    if (!honoureeName.trim() || 
+!organiserEmail.trim() || !slug.trim()) return
+app\book\page.tsx:319:          organiser_email: 
+organiserEmail.trim().toLowerCase(),
+app\book\page.tsx:340:      await fetch('/api/email/verify-code', {
+app\book\page.tsx:343:        body: JSON.stringify({ capsuleId: 
+data.id, capsuleSlug: data.slug, organiserEmail: 
+organiserEmail.trim().toLowerCase(), honoureeName: 
+honoureeName.trim() }),
+app\book\page.tsx:358:      const res = await 
+fetch('/api/email/verify-code', {
+app\book\page.tsx:365:        setVerifyError('That code is 
+incorrect. Please check your email and try again.')
+app\book\page.tsx:411:          organiser_email: 
+organiserEmail.trim().toLowerCase(),
+app\book\page.tsx:413:          recipient_email: bookMode === 'gift' 
+? recipientEmail.trim() : undefined,
+app\book\page.tsx:490:                    You'll set up the capsule 
+details and services. After payment, the recipient receives an email 
+with access to their capsule.
+app\book\page.tsx:574:    const giftFieldsValid = bookMode !== 
+'gift' || (recipientName.trim() && recipientEmail.trim() && 
+recipientEmail.includes('@'))
+app\book\page.tsx:575:    const canContinue = !!honoureeName.trim() 
+&& !!organiserEmail.trim() && organiserEmail.includes('@') && 
+!!slug.trim() && giftFieldsValid
+app\book\page.tsx:595:              <InputField label="Recipient's 
+email" hint="We'll send their capsule access to this address after 
+payment">
+app\book\page.tsx:596:                <input type="email" 
+style={inputStyle} placeholder="recipient@example.com" 
+value={recipientEmail} onChange={e => 
+setRecipientEmail(e.target.value)} maxLength={120} />
+app\book\page.tsx:610:            <InputField label="Your Email" 
+hint="We'll send a 4-character verification code to confirm your 
+email">
+app\book\page.tsx:611:              <input type="email" 
+style={inputStyle} placeholder="you@example.com" maxLength={120} 
+value={organiserEmail} onChange={e => 
+setOrganiserEmail(e.target.value)} />
+app\book\page.tsx:646:          <p style={{ fontSize: '14px', 
+fontWeight: 600, color: gold, marginBottom: '28px' 
+}}>{organiserEmail}</p>
+app\book\page.tsx:668:            <button 
+onClick={handleCreateAndVerify} style={{ background: 'none', border: 
+'none', color: 'rgba(226,195,107,0.6)', cursor: 'pointer', fontSize: 
+'11px', textDecoration: 'underline', padding: 0 }}>Resend the 
+code</button>
+app\book\page.tsx:901:            ? <>A LegacyCapsule has been 
+reserved for <span style={{ color: textPrimary, fontWeight: 600 
+}}>{honoureeName}</span>. Access details will be sent to <span 
+style={{ color: gold, fontWeight: 600 }}>{recipientEmail}</span> 
+when you are ready to activate it.</>
+app\book\page.tsx:927:            ? `A copy of the capsule details 
+has also been sent to ${organiserEmail}`
+app\book\page.tsx:928:            : `A management link has been sent 
+to ${organiserEmail}`
+app\dashboard\page.tsx:23:const LS_EMAIL = 'lc_visitor_email'
+app\dashboard\page.tsx:128:  const [userEmail, setUserEmail] = 
+useState('')
+app\dashboard\page.tsx:134:      const authEmail = 
+urlParams.get('auth')
+app\dashboard\page.tsx:135:      if (authEmail) {
+app\dashboard\page.tsx:136:        const decoded = 
+decodeURIComponent(authEmail)
+app\dashboard\page.tsx:137:        localStorage.setItem(LS_EMAIL, 
+decoded)
+app\dashboard\page.tsx:147:      let emailToUse = authEmail ? 
+decodeURIComponent(authEmail) : ''
+app\dashboard\page.tsx:148:      if (!emailToUse) {
+app\dashboard\page.tsx:151:          if (session?.user?.email) 
+emailToUse = session.user.email
+app\dashboard\page.tsx:154:      if (!emailToUse) emailToUse = 
+localStorage.getItem(LS_EMAIL) ?? ''
+app\dashboard\page.tsx:156:      if (!emailToUse) { 
+window.location.href = '/signin'; return }
+app\dashboard\page.tsx:158:      setUserEmail(emailToUse)
+app\dashboard\page.tsx:163:        .eq('organiser_email', 
+emailToUse.toLowerCase())
+app\dashboard\page.tsx:194:    localStorage.removeItem(LS_EMAIL)
+app\dashboard\page.tsx:226:          <p style={{ fontSize: '12px', 
+color: textFaint }}>{userEmail}</p>
+app\for\[slug]\attire\AttireClientIsland.tsx:133:  const [email, 
+setEmail] = useState('')
+app\for\[slug]\attire\AttireClientIsland.tsx:163:        email: 
+email.trim() || undefined,
+app\for\[slug]\attire\AttireClientIsland.tsx:194:          <input 
+style={{ ...inp, flex: 1 }} type="email" placeholder="Email" 
+value={email} onChange={e => setEmail(e.target.value)} />
+app\for\[slug]\dday\page.tsx:17:   Step 1 — Name + email (who are 
+you?)
+app\for\[slug]\dday\page.tsx:31:             adds email publication 
+incentive, adds pre-announcement copy
+app\for\[slug]\dday\page.tsx:181:  const [email,         setEmail]   
+      = useState('')
+app\for\[slug]\dday\page.tsx:225:        
+form.append('contributor_email', email.trim())
+app\for\[slug]\dday\page.tsx:311:            ✦ After the event, the 
+organiser will compile every tribute, story, and photo into a 
+beautifully assembled publication. Leave your email below and we'll 
+send you a copy when it's ready.
+app\for\[slug]\dday\page.tsx:332:              Email address
+app\for\[slug]\dday\page.tsx:335:              type="email"
+app\for\[slug]\dday\page.tsx:337:              placeholder="Add your 
+email and you will be sent the event publication with all captured 
+stories and photos after the event"
+app\for\[slug]\dday\page.tsx:338:              value={email}
+app\for\[slug]\dday\page.tsx:339:              onChange={e => 
+setEmail(e.target.value)}
+app\for\[slug]\dday\page.tsx:578:        {email && (
+app\for\[slug]\dday\page.tsx:581:              ✦ We'll send the full 
+event publication to <strong style={{ color: gold 
+}}>{email}</strong> when it's ready.
+app\for\[slug]\dday\page.tsx:586:        {!email && (
+app\for\[slug]\edit\[token]\page.tsx:249:      // 1. Validate token 
+in email_verifications
+app\for\[slug]\edit\[token]\page.tsx:251:        
+.from('email_verifications')
+app\for\[slug]\honouree\HonoureePortalClient.tsx:43:  status: 
+string; email: string | null
+app\for\[slug]\honouree\HonoureePortalClient.tsx:46:  id: string; 
+supporter_name: string; supporter_email: string | null
+app\for\[slug]\honouree\HonoureePortalClient.tsx:157:          
+{tribute.email
+app\for\[slug]\honouree\HonoureePortalClient.tsx:158:            ? 
+<p style={{ fontSize: '10px', color: textFaint, fontStyle: 'italic' 
+}}>✓ {tribute.contributor_name} will receive an email notification 
+of your response.</p>
+app\for\[slug]\honouree\HonoureePortalClient.tsx:159:            : 
+<p style={{ fontSize: '10px', color: textFaint, fontStyle: 'italic' 
+}}>This contributor did not provide an email — no notification will 
+be sent.</p>
+app\for\[slug]\honouree\HonoureePortalClient.tsx:240:              
+You can respond to individual tributes below. Contributors who 
+provided an email will receive a notification of your response.
+app\for\[slug]\honouree\HonoureePortalClient.tsx:295:                
+{ack.supporter_email && (
+app\for\[slug]\honouree\HonoureePortalClient.tsx:296:                
+  <p style={{ fontSize: '11px', color: goldMuted, marginBottom: 
+'4px' }}>{ack.supporter_email}</p>
+app\for\[slug]\honouree\page.tsx:54:    .select('id, slug, 
+honouree_name, event_type, event_tag, event_date, hero_image_url, 
+theme, organiser_email')
+app\for\[slug]\honouree\page.tsx:63:    .select('id, 
+contributor_name, city, country, ip_country, relationship, 
+tribute_text, thumbnail_url, audio_url, video_url, created_at, 
+status, email, tribute_responses(response_text, responded_by)')
+app\for\[slug]\honouree\page.tsx:81:    .select('id, supporter_name, 
+supporter_email, created_at, support_account_id')
+app\for\[slug]\legacy\page.tsx:96:    email: string | null
+app\for\[slug]\legacy\page.tsx:110:      consentCount: 0, 
+consentPct: 0, emailCount: 0, emailPct: 0,
+app\for\[slug]\legacy\page.tsx:232:  const emailCount = 
+contribs.filter(c => c.email?.trim()).length
+app\for\[slug]\legacy\page.tsx:233:  const emailPct = 
+Math.round((emailCount / total) * 100)
+app\for\[slug]\legacy\page.tsx:245:    consentCount, consentPct, 
+emailCount, emailPct,
+app\for\[slug]\legacy\page.tsx:296:    .select('id, 
+contributor_name, city, country, relationship, tribute_text, 
+created_at, is_anonymous, legacy_builder_consent, email, 
+thumbnail_url, ip_country')
+app\for\[slug]\rsvp\page.tsx:39:  email:      string | null
+app\for\[slug]\rsvp\page.tsx:73:  const preResponse  = 
+searchParams?.get('response') ?? null  // from email "decline" link
+app\for\[slug]\rsvp\page.tsx:100:      setErrorMsg('No RSVP token 
+found. Please use the link from your invitation email.')
+app\for\[slug]\submit\page.tsx:7:// D35: Fields — Name*, City*, 
+Country*, Message*, Relationship, Email, Photo.
+app\for\[slug]\submit\page.tsx:229:  const [email, setEmail] = 
+useState('')
+app\for\[slug]\submit\page.tsx:337:          email: email.trim() || 
+null,
+app\for\[slug]\submit\page.tsx:372:      // 4. Send submission 
+confirmation email if email provided (Path A)
+app\for\[slug]\submit\page.tsx:373:      if (email.trim() && 
+contribution) {
+app\for\[slug]\submit\page.tsx:374:        await 
+fetch('/api/email/submission-confirmation', {
+app\for\[slug]\submit\page.tsx:381:            contributorEmail: 
+email.trim(),
+app\for\[slug]\submit\page.tsx:752:          {/* Email — optional, 
+no marker */}
+app\for\[slug]\submit\page.tsx:754:            <label 
+style={labelStyle}>Email</label>
+app\for\[slug]\submit\page.tsx:756:              type="email"
+app\for\[slug]\submit\page.tsx:757:              value={email}
+app\for\[slug]\submit\page.tsx:758:              onChange={(e) => 
+setEmail(e.target.value)}
+app\for\[slug]\submit\page.tsx:759:              
+placeholder="your@email.com"
+app\for\[slug]\submit\page.tsx:763:              Leave your email to 
+receive a keepsake of your tribute when it&apos;s approved.
+app\for\[slug]\page.tsx:99:      'id, slug, honouree_name, 
+honouree_title, event_type, event_tag, event_date, page_state, tier, 
+theme, hero_image_url, organiser_email, free_tier_expires_at, 
+created_at, approved_contrib_count, components, hero_image_position, 
+hero_image_zoom, hero_image_fit, hero_panel_size, hero_full_bleed'
+app\for\[slug]\page.tsx:122:        'id, contributor_name, city, 
+country, ip_country, relationship, tribute_text, thumbnail_url, 
+audio_url, video_url, lat, lng, status, email, created_at'
+app\help\page.tsx:11:   - Access Codes updated: card generation, 
+auto-email, three-scope
+app\help\page.tsx:57:      { q: 'Do I need to create an account?', 
+a: 'No account is required to create a free capsule. You verify your 
+email address during the process, and that email becomes your access 
+key. To return to your dashboard, go to /signin and enter your email 
+— we send you a 4-character code each time.' },
+app\help\page.tsx:58:      { q: 'How do I share my capsule with 
+guests?', a: 'Once your capsule is set up, your dashboard shows a 
+shareable link in the format itslegacycapsule.com/for/[your-name]. 
+Share it via WhatsApp, email, or any channel you use. No app 
+download required for guests.' },
+app\help\page.tsx:77:      { q: 'Can contributors edit their tribute 
+after submitting?', a: 'Contributors receive an edit link in their 
+submission confirmation email. After editing, the tribute returns to 
+your moderation queue for re-approval before going live again.' },
+app\help\page.tsx:171:      { q: 'Can I customise the RSVP form?', 
+a: 'Yes. Certain fields are always included — name, attendance, 
+email. Others are on by default but you can switch them off. You can 
+also add your own custom questions — for example, dietary needs, 
+which phase they\'re attending, or whether they need accommodation.' 
+},
+app\help\page.tsx:189:      { q: 'How do guests receive their 
+codes?', a: 'Codes are emailed individually to each guest from your 
+dashboard — no manual sending required. Each email contains a QR 
+code image and a numeric code as backup. Guests who cannot have 
+their QR scanned can give the number verbally to the usher.' },
+app\help\page.tsx:245:      { q: 'How is it distributed?', a: 'Once 
+you are satisfied with the publication, one click sends it to every 
+contributor who provided their email address. Each recipient gets a 
+personal copy with a permanent access link. No printing, no postage, 
+no design fees.' },
+app\help\page.tsx:289:      { q: 'What can guests upload?', a: 
+'Guests can upload a photo or video they have taken at the event, 
+leave a tribute (voice) message, or both. Their name and optional 
+email are collected so their contribution is attributed correctly.' 
+},
+app\help\page.tsx:318:      { q: 'How do I sign back into my 
+dashboard?', a: 'Go to itslegacycapsule.com/signin and enter your 
+email address. We send a 4-character code to your inbox. Enter the 
+code in the browser — you are taken directly to your dashboard. No 
+password to remember.' },
+app\help\page.tsx:319:      { q: 'Can I have multiple capsules?', a: 
+'Yes. One email address can manage multiple capsules. When you sign 
+in with an email that has multiple capsules, you see a listing of 
+all of them.' },
+app\help\page.tsx:324:      { q: 'What happens if I need help?', a: 
+'Contact us through this help page or email 
+hello@itslegacycapsule.com. We respond within 24 hours on business 
+days.' },
+app\help\page.tsx:469:              <Link 
+href="mailto:hello@itslegacycapsule.com" style={{ color: goldMuted 
+}}>email us directly</Link>
+app\help\page.tsx:529:            Email Us
+app\how-it-works\page.tsx:33:    body: 'Share your capsule link via 
+WhatsApp, email, or any channel you use. Anyone — family members in 
+Lagos, friends in London, colleagues in Houston — can open the link 
+and leave a tribute. They type their message, add a photo if they 
+like, and submit. You see it arrive in your dashboard.',
+app\how-it-works\page.tsx:61:    body: 'After your event, 
+LegacyCapsule compiles everything — every tribute, every voice, 
+every photo — into a beautiful digital publication. This is sent to 
+every contributor who shared their email. The person being honoured 
+has a permanent, shareable record of everyone who showed up for them 
+— not just on the day, but from everywhere in the world.',
+app\manage\[slug]\access\cards\print\page.tsx:45:  organiser_email: 
+string
+app\manage\[slug]\access\cards\print\page.tsx:51:  guest_email:      
+string | null
+app\manage\[slug]\access\cards\print\page.tsx:83:    const email = 
+typeof window !== 'undefined'
+app\manage\[slug]\access\cards\print\page.tsx:84:      ? 
+localStorage.getItem('lc_visitor_email')
+app\manage\[slug]\access\cards\print\page.tsx:87:    if (!email) {
+app\manage\[slug]\access\cards\print\page.tsx:98:          
+.select('id, slug, honouree_name, event_type, event_tag, event_date, 
+organiser_email')
+app\manage\[slug]\access\cards\print\page.tsx:100:          
+.eq('organiser_email', email)
+app\manage\[slug]\access\page.tsx:7://          Authenticates via 
+localStorage email, verifies access_codes is
+app\manage\[slug]\access\page.tsx:47:  organiser_email: string
+app\manage\[slug]\access\page.tsx:67:    const visitorEmail = typeof 
+window !== 'undefined'
+app\manage\[slug]\access\page.tsx:68:      ? 
+localStorage.getItem('lc_visitor_email')
+app\manage\[slug]\access\page.tsx:71:    if (!visitorEmail) {
+app\manage\[slug]\access\page.tsx:82:          .select('id, slug, 
+honouree_name, event_type, event_tag, event_date, components, 
+organiser_email')
+app\manage\[slug]\access\page.tsx:84:          
+.eq('organiser_email', visitorEmail)
+app\manage\[slug]\attire\page.tsx:42:  phone: string | null; email: 
+string | null
+app\manage\[slug]\attire\page.tsx:158:            {o.email && <span> 
+· {o.email}</span>}
+app\manage\[slug]\guests\page.tsx:6://            (lc_visitor_email) 
+— same pattern as app/manage/[slug]/access/page.tsx.
+app\manage\[slug]\guests\page.tsx:53:    const visitorEmail = typeof 
+window !== 'undefined'
+app\manage\[slug]\guests\page.tsx:54:      ? 
+localStorage.getItem('lc_visitor_email')
+app\manage\[slug]\guests\page.tsx:57:    if (!visitorEmail) {
+app\manage\[slug]\guests\page.tsx:66:          .select('id, slug, 
+honouree_name, event_tag, event_type, event_date, tier, 
+organiser_email, components')
+app\manage\[slug]\guests\page.tsx:68:          
+.eq('organiser_email', visitorEmail)
+app\manage\[slug]\page.tsx:35:  hero_image_url: string | null; 
+organiser_email: string
+app\manage\[slug]\page.tsx:44:  relationship: string | null; 
+tribute_text: string; email: string | null
+app\manage\[slug]\page.tsx:59:const LS_EMAIL = 'lc_visitor_email'
+app\manage\[slug]\page.tsx:204:  onSave: (val: string) => 
+Promise<void>; type?: 'text' | 'date' | 'email'; hint?: string
+app\manage\[slug]\page.tsx:551:  const [name, setName] = 
+useState(''); const [email, setEmail] = useState(''); const 
+[message, setMessage] = useState('')
+app\manage\[slug]\page.tsx:554:    if (!name.trim() || !email.trim() 
+|| !message.trim()) return
+app\manage\[slug]\page.tsx:556:    try { await 
+fetch('/api/email/contact', { method: 'POST', headers: { 
+'Content-Type': 'application/json' }, body: JSON.stringify({ name: 
+name.trim(), email: email.trim(), message: message.trim(), capsule: 
+capsuleName, subject: 'Capsule expansion enquiry' }) }); 
+setSent(true) } catch { setSent(true) }
+app\manage\[slug]\page.tsx:572:            <input type="email" 
+placeholder="Your email" value={email} onChange={e => 
+setEmail(e.target.value)} style={inp} />
+app\manage\[slug]\page.tsx:574:            <button 
+onClick={handleSend} disabled={sending || !name.trim() || 
+!email.trim() || !message.trim()} style={{ padding: '10px', 
+borderRadius: '10px', background: `linear-gradient(135deg, ${gold}, 
+rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '13px', 
+fontWeight: 700, border: 'none', cursor: 'pointer', opacity: sending 
+|| !name.trim() || !email.trim() || !message.trim() ? 0.6 : 1 
+}}>{sending ? 'Sending…' : 'Get in Touch'}</button>
+app\manage\[slug]\page.tsx:797:   - Each token row: rep email, 
+issued date, last accessed,
+app\manage\[slug]\page.tsx:798:     active/expired badge, Resend 
+button
+app\manage\[slug]\page.tsx:799:   - Resend calls /api/rep/invite 
+(same route, resend mode)
+app\manage\[slug]\page.tsx:801:     and after each send/resend
+app\manage\[slug]\page.tsx:805:function FamilyRepSection({ 
+capsuleId, slug, initialName, initialEmail, sentAt, onSaved }: {
+app\manage\[slug]\page.tsx:806:  capsuleId: string; slug: string; 
+initialName: string; initialEmail: string
+app\manage\[slug]\page.tsx:810:  const [email, setEmail] = 
+useState(initialEmail)
+app\manage\[slug]\page.tsx:817:  const [resendingId, setResendingId] 
+= useState<string | null>(null)
+app\manage\[slug]\page.tsx:819:  const canSend = email.includes('@')
+app\manage\[slug]\page.tsx:820:  const isDirty = name !== 
+initialName || email !== initialEmail
+app\manage\[slug]\page.tsx:826:      .select('id, honouree_email, 
+created_at, last_accessed_at, expires_at')
+app\manage\[slug]\page.tsx:838:      .update({ family_rep_name: name 
+|| null, family_rep_email: email || null } as any)
+app\manage\[slug]\page.tsx:861:  const handleResend = async 
+(repEmail: string) => {
+app\manage\[slug]\page.tsx:862:    setResendingId(repEmail)
+app\manage\[slug]\page.tsx:865:      const res = await 
+fetch('/api/rep/resend', {
+app\manage\[slug]\page.tsx:868:        body: JSON.stringify({ 
+capsuleId, slug, repEmail }),
+app\manage\[slug]\page.tsx:871:      if (!res.ok) 
+setError(data.error ?? 'Failed to resend')
+app\manage\[slug]\page.tsx:874:    setResendingId(null)
+app\manage\[slug]\page.tsx:895:          <label style={{ fontSize: 
+'10px', color: goldMuted, textTransform: 'uppercase', letterSpacing: 
+'0.1em', display: 'block', marginBottom: '5px' }}>Representative 
+Email</label>
+app\manage\[slug]\page.tsx:896:          <input type="email" 
+style={inp} placeholder="Their email address" value={email} 
+onChange={e => setEmail(e.target.value)} />
+app\manage\[slug]\page.tsx:914:          <p style={{ fontSize: 
+'11px', color: textFaint, margin: 0 }}>Sent to {email} -- they can 
+click the link to view tributes privately.</p>
+app\manage\[slug]\page.tsx:924:            {sending ? 'Sending…' : 
+sentAt ? 'Resend Portal Access Link' : 'Send Portal Access Link →'}
+app\manage\[slug]\page.tsx:928:              Enter the 
+representative's email address above first.
+app\manage\[slug]\page.tsx:945:              const isResending = 
+resendingId === token.honouree_email
+app\manage\[slug]\page.tsx:950:                      
+{token.honouree_email}
+app\manage\[slug]\page.tsx:970:                      onClick={() => 
+handleResend(token.honouree_email)}
+app\manage\[slug]\page.tsx:971:                      
+disabled={!!resendingId}
+app\manage\[slug]\page.tsx:972:                      style={{ 
+fontSize: '10px', padding: '3px 10px', borderRadius: '6px', border: 
+`1px solid rgba(226,195,107,0.2)`, background: 
+'rgba(226,195,107,0.05)', color: goldMuted, cursor: 'pointer', 
+opacity: resendingId ? 0.5 : 1 }}
+app\manage\[slug]\page.tsx:974:                      {isResending ? 
+'…' : 'Resend'}
+app\manage\[slug]\page.tsx:1034:        Receive an email when new 
+tributes arrive and are waiting for your approval. One email per 
+window -- never flooded.
+app\manage\[slug]\page.tsx:1087:function DeleteAccountSection({ 
+email, slug, capsuleId }: { email: string; slug: string; capsuleId: 
+string }) {
+app\manage\[slug]\page.tsx:1100:body: JSON.stringify({ email, 
+confirmation, capsuleId }),
+app\manage\[slug]\page.tsx:1139:                  This will 
+permanently delete your account <strong style={{ color: 
+'rgba(255,255,255,0.7)' }}>{email}</strong> and all capsules. All 
+tributes, profile sections and media will be removed. <strong 
+style={{ color: 'rgba(248,113,113,0.8)' }}>This cannot be 
+undone.</strong>
+app\manage\[slug]\page.tsx:1540:  const [visitorEmail, 
+setVisitorEmail] = useState('')
+app\manage\[slug]\page.tsx:1557:      const authEmail = 
+urlParams.get('auth')
+app\manage\[slug]\page.tsx:1558:      if (authEmail) {
+app\manage\[slug]\page.tsx:1559:        const decoded = 
+decodeURIComponent(authEmail)
+app\manage\[slug]\page.tsx:1560:        
+localStorage.setItem(LS_EMAIL, decoded)
+app\manage\[slug]\page.tsx:1561:        setVisitorEmail(decoded)
+app\manage\[slug]\page.tsx:1567:        if (session?.user?.email) {
+app\manage\[slug]\page.tsx:1568:          
+localStorage.setItem(LS_EMAIL, session.user.email)
+app\manage\[slug]\page.tsx:1569:          
+setVisitorEmail(session.user.email)
+app\manage\[slug]\page.tsx:1573:      const saved = 
+localStorage.getItem(LS_EMAIL)
+app\manage\[slug]\page.tsx:1574:      if (saved) 
+setVisitorEmail(saved)
+app\manage\[slug]\page.tsx:1582:      .select('id, slug, 
+honouree_name, honouree_title, event_type, event_tag, event_date, 
+page_state, tier, theme, hero_image_url, organiser_email, 
+free_tier_expires_at, activated_at, approved_contrib_count, 
+components, hero_image_position, hero_image_zoom, hero_image_fit, 
+hero_panel_size, hero_full_bleed')
+app\manage\[slug]\page.tsx:1589:      
+supabase.from('contributions').select('id, contributor_name, city, 
+country, relationship, tribute_text, thumbnail_url, email, status, 
+created_at, include_in_publication, 
+include_in_programme_export').eq('capsule_id', 
+cap.id).is('deleted_at', null).order('created_at', { ascending: 
+false }),
+app\manage\[slug]\page.tsx:1606:  const isOrganiser = visitorEmail 
+!== '' && visitorEmail.toLowerCase() === 
+capsule?.organiser_email?.toLowerCase()
+app\manage\[slug]\page.tsx:1620:    fetch('/api/email/approval', { 
+method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+body: JSON.stringify({ contributionId: id }) }).catch(() => {})
+app\manage\[slug]\page.tsx:1662:  if (!visitorEmail) return (
+app\manage\[slug]\page.tsx:1677:      <p style={{ color: textFaint, 
+fontSize: '14px', maxWidth: '300px', lineHeight: 1.65 }}>You are 
+signed in as <strong style={{ color: goldMuted 
+}}>{visitorEmail}</strong> but this capsule belongs to a different 
+organiser.</p>
+app\manage\[slug]\page.tsx:1678:      <button onClick={() => { 
+localStorage.removeItem(LS_EMAIL); setVisitorEmail('') }} style={{ 
+padding: '10px 22px', borderRadius: '10px', background: 
+`linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: 
+'#1a0845', fontSize: '13px', fontWeight: 700, border: 'none', 
+cursor: 'pointer' }}>Sign In with Different Email</button>
+app\manage\[slug]\page.tsx:1999:                  
+initialEmail={(capsule as any).family_rep_email ?? ''}
+app\manage\[slug]\page.tsx:2029:              <DeleteAccountSection 
+email={visitorEmail} slug={slug} capsuleId={capsule?.id ?? ''} />
+app\portal\circle\[token]\page.tsx:37:  email:        string | null
+app\portal\circle\[token]\page.tsx:184:          {guest.email && (
+app\portal\circle\[token]\page.tsx:186:              {guest.email}
+app\pricing\page.tsx:172:            { q: 'What if I need help 
+choosing?', a: 'Email hello@itslegacycapsule.com and we will help 
+you decide what your event actually needs.' },
+app\signin\page.tsx:5:   Sends a branded 4-char code via Resend.
+app\signin\page.tsx:39:  const [step, setStep] = useState<'email' | 
+'code'>('email')
+app\signin\page.tsx:40:  const [email, setEmail] = useState('')
+app\signin\page.tsx:45:  const [resendCooldown, setResendCooldown] = 
+useState(false)
+app\signin\page.tsx:48:    if (!email.includes('@')) return
+app\signin\page.tsx:54:        body: JSON.stringify({ email: 
+email.trim().toLowerCase() }),
+app\signin\page.tsx:59:          setError("We don't have an account 
+for this email. Check the address or create a capsule first.")
+app\signin\page.tsx:66:      // Store email in localStorage for 
+backward compat
+app\signin\page.tsx:67:      
+localStorage.setItem('lc_visitor_email', email.trim().toLowerCase())
+app\signin\page.tsx:81:        body: JSON.stringify({ email: 
+email.trim().toLowerCase(), code: code.trim().toUpperCase() }),
+app\signin\page.tsx:89:      // Store email in localStorage
+app\signin\page.tsx:90:      
+localStorage.setItem('lc_visitor_email', email.trim().toLowerCase())
+app\signin\page.tsx:119:  const handleResend = async () => {
+app\signin\page.tsx:120:    if (resendCooldown) return
+app\signin\page.tsx:121:    setResendCooldown(true); setError(''); 
+setCode('')
+app\signin\page.tsx:123:    setTimeout(() => 
+setResendCooldown(false), 30000)
+app\signin\page.tsx:152:        {step === 'email' ? (
+app\signin\page.tsx:157:              Enter your email. We'll send a 
+4-character code to sign you in — no link to click, no device 
+switching.
+app\signin\page.tsx:160:              type="email" 
+placeholder="you@example.com"
+app\signin\page.tsx:161:              value={email} onChange={e => { 
+setEmail(e.target.value); setError('') }}
+app\signin\page.tsx:162:              onKeyDown={e => e.key === 
+'Enter' && email.includes('@') && handleSendCode()}
+app\signin\page.tsx:163:              style={inp} autoFocus 
+autoComplete="email"
+app\signin\page.tsx:168:              disabled={!email.includes('@') 
+|| sending}
+app\signin\page.tsx:172:                cursor: !email.includes('@') 
+|| sending ? 'not-allowed' : 'pointer',
+app\signin\page.tsx:173:                background: 
+!email.includes('@') || sending ? 'rgba(226,195,107,0.12)' : 
+`linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`,
+app\signin\page.tsx:174:                color: !email.includes('@') 
+|| sending ? 'rgba(226,195,107,0.4)' : '#1a0845',
+app\signin\page.tsx:175:                boxShadow: 
+!email.includes('@') || sending ? 'none' : '0 4px 24px 
+rgba(226,195,107,0.25)',
+app\signin\page.tsx:188:            <h2 style={{ fontFamily: 
+"'Playfair Display', Georgia, serif", fontSize: '20px', fontWeight: 
+700, color: textPrimary, marginBottom: '8px' }}>Check your email</h2>
+app\signin\page.tsx:190:            <p style={{ fontSize: '14px', 
+fontWeight: 600, color: gold, marginBottom: '28px' }}>{email}</p>
+app\signin\page.tsx:220:              <button onClick={() => { 
+setStep('email'); setCode(''); setError('') }} style={{ fontSize: 
+'12px', color: textFaint, background: 'none', border: 'none', 
+cursor: 'pointer' }}>← Different email</button>
+app\signin\page.tsx:221:              <button onClick={handleResend} 
+disabled={resendCooldown} style={{ fontSize: '12px', color: 
+resendCooldown ? textFaint : goldMuted, background: 'none', border: 
+'none', cursor: resendCooldown ? 'default' : 'pointer' }}>
+app\signin\page.tsx:222:                {resendCooldown ? 'Code 
+sent' : 'Resend code'}
+components\capsule\PublicationSubscribePanel.tsx:6://          
+inviting guests to register their email to receive the publication.
+components\capsule\PublicationSubscribePanel.tsx:8://            1. 
+Contributor who forgot their email at submission time
+components\capsule\PublicationSubscribePanel.tsx:13://          
+Deduplication handled server-side (unique index on capsule_id + 
+email).
+components\capsule\PublicationSubscribePanel.tsx:46:  const [email,  
+   setEmail]     = useState('')
+components\capsule\PublicationSubscribePanel.tsx:53:    if 
+(!name.trim() || !email.trim() || !email.includes('@')) return
+components\capsule\PublicationSubscribePanel.tsx:62:          email: 
+     email.trim().toLowerCase(),
+components\capsule\PublicationSubscribePanel.tsx:97:            
+After the event, every tribute, story and photo is assembled into a 
+permanent keepsake. Tap to register your email.
+components\capsule\PublicationSubscribePanel.tsx:112:          We'll 
+send the keepsake publication for {honoureeName}'s event to <strong 
+style={{ color: 'rgba(255,255,255,0.6)' }}>{email}</strong> when 
+it's ready.
+components\capsule\PublicationSubscribePanel.tsx:149:            
+type="email"
+components\capsule\PublicationSubscribePanel.tsx:151:            
+placeholder="Email address"
+components\capsule\PublicationSubscribePanel.tsx:152:            
+value={email}
+components\capsule\PublicationSubscribePanel.tsx:153:            
+onChange={e => setEmail(e.target.value)}
+components\capsule\PublicationSubscribePanel.tsx:159:            
+disabled={submitting || !name.trim() || !email.includes('@')}
+components\capsule\PublicationSubscribePanel.tsx:162:              
+background: name.trim() && email.includes('@')
+components\capsule\PublicationSubscribePanel.tsx:165:              
+color: name.trim() && email.includes('@') ? '#1a0845' : textFaint,
+components\capsule\PublicationSubscribePanel.tsx:167:              
+cursor: name.trim() && email.includes('@') ? 'pointer' : 
+'not-allowed',
+components\capsule\PublicationSubscribePanel.tsx:180:        You'll 
+receive one email when the publication is released — nothing else.
+components\honouree\PortalPanels.tsx:377:      .select('id, 
+contributor_name, city, country, tribute_text, email, is_anonymous, 
+created_at')
+components\honouree\PortalPanels.tsx:405:    const res = await 
+fetch('/api/email/appreciation', {
+components\honouree\PortalPanels.tsx:418:    const res = await 
+fetch('/api/email/appreciation', {
+components\honouree\PortalPanels.tsx:428:  const reachable   = 
+contributors.filter(c => c.email && !c.is_anonymous);
+components\honouree\PortalPanels.tsx:429:  const anonymous   = 
+contributors.filter(c => !c.email || c.is_anonymous);
+components\honouree\PortalPanels.tsx:435:        
+subtitle={`${reachable.length} contributors can receive an email · 
+${anonymous.length} left anonymous tributes`}
+components\honouree\PortalPanels.tsx:463:              This will 
+send a personalised email to each of the {reachable.length} 
+contributors
+components\honouree\PortalPanels.tsx:464:              who left 
+their email. The message will reference the full collective of 
+{contributors.length} tributes.
+components\honouree\PortalPanels.tsx:465:              Preview your 
+template in the Email Template section before sending.
+components\honouree\PortalPanels.tsx:559:      .select('id, 
+recipient_name, recipient_email, channel, message_type, status, 
+sent_at')
+components\honouree\PortalPanels.tsx:588:        subtitle="All 
+emails sent from this portal"
+components\honouree\PortalPanels.tsx:691:        subtitle="Send a 
+single message to all contributors who left an email. Limit: one per 
+7 days."
+components\honouree\PortalPanels.tsx:742:                Email 
+preview
+components\honouree\PortalPanels.tsx:792:      
+.from('honouree_email_templates')
+components\honouree\PortalPanels.tsx:805:      
+.from('honouree_email_templates')
+components\honouree\PortalPanels.tsx:820:        subtitle="Write a 
+personal message to attach to the one-year anniversary email sent to 
+all contributors."
+components\honouree\PortalPanels.tsx:825:          On the one-year 
+anniversary of the event, LegacyCapsule sends a keepsake email
+components\honouree\PortalPanels.tsx:884:      
+.from('honouree_email_templates')
+components\honouree\PortalPanels.tsx:900:      
+.from('honouree_email_templates')
+components\honouree\PortalPanels.tsx:924:        title="Email 
+Template"
+components\honouree\PortalPanels.tsx:925:        subtitle="Choose 
+how your appreciation emails are worded."
+components\honouree\PortalShell.tsx:64:  familyRepEmail: string | 
+null;
+components\honouree\PortalShell.tsx:79:  { id: 'template',       
+label: 'Email Template',   icon: '▦' },
+components\honouree\PortalShell.tsx:127:        without needing the 
+email link.
+components\honouree\PortalShell.tsx:200:    { label: 'Can receive 
+email',    value: reachableCount,           section: 'appreciation'  
+ as PortalSection },
+components\honouree\PortalShell.tsx:266:          { label: 'Send 
+appreciation emails',    section: 'appreciation'   as PortalSection 
+},
+components\honouree\PortalShell.tsx:310:  familyRepEmail,
+components\honouree\WaysToHonourCard.tsx:273:  const [email, 
+setEmail] = useState('')
+components\honouree\WaysToHonourCard.tsx:298:        
+supporter_email: email.trim() || undefined,
+components\honouree\WaysToHonourCard.tsx:335:              {email && 
+(
+components\honouree\WaysToHonourCard.tsx:337:                  A 
+confirmation has been sent to {email}.
+components\honouree\WaysToHonourCard.tsx:366:                <input 
+style={inp} type="email" placeholder="Your email" value={email} 
+onChange={e => setEmail(e.target.value)} />
+components\layout\Navigation.tsx:19:const LS_EMAIL = 
+'lc_visitor_email'
+components\layout\Navigation.tsx:26:  const [userEmail, 
+setUserEmail]     = useState('')
+components\layout\Navigation.tsx:45:    const email = 
+localStorage.getItem(LS_EMAIL)
+components\layout\Navigation.tsx:46:    if (email) { 
+setSignedIn(true); setUserEmail(email) }
+components\layout\Navigation.tsx:47:    else { setSignedIn(false); 
+setUserEmail('') }
+components\layout\Navigation.tsx:57:    
+localStorage.removeItem(LS_EMAIL)
+components\layout\Navigation.tsx:58:    setSignedIn(false); 
+setUserEmail('')
+components\layout\Navigation.tsx:176:        {signedIn && <p 
+style={{ marginTop: "16px", textAlign: "center", fontSize: "11px", 
+color: "rgba(255,255,255,0.22)" }}>Signed in as {userEmail}</p>}
+components\manage\access-codes\AccessCardPrint.tsx:38:  guest_email: 
+     string | null
+components\manage\access-codes\AccessCodeModule.tsx:69:         + 
+'Send codes by email, print physical access cards, or both. '
+components\manage\access-codes\AccessCodeModule.tsx:157:          ? 
+`Create a unique entry code for each of your ${guestCount} guests. 
+Codes can be sent by email or printed as access cards.`
+components\manage\access-codes\BulkGuestImport.tsx:6://          
+Organiser pastes a list of names/emails or uploads a CSV.
+components\manage\access-codes\BulkGuestImport.tsx:27:  email:     
+string | null
+components\manage\access-codes\BulkGuestImport.tsx:30:  duplicate: 
+boolean         // true if email already exists in guests table
+components\manage\access-codes\BulkGuestImport.tsx:73:  + '  Name, 
+Email\n'
+components\manage\access-codes\BulkGuestImport.tsx:74:  + '  Name 
+<email@example.com>\n'
+components\manage\access-codes\BulkGuestImport.tsx:75:  + '  Name 
+only (no email)\n\n'
+components\manage\access-codes\BulkGuestImport.tsx:76:  + 'Or upload 
+a CSV file with Name and Email columns.'
+components\manage\access-codes\BulkGuestImport.tsx:83: * Returns { 
+name, email, phone, error }.
+components\manage\access-codes\BulkGuestImport.tsx:86: *   "John 
+Adeyemi, john@email.com"
+components\manage\access-codes\BulkGuestImport.tsx:87: *   "John 
+Adeyemi <john@email.com>"
+components\manage\access-codes\BulkGuestImport.tsx:88: *   
+"john@email.com, John Adeyemi"   (email first)
+components\manage\access-codes\BulkGuestImport.tsx:90: *   "John 
+Adeyemi, 08012345678"      (name + phone, no email)
+components\manage\access-codes\BulkGuestImport.tsx:92:function 
+parseLine(line: string): { name: string; email: string | null; 
+phone: string | null; error: string | null } {
+components\manage\access-codes\BulkGuestImport.tsx:94:  if 
+(!trimmed) return { name: '', email: null, phone: null, error: 
+'Empty line' }
+components\manage\access-codes\BulkGuestImport.tsx:96:  // Format: 
+"Name <email>"
+components\manage\access-codes\BulkGuestImport.tsx:101:      email: 
+angleMatch[2].trim().toLowerCase(),
+components\manage\access-codes\BulkGuestImport.tsx:112:    const 
+emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+components\manage\access-codes\BulkGuestImport.tsx:115:    // Detect 
+which part is email, phone, or name
+components\manage\access-codes\BulkGuestImport.tsx:117:    let 
+email: string | null = null
+components\manage\access-codes\BulkGuestImport.tsx:121:      if 
+(!email && emailRegex.test(part)) { email = part.toLowerCase(); 
+continue }
+components\manage\access-codes\BulkGuestImport.tsx:128:    return { 
+name, email, phone, error: null }
+components\manage\access-codes\BulkGuestImport.tsx:132:  return { 
+name: trimmed, email: null, phone: null, error: null }
+components\manage\access-codes\BulkGuestImport.tsx:138: * Returns 
+array of { name, email, phone } objects.
+components\manage\access-codes\BulkGuestImport.tsx:140:function 
+parseCSV(text: string): { name: string; email: string | null; phone: 
+string | null }[] {
+components\manage\access-codes\BulkGuestImport.tsx:147:  const 
+emailIdx = headers.findIndex(h => ['email', 'email address', 
+'e-mail'].includes(h))
+components\manage\access-codes\BulkGuestImport.tsx:160:      email: 
+emailIdx !== -1 ? (cols[emailIdx]?.trim().toLowerCase() || null) : 
+null,
+components\manage\access-codes\BulkGuestImport.tsx:197:      
+setParseError('Nothing to import — paste at least one name or 
+email.')
+components\manage\access-codes\BulkGuestImport.tsx:211:        
+email: result.email,
+components\manage\access-codes\BulkGuestImport.tsx:218:    // Check 
+for duplicates: fetch existing guest emails for this capsule
+components\manage\access-codes\BulkGuestImport.tsx:219:    const 
+validEmails = parsed
+components\manage\access-codes\BulkGuestImport.tsx:220:      
+.filter(e => e.email)
+components\manage\access-codes\BulkGuestImport.tsx:221:      .map(e 
+=> e.email as string)
+components\manage\access-codes\BulkGuestImport.tsx:223:    let 
+existingEmails = new Set<string>()
+components\manage\access-codes\BulkGuestImport.tsx:225:    if 
+(validEmails.length > 0) {
+components\manage\access-codes\BulkGuestImport.tsx:229:        
+existingEmails = new Set(
+components\manage\access-codes\BulkGuestImport.tsx:231:            
+.map((g: any) => g.email?.toLowerCase())
+components\manage\access-codes\BulkGuestImport.tsx:241:      
+duplicate: e.email ? existingEmails.has(e.email) : false,
+components\manage\access-codes\BulkGuestImport.tsx:269:        
+r.email ? `${r.name}, ${r.email}` : r.name
+components\manage\access-codes\BulkGuestImport.tsx:312:            
+email:      entry.email   ?? undefined,
+components\manage\access-codes\BulkGuestImport.tsx:405:              
++ 'Chief Emeka Obi, emeka@email.com\n'
+components\manage\access-codes\BulkGuestImport.tsx:406:              
++ 'Dr. Aisha Bello <aisha@email.com>\n'
+components\manage\access-codes\BulkGuestImport.tsx:594:              
+  {/* Name and email */}
+components\manage\access-codes\BulkGuestImport.tsx:603:              
+    {entry.email && (
+components\manage\access-codes\BulkGuestImport.tsx:605:              
+        {entry.email}
+components\manage\access-codes\GuestCodeList.tsx:7://            · 
+Pre-generation: shows full guest roster with tier, email status,
+components\manage\access-codes\GuestCodeList.tsx:8://              
+and a prominent generate action. Guidance for missing emails.
+components\manage\access-codes\GuestCodeList.tsx:9://            · 
+Post-generation: shows all codes regardless of email status,
+components\manage\access-codes\GuestCodeList.tsx:10://              
+per-code send/resend/revoke, bulk send, search and filter.
+components\manage\access-codes\GuestCodeList.tsx:11://          
+Clickable guest names open inline edit panel (name, tier, email, 
+phone).
+components\manage\access-codes\GuestCodeList.tsx:14:// REPLACES: 
+Previous version — hid guests without email, no guidance
+components\manage\access-codes\GuestCodeList.tsx:33:  email:        
+string | null
+components\manage\access-codes\GuestCodeList.tsx:44:  guest_email:   
+   string | null
+components\manage\access-codes\GuestCodeList.tsx:148:  const [email, 
+setEmail] = useState(guest.email ?? '')
+components\manage\access-codes\GuestCodeList.tsx:164:          
+email: email.trim() || null,
+components\manage\access-codes\GuestCodeList.tsx:220:              
+Email Address
+components\manage\access-codes\GuestCodeList.tsx:222:            
+<input type="email" style={inputStyle} value={email} onChange={e => 
+setEmail(e.target.value)} placeholder="For sending codes digitally" 
+/>
+components\manage\access-codes\GuestCodeList.tsx:223:            
+{!email && (
+components\manage\access-codes\GuestCodeList.tsx:225:                
+Without an email, this guest's code can only be delivered as a 
+printed access card.
+components\manage\access-codes\GuestCodeList.tsx:321:  const 
+withEmail    = useMemo(() => guests.filter(g => g.email).length, 
+[guests])
+components\manage\access-codes\GuestCodeList.tsx:322:  const 
+withoutEmail = useMemo(() => guests.filter(g => !g.email).length, 
+[guests])
+components\manage\access-codes\GuestCodeList.tsx:352:        
+c.guest_email?.toLowerCase().includes(q)
+components\manage\access-codes\GuestCodeList.tsx:437:      flash(`✓ 
+Sent to ${data.sent} guest${data.sent !== 1 ? 's' : 
+''}.${data.skipped > 0 ? ` ${data.skipped} skipped (no email).` : 
+''}`)
+components\manage\access-codes\GuestCodeList.tsx:445:  // ── 6.8 
+Send / resend one code ────────────────────────────────────────────
+components\manage\access-codes\GuestCodeList.tsx:448:    if 
+(!code.guest_email) {
+components\manage\access-codes\GuestCodeList.tsx:449:      
+flash('This guest has no email address. Add one by clicking their 
+name.', true)
+components\manage\access-codes\GuestCodeList.tsx:509:      {/* ── 
+7.1 Email guidance banner (shown when guests have no email) ──────── 
+*/}
+components\manage\access-codes\GuestCodeList.tsx:511:      
+{guests.length > 0 && withoutEmail > 0 && (
+components\manage\access-codes\GuestCodeList.tsx:522:              
+{withoutEmail} guest{withoutEmail !== 1 ? 's have' : ' has'} no 
+email address
+components\manage\access-codes\GuestCodeList.tsx:525:              
+Codes can only be sent digitally to guests with an email address.
+components\manage\access-codes\GuestCodeList.tsx:526:              
+For guests without email, print their access card and hand it to 
+them at the event.
+components\manage\access-codes\GuestCodeList.tsx:527:              
+Tap any guest name to add their email.
+components\manage\access-codes\GuestCodeList.tsx:552:                
+{withEmail} with email · {withoutEmail} without email
+components\manage\access-codes\GuestCodeList.tsx:598:                
+      {guest.email
+components\manage\access-codes\GuestCodeList.tsx:599:                
+        ? <span style={{ color: successColor }}> · 
+{guest.email}</span>
+components\manage\access-codes\GuestCodeList.tsx:600:                
+        : <span style={{ color: warnColor }}> · no email — tap name 
+to add</span>
+components\manage\access-codes\GuestCodeList.tsx:669:                
+Codes without email addresses can be printed as access cards.
+components\manage\access-codes\GuestCodeList.tsx:683:            
+<StatCard label="With Email" value={withEmail} />
+components\manage\access-codes\GuestCodeList.tsx:692:            
+disabled={sendingAll || withEmail === 0}
+components\manage\access-codes\GuestCodeList.tsx:696:              
+background: withEmail === 0
+components\manage\access-codes\GuestCodeList.tsx:699:              
+color: withEmail === 0 ? textFaint : '#1a0845',
+components\manage\access-codes\GuestCodeList.tsx:701:              
+cursor: withEmail === 0 ? 'not-allowed' : 'pointer',
+components\manage\access-codes\GuestCodeList.tsx:707:              : 
+withEmail === 0
+components\manage\access-codes\GuestCodeList.tsx:708:              ? 
+'No email addresses — print access cards instead'
+components\manage\access-codes\GuestCodeList.tsx:711:              : 
+`Resend All Codes (${withEmail} with email)`}
+components\manage\access-codes\GuestCodeList.tsx:739:            
+placeholder="Search by name, code, or email…"
+components\manage\access-codes\GuestCodeList.tsx:765:          {/* 
+Code list — ALL guests shown, email status clear per row */}
+components\manage\access-codes\GuestCodeList.tsx:839:                
+        {/* Clear email status — always shown */}
+components\manage\access-codes\GuestCodeList.tsx:840:                
+        {code.guest_email
+components\manage\access-codes\GuestCodeList.tsx:842:                
+          : <span style={{ fontSize: '9px', color: warnColor }}>no 
+email</span>
+components\manage\access-codes\GuestCodeList.tsx:850:                
+        {code.guest_email ? (
+components\manage\access-codes\GuestCodeList.tsx:854:                
+            title={code.status === 'generated' ? 'Send code by 
+email' : 'Resend code'}
+components\manage\access-codes\GuestCodeList.tsx:864:                
+            {isSending ? '…' : code.status === 'generated' ? 'Send' 
+: 'Resend'}
+components\manage\access-codes\GuestCodeList.tsx:869:                
+            title="Add email to send code"
+components\manage\access-codes\GuestCodeList.tsx:877:                
+            + Email
+components\manage\access-codes\GuestCodeList.tsx:927:                
+      {!guest.email && <span style={{ color: warnColor }}> · no 
+email</span>}
+components\manage\guests\CircleManager.tsx:32:  leader_email:     
+string | null
+components\manage\guests\CircleManager.tsx:49:  email:       string 
+| null
+components\manage\guests\CircleManager.tsx:58:  leader_email: string
+components\manage\guests\CircleManager.tsx:63:  name: '', 
+description: '', leader_name: '', leader_email: '', leader_phone: '',
+components\manage\guests\CircleManager.tsx:180:              
+placeholder="Leader email"
+components\manage\guests\CircleManager.tsx:181:              
+type="email"
+components\manage\guests\CircleManager.tsx:182:              
+value={form.leader_email}
+components\manage\guests\CircleManager.tsx:183:              
+onChange={e => setForm({ ...form, leader_email: e.target.value })}
+components\manage\guests\CircleManager.tsx:339:              
+disabled={!circle.leader_email}
+components\manage\guests\CircleManager.tsx:342:                
+background: circle.leader_email ? goldFaint : 
+'rgba(255,255,255,0.03)',
+components\manage\guests\CircleManager.tsx:343:                
+color: circle.leader_email ? gold : textFaint,
+components\manage\guests\CircleManager.tsx:345:                
+cursor: circle.leader_email ? 'pointer' : 'not-allowed',
+components\manage\guests\CircleManager.tsx:348:              
+{portalSent && !portalExpired ? 'Resend Portal' : 'Send Portal Link'}
+components\manage\guests\CircleManager.tsx:371:                ? 
+`Portal link expired — resend to ${circle.leader_email}`
+components\manage\guests\CircleManager.tsx:372:                : 
+`Portal sent to ${circle.leader_email} on ${new 
+Date(circle.portal_sent_at!).toLocaleDateString()}`
+components\manage\guests\CircleManager.tsx:520:      leader_email: 
+form.leader_email.trim().toLowerCase() || null,
+components\manage\guests\CircleManager.tsx:626:      leader_email: 
+circle.leader_email ?? '',
+components\manage\guests\GuestModule.tsx:34:  organiser_email: string
+components\manage\GuestManagementSection.tsx:44:  id: string; name: 
+string; phone: string | null; email: string | null
+components\manage\GuestManagementSection.tsx:179:          {g.email 
+&& <p style={{ fontSize: '11px', color: textFaint, marginBottom: 
+'4px' }}>✉ {g.email}</p>}
+components\manage\GuestManagementSection.tsx:206:  const [email,   
+setEmail]   = useState('')
+components\manage\GuestManagementSection.tsx:220:        phone: 
+phone.trim() || undefined, email: email.trim() || undefined,
+components\manage\GuestManagementSection.tsx:235:          <input 
+type="email" style={{ ...inp, flex: 1 }} placeholder="Email" 
+value={email} onChange={e => setEmail(e.target.value)} />
+components\manage\GuestManagementSection.tsx:525:          <p 
+class="ticket-code-hint">Present this code or your QR email at the 
+entrance</p>
+components\manage\GuestManagementSection.tsx:851:                  
+Print a physical access pass for each guest — shows their name, 
+entry code, tier, and a link to the capsule. Useful for guests who 
+prefer a card to an email.
+components\manage\ServicesTab.tsx:49:  relationship: string | null; 
+tribute_text: string; email: string | null
+components\manage\ServicesTab.tsx:468:  const [sendEmail,      
+setSendEmail]      = useState('')
+components\manage\ServicesTab.tsx:498:    if (!sendName.trim() || 
+!sendEmail.includes('@') || cart.length === 0) return
+components\manage\ServicesTab.tsx:509:          payer_email:  
+sendEmail.trim().toLowerCase(),
+components\manage\ServicesTab.tsx:515:      setSendName(''); 
+setSendEmail('')
+components\manage\ServicesTab.tsx:554:          organiser_email: '',
+components\manage\ServicesTab.tsx:705:              'Auto-email 
+codes directly to guests — one click to send all',
+components\manage\ServicesTab.tsx:725:              'Daily digest 
+email to family representative',
+components\manage\ServicesTab.tsx:855:                  <p style={{ 
+fontSize: '11px', color: 'rgba(255,255,255,0.4)', margin: 0 
+}}>They'll receive an email with the payment button shortly.</p>
+components\manage\ServicesTab.tsx:864:                    <label 
+style={{ fontSize: '9px', color: 'rgba(226,195,107,0.55)', 
+textTransform: 'uppercase' as const, letterSpacing: '0.1em', 
+display: 'block', marginBottom: '5px' }}>Their email</label>
+components\manage\ServicesTab.tsx:865:                    <input 
+type="email" style={{ width: '100%', padding: '10px 14px', 
+borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: 
+'1px solid rgba(226,195,107,0.2)', color: 'rgba(255,255,255,0.92)', 
+fontSize: '13px', outline: 'none', fontFamily: "'DM 
+Sans',sans-serif", boxSizing: 'border-box' as const }} 
+placeholder="Where should we send the link?" value={sendEmail} 
+onChange={e => setSendEmail(e.target.value)} maxLength={120} />
+components\manage\ServicesTab.tsx:869:                    <button 
+onClick={handleSendLink} disabled={sending || !sendName.trim() || 
+!sendEmail.includes('@')} style={{ flex: 1, padding: '11px', 
+borderRadius: '10px', border: 'none', background: sendName.trim() && 
+sendEmail.includes('@') ? 'linear-gradient(135deg,#E2C36B,#C8A84A)' 
+: 'rgba(255,255,255,0.06)', color: sendName.trim() && 
+sendEmail.includes('@') ? '#1a0845' : 'rgba(255,255,255,0.2)', 
+fontSize: '13px', fontWeight: 700, cursor: 'pointer', opacity: 
+sending ? 0.7 : 1 }}>
+components\manage\ServicesTab.tsx:872:                    <button 
+onClick={() => { setShowSendModal(false); setSendName(''); 
+setSendEmail(''); setSendResult(null) }} style={{ padding: '11px 
+16px', borderRadius: '10px', border: '1px solid 
+rgba(255,255,255,0.08)', background: 'transparent', color: 
+'rgba(255,255,255,0.3)', fontSize: '13px', cursor: 'pointer' 
+}}>Cancel</button>
+components\publication\PublicationEditor.tsx:31: *   - Version-aware 
+distribution with Option C resend logic
+components\publication\PublicationEditor.tsx:193:    contributors: 
+number; dday: number; subscribers: number; total: number; no_email: 
+number;
+components\publication\PublicationEditor.tsx:219:  const 
+[namedSendEmail,       setNamedSendEmail]       = useState('');
+components\publication\PublicationEditor.tsx:224:    id: string; 
+recipient_name: string; recipient_email: string;
+components\publication\PublicationEditor.tsx:458:    if (!capsuleId 
+|| !namedSendEmail.trim()) return
+components\publication\PublicationEditor.tsx:469:          
+recipient_email: namedSendEmail.trim(),
+components\publication\PublicationEditor.tsx:477:        
+recipient_email: namedSendEmail.trim(),
+components\publication\PublicationEditor.tsx:481:      
+setNamedSendEmail('')
+components\publication\PublicationEditor.tsx:488:  }, [capsuleId, 
+capsuleSlug, namedSendEmail, namedSendName])
+components\publication\PublicationEditor.tsx:734:                
+{familyPreviewSending ? 'Sending…' : familyPreviewAt ? 'Resend 
+Family Preview' : 'Send to Family Rep →'}
+components\publication\PublicationEditor.tsx:758:                  
+type="email"
+components\publication\PublicationEditor.tsx:759:                  
+placeholder="Email address *"
+components\publication\PublicationEditor.tsx:760:                  
+value={namedSendEmail}
+components\publication\PublicationEditor.tsx:761:                  
+onChange={e => setNamedSendEmail(e.target.value)}
+components\publication\PublicationEditor.tsx:767:                  
+disabled={namedSending || !namedSendEmail.trim() || 
+hasUnsavedChanges}
+components\publication\PublicationEditor.tsx:781:                    
+    {s.recipient_name || s.recipient_email}
+components\publication\PublicationEditor.tsx:813:                    
+  <span className="text-[9px] text-white/40">Total unique 
+emails</span>
+components\publication\PublicationEditor.tsx:826:                    
+{recipientPreview.no_email > 0 && (
+components\publication\PublicationEditor.tsx:828:                    
+    {recipientPreview.no_email} have no email — excluded
+components\publication\PublicationEditor.tsx:841:                    
+    Also resend to {alreadyReceived} who received this version
+components\CommunityStoriesClient.tsx:587:  const [email,        
+setEmail]        = useState('')
+components\CommunityStoriesClient.tsx:655:          
+contributor_email:     email.trim() || undefined,
+components\CommunityStoriesClient.tsx:677:      if (email.trim() && 
+email.includes('@')) {
+components\CommunityStoriesClient.tsx:681:          body:    
+JSON.stringify({ capsule_id: capsule.id, name: name.trim(), email: 
+email.trim().toLowerCase(), source: 'stories' }),
+components\CommunityStoriesClient.tsx:729:            <input 
+type="email" style={inp} placeholder="Email address" value={email} 
+onChange={e => setEmail(e.target.value)} />
+components\CommunityStoriesClient.tsx:890:            {email ? ' We 
+will also send you the keepsake publication after the event.' : ' 
+Add your email above to receive the keepsake publication after the 
+event.'}
+components\GalleryLightbox.tsx:157:                {/* Publication 
+subscribe — email collection */}
+components\HonoureeRevealPanel.tsx:9: * to send the honouree/subject 
+their Capsule reveal email.
+components\HonoureeRevealPanel.tsx:16: *   3. Email input
+components\HonoureeRevealPanel.tsx:33:  honoureeEmail: string | null
+components\HonoureeRevealPanel.tsx:53:  honoureeEmail,
+components\HonoureeRevealPanel.tsx:64:  const [email, setEmail] = 
+useState(honoureeEmail ?? '')
+components\HonoureeRevealPanel.tsx:78:    if (!email.includes('@')) {
+components\HonoureeRevealPanel.tsx:79:      setError('Please enter a 
+valid email address.')
+components\HonoureeRevealPanel.tsx:92:          honouree_email: 
+email.trim().toLowerCase(),
+components\HonoureeRevealPanel.tsx:134:          {msg || 
+`${firstName} has received their Capsule reveal email. They now have 
+private access to view all tributes and memories gathered in their 
+honour.`}
+components\HonoureeRevealPanel.tsx:158:      {/* Email input */}
+components\HonoureeRevealPanel.tsx:164:          {firstName}&apos;s 
+email address
+components\HonoureeRevealPanel.tsx:167:          type="email"
+components\HonoureeRevealPanel.tsx:168:          value={email}
+components\HonoureeRevealPanel.tsx:169:          onChange={e => { 
+setEmail(e.target.value); setError('') }}
+components\HonoureeRevealPanel.tsx:170:          
+placeholder="their@email.com"
+components\HonoureeRevealPanel.tsx:186:          
+disabled={!email.includes('@')}
+components\HonoureeRevealPanel.tsx:191:            background: 
+email.includes('@')
+components\HonoureeRevealPanel.tsx:194:            border: 
+email.includes('@') ? 'none' : `1px solid ${cardBorder}`,
+components\HonoureeRevealPanel.tsx:195:            color: 
+email.includes('@') ? '#1a0845' : textFaint,
+components\HonoureeRevealPanel.tsx:198:            cursor: 
+email.includes('@') ? 'pointer' : 'not-allowed',
+components\HonoureeRevealPanel.tsx:215:            This will send 
+{firstName} their Capsule reveal to <strong style={{ color: 
+textPrimary }}>{email}</strong>.
+components\HonoureeRevealPanel.tsx:251:        The reveal link is 
+private and expires after 6 months. You can resend it any time from 
+the Family Representative section above.
+components\LegacyRoomClient.tsx:64:  emailCount: number
+components\LegacyRoomClient.tsx:65:  emailPct: number
+components\LegacyRoomClient.tsx:799:                
+{voiceMetrics.emailCount > 0 && (
+components\LegacyRoomClient.tsx:801:                    
+label="Contributors with email on file"
+components\LegacyRoomClient.tsx:802:                    
+value={`${voiceMetrics.emailCount} (${voiceMetrics.emailPct}%)`}
+components\StorySubmissionPanel.tsx:18:  email: string
+components\StorySubmissionPanel.tsx:56:    email: '',
+components\StorySubmissionPanel.tsx:89:      fd.append('email', 
+form.email.trim())
+components\StorySubmissionPanel.tsx:291:                <Field 
+label="Email (for notification when your story is published)">
+components\StorySubmissionPanel.tsx:293:                    
+type="email"
+components\StorySubmissionPanel.tsx:294:                    
+value={form.email}
+components\StorySubmissionPanel.tsx:295:                    
+onChange={e => updateForm('email', e.target.value)}
+components\StorySubmissionPanel.tsx:296:                    
+placeholder="your@email.com"
+components\TributeWallClient.tsx:40:  organiser_email: string; 
+free_tier_expires_at: string | null; created_at: string
+components\TributeWallClient.tsx:47:  lat: number | null; lng: 
+number | null; status: string; email: string | null; created_at: 
+string
+components\TributeWallClient.tsx:68:const LS_EMAIL = 
+'lc_visitor_email'
+components\TributeWallClient.tsx:607:  const [visitorEmail, 
+setVisitorEmail] = useState('')
+components\TributeWallClient.tsx:626:  const [repAccessEmail, 
+setRepAccessEmail] = useState('')
+components\TributeWallClient.tsx:631:  const [fName, setFName] = 
+useState(''); const [fEmail, setFEmail] = useState('')
+components\TributeWallClient.tsx:650:  const isAdmin = visitorEmail 
+!== '' && visitorEmail.toLowerCase() === 
+capsule.organiser_email?.toLowerCase()
+components\TributeWallClient.tsx:651:  const visible = all.filter(c 
+=> { if (c.status === 'approved') return true; if (isAdmin) return 
+true; if (visitorEmail && c.email?.toLowerCase() === 
+visitorEmail.toLowerCase()) return true; return false })
+components\TributeWallClient.tsx:664:  useEffect(() => { const saved 
+= localStorage.getItem(LS_EMAIL); if (saved) { 
+setVisitorEmail(saved); setFEmail(saved) } }, [])
+components\TributeWallClient.tsx:682:    if (!visitorEmail) return
+components\TributeWallClient.tsx:689:          .eq('email', 
+visitorEmail)
+components\TributeWallClient.tsx:698:  }, [visitorEmail, capsule.id])
+components\TributeWallClient.tsx:709:  useEffect(() => { if 
+(fEmail.includes('@')) { localStorage.setItem(LS_EMAIL, fEmail); 
+setVisitorEmail(fEmail) } }, [fEmail])
+components\TributeWallClient.tsx:721:      .select('id, 
+contributor_name, city, country, ip_country, relationship, 
+tribute_text, thumbnail_url, audio_url, video_url, lat, lng, status, 
+email, created_at, tribute_responses(response_text, responded_by)')
+components\TributeWallClient.tsx:740:  const handleApprove = async 
+(id: string) => { await 
+supabaseClient.from('contributions').update({ status: 'approved' 
+}).eq('id', id); fetch('/api/email/approval', { method: 'POST', 
+headers: { 'Content-Type': 'application/json' }, body: 
+JSON.stringify({ contributionId: id }) }).catch(() => {}); poll() }
+components\TributeWallClient.tsx:759:    if (!repAccessEmail.trim() 
+|| !repAccessEmail.includes('@')) {
+components\TributeWallClient.tsx:760:      setRepAccessError('Please 
+enter a valid email address.')
+components\TributeWallClient.tsx:768:        body: JSON.stringify({ 
+email: repAccessEmail.trim().toLowerCase() }),
+components\TributeWallClient.tsx:774:  const validate = () => { 
+const e: Record<string, string> = {}; if (!fName.trim()) e.name = 
+'Name required'; if (!fEmail.trim() || !fEmail.includes('@')) 
+e.email = 'Valid email required'; if (!fCity.trim()) e.city = 'City 
+required'; if (!fCountry) e.country = 'Country required'; if 
+(fMsg.trim().length < MIN_CHARS) e.msg = `${MIN_CHARS}+ characters`; 
+if (fMsg.trim().length > MAX_CHARS) e.msg = `Over ${MAX_CHARS} 
+limit`; setErrors(e); return !Object.keys(e).length }
+components\TributeWallClient.tsx:781:      const { data: nc, error: 
+ie } = await supabaseClient.from('contributions').insert({ 
+capsule_id: capsule.id, phase_id: phaseId || null, contributor_name: 
+fName.trim(), city: fCity.trim(), country: fCountry, relationship: 
+fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), 
+email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, 
+audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: 
+coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: 
+coords?.country ?? null, status: 'pending_review', 
+legacy_builder_consent: fConsent, story_topic_id: null 
+}).select('id').single()
+components\TributeWallClient.tsx:783:      if (nc) { 
+fetch('/api/email/submission-confirmation', { method: 'POST', 
+headers: { 'Content-Type': 'application/json' }, body: 
+JSON.stringify({ contributionId: nc.id, capsuleSlug: capsule.slug, 
+contributorName: fName.trim(), contributorEmail: fEmail.trim(), 
+subjectName: honourName, eventType: capsule.event_type, tributeText: 
+fMsg.trim() }) }).catch(() => {}) }
+components\TributeWallClient.tsx:804:      
+localStorage.setItem(LS_EMAIL, fEmail); setVisitorEmail(fEmail)
+components\TributeWallClient.tsx:866:          onClick={() => { 
+setRepAccessOpen(false); setRepAccessDone(false); 
+setRepAccessEmail(''); setRepAccessError('') }}
+components\TributeWallClient.tsx:879:                    If your 
+email is registered as a Family Representative on this capsule, your 
+portal access link has been sent.
+components\TributeWallClient.tsx:882:                    Didn't 
+receive it? Check your spam folder, or ask the organiser to resend 
+from the capsule dashboard.
+components\TributeWallClient.tsx:885:                    onClick={() 
+=> { setRepAccessOpen(false); setRepAccessDone(false); 
+setRepAccessEmail('') }}
+components\TributeWallClient.tsx:896:                      Enter 
+your email address and we will send your private portal access link.
+components\TributeWallClient.tsx:901:                      
+type="email"
+components\TributeWallClient.tsx:902:                      
+placeholder="Your email address"
+components\TributeWallClient.tsx:903:                      
+value={repAccessEmail}
+components\TributeWallClient.tsx:904:                      
+onChange={e => { setRepAccessEmail(e.target.value); 
+setRepAccessError('') }}
+components\TributeWallClient.tsx:920:                    
+disabled={repAccessSending || !repAccessEmail.trim()}
+components\TributeWallClient.tsx:923:                      
+background: repAccessEmail.trim()
+components\TributeWallClient.tsx:926:                      color: 
+repAccessEmail.trim() ? '#1a0845' : 'rgba(255,255,255,0.3)',
+components\TributeWallClient.tsx:928:                      cursor: 
+repAccessEmail.trim() ? 'pointer' : 'not-allowed',
+components\TributeWallClient.tsx:935:                    onClick={() 
+=> { setRepAccessOpen(false); setRepAccessEmail(''); 
+setRepAccessError('') }}
+components\TributeWallClient.tsx:1195:            {(isAdmin || 
+(visitorEmail && visitorEmail.toLowerCase() === 
+capsule.organiser_email?.toLowerCase())) && (
+components\TributeWallClient.tsx:1235:          {heroImage && 
+(isAdmin || (visitorEmail && visitorEmail.toLowerCase() === 
+capsule.organiser_email?.toLowerCase())) && (
+components\TributeWallClient.tsx:1342:                  {/* Name + 
+Email + Photo */}
+components\TributeWallClient.tsx:1345:                    <div 
+style={{ flex: 1 }}><input type="email" style={inp} placeholder="Add 
+Email" value={fEmail} onChange={e => setFEmail(e.target.value)} 
+maxLength={100} />{errors.email && <p style={{ fontSize: '9px', 
+color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' 
+}}>{errors.email}</p>}</div>
+components\TributeWallClient.tsx:1470:                {fEmail ? 
+"We'll send you the keepsake publication after the event." : 'Leave 
+your email when contributing to receive the keepsake publication.'}
+components\TributeWallClient.tsx:1490:              {visible.map((c, 
+idx) => <TributeCard key={c.id} c={c} capsuleId={capsule.id} 
+isAdmin={isAdmin} isOwn={visitorEmail !== '' && 
+c.email?.toLowerCase() === visitorEmail.toLowerCase()} 
+onApprove={handleApprove} onDelete={handleDelete} 
+onEdit={handleEdit} t={t} serialNumber={visible.length - idx} />)}
+components\TributeWallClient.tsx:1491:          {/* ── Publication 
+subscribe panel — Moment 1 email collection ── */}
+components\TributeWallClient.tsx:1642:                onClick={() => 
+{ setRepAccessOpen(true); setRepAccessDone(false); 
+setRepAccessEmail(''); setRepAccessError('') }}
+components\WaysToHonourSection.tsx:19:   - T3: Autofill 
+name/email/city/country from localStorage
+components\WaysToHonourSection.tsx:209:  const [email, setEmail] = 
+useState('')
+components\WaysToHonourSection.tsx:219:        const storedEmail = 
+typeof window !== 'undefined'
+components\WaysToHonourSection.tsx:220:          ? 
+localStorage.getItem('lc_visitor_email') : null
+components\WaysToHonourSection.tsx:221:        if (storedEmail) {
+components\WaysToHonourSection.tsx:222:          
+setEmail(storedEmail)
+components\WaysToHonourSection.tsx:227:            .eq('email', 
+storedEmail)
+components\WaysToHonourSection.tsx:263:          supporter_email: 
+email.trim() || undefined,
+components\WaysToHonourSection.tsx:285:              {email && (
+components\WaysToHonourSection.tsx:287:                  A 
+confirmation has been sent to {email}.
+components\WaysToHonourSection.tsx:305:                    <input 
+style={inp} type="email" placeholder="Your email (optional — to 
+receive a confirmation)" value={email} onChange={e => 
+setEmail(e.target.value)} />
+lib\admin\actions.ts:63:    .select('id, slug, honouree_name, 
+event_type, event_tag, page_state, tier, organiser_email, 
+approved_contrib_count, created_at, verified_at, 
+free_tier_expires_at')
+lib\admin\actions.ts:99:    .select('id, slug, honouree_name, 
+organiser_email, event_type, event_tag, tier, page_state, 
+created_at')
+lib\admin\actions.ts:101:    .order('organiser_email')
+lib\admin\actions.ts:103:  // Group by email
+lib\admin\actions.ts:104:  const grouped: Record<string, { email: 
+string; capsules: typeof capsules }> = {}
+lib\admin\actions.ts:106:    if (!grouped[c.organiser_email]) 
+grouped[c.organiser_email] = { email: c.organiser_email, capsules: 
+[] }
+lib\admin\actions.ts:107:    
+grouped[c.organiser_email].capsules.push(c)
+lib\admin\actions.ts:115:    .select('id, capsule_id, 
+contributor_name, city, country, tribute_text, email, status, 
+created_at, thumbnail_url')
+lib\admin\queries.ts:79:      'id, slug, honouree_name, page_state, 
+event_type, tier, created_at, reseller_code, organiser_email'
+lib\admin\queries.ts:109:    .select('id, slug, honouree_name, 
+organiser_email, page_state, tier, created_at')
+lib\admin\queries.ts:114:export async function 
+getClientCapsules(organiserEmail: string) {
+lib\admin\queries.ts:118:    .eq('organiser_email', organiserEmail)
+lib\content\serviceDetails.ts:134:      { q: 'Can I customise the 
+RSVP form?', a: 'Yes. Certain fields are always included (name, 
+attendance, email). Others are on by default but you can switch them 
+off. You can also add your own custom questions — for example, 
+dietary needs, which phase they\'re attending, or whether they need 
+accommodation.' },
+lib\content\serviceDetails.ts:148:    summary: 'Give every guest a 
+personal entry code for your event. Codes can be emailed 
+automatically and printed on access cards. Your team checks guests 
+in on the day with a simple scan or code lookup — no paperwork, no 
+queues. When a VIP arrives, you know immediately.',
+lib\content\serviceDetails.ts:151:      'Automatic email delivery — 
+each guest receives their code directly, no manual sending required',
+lib\content\serviceDetails.ts:160:      'Each guest receives a 
+personal email with their QR code and a numeric code as backup',
+lib\content\serviceDetails.ts:166:    exampleUseCase: 'A family 
+organising a chieftaincy ceremony for 350 guests generates access 
+codes from their guest list. They choose to send codes only to 
+guests who confirmed via RSVP — 287 emails go out in one click. Each 
+email contains a QR code and a six-digit number. On the day, three 
+ushers use the check-in page on their phones. A designated usher is 
+assigned to the VIP entrance. When Chief Adeyemi arrives, the system 
+fires a priority alert to the organiser\'s dashboard — "Chief 
+Adeyemi Okafor has arrived — Gate A — 2:47 PM." The organiser sees 
+the live count: 198 of 287 arrived, 3 of 4 VVIPs present.',
+lib\content\serviceDetails.ts:168:      { q: 'How do guests receive 
+their codes?', a: 'Codes are emailed individually to each guest from 
+your dashboard. Each email contains a QR code image and a numeric 
+code as backup. Guests who cannot have their QR scanned can give the 
+number verbally to the usher.' },
+lib\content\serviceDetails.ts:236:      { q: 'How does the family 
+know when someone has contributed?', a: 'A daily digest email is 
+sent at midnight to the family representative, listing every new 
+acknowledgement received that day and the cumulative total. One 
+clear summary per day.' },
+lib\content\serviceDetails.ts:255:      'One-click distribution — 
+send the completed publication to every contributor who left their 
+email',
+lib\content\serviceDetails.ts:261:      'Each contributor receives a 
+personal email when the publication is ready',
+lib\content\serviceDetails.ts:272:      { q: 'How many people 
+receive it?', a: 'All contributors who provided an email address 
+receive it. There is no limit on recipients.' },
+lib\content\serviceDetails.ts:346:    summary: `Know someone who 
+wants to contribute to your event capsule? Select the services you 
+need, click "Send Link", enter their name and email, and we'll send 
+them a branded payment email with a secure checkout button. Once 
+they pay, the services activate on your capsule immediately - no 
+delays, no manual steps.`,
+lib\content\serviceDetails.ts:348:      `A personalised payment 
+email sent directly to the person you choose`,
+lib\content\serviceDetails.ts:355:      `The payer receives a clear, 
+dignified email explaining what they're paying for and why`,
+lib\content\serviceDetails.ts:360:    exampleUseCase: `An uncle 
+wants to cover the Digital Publication and Guest Management for his 
+nephew's wedding capsule as a gift. The organiser selects both 
+services, clicks "Send Link", enters the uncle's name and email. The 
+uncle receives a branded email, clicks "Complete Payment", pays 
+once, and both services activate immediately on the wedding 
+capsule.`,
+lib\content\serviceDetails.ts:363:      { q: `What does the payer 
+see?`, a: `A branded email from LegacyCapsule listing the services 
+they're paying for, the total amount in the correct regional 
+currency, and a secure payment button. They also see the capsule 
+link so they can visit and leave a tribute.` },
+lib\content\serviceDetails.ts:364:      { q: `What if they don't 
+complete the payment?`, a: `Nothing changes on your capsule. 
+Services only activate when payment is confirmed. You can resend the 
+link at any time by selecting the same services and clicking Send 
+Link again.` },
+lib\email\inferCapsuleStatus.ts:2:// FILE: 
+lib/email/inferCapsuleStatus.ts
+lib\email\inferCapsuleStatus.ts:4://          No organiser input 
+required. Used by expiry banner and expiry email.
+lib\email\inferCapsuleStatus.ts:18:  | 'underused'    // Barely used 
+— help email, not renewal email
+lib\participation\refCode.ts:190:// respects consent for display 
+name, checks milestone emails.
+lib\participation\refCode.ts:338:      // ── Milestone email checks 
+──
+lib\participation\refCode.ts:341:        await 
+sendMilestoneEmail(capsuleId, builder.contributionId, 1)
+lib\participation\refCode.ts:347:          await 
+sendMilestoneEmail(capsuleId, builder.contributionId, 2)
+lib\participation\refCode.ts:355:          await 
+sendMilestoneEmail(capsuleId, builder.contributionId, 3)
+lib\participation\refCode.ts:400:// SECTION 5 — Milestone email 
+dispatch
+lib\participation\refCode.ts:401:// Sends recognition emails when a 
+contributor crosses a milestone threshold.
+lib\participation\refCode.ts:403:// Email content per Section 8 of 
+the handoff document.
+lib\participation\refCode.ts:406:async function sendMilestoneEmail(
+lib\participation\refCode.ts:415:      .select('contributor_name, 
+email')
+lib\participation\refCode.ts:419:    if (!contrib?.email) return // 
+No email — skip silently
+lib\participation\refCode.ts:503:    // ── Send via Resend ──
+lib\participation\refCode.ts:504:    const { Resend } = await 
+import('resend')
+lib\participation\refCode.ts:505:    const resend = new 
+Resend(process.env.RESEND_API_KEY!)
+lib\participation\refCode.ts:509:    // Reuse the platform email 
+wrapper pattern
+lib\participation\refCode.ts:546:    const { error: sendError } = 
+await resend.emails.send({
+lib\participation\refCode.ts:548:      to: contrib.email,
+lib\participation\refCode.ts:554:      
+console.error(`[sendMilestoneEmail] Milestone ${milestone} send 
+failed:`, sendError)
+lib\participation\refCode.ts:570:    // Log but never block — 
+milestone emails are non-critical
+lib\participation\refCode.ts:571:    
+console.error(`[sendMilestoneEmail] Milestone ${milestone} error 
+(non-fatal):`, err)
+lib\payments\adapters\PaystackAdapter.ts:41:  organiser_email:   
+string
+lib\payments\adapters\PaystackAdapter.ts:65:    email:        
+params.organiser_email,
+lib\payments\adapters\PaystackAdapter.ts:115:    customer:   { 
+email: string }
+lib\payments\adapters\StripeAdapter.ts:25:  organiser_email:  string
+lib\payments\adapters\StripeAdapter.ts:45:    customer_email: 
+params.organiser_email,
+lib\payments\adapters\StripeAdapter.ts:96:  customer_email: string
+lib\payments\adapters\StripeAdapter.ts:101:  const customers = await 
+stripe.customers.list({ email: params.customer_email, limit: 1 })
+lib\payments\adapters\StripeAdapter.ts:102:  const customer  = 
+customers.data[0] ?? await stripe.customers.create({ email: 
+params.customer_email })
+lib\payments\featureUnlocker.ts:40://   pending_verification  - 
+created, email not verified
+lib\payments\PaymentService.ts:95:  organiser_email: string
+lib\payments\PaymentService.ts:159:      organiser_email:   
+params.organiser_email,
+lib\payments\PaymentService.ts:183:      organiser_email:   
+params.organiser_email,
+lib\payments\PaymentService.ts:237:  organiser_email: string
+lib\payments\PaymentService.ts:289:      organiser_email:   
+params.organiser_email,
+lib\payments\PaymentService.ts:313:      organiser_email:   
+params.organiser_email,
+lib\publication\types.ts:291:   * Used by the Collective Belonging 
+distribution email.
+lib\email.ts:1:// FILE: lib/email.ts
+lib\email.ts:2:// All transactional email functions for 
+LegacyCapsule.
+lib\email.ts:3:// FROM: noreply@itslegacycapsule.com -- confirmed 
+Resend domain.
+lib\email.ts:6:// D27: Keepsake Card replaces plain approval email 
+on organiser approval.
+lib\email.ts:8://   -- Unicode ornaments replaced with HTML entities 
+(email client safety)
+lib\email.ts:10:import { Resend } from 'resend'
+lib\email.ts:14:// SECTION 1 -- Resend client
+lib\email.ts:17:const resend = new 
+Resend(process.env.RESEND_API_KEY!)
+lib\email.ts:25:interface ApprovalEmailParams {
+lib\email.ts:26:  contributorEmail: string
+lib\email.ts:39:  organiserEmail: string
+lib\email.ts:47:// SECTION 3 -- Keepsake Card email (D27)
+lib\email.ts:54:function buildKeepsakeCardHtml(params: 
+ApprovalEmailParams): string {
+lib\email.ts:226:// Called from /api/email/approval route.
+lib\email.ts:229:export async function sendKeepsakeCard(params: 
+ApprovalEmailParams): Promise<void> {
+lib\email.ts:230:  const { contributorEmail, contributorName, 
+subjectName } = params
+lib\email.ts:239:  const { error } = await resend.emails.send({
+lib\email.ts:240:    from:    FROM,
+lib\email.ts:241:    to:      contributorEmail,
+lib\email.ts:254:// Called from /api/email/verify-organiser.
+lib\email.ts:255:// Sends verification + welcome email on capsule 
+creation.
+lib\email.ts:259:  const { organiserEmail, subjectName, verifyUrl, 
+manageUrl } = params
+lib\email.ts:286:            Verify your email to activate the 
+tribute wall and start receiving tributes.
+lib\email.ts:291:              Verify Email &amp; Go Live
+lib\email.ts:316:  const { error } = await resend.emails.send({
+lib\email.ts:317:    from:    FROM,
+lib\email.ts:318:    to:      organiserEmail,
+lib\email.ts:319:    subject: 'Verify your email -- ' + subjectName 
++ ' tribute wall',
+lib\eventLabels.ts:132:// SECTION 4 — Appreciation email FROM name 
+(D59)
+lib\eventLabels.ts:134:// Event-type-aware FROM display name for 
+appreciation emails.
+lib\eventLabels.ts:141: * Returns the FROM display name for 
+appreciation emails.
+lib\eventLabels.ts:172: * Returns the appreciation email subject 
+line.
+lib\eventLabels.ts:250: * Returns the opening line of a collective 
+appreciation email.
+lib\eventLabels.ts:256: * @param reachableCount  contributors with 
+email (can receive)
+lib\honoureeEmail.ts:3: * lib/honoureeEmail.ts
+lib\honoureeEmail.ts:9: *     fails, email send is NOT blocked. 
+Previously a missing
+lib\honoureeEmail.ts:12: *     before the Resend call even fired.
+lib\honoureeEmail.ts:13: *   - sendSupportThankYou now logs the 
+Resend error if send
+lib\honoureeEmail.ts:18:import { Resend }        from 'resend'
+lib\honoureeEmail.ts:31:const resend = new 
+Resend(process.env.RESEND_API_KEY!)
+lib\honoureeEmail.ts:42:// SECTION 2 — Email wrapper HTML
+lib\honoureeEmail.ts:45:function emailWrapper(innerHtml: string): 
+string {
+lib\honoureeEmail.ts:83:// T4 FIX: wrapped in try/catch — never 
+blocks email send
+lib\honoureeEmail.ts:89:  recipientEmail:  string | null
+lib\honoureeEmail.ts:92:  resendId?:       string | null
+lib\honoureeEmail.ts:99:      recipient_email:   
+params.recipientEmail,
+lib\honoureeEmail.ts:100:      channel:           'email',
+lib\honoureeEmail.ts:103:      resend_message_id: params.resendId ?? 
+null,
+lib\honoureeEmail.ts:109:    // supplementary. A missing table must 
+not block email delivery.
+lib\honoureeEmail.ts:110:    console.warn('[honoureeEmail] 
+logCorrespondence failed (non-fatal):', logErr)
+lib\honoureeEmail.ts:116:// SECTION 4 — Individual appreciation email
+lib\honoureeEmail.ts:119:export interface AppreciationEmailParams {
+lib\honoureeEmail.ts:127:  contributorEmail: string
+lib\honoureeEmail.ts:132:export async function sendAppreciationEmail(
+lib\honoureeEmail.ts:133:  params: AppreciationEmailParams
+lib\honoureeEmail.ts:134:): Promise<{ ok: boolean; resendId?: 
+string; error?: string }> {
+lib\honoureeEmail.ts:151:    const { data, error } = await 
+resend.emails.send({
+lib\honoureeEmail.ts:152:      from:    `${fromName} 
+<noreply@itslegacycapsule.com>`,
+lib\honoureeEmail.ts:153:      to:      params.contributorEmail,
+lib\honoureeEmail.ts:155:      html:    emailWrapper(inner),
+lib\honoureeEmail.ts:157:    const resendId = data?.id ?? null
+lib\honoureeEmail.ts:158:    await logCorrespondence({ capsuleId: 
+params.capsuleId, recipientName: params.contributorName, 
+recipientEmail: params.contributorEmail, messageType: 
+'individual_appreciation', status: error ? 'failed' : 'sent', 
+resendId, contributionId: params.contributorId })
+lib\honoureeEmail.ts:160:    return { ok: true, resendId: resendId 
+?? undefined }
+lib\honoureeEmail.ts:163:    await logCorrespondence({ capsuleId: 
+params.capsuleId, recipientName: params.contributorName, 
+recipientEmail: params.contributorEmail, messageType: 
+'individual_appreciation', status: 'failed', contributionId: 
+params.contributorId })
+lib\honoureeEmail.ts:170:// SECTION 5 — Collective appreciation email
+lib\honoureeEmail.ts:173:export interface CollectiveEmailParams {
+lib\honoureeEmail.ts:183:  recipients:     Array<{ name: string; 
+email: string; contributionId: string }>
+lib\honoureeEmail.ts:186:export async function 
+sendCollectiveEmail(params: CollectiveEmailParams): Promise<{ sent: 
+number; failed: number }> {
+lib\honoureeEmail.ts:200:      const { data, error } = await 
+resend.emails.send({ from: `${fromName} 
+<noreply@itslegacycapsule.com>`, to: recipient.email, subject, html: 
+emailWrapper(inner) })
+lib\honoureeEmail.ts:201:      await logCorrespondence({ capsuleId: 
+params.capsuleId, recipientName: recipient.name, recipientEmail: 
+recipient.email, messageType: 'collective', status: error ? 'failed' 
+: 'sent', resendId: data?.id ?? null, contributionId: 
+recipient.contributionId })
+lib\honoureeEmail.ts:205:      await logCorrespondence({ capsuleId: 
+params.capsuleId, recipientName: recipient.name, recipientEmail: 
+recipient.email, messageType: 'collective', status: 'failed', 
+contributionId: recipient.contributionId })
+lib\honoureeEmail.ts:214:// SECTION 6 — Broadcast email
+lib\honoureeEmail.ts:217:export interface BroadcastEmailParams {
+lib\honoureeEmail.ts:222:  subject:      string
+lib\honoureeEmail.ts:224:  recipients:   Array<{ name: string; 
+email: string }>
+lib\honoureeEmail.ts:227:export async function 
+sendBroadcastEmail(params: BroadcastEmailParams): Promise<{ sent: 
+number; failed: number }> {
+lib\honoureeEmail.ts:234:      const { data, error } = await 
+resend.emails.send({ from: `${params.honoureeName} via LegacyCapsule 
+<noreply@itslegacycapsule.com>`, to: recipient.email, subject: 
+params.subject, html: emailWrapper(inner) })
+lib\honoureeEmail.ts:235:      await logCorrespondence({ capsuleId: 
+params.capsuleId, recipientName: recipient.name, recipientEmail: 
+recipient.email, messageType: 'broadcast', status: error ? 'failed' 
+: 'sent', resendId: data?.id ?? null })
+lib\honoureeEmail.ts:248:// SECTION 7 — Support thank-you email
+lib\honoureeEmail.ts:253:// before Resend was ever called. Email now 
+fires correctly
+lib\honoureeEmail.ts:263:  supporterEmail: string
+lib\honoureeEmail.ts:288:    const { data, error } = await 
+resend.emails.send({
+lib\honoureeEmail.ts:289:      from:    `${params.honoureeName} via 
+LegacyCapsule <noreply@itslegacycapsule.com>`,
+lib\honoureeEmail.ts:290:      to:      params.supporterEmail,
+lib\honoureeEmail.ts:291:      subject: `Your gift has been received 
+— with thanks from ${params.honoureeName}`,
+lib\honoureeEmail.ts:292:      html:    emailWrapper(inner),
+lib\honoureeEmail.ts:296:      console.error('[sendSupportThankYou] 
+Resend error:', error.message)
+lib\honoureeEmail.ts:297:      await logCorrespondence({ capsuleId: 
+params.capsuleId, recipientName: params.supporterName, 
+recipientEmail: params.supporterEmail, messageType: 
+'support_thankyou', status: 'failed' })
+lib\honoureeEmail.ts:301:    await logCorrespondence({ capsuleId: 
+params.capsuleId, recipientName: params.supporterName, 
+recipientEmail: params.supporterEmail, messageType: 
+'support_thankyou', status: 'sent', resendId: data?.id ?? null })
+lib\portalAuth.ts:14: *   2. OTP login    — email + 6-digit code. 
+Creates a persistent
+lib\portalAuth.ts:31:import { Resend }        from 'resend';
+lib\portalAuth.ts:42:const resend = new 
+Resend(process.env.RESEND_API_KEY!);
+lib\portalAuth.ts:240: * Generate a 6-digit OTP and send it to the 
+family rep's email.
+lib\portalAuth.ts:248:    .select('id, honouree_name, 
+family_rep_email, family_rep_name, event_type')
+lib\portalAuth.ts:253:  if (!capsule || !capsule.family_rep_email) {
+lib\portalAuth.ts:254:    return { ok: false, error: 'No family 
+representative email on file for this Capsule.' };
+lib\portalAuth.ts:266:  // Send OTP email
+lib\portalAuth.ts:269:  await resend.emails.send({
+lib\portalAuth.ts:271:    to:      capsule.family_rep_email,
+lib\portalAuth.ts:294:              If you did not request this 
+code, ignore this email.
+lib\supabaseAuth.ts:9:     await supabase.auth.signInWithOtp({ email 
+})
+lib\verification.ts:2:import { Resend } from "resend"
+lib\verification.ts:9:const resend = new 
+Resend(process.env.RESEND_API_KEY)
+lib\verification.ts:23:  email,
+lib\verification.ts:28:  email:       string
+lib\verification.ts:36:  await 
+db.from("email_verifications").insert({
+lib\verification.ts:37:    email,
+lib\verification.ts:46:  await resend.emails.send({
+lib\verification.ts:48:    to:      email,
+lib\verification.ts:68:          Please verify your email address to 
+activate your Capsule 
+lib\verification.ts:82:          LegacyCapsule, you can safely 
+ignore this email.
+lib\verification.ts:98:  email,
+lib\verification.ts:104:  email:          string
+lib\verification.ts:113:  await 
+db.from("email_verifications").insert({
+lib\verification.ts:114:    email,
+lib\verification.ts:123:  await resend.emails.send({
+lib\verification.ts:125:    to:      email,
+lib\verification.ts:144:          Please confirm your email address 
+to complete your submission.
+lib\verification.ts:157:          on the tribute wall. You will 
+receive another email when 
+
+
