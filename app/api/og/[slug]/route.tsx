@@ -13,11 +13,12 @@
 import { ImageResponse } from 'next/og'
 import { createClient } from '@supabase/supabase-js'
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 // SECTION 1 — Runtime
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
 
 export const runtime = 'edge'
+export const revalidate = 86400 // Revalidate OG image once per day at most
 
 const W = 1200
 const H = 630
@@ -88,6 +89,10 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+
+  // Cache-first — OG images are stable per capsule
+  // Vercel Edge will serve cached version for 24h
+
   const { slug } = await params
 
   // ── Fetch capsule — any error returns branded fallback ───────────────────
@@ -138,7 +143,7 @@ export async function GET(
     return new ImageResponse(el, {
       width: W, height: H,
       fonts: undefined,
-      headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' },
+      headers: { 'Cache-Control': 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800' },
     })
   } catch (err) {
     console.error('[og/slug] render error:', err)
@@ -274,6 +279,6 @@ function fallback() {
       <span style={{ fontSize: 13, color: 'rgba(226,195,107,0.35)', fontStyle: 'italic' }}>Events end. Legacies don&apos;t.</span>
       <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.12em', marginTop: 8 }}>itslegacycapsule.com</span>
     </div>,
-    { width: W, height: H }
+    { width: W, height: H, headers: { 'Cache-Control': 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800' } }
   )
 }
