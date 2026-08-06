@@ -55,9 +55,32 @@ const STORY_CHAR_LIMIT = 2000
 const MAX_PHOTOS       = 3
 
 const RELATIONSHIP_OPTIONS = [
-  'Family', 'Close Friend', 'Friend', 'Colleague', 'Classmate',
-  'Neighbour', 'Church / Mosque', 'Mentor', 'Student',
-  'Community Member', 'Other',
+  'Son/Daughter',
+  'Parent (Mother/Father)',
+  'Sibling (Brother/Sister)',
+  'Grandchild',
+  'Grandparent',
+  'Spouse/Partner',
+  'Former Spouse/Partner',
+  'Extended Family',
+  'In-Law',
+  'Father/Mother Figure',
+  'Friend',
+  'Close Friend',
+  'Acquaintance',
+  'Neighbour',
+  'Classmate/Alumni',
+  'Community Member',
+  'Team/Club Member',
+  'Faith/Spiritual Connection',
+  'Colleague/Work Connection',
+  'Mentor/Teacher',
+  'Student/Mentee',
+  'Community Leader/Guide',
+  'Caregiver/Healthcare Worker',
+  'Legacy Beneficiary',
+  'Supporter/Well-wisher',
+  'Other',
 ]
 
 const ERA_OPTIONS = [
@@ -312,16 +335,132 @@ function CategorySummaryCard({ name, topicCount, responseCount, onClick }: {
   )
 }
 
+// ═══ SECTION 7B — AddTopicInline ═══
+// Contributor-facing inline topic creation per category
+
+function AddTopicInline({ capsuleId, category, honoureeName, onAdded }: {
+  capsuleId:    string
+  category:     string
+  honoureeName: string
+  onAdded:      () => void
+}) {
+  const [open,    setOpen]    = useState(false)
+  const [text,    setText]    = useState('')
+  const [saving,  setSaving]  = useState(false)
+  const [done,    setDone]    = useState(false)
+  const [error,   setError]   = useState('')
+
+  const handleAdd = async () => {
+    if (!text.trim() || text.trim().length < 10) {
+      setError('Please write a topic of at least 10 characters.')
+      return
+    }
+    setSaving(true); setError('')
+    try {
+      const res = await fetch('/api/community-topics', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          capsule_id:   capsuleId,
+          topic_name:   text.trim(),
+          topic_source: 'community',
+          category,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      setDone(true)
+      setText('')
+      setTimeout(() => { setDone(false); setOpen(false); onAdded() }, 1800)
+    } catch {
+      setError('Could not add topic. Please try again.')
+    }
+    setSaving(false)
+  }
+
+  const inp: React.CSSProperties = {
+    width: '100%', fontSize: '13px', padding: '10px 14px', borderRadius: '10px',
+    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(226,195,107,0.18)',
+    color: textPrimary, outline: 'none', fontFamily: "'DM Sans', sans-serif",
+    boxSizing: 'border-box' as const,
+  }
+
+  if (done) return (
+    <div style={{ padding: '14px', borderRadius: '12px', background: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.2)', textAlign: 'center' as const, marginTop: '20px' }}>
+      <p style={{ margin: 0, fontSize: '13px', color: 'rgba(134,239,172,0.8)', fontWeight: 600 }}>✓ Topic submitted — thank you!</p>
+      <p style={{ margin: '4px 0 0', fontSize: '11px', color: textFaint }}>It will appear once approved.</p>
+    </div>
+  )
+
+  return (
+    <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(226,195,107,0.08)' }}>
+      {!open ? (
+        <button
+          onClick={() => setOpen(true)}
+          style={{
+            width: '100%', padding: '12px', borderRadius: '12px',
+            border: '1px dashed rgba(226,195,107,0.2)',
+            background: 'transparent', color: goldMuted,
+            fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+            letterSpacing: '0.04em',
+          }}>
+          + Add a topic to {category}
+        </button>
+      ) : (
+        <div style={{ padding: '16px', borderRadius: '14px', background: 'rgba(226,195,107,0.04)', border: '1px solid rgba(226,195,107,0.15)' }}>
+          <p style={{ margin: '0 0 10px', fontSize: '11px', color: goldMuted, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
+            Suggest a Topic
+          </p>
+          <p style={{ margin: '0 0 10px', fontSize: '12px', color: textFaint, lineHeight: 1.6 }}>
+            Propose a question or memory prompt others can respond to about {honoureeName}.
+          </p>
+          <textarea
+            style={{ ...inp, minHeight: '80px', resize: 'none' as const, lineHeight: 1.6, marginBottom: '8px' }}
+            placeholder={`e.g. "What is a lesson ${honoureeName.split(' ')[0]} taught you that you still carry today?"`}
+            value={text}
+            onChange={e => setText(e.target.value)}
+            maxLength={200}
+          />
+          <p style={{ margin: '0 0 10px', fontSize: '10px', color: textFaint, textAlign: 'right' as const }}>{text.length}/200</p>
+          {error && <p style={{ margin: '0 0 8px', fontSize: '11px', color: 'rgba(248,113,113,0.8)' }}>{error}</p>}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={handleAdd}
+              disabled={saving || !text.trim()}
+              style={{
+                padding: '9px 20px', borderRadius: '10px', border: 'none',
+                background: text.trim() ? 'linear-gradient(135deg,#E2C36B,#C8A84A)' : 'rgba(255,255,255,0.06)',
+                color: text.trim() ? '#1a0845' : textFaint,
+                fontSize: '12px', fontWeight: 700,
+                cursor: text.trim() ? 'pointer' : 'not-allowed',
+                opacity: saving ? 0.6 : 1,
+              }}>
+              {saving ? 'Submitting…' : 'Submit Topic'}
+            </button>
+            <button
+              onClick={() => { setOpen(false); setText(''); setError('') }}
+              style={{ padding: '9px 14px', borderRadius: '10px', border: `1px solid ${cardBorder}`, background: 'transparent', color: textFaint, fontSize: '12px', cursor: 'pointer' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ═══ SECTION 7 — CategoryDetailView ═══
 
-function CategoryDetailView({ category, topics, stories, photos, honoureeName, onBack, onShare }: {
+function CategoryDetailView({ category, topics, stories, photos, honoureeName, capsuleId, eventType, onBack, onShare, onTopicAdded }: {
   category:     string
   topics:       StoryTopic[]
   stories:      CommunityStory[]
   photos:       Record<string, StoryPhoto[]>
   honoureeName: string
+  capsuleId:    string
+  eventType:    string
   onBack:       () => void
   onShare:      (topicId: string) => void
+  onTopicAdded: () => void
 }) {
   const categoryTopics  = topics.filter(t => (t.category ?? 'General') === category)
   const topicsWithStories = categoryTopics.filter(t => t.story_count > 0)
@@ -413,11 +552,18 @@ function CategoryDetailView({ category, topics, stories, photos, honoureeName, o
         />
       ))}
 
-      {categoryTopics.length === 0 && (
+{categoryTopics.length === 0 && (
         <div style={{ textAlign: 'center' as const, padding: '32px 20px', color: textFaint }}>
           <p style={{ fontSize: '13px' }}>No topics in this category yet.</p>
         </div>
       )}
+
+      <AddTopicInline
+        capsuleId={capsuleId}
+        category={category}
+        honoureeName={honoureeName}
+        onAdded={onTopicAdded}
+      />
     </div>
   )
 }
@@ -551,7 +697,7 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess 
           </div>
 
           <select style={{ ...inp, background: '#1a0845' }} value={relationship} onChange={e => setRelationship(e.target.value)}>
-            <option value="">Your relationship to {capsule.honouree_name}</option>
+            <option value="">Who is {capsule.honouree_name.split(' ')[0]} to you?</option>
             {RELATIONSHIP_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
           {relationship === 'Other' && (
@@ -747,15 +893,18 @@ export default function CommunityStoriesClient({ capsule, topics, stories, story
 
         {/* ── LEVEL 2: Category detail ── */}
         {activeCategory && (
-          <CategoryDetailView
-            category={activeCategory}
-            topics={topics}
-            stories={stories}
-            photos={storyPhotos}
-            honoureeName={capsule.honouree_name}
-            onBack={() => setActiveCategory(null)}
-            onShare={handlePromptSelect}
-          />
+<CategoryDetailView
+          category={activeCategory}
+          topics={topics}
+          stories={stories}
+          photos={storyPhotos}
+          honoureeName={capsule.honouree_name}
+          capsuleId={capsule.id}
+          eventType={capsule.event_type}
+          onBack={() => setActiveCategory(null)}
+          onShare={handlePromptSelect}
+          onTopicAdded={() => window.location.reload()}
+        />
         )}
 
         {/* ── Premiums strip ── */}
