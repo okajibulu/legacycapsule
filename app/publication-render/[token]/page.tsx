@@ -163,6 +163,30 @@ async function toSignedUrl(rawUrl: string | null): Promise<string> {
   }
 }
 
+// ============================================================
+// SECTION 3B — Utilities (must precede all renderers)
+// ============================================================
+
+function escapeHtml(str: string | null | undefined): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatEventDate(dateStr: string | null): string {
+  if (!dateStr) return '';
+  try {
+    return new Date(dateStr).toLocaleDateString('en-GB', {
+      day: 'numeric', month: 'long', year: 'numeric',
+    });
+  } catch { return dateStr; }
+}
+
+// ============================================================
 
 // ============================================================
 // SECTION 4 — Theme style definitions
@@ -902,9 +926,13 @@ function renderClosingMessage(
       </p>
 
     </div>
+
+</div>
+</div>
+
+    </div>
   </div>`
 }
-
 
 // ============================================================
 // SECTION 16A — Collection Intelligence renderer
@@ -915,7 +943,9 @@ function renderClosingMessage(
 function renderCollectionIntelligence(
   contribs: ContributionData[],
   styles: ThemeStyles,
-  eventType: string
+  eventType: string,
+  galleryItems?: GalleryItemData[],
+  memories?: MemoryData[],
 ): string {
   if (contribs.length === 0) return ''
 
@@ -1158,22 +1188,19 @@ function countryToIso(name: string): string {
   return ''
 }
 
-function renderWorldMap(
+ function renderWorldMap(
   contribs: ContributionData[],
   styles: ThemeStyles
 ): string {
-  // Gather unique countries — resolve full names to ISO codes
+  // Gather unique countries — prefer ip_country (ISO) over free text
   const countryCounts: Record<string, number> = {};
-  const countryLabels: Record<string, string> = {}; // ISO → display name
+  const countryLabels: Record<string, string> = {};
   contribs.forEach(c => {
-    // Prefer ip_country (system-detected ISO code) over contributor-typed text
     const ipIso = c.ip_country?.trim().toUpperCase();
     const rawCountry = c.country?.trim();
 
     if (ipIso && ipIso.length === 2) {
-      if (!COUNTRY_CENTROIDS[ipIso]) return;
       countryCounts[ipIso] = (countryCounts[ipIso] ?? 0) + 1;
-      // Reverse-lookup display name from ISO code
       countryLabels[ipIso] = countryLabels[ipIso] ??
         (Object.entries(COUNTRY_NAME_TO_ISO).find(([, iso]) => iso === ipIso)?.[0] ?? ipIso);
     } else if (rawCountry && rawCountry !== 'Not Listed') {
@@ -1185,93 +1212,99 @@ function renderWorldMap(
     }
   });
 
-  const countries = Object.keys(countryCounts);
-  if (countries.length === 0) return '';
+  const sorted = Object.entries(countryCounts)
+    .sort((a, b) => b[1] - a[1]);
+  if (sorted.length === 0) return '';
 
-  const dots = countries
-    .filter(code => COUNTRY_CENTROIDS[code])
-    .map(code => {
-      const [x, y] = COUNTRY_CENTROIDS[code];
-      const count = countryCounts[code];
-      // Scale dot size by contributor count — min 4px, max 10px
-      const r = Math.min(10, 4 + Math.log2(count + 1) * 1.5);
-      return `<circle cx="${x}" cy="${y}" r="${r}" fill="${styles.accentColor}" opacity="0.85"/>
-              <circle cx="${x}" cy="${y}" r="${r + 3}" fill="${styles.accentColor}" opacity="0.15"/>`;
-    }).join('');
-
-  const countryCount = countries.filter(c => COUNTRY_CENTROIDS[c]).length;
   const totalContribs = contribs.length;
+  const countryCount = sorted.length;
+  const maxCount = sorted[0][1];
+
+  // ── Build abstract bubble layout ──────────────────────────
+  // Each country gets a circle sized proportionally to its count.
+  // Arranged in centered rows — largest entries first, smaller below.
+  const VB_W = 560;
+  const VB_H = sorted.length <= 4 ? 220 : sorted.length <= 7 ? 280 : 340;
+
+  // Calculate circle radii: min 18, max 52
+  const circles = sorted.map(([iso, count]) => {
+    const ratio = maxCount > 1 ? count / maxCount : 1;
+    const r = Math.round(18 + ratio * 34);
+    const label = countryLabels[iso] ?? iso;
+    return { iso, count, r, label };
+  });
+
+  // Arrange in rows — max 4 per row, centered
+  const rows: typeof circles[] = [];
+  const perRow = sorted.length <= 3 ? sorted.length : sorted.length <= 6 ? 3 : 4;
+  for (let i = 0; i < circles.length; i += perRow) {
+    rows.push(circles.slice(i, i + perRow));
+  }
+
+  let currentY = 0;
+  const positioned: Array<{ cx: number; cy: number; r: number; label: string; count: number }> = [];
+
+  rows.forEach(row => {
+    const rowMaxR = Math.max(...row.map(c => c.r));
+    const rowCenterY = currentY + rowMaxR + 16;
+    const totalRowWidth = row.reduce((sum, c) => sum + c.r * 2, 0) + (row.length - 1) * 32;
+    let startX = (VB_W - totalRowWidth) / 2;
+
+    row.forEach(circle => {
+      const cx = startX + circle.r;
+      positioned.push({
+        cx,
+        cy: rowCenterY,
+        r: circle.r,
+        label: circle.label,
+        count: circle.count,
+      });
+      startX += circle.r * 2 + 32;
+    });
+
+    currentY = rowCenterY + rowMaxR + 24;
+  });
+
+  const adjustedVBH = Math.max(VB_H, currentY + 20);
+
+  const circlesSvg = positioned.map(c => {
+    const fontSize = c.r >= 30 ? 14 : c.r >= 22 ? 11 : 9;
+    const labelFontSize = c.r >= 30 ? 10 : 8;
+    const showLabelInside = c.r >= 26;
+    const countColor = styles.coverBg ?? '#2D1B69';
+
+    if (showLabelInside) {
+      return `
+        <circle cx="${c.cx}" cy="${c.cy}" r="${c.r}" fill="${styles.accentColor}" opacity="0.12"/>
+        <circle cx="${c.cx}" cy="${c.cy}" r="${c.r - 2}" fill="none" stroke="${styles.accentColor}" stroke-width="1.5" opacity="0.4"/>
+        <text x="${c.cx}" y="${c.cy - 4}" text-anchor="middle" font-family="${styles.bodyFont}" font-size="${fontSize}" font-weight="700" fill="${countColor}">${c.count}</text>
+        <text x="${c.cx}" y="${c.cy + labelFontSize + 2}" text-anchor="middle" font-family="${styles.bodyFont}" font-size="${labelFontSize}" fill="${styles.secondaryText}" opacity="0.7">${c.label}</text>
+      `;
+    } else {
+      return `
+        <circle cx="${c.cx}" cy="${c.cy}" r="${c.r}" fill="${styles.accentColor}" opacity="0.15"/>
+        <circle cx="${c.cx}" cy="${c.cy}" r="${c.r - 1.5}" fill="none" stroke="${styles.accentColor}" stroke-width="1" opacity="0.35"/>
+        <text x="${c.cx}" y="${c.cy + 3}" text-anchor="middle" font-family="${styles.bodyFont}" font-size="${fontSize}" font-weight="700" fill="${countColor}">${c.count}</text>
+        <text x="${c.cx}" y="${c.cy + c.r + labelFontSize + 6}" text-anchor="middle" font-family="${styles.bodyFont}" font-size="${labelFontSize}" fill="${styles.secondaryText}" opacity="0.6">${c.label}</text>
+      `;
+    }
+  }).join('');
 
   return `<div style="page-break-before:always; padding:0 0 40px; ${SECTION_WRAP}">
-    ${renderSectionHeader('World Voices Map', styles)}
-    <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic;">
-      Voices gathered from ${countryCount} countr${countryCount !== 1 ? 'ies' : 'y'} across the world — ${totalContribs} voice${totalContribs !== 1 ? 's' : ''} in all
+    ${renderSectionHeader('Where The Voices Came From', styles)}
+    <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:32px; font-style:italic;">
+      ${totalContribs} voice${totalContribs !== 1 ? 's' : ''} gathered from ${countryCount} countr${countryCount !== 1 ? 'ies' : 'y'} across the world
     </p>
-    <div style="border-radius:16px; overflow:hidden; border:1px solid ${styles.tributeCardBorder}; background:#f8f6f2; padding:24px; margin-bottom:32px;">
-      <svg viewBox="0 0 560 280" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto; display:block;">
-        <!-- World landmasses — equirectangular projection, 560×280 viewBox -->
-        <!-- North America -->
-        <path d="M 72,58 L 85,52 L 105,50 L 125,52 L 140,55 L 155,58 L 165,65 L 170,72 L 168,82 L 162,90 L 155,100 L 150,112 L 145,125 L 138,138 L 128,148 L 118,152 L 108,150 L 98,144 L 88,135 L 80,122 L 74,108 L 70,94 L 68,80 L 70,68 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.6"/>
-        <!-- Greenland -->
-        <path d="M 155,38 L 170,35 L 182,38 L 185,46 L 178,52 L 165,54 L 155,50 L 152,44 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.5"/>
-        <!-- South America -->
-        <path d="M 128,152 L 148,150 L 165,152 L 178,158 L 185,168 L 185,180 L 182,192 L 176,205 L 168,215 L 158,218 L 148,214 L 140,204 L 135,192 L 132,178 L 130,164 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.6"/>
-        <!-- Europe -->
-        <path d="M 258,62 L 272,58 L 288,57 L 305,58 L 318,62 L 325,70 L 324,80 L 318,88 L 308,95 L 295,100 L 280,102 L 265,100 L 256,92 L 254,80 L 256,70 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.6"/>
-        <!-- Africa -->
-        <path d="M 260,108 L 278,104 L 298,104 L 316,108 L 326,118 L 330,132 L 328,148 L 322,162 L 314,176 L 304,186 L 290,192 L 276,190 L 264,182 L 256,168 L 252,152 L 252,136 L 255,120 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.6"/>
-        <!-- Asia (main) -->
-        <path d="M 324,58 L 348,54 L 375,52 L 405,52 L 432,55 L 455,60 L 468,70 L 470,82 L 465,95 L 455,108 L 440,118 L 422,126 L 402,130 L 378,130 L 355,128 L 335,122 L 322,112 L 318,98 L 320,82 L 322,68 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.6"/>
-        <!-- Indian subcontinent -->
-        <path d="M 368,118 L 382,115 L 395,118 L 400,130 L 396,142 L 385,150 L 374,148 L 365,138 L 363,126 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.5"/>
-        <!-- Southeast Asia -->
-        <path d="M 415,125 L 435,122 L 448,128 L 450,138 L 440,145 L 425,145 L 415,138 L 412,130 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.5"/>
-        <!-- Japan -->
-        <path d="M 448,88 L 455,85 L 460,90 L 456,96 L 449,96 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.4"/>
-        <!-- Australia -->
-        <path d="M 405,172 L 425,168 L 448,170 L 462,178 L 465,190 L 460,202 L 445,208 L 425,206 L 410,198 L 404,186 L 403,178 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.6"/>
-        <!-- New Zealand -->
-        <path d="M 468,196 L 474,192 L 478,198 L 474,204 L 468,202 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.4"/>
-        <!-- UK / British Isles -->
-        <path d="M 264,72 L 270,68 L 275,72 L 272,78 L 265,78 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.4"/>
-        <!-- Contributor dots (pulsed with outer ring) -->
-        ${dots}
+    <div style="border-radius:16px; overflow:hidden; border:1px solid ${styles.tributeCardBorder}; background:#FAFAF8; padding:32px 24px; margin-bottom:24px;">
+      <svg viewBox="0 0 ${VB_W} ${adjustedVBH}" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto; display:block;">
+        ${circlesSvg}
       </svg>
-    </div>
-    <div style="display:flex; flex-wrap:wrap; gap:8px;">
-      ${countries.filter(c => COUNTRY_CENTROIDS[c]).map(code =>
-        `<div style="display:flex; align-items:center; gap:6px; padding:5px 12px; border-radius:20px; border:1px solid ${styles.tributeCardBorder}; background:#FFFFFF;">
-          <div style="width:8px; height:8px; border-radius:50%; background:${styles.accentColor}; flex-shrink:0;"></div>
-          <span style="font-family:${styles.bodyFont}; font-size:11px; color:${styles.secondaryText};">${countryLabels[code] ?? code} · ${countryCounts[code]}</span>
-        </div>`
-      ).join('')}
     </div>
   </div>`;
 }
 
 
-// ============================================================
-// SECTION 17 — Utilities
-// ============================================================
-
-function escapeHtml(str: string | null | undefined): string {
-  if (!str) return '';
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function formatEventDate(dateStr: string | null): string {
-  if (!dateStr) return '';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-GB', {
-      day: 'numeric', month: 'long', year: 'numeric',
-    });
-  } catch { return dateStr; }
-}
+ 
 
 
 // ============================================================
@@ -1376,7 +1409,7 @@ adminClient.from('contributions')
         case 'honouree_profile':
           return renderHonoureeProfile(capsule, profileSections, styles);
         case 'tributes': {
-          const collIntelHtml = renderCollectionIntelligence(contribs, styles, capsule.event_type ?? 'retirement')
+          const collIntelHtml = renderCollectionIntelligence(contribs, styles, capsule.event_type ?? 'retirement', gallery, memories)
           return collIntelHtml + renderTributes(section as TributesSection, contribs, styles, capsule.event_type)
         }
         case 'phase_photos':
@@ -1396,15 +1429,13 @@ adminClient.from('contributions')
     renderGuestCaptures(gallery, photoUrlMap, styles),
     renderCommunityStories(contribs, storyTopics, styles),
     renderMemories(memories, styles),
-    // Family appreciation — always just before closing
-    ...( profileSections.filter(s => s.is_active && s.section_type === 'appreciation' && s.content?.trim()).map(s =>
-      renderAppreciationBlock(s, styles)
-    )),
+    
     // Family appreciation — always just before closing
     ...profileSections
       .filter(s => s.is_active && s.section_type === 'appreciation' && s.content?.trim())
       .map(s => renderAppreciationBlock(s, styles)),
-    // Closing message always last
+  
+      // Closing message always last
     closingSection ? renderClosingMessage(capsule, styles, pub.version ?? null) : '',
   ].filter(Boolean).join('\n');
 

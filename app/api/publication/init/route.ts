@@ -29,7 +29,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { generateAutoArrangement } from '@/lib/publication/autoArrange';
+import { generateAutoArrangement, buildPhaseSection } from '@/lib/publication/autoArrange';
 import type {
   PublicationInitRequest,
   PublicationInitResponse,
@@ -66,7 +66,6 @@ async function reconcileLayoutConfig(
 
   // ── 1. Add world_map if missing ───────────────────────────
   if (!typeSet.has('world_map')) {
-    // Insert after honouree_profile, before tributes
     const profileIdx = sections.findIndex((s: { type: string }) => s.type === 'honouree_profile');
     const insertAt = profileIdx >= 0 ? profileIdx + 1 : 1;
     sections.splice(insertAt, 0, {
@@ -76,28 +75,51 @@ async function reconcileLayoutConfig(
     });
   }
 
-  // ── 2. Fetch current phases and reconcile phase_photos sections ──
-  const { data: phases } = await adminClient
-    .from('capsule_phases')
-    .select('id, name, event_date')
-    .eq('capsule_id', capsule_id)
-    .is('deleted_at', null)
-    .order('sort_order', { ascending: true });
+  // ── 2. Fetch current phases and gallery items ──────────────
+  const [phasesResult, photosResult] = await Promise.all([
+    adminClient
+      .from('capsule_phases')
+      .select('id, name, event_date')
+      .eq('capsule_id', capsule_id)
+      .is('deleted_at', null)
+      .order('sort_order', { ascending: true }),
+    adminClient
+      .from('gallery_items')
+      .select('id, phase_id, image_url, caption, width_px, height_px, aspect_ratio, created_at, approved')
+      .eq('capsule_id', capsule_id)
+      .eq('approved', true)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true }),
+  ]);
 
-  if (phases && phases.length > 0) {
+  const phases = phasesResult.data ?? [];
+  const allPhotos = photosResult.data ?? [];
+
+  if (phases.length > 0) {
     const existingPhaseIds = new Set(
       (sections as Array<{ type: string; phase_id?: string }>)
         .filter(s => s.type === 'phase_photos')
         .map(s => s.phase_id)
     );
 
-    const missingPhases = phases.filter(
-      (p: { id: string }) => !existingPhaseIds.has(p.id)
-    );
+    // ── 2a. Rebuild slots for existing AUTO phase sections ────
+    // This ensures new photos added since last generation appear
+    sections = sections.map(s => {
+      if (s.type !== 'phase_photos') return s;
+      const phaseSection = s as unknown as { phase_id: string; arrangement_source?: string };
+      // Only rebuild auto-arranged sections — never touch manual ones
+      if (phaseSection.arrangement_source === 'manual') return s;
+      const phase = phases.find((p: { id: string }) => p.id === phaseSection.phase_id);
+      if (!phase) return s;
+      // Rebuild with current gallery_items
+      return buildPhaseSection(phase, allPhotos) as unknown as typeof s;
+    });
+
+    // ── 2b. Add sections for brand new phases ────────────────
+    const missingPhases = (phases as Array<{ id: string; name: string; event_date: string | null }>)
+      .filter(p => !existingPhaseIds.has(p.id));
 
     if (missingPhases.length > 0) {
-      // Find where to insert — after last existing phase_photos section,
-      // or after tributes if none exist yet
       const lastPhaseIdx = sections.reduce(
         (last: number, s: { type: string }, i: number) =>
           s.type === 'phase_photos' ? i : last,
@@ -111,20 +133,12 @@ async function reconcileLayoutConfig(
           ? lastPhaseIdx + 1
           : tributesIdx >= 0
           ? tributesIdx + 1
-          : sections.length - 1; // before closing message
+          : sections.length - 1;
 
       missingPhases.forEach(
-        (phase: { id: string; name: string }, i: number) => {
-          sections.splice(insertAt + i, 0, {
-            id:                 `section_phase_${phase.id}`,
-            type:               'phase_photos' as const,
-            phase_id:           phase.id,
-            phase_name:         phase.name,
-            enabled:            true,
-            slots:              [],
-            arrangement_source: 'auto' as const,
-            excluded_photos:    [],
-          } as unknown as typeof sections[number]);
+        (phase: { id: string; name: string; event_date: string | null }, i: number) => {
+          const built = buildPhaseSection(phase, allPhotos);
+          sections.splice(insertAt + i, 0, built as unknown as typeof sections[number]);
         }
       );
     }
@@ -141,7 +155,6 @@ async function reconcileLayoutConfig(
 
   return { ...existing, sections };
 }
-
 // ============================================================
 // SECTION 2 — Route handler
 // ============================================================

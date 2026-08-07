@@ -239,7 +239,7 @@ function formatCaption(photo: GalleryItemForArrangement): string {
  * Build the PhasePhotosSection for a single event phase.
  * Scores, selects, and slots all approved photos for this phase.
  */
-function buildPhaseSection(
+export function buildPhaseSection(
   phase: PhaseForArrangement,
   allPhotos: GalleryItemForArrangement[]
 ): PhasePhotosSection {
