@@ -1153,6 +1153,66 @@ function renderCollectionIntelligence(
         ` : ''}
       </div>
     </div>
+
+    <!-- Engagement Breakdown -->
+    <div style="margin-top:32px;">
+      <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">Engagement Breakdown</p>
+      <div style="background:#FFFFFF; border-radius:12px; border:1px solid rgba(0,0,0,0.07); overflow:hidden;">
+        ${((): string => {
+          const tributes     = contribs.filter(c => !c.story_topic_id && !c.is_dday);
+          const stories      = contribs.filter(c => !!c.story_topic_id);
+          const ddayPhotos   = (galleryItems ?? []).filter(g => g.source === 'dday' && !g.is_official_photography);
+          const officialPics = (galleryItems ?? []).filter(g => g.is_official_photography);
+          const memoryCount  = (memories ?? []).length;
+          const nameCounts: Record<string, number> = {};
+          contribs.forEach(c => {
+            if (!c.is_anonymous && c.contributor_name)
+              nameCounts[c.contributor_name] = (nameCounts[c.contributor_name] ?? 0) + 1;
+          });
+          const ddayUploaders = new Set(ddayPhotos.map((g: GalleryItemData) => g.uploaded_by_name).filter(Boolean)).size;
+
+          const row = (icon: string, label: string, n: number, sub?: string) =>
+            `<div style="display:flex; align-items:center; padding:9px 16px; border-bottom:1px solid rgba(0,0,0,0.05);">
+              <span style="font-size:13px; width:26px; flex-shrink:0;">${icon}</span>
+              <span style="font-family:${styles.bodyFont}; font-size:12px; color:${styles.pageText}; flex:1;">${label}</span>
+              <span style="font-family:${styles.bodyFont}; font-size:13px; font-weight:700; color:${styles.pageText}; margin-right:8px;">${n}</span>
+              ${sub ? `<span style="font-family:${styles.bodyFont}; font-size:10px; color:${styles.secondaryText};">${sub}</span>` : ''}
+            </div>`;
+
+          const rows: string[] = [];
+          rows.push(row('❝', lang.plural, tributes.length));
+          if (stories.length > 0) {
+            const su = new Set(stories.map(s => s.contributor_name)).size;
+            rows.push(row('◍', 'Community Stories', stories.length, `${su} contributor${su !== 1 ? 's' : ''}`));
+          }
+          if (memoryCount > 0) rows.push(row('◌', 'Memories', memoryCount));
+          if (ddayPhotos.length > 0) rows.push(row('📷', 'Guest Captures', ddayPhotos.length, `${ddayUploaders} uploader${ddayUploaders !== 1 ? 's' : ''}`));
+          if (officialPics.length > 0) rows.push(row('◼', 'Official Photography', officialPics.length));
+          return rows.join('');
+        })()}
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;">
+        ${((): string => {
+          const nameCounts2: Record<string, number> = {};
+          contribs.forEach(c => {
+            if (!c.is_anonymous && c.contributor_name)
+              nameCounts2[c.contributor_name] = (nameCounts2[c.contributor_name] ?? 0) + 1;
+          });
+          const uniqueNames   = Object.keys(nameCounts2).length;
+          const repeatCount   = Object.values(nameCounts2).filter(v => v > 1).length;
+          const anonCount     = contribs.filter(c => c.is_anonymous).length;
+          const pill = (label: string, value: string) =>
+            `<div style="padding:5px 12px; border-radius:20px; border:1px solid ${styles.tributeCardBorder}; background:#FFFFFF; display:inline-flex; align-items:center; gap:5px;">
+              <span style="font-family:${styles.bodyFont}; font-size:10px; color:${styles.secondaryText};">${label}</span>
+              <span style="font-family:${styles.bodyFont}; font-size:11px; font-weight:700; color:${styles.pageText};">${value}</span>
+            </div>`;
+          const pills = [pill('Unique voices', String(uniqueNames))];
+          if (anonCount > 0) pills.push(pill('Anonymous', String(anonCount)));
+          if (repeatCount > 0) pills.push(pill('Repeat contributors', String(repeatCount)));
+          return pills.join('');
+        })()}
+      </div>
+    </div>
   </div>`
 }
 
