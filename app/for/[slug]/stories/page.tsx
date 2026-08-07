@@ -156,6 +156,24 @@ export default async function CommunityStoriesPage({
       .order('sort_order', { ascending: true }),
   ])
 
+const { data: latestVoice } = await supabase
+  .from('contributions')
+  .select('created_at')
+  .eq('capsule_id', capsule.id)
+  .eq('status', 'approved')
+  .order('created_at', { ascending: false })
+  .limit(1)
+  .maybeSingle()
+
+const { data: latestStory } = await supabase
+  .from('community_stories')
+  .select('created_at')
+  .eq('capsule_id', capsule.id)
+  .eq('status', 'approved')
+  .order('created_at', { ascending: false })
+  .limit(1)
+  .maybeSingle()
+
   // ── Fetch story photos ────────────────────────────────────────────────────
   const storyContribIds = stories.map(s => s.id)
   let storyPhotos: Record<string, any[]> = {}
@@ -204,7 +222,10 @@ export default async function CommunityStoriesPage({
         eventType={capsule.event_type}
         supportAccounts={supportAccounts ?? []}
         phases={phasesData ?? []}
-      />
+latestVoiceAt={latestVoice?.created_at ?? null}
+latestMemoryAt={latestStory?.created_at ?? null}
+latestHighlightAt={latestVoice?.created_at ?? null} 
+  />
     </>
   )
 }

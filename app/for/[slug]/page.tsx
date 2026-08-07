@@ -123,6 +123,15 @@ export default async function TributePage({
   }
 
   // Parallel fetch — contributions, sections, photos
+  const { data: latestVoice } = await supabase
+  .from('contributions')
+  .select('created_at')
+  .eq('capsule_id', capsule.id)
+  .eq('status', 'approved')
+  .order('created_at', { ascending: false })
+  .limit(1)
+  .maybeSingle()
+  
   const [contribRes, profileRes, featuredRes, supportRes] = await Promise.all([
     supabase
       .from('contributions')
@@ -193,6 +202,8 @@ supabase
         eventType={capsule.event_type}
         supportAccounts={supportRes.data ?? []}
         phases={phasesData ?? []}
+         latestVoiceAt={latestVoice?.created_at ?? null}
+        latestHighlightAt={latestVoice?.created_at ?? null}       
       />
     </>
   )

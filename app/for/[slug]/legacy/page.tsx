@@ -443,6 +443,15 @@ export default async function LegacyRoomPage(
     .is('deleted_at', null)
     .order('sort_order', { ascending: true })
 
+const { data: latestVoice } = await supabase
+  .from('contributions')
+  .select('created_at')
+  .eq('capsule_id', capsule.id)
+  .eq('status', 'approved')
+  .order('created_at', { ascending: false })
+  .limit(1)
+  .maybeSingle()
+
   const themeKey: ThemeKey = resolveTheme(
     (capsule.theme as ThemeKey | 'classic') ?? 'classic',
     capsule.event_type
@@ -559,6 +568,8 @@ export default async function LegacyRoomPage(
       eventType={capsule.event_type}
       supportAccounts={supportAccounts ?? []}
       phases={phases.map(p => ({ id: p.id, name: p.name }))}
+      latestVoiceAt={latestVoice?.created_at ?? null}
+latestHighlightAt={latestVoice?.created_at ?? null}
     />
     </>
   )

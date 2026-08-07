@@ -231,6 +231,65 @@ function EditField({ label, value, placeholder, onSave, type = 'text', hint }: {
   )
 }
 
+/* -- APPRECIATION BUTTON — with loading/saved state ------ */
+function AppreciationButton({ capsuleId, honoureeName, profileSectionsCount, onAdded }: {
+  capsuleId: string
+  honoureeName: string
+  profileSectionsCount: number
+  onAdded: () => void
+}) {
+  const [adding, setAdding] = useState(false)
+  const [added, setAdded] = useState(false)
+  const supabaseLocal = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+  const handleAdd = async () => {
+    setAdding(true)
+    try {
+      await supabaseLocal.from('capsule_profile_sections').insert({
+        capsule_id:   capsuleId,
+        section_type: 'appreciation',
+        custom_title: null,
+        content:      DEFAULT_APPRECIATION_TEXT.replace(/\[honouree_name\]/g, honoureeName),
+        sort_order:   (profileSectionsCount + 1) * 10,
+        is_active:    true,
+      })
+      setAdded(true)
+      onAdded()
+      setTimeout(() => setAdded(false), 2500)
+    } catch (err) {
+      console.error('[appreciation] Failed to add:', err)
+    }
+    setAdding(false)
+  }
+  return (
+    <button
+      onClick={handleAdd}
+      disabled={adding}
+      style={{
+        padding: '8px 18px', borderRadius: '8px', border: 'none',
+        background: adding
+          ? 'rgba(226,195,107,0.12)'
+          : added
+            ? 'rgba(74,222,128,0.15)'
+            : 'linear-gradient(135deg, #E2C36B, #C8A84A)',
+        color: adding
+          ? 'rgba(226,195,107,0.4)'
+          : added
+            ? 'rgba(134,239,172,0.9)'
+            : '#1a0845',
+        fontSize: '12px', fontWeight: 700,
+        cursor: adding ? 'not-allowed' : 'pointer',
+        letterSpacing: '0.04em',
+        transition: 'all 0.2s',
+      }}
+    >
+      {adding ? 'Adding…' : added ? '✓ Added' : '+ Add Family Appreciation'}
+    </button>
+  )
+}
+
 /* -- DELETE SECTION BUTTON — tap-to-confirm -------------- */
 function DeleteSectionButton({ onDelete }: { onDelete: () => void }) {
   const [confirming, setConfirming] = useState(false)
@@ -269,9 +328,7 @@ function SectionEditor({ capsuleId, sections, onRefresh }: { capsuleId: string; 
   const [newType, setNewType] = useState('')
   const [newTitle, setNewTitle] = useState('')
   const [newContent, setNewContent] = useState('')
-  const [drafts, setDrafts] = useState
-  Record<string, { title: string; content: string }>
->({})
+  const [drafts, setDrafts] = useState<Record<string, { title: string; content: string }>>({})
   const [saving, setSaving] = useState(false)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [savedId, setSavedId] = useState<string | null>(null)
@@ -364,6 +421,8 @@ const handleSaveEdit = async (
   title: string,
   content: string
 ) => {
+  setSavingId(id)
+  setSavedId(null)
   await supabase
     .from('capsule_profile_sections')
     .update({
@@ -371,8 +430,10 @@ const handleSaveEdit = async (
       custom_title: title || null,
     })
     .eq('id', id)
-
+  setSavingId(null)
+  setSavedId(id)
   onRefresh()
+  setTimeout(() => setSavedId(prev => prev === id ? null : prev), 2500)
 }
 
   const getLabel = (s: ProfileSection) => {
@@ -450,18 +511,28 @@ const handleSaveEdit = async (
           drafts[s.id]?.content ?? ''
         )
       }
+      disabled={savingId === s.id}
       style={{
         padding: '6px 14px',
         borderRadius: '8px',
         border: 'none',
-        background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`,
-        color: '#1a0845',
+        background: savingId === s.id
+          ? 'rgba(226,195,107,0.12)'
+          : savedId === s.id
+            ? 'rgba(74,222,128,0.15)'
+            : `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`,
+        color: savingId === s.id
+          ? 'rgba(226,195,107,0.4)'
+          : savedId === s.id
+            ? 'rgba(134,239,172,0.9)'
+            : '#1a0845',
         fontWeight: 700,
         fontSize: '11px',
-        cursor: 'pointer',
+        cursor: savingId === s.id ? 'not-allowed' : 'pointer',
+        transition: 'all 0.2s',
       }}
     >
-      Save
+      {savingId === s.id ? 'Saving…' : savedId === s.id ? '✓ Saved' : 'Save'}
     </button>
     <button
       onClick={() => handleToggle(s)}
@@ -1900,26 +1971,12 @@ const [contribRes, sectionsRes, galleryRes, topicsRes, phasesRes] = await Promis
                         <p style={{ margin: '0 0 12px', fontSize: '12px', color: textSecondary, lineHeight: 1.65 }}>
                           A warm closing message from the family — thanking guests and everyone who contributed to this capsule.
                         </p>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await supabase.from('capsule_profile_sections').insert({
-                                capsule_id:   capsule.id,
-                                section_type: 'appreciation',
-                                custom_title: null,
-                                content:      DEFAULT_APPRECIATION_TEXT.replace(/\[honouree_name\]/g, capsule.honouree_name),
-                                sort_order:   (profileSections.length + 1) * 10,
-                                is_active:    true,
-                              })
-                              fetchAll()
-                            } catch (err) {
-                              console.error('[appreciation] Failed to add:', err)
-                            }
-                          }}
-                          style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #E2C36B, #C8A84A)', color: '#1a0845', fontSize: '12px', fontWeight: 700, cursor: 'pointer', letterSpacing: '0.04em' }}
-                        >
-                          + Add Family Appreciation
-                        </button>
+                        <AppreciationButton
+                          capsuleId={capsule.id}
+                          honoureeName={capsule.honouree_name}
+                          profileSectionsCount={profileSections.length}
+                          onAdded={fetchAll}
+                        />
                       </div>
                     </div>
                   </div>

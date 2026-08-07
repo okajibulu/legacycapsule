@@ -179,6 +179,24 @@ export default async function ProfilePage({ params }: PageProps) {
     .is('deleted_at', null)
     .order('sort_order', { ascending: true })
 
+const { data: latestVoice } = await adminClient
+  .from('contributions')
+  .select('created_at')
+  .eq('capsule_id', capsule.id)
+  .eq('status', 'approved')
+  .order('created_at', { ascending: false })
+  .limit(1)
+  .maybeSingle()
+
+const { data: latestSection } = await adminClient
+  .from('capsule_profile_sections')
+  .select('updated_at')
+  .eq('capsule_id', capsule.id)
+  .eq('is_active', true)
+  .order('updated_at', { ascending: false })
+  .limit(1)
+  .maybeSingle()
+
   const themeKey    = resolveTheme(capsule.theme, capsule.event_type)
   const t           = getThemeConfig(themeKey)
   const lang        = getParticipationLanguage(capsule.event_type)
@@ -531,7 +549,10 @@ A story worth preserving.<br />The organiser is preparing this profile — check
         eventType={capsule.event_type}
         supportAccounts={supportAccounts ?? []}
         phases={phases.map(p => ({ id: p.id, name: p.name }))}
-      />
+      latestVoiceAt={latestVoice?.created_at ?? null}
+latestProfileAt={latestSection?.updated_at ?? null}
+latestHighlightAt={latestVoice?.created_at ?? null}
+/>
       
       {/* FOOTER */}
       <footer style={{ background: 'rgba(0,0,0,0.15)', borderTop: `1px solid ${t.accentFaint}`, padding: '28px 20px', textAlign: 'center' }}>

@@ -1,0 +1,17 @@
+﻿
+app\api\og\generate\route.ts:2:// FILE PATH: 
+app/api/og/generate/route.ts
+app\api\og\generate\route.ts:88:      console.error('[og/generate] 
+Storage upload failed:', err)
+app\api\og\generate\route.ts:102:      console.error('[og/generate] 
+DB update failed:', updateError)
+app\api\og\generate\route.ts:114:    console.error('[og/generate]', 
+e)
+app\api\photographer\token\generate\route.ts:2:// FILE PATH: 
+app/api/photographer/token/generate/route.ts
+components\manage\EventMomentsManager.tsx:392:      const res  = 
+await fetch('/api/photographer/token/generate', {
+components\manage\EventPhasesSection.tsx:106:      const res  = 
+await fetch('/api/photographer/token/generate', {
+
+

@@ -156,6 +156,15 @@ export default async function EventMomentPage({ params }: PageProps) {
     .is('deleted_at', null)
     .order('sort_order', { ascending: true })
 
+    const { data: latestVoice } = await db
+  .from('contributions')
+  .select('created_at')
+  .eq('capsule_id', capsule.id)
+  .eq('status', 'approved')
+  .order('created_at', { ascending: false })
+  .limit(1)
+  .maybeSingle()
+
   const themeKey   = resolveTheme(capsule.theme, capsule.event_type)
   const windowOpen = isWindowOpen(phase.event_date)
 
@@ -212,6 +221,8 @@ export default async function EventMomentPage({ params }: PageProps) {
         honourName={capsule.honouree_name}
         eventType={capsule.event_type}
         supportAccounts={supportAccounts ?? []}
+        latestVoiceAt={latestVoice?.created_at ?? null}
+latestHighlightAt={latestVoice?.created_at ?? null}
       />
     </>
   )

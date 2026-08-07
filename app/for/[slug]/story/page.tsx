@@ -34,6 +34,7 @@ const adminClient = createClient(
 
 interface PageProps { params: Promise<{ slug: string }> }
 
+
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params
   const { data } = await adminClient
@@ -78,6 +79,15 @@ export default async function EventStoryPage({ params }: PageProps) {
     .eq('is_active', true)
     .is('deleted_at', null)
     .order('sort_order', { ascending: true })
+
+    const { data: latestVoice } = await adminClient
+  .from('contributions')
+  .select('created_at')
+  .eq('capsule_id', capsule.id)
+  .eq('status', 'approved')
+  .order('created_at', { ascending: false })
+  .limit(1)
+  .maybeSingle()
 
   const themeKey = resolveTheme(capsule.theme, capsule.event_type)
   const t = getThemeConfig(themeKey)
@@ -243,6 +253,8 @@ export default async function EventStoryPage({ params }: PageProps) {
         eventType={capsule.event_type}
         supportAccounts={supportAccounts ?? []}
         phases={(phases ?? []).map(p => ({ id: p.id, name: p.name }))}
+        latestVoiceAt={latestVoice?.created_at ?? null}
+latestHighlightAt={latestVoice?.created_at ?? null}
       />
     </div>
   )

@@ -18,6 +18,11 @@ import { createClient }              from '@supabase/supabase-js'
 export const dynamic     = 'force-dynamic'
 export const maxDuration = 30
 
+// Required by Next.js 15 route validator for dynamic segments
+export async function GET() {
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 })
+}
+
 const db = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
