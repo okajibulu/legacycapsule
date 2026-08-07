@@ -637,30 +637,61 @@ function renderPhasePhotos(
   photoUrlMap: Record<string, string>,
   styles: ThemeStyles
 ): string {
-  const enabledSlots = ((section as any).slots ?? []).filter((s: any) => s.enabled && photoUrlMap[s.gallery_item_id]);
-  if (enabledSlots.length === 0) return '';
+  const slots = section.slots ?? [];
+  if (slots.length === 0) return '';
 
-  const COLS = 2;
-  const rows: any[][] = [];
-  for (let i = 0; i < enabledSlots.length; i += COLS) rows.push(enabledSlots.slice(i, i + COLS));
+  // ── Render each slot according to its slot_type ───────────
+  // FeatureSlot: photo_id (full width)
+  // DoubleSlot:  photos[0].photo_id + photos[1].photo_id (side by side)
+  // TripleSlot:  photos[0..2].photo_id (three across)
 
-  const gridHtml = rows.map(row =>
-    `<div style="display:flex; gap:14px; margin-bottom:14px; page-break-inside:avoid;">
-      ${row.map((slot: any) => {
-        const url       = photoUrlMap[slot.gallery_item_id] ?? ''
-        const caption   = slot.custom_caption ?? ''
-        const isFeature = slot.is_feature
-        return `<div style="flex:${isFeature ? '2' : '1'}; min-width:0;">
-          <img src="${url}" alt="${escapeHtml(caption)}" style="width:100%; height:${isFeature ? '300px' : '200px'}; object-fit:cover; border-radius:10px; display:block;"/>
-          ${caption ? `<p style="font-size:10px; color:${styles.secondaryText}; margin-top:7px; font-style:italic; text-align:center; letter-spacing:0.03em;">${escapeHtml(caption)}</p>` : ''}
-        </div>`
-      }).join('')}
-    </div>`
-  ).join('')
+  const slotsHtml = slots.map((slot: PhotoSlot) => {
+    if (slot.slot_type === 'feature') {
+      const url     = photoUrlMap[slot.photo_id] ?? '';
+      if (!url) return '';
+      const caption = slot.caption ?? '';
+      return `<div style="margin-bottom:14px; page-break-inside:avoid; break-inside:avoid;">
+        <img src="${url}" alt="${escapeHtml(caption)}" style="width:100%; height:280px; object-fit:cover; object-position:top center; border-radius:10px; display:block; image-orientation:from-image;"/>
+        ${caption ? `<p style="font-size:10px; color:${styles.secondaryText}; margin-top:7px; font-style:italic; text-align:center; letter-spacing:0.03em;">${escapeHtml(caption)}</p>` : ''}
+      </div>`;
+    }
 
-  return `<div style="page-break-before:always;">
+    if (slot.slot_type === 'double') {
+      const photoHtml = slot.photos.map((p: { photo_id: string; caption: string }) => {
+        const url = photoUrlMap[p.photo_id] ?? '';
+        if (!url) return `<div style="flex:1; min-width:0;"></div>`;
+        return `<div style="flex:1; min-width:0;">
+          <img src="${url}" alt="${escapeHtml(p.caption)}" style="width:100%; height:210px; object-fit:cover; object-position:top center; border-radius:10px; display:block; image-orientation:from-image;"/>
+          ${p.caption ? `<p style="font-size:9px; color:${styles.secondaryText}; margin-top:5px; text-align:center; font-style:italic;">${escapeHtml(p.caption)}</p>` : ''}
+        </div>`;
+      }).join('');
+      return `<div style="display:flex; gap:14px; margin-bottom:14px; page-break-inside:avoid; break-inside:avoid;">
+        ${photoHtml}
+      </div>`;
+    }
+
+    if (slot.slot_type === 'triple') {
+      const photoHtml = slot.photos.map((p: { photo_id: string; caption: string }) => {
+        const url = photoUrlMap[p.photo_id] ?? '';
+        if (!url) return `<div style="flex:1; min-width:0;"></div>`;
+        return `<div style="flex:1; min-width:0;">
+          <img src="${url}" alt="${escapeHtml(p.caption)}" style="width:100%; height:160px; object-fit:cover; object-position:top center; border-radius:8px; display:block; image-orientation:from-image;"/>
+          ${p.caption ? `<p style="font-size:9px; color:${styles.secondaryText}; margin-top:5px; text-align:center; font-style:italic;">${escapeHtml(p.caption)}</p>` : ''}
+        </div>`;
+      }).join('');
+      return `<div style="display:flex; gap:10px; margin-bottom:14px; page-break-inside:avoid; break-inside:avoid;">
+        ${photoHtml}
+      </div>`;
+    }
+
+    return '';
+  }).filter(Boolean).join('');
+
+  if (!slotsHtml) return '';
+
+  return `<div style="page-break-before:always; ${SECTION_WRAP}">
     ${renderSectionHeader(section.phase_name ?? 'Event Photographs', styles)}
-    ${gridHtml}
+    ${slotsHtml}
   </div>`;
 }
 
