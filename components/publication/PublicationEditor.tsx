@@ -144,10 +144,6 @@ function AutoSectionPlaceholder({ type }: { type: string }) {
       title:  'Community Memories & Stories are included automatically.',
       detail: 'All approved stories from the Stories room are organised by topic and included as a chapter. Toggle off to exclude.',
     },
-    who_attended: {
-      title:  'Who Attended is generated from your guest check-in list.',
-      detail: 'Guests marked as checked in will appear in this section.',
-    },
     collection_intelligence: {
       title:  'Capsule Highlights — analytics and insights from this collection.',
       detail: 'Automatically rendered before the voices section. Includes character stats, distribution, and country breakdown.',
@@ -698,7 +694,6 @@ export default function PublicationEditor({
             'cover', 'honouree_profile', 'world_map',
             'official_photography', 'guest_captures',
             'memories', 'community_stories',
-            'who_attended', 'closing_message',
           ].includes(activeSecData.type) && (
             <AutoSectionPlaceholder type={activeSecData.type} />
           )}

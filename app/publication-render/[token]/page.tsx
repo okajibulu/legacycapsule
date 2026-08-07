@@ -42,7 +42,7 @@ import type {
   CoverSection,
   TributesSection,
   PhasePhotosSection,
-  WhoAttendedSection,
+   
   ClosingMessageSection,
   PhotoSlot,
   PublicationTheme,
@@ -103,11 +103,7 @@ interface GalleryItemData {
   display_order: number | null;
 }
 
-interface GuestData {
-  id: string;
-  name: string;
-  tier: string;
-}
+  
 
 interface ProfileSectionData {
   id: string;
@@ -294,7 +290,7 @@ function renderCover(capsule: CapsuleData, heroUrl: string, styles: ThemeStyles)
     : capsule.honouree_name;
   const dateStr = formatEventDate(capsule.event_date);
 
-  return `<div style="height:297mm; max-height:297mm; background:${styles.coverBg}; color:${styles.coverTextColor}; display:flex; flex-direction:column; justify-content:flex-end; page-break-after:always; position:relative; overflow:hidden;">
+  return `<div style="height:297mm; max-height:297mm; background:${styles.coverBg}; color:${styles.coverTextColor}; display:flex; flex-direction:column; justify-content:flex-end; page-break-after:always; break-after:page; position:relative; overflow:hidden; page:cover-page;">
     ${heroUrl ? `<div style="position:absolute; top:0; left:0; right:0; height:62%; overflow:hidden;">
       <img src="${heroUrl}" alt="" style="width:100%; height:100%; object-fit:cover; object-position:center top;"/>
       <div style="position:absolute; bottom:0; left:0; right:0; height:55%; background:linear-gradient(to bottom, transparent, ${styles.coverBg});"></div>
@@ -692,37 +688,6 @@ function renderGuestCaptures(
 
 
 // ============================================================
-// SECTION 15 — Who Attended renderer
-// ============================================================
-
-function renderWhoAttended(guests: GuestData[], styles: ThemeStyles): string {
-  if (!guests || guests.length === 0) return '';
-
-  const tiers  = ['VVIP', 'VIP', 'General', 'Reception Only', 'Staff', 'Media', 'Vendor']
-  const byTier = tiers.reduce((acc, tier) => {
-    const g = guests.filter(guest => guest.tier === tier)
-    if (g.length > 0) acc[tier] = g
-    return acc
-  }, {} as Record<string, GuestData[]>)
-
-  const tiersHtml = Object.entries(byTier).map(([tier, list]) =>
-    `<div style="margin-bottom:24px; page-break-inside:avoid;">
-      <p style="font-size:10px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:${styles.accentColor}; margin-bottom:10px;">${escapeHtml(tier)}</p>
-      <div style="columns:3; column-gap:20px;">
-        ${list.map(g => `<p style="font-size:13px; color:${styles.pageText}; margin-bottom:5px; break-inside:avoid; line-height:1.5;">${escapeHtml(g.name)}</p>`).join('')}
-      </div>
-    </div>`
-  ).join('')
-
-  return `<div style="page-break-before:always; ${SECTION_WRAP}">
-    ${renderSectionHeader('Who Attended', styles)}
-    <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic;">${guests.length} guest${guests.length !== 1 ? 's' : ''} verified at this event</p>
-    ${tiersHtml}
-  </div>`;
-}
-
-
-// ============================================================
 // SECTION 16 — Closing message renderer (always last)
 // Premium LC brand page — emotional mission, version in small print.
 // AI18 · 6 Aug 2026
@@ -745,7 +710,13 @@ function renderClosingMessage(
 
   return `<div style="
     page-break-before:always;
+    break-before:page;
+    page-break-after:avoid;
+    break-after:avoid;
+    page:closing-page;
     height:297mm;
+    max-height:297mm;
+    box-sizing:border-box;
     display:flex;
     flex-direction:column;
     align-items:center;
@@ -1262,7 +1233,7 @@ export default async function PublicationRenderPage({
 
   // ── Fetch all content in parallel ─────────────────────────
   const [
-    capsuleRes, contribsRes, galleryRes, guestsRes,
+    capsuleRes, contribsRes, galleryRes,
     profileRes, topicsRes, memoriesRes, profileGalleryRes,
   ] = await Promise.all([
     adminClient.from('capsules')
@@ -1277,9 +1248,7 @@ export default async function PublicationRenderPage({
       .select('id, image_url, caption, uploaded_by_name, phase_id, source, is_official_photography, display_order')
       .eq('capsule_id', capsuleId).eq('approved', true).is('deleted_at', null),
 
-    adminClient.from('guests')
-      .select('id, name, tier')
-      .eq('capsule_id', capsuleId).not('checked_in_at', 'is', null),
+     
 
     adminClient.from('capsule_profile_sections')
       .select('id, section_type, custom_title, content, sort_order, is_active')
@@ -1303,7 +1272,7 @@ export default async function PublicationRenderPage({
   const capsule         = capsuleRes.data  as CapsuleData;
   const contribs        = (contribsRes.data       ?? []) as ContributionData[];
   const gallery         = (galleryRes.data         ?? []) as GalleryItemData[];
-  const guests          = (guestsRes.data          ?? []) as GuestData[];
+    
   const profileSections = (profileRes.data         ?? []) as ProfileSectionData[];
   const storyTopics     = (topicsRes.data          ?? []) as StoryTopicData[];
   const memories        = (memoriesRes.data        ?? []) as MemoryData[];
@@ -1340,8 +1309,7 @@ export default async function PublicationRenderPage({
         }
         case 'phase_photos':
           return renderPhasePhotos(section as PhasePhotosSection, photoUrlMap, styles);
-        case 'who_attended':
-          return renderWhoAttended(guests, styles);
+          
         case 'world_map':
           return renderWorldMap(contribs, styles);
         // collection_intelligence renders inside the tributes case — no separate case needed
@@ -1422,6 +1390,8 @@ export default async function PublicationRenderPage({
             print-color-adjust: exact;
           }
           @page { size: 210mm 297mm; margin: ${styles.pageMarginMm}mm; }
+@page cover-page { size: 210mm 297mm; margin: 0mm; }
+@page closing-page { size: 210mm 297mm; margin: 0mm; }
           img { max-width: 100%; display: block; }
           @media screen {
             .pub-body img:not([data-nolightbox]) { cursor: zoom-in; }

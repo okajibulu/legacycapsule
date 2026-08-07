@@ -390,11 +390,7 @@ export async function generateAutoArrangement(
     ? phaseSections
     : [];
 
-  const whoAttendedSection: Section = {
-    id: 'section_who_attended',
-    type: 'who_attended',
-    enabled: true,
-  };
+    
 
   const closingSection: Section = {
     id: 'section_closing',
@@ -409,7 +405,6 @@ export async function generateAutoArrangement(
     profileSection,
     tributesSection,
     ...includedPhaseSections,
-    whoAttendedSection,
     closingSection,
   ];
 

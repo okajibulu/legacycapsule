@@ -144,7 +144,6 @@ export type SectionType =
   | 'official_photography'
   | 'guest_captures'
   | 'memories'
-  | 'who_attended'
   | 'community_stories'
   | 'closing_message';
 
@@ -235,11 +234,6 @@ export interface CommunityStoriesSection extends SectionBase {
   type: 'community_stories';
 }
 
-/** Who Attended roll call — all checked-in guests. */
-export interface WhoAttendedSection extends SectionBase {
-  type: 'who_attended';
-}
-
 /** Closing message — final page of the publication. */
 export interface ClosingMessageSection extends SectionBase {
   type: 'closing_message';
@@ -256,7 +250,6 @@ export type Section =
   | GuestCapturesSection
   | MemoriesSection
   | CommunityStoriesSection
-  | WhoAttendedSection
   | ClosingMessageSection;
 
 
