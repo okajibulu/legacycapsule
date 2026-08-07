@@ -42,8 +42,10 @@ const SECTION_LABELS: Record<string, string> = {
   guest_captures:       'In The Room',
   memories:             'Memories',
   community_stories:    'Community Stories',
-  who_attended:         'Who Attended',
-  closing_message:      'Closing Message',
+   
+  collection_intelligence: 'Capsule Highlights',
+  closing_message:         'Closing Message',
+  appreciation:            'Family Appreciation',
 };
 
 /** Icon character for each section type — rendered at small size in the row. */
@@ -57,8 +59,9 @@ const SECTION_ICONS: Record<string, string> = {
   guest_captures:       '◻',
   memories:             '◌',
   community_stories:    '◍',
-  who_attended:         '◉',
-  closing_message:      '◇',
+  collection_intelligence: '◈',
+  closing_message:         '◇',
+  appreciation:            '♡',
 };
 
 

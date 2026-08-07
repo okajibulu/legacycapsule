@@ -82,6 +82,7 @@ interface ContributionData {
   contributor_name: string;
   city: string | null;
   country: string | null;
+  ip_country: string | null;
   relationship: string | null;
   tribute_text: string | null;
   thumbnail_url: string | null;
@@ -279,6 +280,43 @@ function renderSubHeading(title: string, styles: ThemeStyles): string {
   </div>`;
 }
 
+// ============================================================
+// SECTION 5B — Family Appreciation block renderer
+// Rendered just before the closing page — the final human voice.
+// Extracted from honouree profile so it can be repositioned.
+// AI19 · 7 Aug 2026
+// ============================================================
+
+function renderAppreciationBlock(section: ProfileSectionData, styles: ThemeStyles): string {
+  if (!section.content?.trim()) return '';
+  const content = escapeHtml(section.content);
+  const title   = section.custom_title ?? 'Family Appreciation';
+
+  return `<div style="page-break-before:always; break-before:page; display:block; ${SECTION_WRAP}">
+    ${renderSectionHeader(title, styles)}
+    <div style="
+      border:1px solid ${styles.tributeCardBorder};
+      border-left:4px solid ${styles.accentColor};
+      border-radius:4px;
+      padding:32px 36px;
+      max-width:680px;
+      margin:0 auto;
+      page-break-inside:avoid;
+      break-inside:avoid;
+      background:#FAFAF8;
+    ">
+      <p style="
+        font-family:${styles.bodyFont};
+        font-size:15px;
+        line-height:1.95;
+        color:${styles.pageText};
+        white-space:pre-wrap;
+        font-style:italic;
+        margin:0;
+      ">${content}</p>
+    </div>
+  </div>`;
+}
 
 // ============================================================
 // SECTION 6 — Cover renderer
@@ -306,40 +344,7 @@ function renderCover(capsule: CapsuleData, heroUrl: string, styles: ThemeStyles)
   </div>`;
 }
 
-// ============================================================
-// SECTION 6B — Family Appreciation block
-// Rendered just before the closing page — the final human voice.
-// ============================================================
 
-function renderAppreciationBlock(section: ProfileSectionData, styles: ThemeStyles): string {
-  if (!section.content?.trim()) return '';
-  const content = escapeHtml(section.content);
-  const title   = section.custom_title ?? 'Family Appreciation';
-
-  return `<div style="page-break-before:always; ${SECTION_WRAP}">
-    ${renderSectionHeader(title, styles)}
-    <div style="
-      border:1px solid ${styles.tributeCardBorder};
-      border-left:4px solid ${styles.accentColor};
-      border-radius:4px;
-      padding:32px 36px;
-      max-width:680px;
-      margin:0 auto;
-      page-break-inside:avoid;
-      background:#FAFAF8;
-    ">
-      <p style="
-        font-family:${styles.bodyFont};
-        font-size:15px;
-        line-height:1.95;
-        color:${styles.pageText};
-        white-space:pre-wrap;
-        font-style:italic;
-        margin:0;
-      ">${content}</p>
-    </div>
-  </div>`;
-}
 
 // ============================================================
 // SECTION 7 — Honouree profile renderer (text sections)
@@ -956,8 +961,17 @@ function renderCollectionIntelligence(
   // Countries
   const countryCounts: Record<string, number> = {}
   contribs.forEach(c => {
-    const co = c.country?.trim()
-    if (co) countryCounts[co] = (countryCounts[co] ?? 0) + 1
+    // Use ip_country (ISO code → resolve to display name) over free-text country
+    const co = c.ip_country?.trim()
+      ? c.ip_country.trim().toUpperCase()
+      : c.country?.trim()
+    if (co && co !== 'Not Listed') {
+      // For display, convert ISO back to name if we have ip_country
+      const displayName = c.ip_country?.trim()
+        ? (Object.entries(COUNTRY_NAME_TO_ISO).find(([, iso]) => iso === co)?.[0] ?? co)
+        : co
+      countryCounts[displayName] = (countryCounts[displayName] ?? 0) + 1
+    }
   })
   const topCountries = Object.entries(countryCounts)
     .sort((a, b) => b[1] - a[1])
@@ -1152,11 +1166,21 @@ function renderWorldMap(
   const countryCounts: Record<string, number> = {};
   const countryLabels: Record<string, string> = {}; // ISO → display name
   contribs.forEach(c => {
-    if (c.country && c.country.trim() !== 'Not Listed') {
-      const iso = countryToIso(c.country.trim());
+    // Prefer ip_country (system-detected ISO code) over contributor-typed text
+    const ipIso = c.ip_country?.trim().toUpperCase();
+    const rawCountry = c.country?.trim();
+
+    if (ipIso && ipIso.length === 2) {
+      if (!COUNTRY_CENTROIDS[ipIso]) return;
+      countryCounts[ipIso] = (countryCounts[ipIso] ?? 0) + 1;
+      // Reverse-lookup display name from ISO code
+      countryLabels[ipIso] = countryLabels[ipIso] ??
+        (Object.entries(COUNTRY_NAME_TO_ISO).find(([, iso]) => iso === ipIso)?.[0] ?? ipIso);
+    } else if (rawCountry && rawCountry !== 'Not Listed') {
+      const iso = countryToIso(rawCountry);
       if (iso) {
         countryCounts[iso] = (countryCounts[iso] ?? 0) + 1;
-        countryLabels[iso] = c.country.trim(); // store display name for pill
+        countryLabels[iso] = countryLabels[iso] ?? rawCountry;
       }
     }
   });
@@ -1185,19 +1209,31 @@ function renderWorldMap(
     </p>
     <div style="border-radius:16px; overflow:hidden; border:1px solid ${styles.tributeCardBorder}; background:#f8f6f2; padding:24px; margin-bottom:32px;">
       <svg viewBox="0 0 560 280" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto; display:block;">
-        <!-- Simplified world landmass shapes (equirectangular) -->
+        <!-- World landmasses — equirectangular projection, 560×280 viewBox -->
         <!-- North America -->
-        <path d="M80,70 L170,70 L175,80 L165,95 L160,110 L150,130 L140,145 L130,148 L120,145 L105,135 L95,120 L85,100 L80,85 Z" fill="#e8e4dc" stroke="#d4cfc5" stroke-width="0.5"/>
+        <path d="M 72,58 L 85,52 L 105,50 L 125,52 L 140,55 L 155,58 L 165,65 L 170,72 L 168,82 L 162,90 L 155,100 L 150,112 L 145,125 L 138,138 L 128,148 L 118,152 L 108,150 L 98,144 L 88,135 L 80,122 L 74,108 L 70,94 L 68,80 L 70,68 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.6"/>
+        <!-- Greenland -->
+        <path d="M 155,38 L 170,35 L 182,38 L 185,46 L 178,52 L 165,54 L 155,50 L 152,44 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.5"/>
         <!-- South America -->
-        <path d="M140,155 L185,155 L190,165 L185,180 L180,195 L170,205 L160,200 L152,185 L148,170 L140,160 Z" fill="#e8e4dc" stroke="#d4cfc5" stroke-width="0.5"/>
+        <path d="M 128,152 L 148,150 L 165,152 L 178,158 L 185,168 L 185,180 L 182,192 L 176,205 L 168,215 L 158,218 L 148,214 L 140,204 L 135,192 L 132,178 L 130,164 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.6"/>
         <!-- Europe -->
-        <path d="M255,75 L320,75 L325,85 L318,95 L308,105 L295,108 L278,108 L265,102 L258,92 L255,82 Z" fill="#e8e4dc" stroke="#d4cfc5" stroke-width="0.5"/>
+        <path d="M 258,62 L 272,58 L 288,57 L 305,58 L 318,62 L 325,70 L 324,80 L 318,88 L 308,95 L 295,100 L 280,102 L 265,100 L 256,92 L 254,80 L 256,70 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.6"/>
         <!-- Africa -->
-        <path d="M265,112 L325,112 L330,125 L325,145 L320,160 L315,175 L305,185 L290,188 L275,185 L265,170 L258,155 L255,138 L260,122 Z" fill="#e8e4dc" stroke="#d4cfc5" stroke-width="0.5"/>
-        <!-- Asia -->
-        <path d="M320,75 L460,75 L465,90 L458,110 L448,125 L430,135 L410,138 L385,135 L360,130 L338,128 L325,118 L318,105 L320,88 Z" fill="#e8e4dc" stroke="#d4cfc5" stroke-width="0.5"/>
+        <path d="M 260,108 L 278,104 L 298,104 L 316,108 L 326,118 L 330,132 L 328,148 L 322,162 L 314,176 L 304,186 L 290,192 L 276,190 L 264,182 L 256,168 L 252,152 L 252,136 L 255,120 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.6"/>
+        <!-- Asia (main) -->
+        <path d="M 324,58 L 348,54 L 375,52 L 405,52 L 432,55 L 455,60 L 468,70 L 470,82 L 465,95 L 455,108 L 440,118 L 422,126 L 402,130 L 378,130 L 355,128 L 335,122 L 322,112 L 318,98 L 320,82 L 322,68 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.6"/>
+        <!-- Indian subcontinent -->
+        <path d="M 368,118 L 382,115 L 395,118 L 400,130 L 396,142 L 385,150 L 374,148 L 365,138 L 363,126 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.5"/>
+        <!-- Southeast Asia -->
+        <path d="M 415,125 L 435,122 L 448,128 L 450,138 L 440,145 L 425,145 L 415,138 L 412,130 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.5"/>
+        <!-- Japan -->
+        <path d="M 448,88 L 455,85 L 460,90 L 456,96 L 449,96 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.4"/>
         <!-- Australia -->
-        <path d="M400,175 L460,175 L465,185 L458,198 L440,202 L420,200 L408,190 L400,180 Z" fill="#e8e4dc" stroke="#d4cfc5" stroke-width="0.5"/>
+        <path d="M 405,172 L 425,168 L 448,170 L 462,178 L 465,190 L 460,202 L 445,208 L 425,206 L 410,198 L 404,186 L 403,178 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.6"/>
+        <!-- New Zealand -->
+        <path d="M 468,196 L 474,192 L 478,198 L 474,204 L 468,202 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.4"/>
+        <!-- UK / British Isles -->
+        <path d="M 264,72 L 270,68 L 275,72 L 272,78 L 265,78 Z" fill="#e8e4dc" stroke="#c8c2b4" stroke-width="0.4"/>
         <!-- Contributor dots (pulsed with outer ring) -->
         ${dots}
       </svg>
@@ -1276,8 +1312,8 @@ export default async function PublicationRenderPage({
       .select('id, honouree_name, honouree_title, event_type, event_date, event_tag, hero_image_url, theme, cover_style')
       .eq('id', capsuleId).single(),
 
-    adminClient.from('contributions')
-      .select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, is_anonymous, story_topic_id, is_dday, created_at')
+adminClient.from('contributions')
+      .select('id, contributor_name, city, country, ip_country, relationship, tribute_text, thumbnail_url, is_anonymous, story_topic_id, is_dday, created_at')
       .eq('capsule_id', capsuleId).eq('status', 'approved').is('deleted_at', null).order('created_at'),
 
     adminClient.from('gallery_items')
@@ -1364,6 +1400,10 @@ export default async function PublicationRenderPage({
     ...( profileSections.filter(s => s.is_active && s.section_type === 'appreciation' && s.content?.trim()).map(s =>
       renderAppreciationBlock(s, styles)
     )),
+    // Family appreciation — always just before closing
+    ...profileSections
+      .filter(s => s.is_active && s.section_type === 'appreciation' && s.content?.trim())
+      .map(s => renderAppreciationBlock(s, styles)),
     // Closing message always last
     closingSection ? renderClosingMessage(capsule, styles, pub.version ?? null) : '',
   ].filter(Boolean).join('\n');

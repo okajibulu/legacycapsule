@@ -398,11 +398,18 @@ export async function generateAutoArrangement(
     enabled: true,
   };
 
+  const worldMapSection: Section = {
+    id: 'section_world_map',
+    type: 'world_map',
+    enabled: true,
+  };
+
   // Assemble in canonical section order:
-  // Cover → Profile → Tributes → [Phase Photos...] → Who Attended → Closing
+  // Cover → Profile → World Map → Tributes → [Phase Photos...] → Closing
   const sections: Section[] = [
     coverSection,
     profileSection,
+    worldMapSection,
     tributesSection,
     ...includedPhaseSections,
     closingSection,
