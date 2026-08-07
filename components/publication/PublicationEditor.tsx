@@ -485,16 +485,35 @@ export default function PublicationEditor({
     setRegenerating(true)
     setRegenError(null)
     try {
+      // Step 1 — Re-run init to reconcile any new content
+      // (new phases, new section types added since last generation)
+      const initRes = await fetch('/api/publication/init', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ capsule_id: capsuleId }),
+      })
+      const initData = await initRes.json()
+      if (!initRes.ok) throw new Error(initData.error ?? 'Failed to refresh content')
+
+      // Update local layout with reconciled config
+      if (initData.layout_config) {
+        setLayout(initData.layout_config)
+        setAutoLayout(initData.layout_config)
+      }
+
+      // Step 2 — Generate a new render token (bumps version)
       const res = await fetch('/api/publication/preview-token', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ capsuleId }),
       })
       const data = await res.json()
-      if (!res.ok || !data.token) throw new Error(data.error ?? 'Failed to regenerate')
+      if (!res.ok || !data.token) throw new Error(data.error ?? 'Failed to generate publication')
+
       setCurrentToken(data.token)
       setCurrentGeneratedAt(new Date().toISOString())
-      setExistingPdfUrl(data.token)
+      if (data.version) setPubVersion(data.version)
+
     } catch (err) {
       setRegenError(err instanceof Error ? err.message : 'Regeneration failed')
     } finally {
@@ -710,6 +729,7 @@ export default function PublicationEditor({
           md:w-64 md:overflow-hidden
           sticky bottom-0 md:static md:bottom-auto
           z-10 md:z-auto
+          px-3 md:px-0
         "
         aria-label="PDF generation panel"
       >
@@ -720,7 +740,7 @@ export default function PublicationEditor({
         </div>
 
         {/* Generate button area */}
-        <div className="flex-1 md:overflow-y-auto px-4 py-3 md:py-4 space-y-0">
+        <div className="flex-1 md:overflow-y-auto px-4 py-3 md:py-4 space-y-0 overflow-x-hidden">
 
           {/* ══ TIER 0 — Publication Generation ══ */}
           <div className="pb-4 mb-4 border-b border-yellow-400/10">

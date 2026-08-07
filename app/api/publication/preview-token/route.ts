@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     // Verify publication exists for this capsule
     const { data: pub } = await adminClient
       .from('publications')
-      .select('id')
+      .select('id, version')
       .eq('capsule_id', capsuleId)
       .single()
 
@@ -31,12 +31,18 @@ export async function POST(req: NextRequest) {
     // Generate a fresh render token
     const token = crypto.randomBytes(32).toString('hex')
 
+    const nextVersion = (pub.version ?? 1) + 1
+
     await adminClient
       .from('publications')
-      .update({ render_token: token })
+      .update({
+        render_token: token,
+        version:      nextVersion,
+        generated_at: new Date().toISOString(),
+      })
       .eq('capsule_id', capsuleId)
 
-    return NextResponse.json({ token })
+    return NextResponse.json({ token, version: nextVersion })
 
   } catch (err) {
     console.error('[preview-token] Error:', err)
