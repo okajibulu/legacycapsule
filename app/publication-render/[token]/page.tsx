@@ -1138,80 +1138,79 @@ function renderCollectionIntelligence(
         </div>
       </div>
 
-      <!-- Right column: Distribution + Countries -->
+      <!-- Right column: Distribution only -->
       <div>
         <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">Message Character Lengths Breakdown</p>
-        <div style="background:#FFFFFF; border-radius:12px; padding:14px 16px; border:1px solid rgba(0,0,0,0.07); margin-bottom:20px;">
+        <div style="background:#FFFFFF; border-radius:12px; padding:14px 16px; border:1px solid rgba(0,0,0,0.07);">
           ${distribution.map(d => distBar(d.label, d.count)).join('')}
         </div>
-
-        ${topCountries.length > 0 ? `
-        <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">Contribution Countries Breakdown</p>
-        <div style="background:#FFFFFF; border-radius:12px; padding:14px 16px; border:1px solid rgba(0,0,0,0.07);">
-          ${topCountries.map(([name, count], i) => countryBar(name, count, i + 1)).join('')}
-        </div>
-        ` : ''}
       </div>
     </div>
 
-    <!-- Engagement Breakdown -->
+ <!-- Engagement Breakdown + Relationship -->
     <div style="margin-top:32px;">
+
+      <!-- Engagement Breakdown -->
       <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">Engagement Breakdown</p>
-      <div style="background:#FFFFFF; border-radius:12px; border:1px solid rgba(0,0,0,0.07); overflow:hidden;">
+      <div style="background:#FFFFFF; border-radius:12px; padding:4px 16px; border:1px solid rgba(0,0,0,0.07); margin-bottom:20px;">
         ${((): string => {
-          const tributes     = contribs.filter(c => !c.story_topic_id && !c.is_dday);
           const stories      = contribs.filter(c => !!c.story_topic_id);
-          const ddayPhotos   = (galleryItems ?? []).filter(g => g.source === 'dday' && !g.is_official_photography);
-          const officialPics = (galleryItems ?? []).filter(g => g.is_official_photography);
+          const ddayPhotos   = (galleryItems ?? []).filter((g: GalleryItemData) => g.source === 'dday' && !g.is_official_photography);
+          const officialPics = (galleryItems ?? []).filter((g: GalleryItemData) => g.is_official_photography);
           const memoryCount  = (memories ?? []).length;
+          const withPhoto    = contribs.filter(c => !!(c.thumbnail_url || c.image_url)).length;
+          const anonCount    = contribs.filter(c => c.is_anonymous).length;
           const nameCounts: Record<string, number> = {};
           contribs.forEach(c => {
             if (!c.is_anonymous && c.contributor_name)
               nameCounts[c.contributor_name] = (nameCounts[c.contributor_name] ?? 0) + 1;
           });
+          const repeatCount  = Object.values(nameCounts).filter(v => v > 1).length;
           const ddayUploaders = new Set(ddayPhotos.map((g: GalleryItemData) => g.uploaded_by_name).filter(Boolean)).size;
 
-          const row = (icon: string, label: string, n: number, sub?: string) =>
-            `<div style="display:flex; align-items:center; padding:9px 16px; border-bottom:1px solid rgba(0,0,0,0.05);">
-              <span style="font-size:13px; width:26px; flex-shrink:0;">${icon}</span>
-              <span style="font-family:${styles.bodyFont}; font-size:12px; color:${styles.pageText}; flex:1;">${label}</span>
-              <span style="font-family:${styles.bodyFont}; font-size:13px; font-weight:700; color:${styles.pageText}; margin-right:8px;">${n}</span>
-              ${sub ? `<span style="font-family:${styles.bodyFont}; font-size:10px; color:${styles.secondaryText};">${sub}</span>` : ''}
-            </div>`;
-
           const rows: string[] = [];
-          rows.push(row('❝', lang.plural, tributes.length));
+          if (withPhoto > 0)        rows.push(metricRow('Voices with a photo', `${withPhoto} (${Math.round(withPhoto / total * 100)}%)`));
+          if (anonCount > 0)        rows.push(metricRow('Anonymous submissions', String(anonCount)));
+          if (repeatCount > 0)      rows.push(metricRow('Repeat contributors', String(repeatCount)));
           if (stories.length > 0) {
             const su = new Set(stories.map(s => s.contributor_name)).size;
-            rows.push(row('◍', 'Community Stories', stories.length, `${su} contributor${su !== 1 ? 's' : ''}`));
+            rows.push(metricRow('Community stories', `${stories.length} from ${su} contributor${su !== 1 ? 's' : ''}`));
           }
-          if (memoryCount > 0) rows.push(row('◌', 'Memories', memoryCount));
-          if (ddayPhotos.length > 0) rows.push(row('📷', 'Guest Captures', ddayPhotos.length, `${ddayUploaders} uploader${ddayUploaders !== 1 ? 's' : ''}`));
-          if (officialPics.length > 0) rows.push(row('◼', 'Official Photography', officialPics.length));
+          if (memoryCount > 0)      rows.push(metricRow('Memories shared', String(memoryCount)));
+          if (ddayPhotos.length > 0) rows.push(metricRow('Guest captures (D-Day)', `${ddayPhotos.length} from ${ddayUploaders} uploader${ddayUploaders !== 1 ? 's' : ''}`));
+          if (officialPics.length > 0) rows.push(metricRow('Official photographs', String(officialPics.length)));
           return rows.join('');
         })()}
       </div>
-      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;">
-        ${((): string => {
-          const nameCounts2: Record<string, number> = {};
-          contribs.forEach(c => {
-            if (!c.is_anonymous && c.contributor_name)
-              nameCounts2[c.contributor_name] = (nameCounts2[c.contributor_name] ?? 0) + 1;
-          });
-          const uniqueNames   = Object.keys(nameCounts2).length;
-          const repeatCount   = Object.values(nameCounts2).filter(v => v > 1).length;
-          const anonCount     = contribs.filter(c => c.is_anonymous).length;
-          const pill = (label: string, value: string) =>
-            `<div style="padding:5px 12px; border-radius:20px; border:1px solid ${styles.tributeCardBorder}; background:#FFFFFF; display:inline-flex; align-items:center; gap:5px;">
-              <span style="font-family:${styles.bodyFont}; font-size:10px; color:${styles.secondaryText};">${label}</span>
-              <span style="font-family:${styles.bodyFont}; font-size:11px; font-weight:700; color:${styles.pageText};">${value}</span>
-            </div>`;
-          const pills = [pill('Unique voices', String(uniqueNames))];
-          if (anonCount > 0) pills.push(pill('Anonymous', String(anonCount)));
-          if (repeatCount > 0) pills.push(pill('Repeat contributors', String(repeatCount)));
-          return pills.join('');
-        })()}
-      </div>
+
+      <!-- Received Voices — Top 10 Relationship Categories -->
+      ${((): string => {
+        const relCounts: Record<string, number> = {};
+        contribs.forEach(c => {
+          if (c.relationship?.trim()) {
+            relCounts[c.relationship.trim()] = (relCounts[c.relationship.trim()] ?? 0) + 1;
+          }
+        });
+        const topRels = Object.entries(relCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10);
+        if (topRels.length === 0) return '';
+
+        const pills = topRels.map(([rel, count]) =>
+          `<div style="display:inline-flex; align-items:center; gap:6px; padding:5px 14px; border-radius:20px; border:1px solid ${styles.tributeCardBorder}; background:#FFFFFF; margin:0 6px 8px 0;">
+            <span style="font-family:${styles.bodyFont}; font-size:11px; color:${styles.pageText}; font-weight:600;">${escapeHtml(rel)}</span>
+            <span style="font-family:${styles.bodyFont}; font-size:10px; color:${styles.accentColor}; font-weight:700;">${count}</span>
+          </div>`
+        ).join('');
+
+        return `<div>
+          <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">Received Voices — Top 10 Relationship Categories</p>
+          <div style="display:flex; flex-wrap:wrap;">
+            ${pills}
+          </div>
+        </div>`;
+      })()}
+
     </div>
   </div>`
 }
@@ -1386,10 +1385,29 @@ function countryToIso(name: string): string {
     <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:32px; font-style:italic;">
       ${totalContribs} voice${totalContribs !== 1 ? 's' : ''} gathered from ${countryCount} countr${countryCount !== 1 ? 'ies' : 'y'} across the world
     </p>
-    <div style="border-radius:16px; overflow:hidden; border:1px solid ${styles.tributeCardBorder}; background:#FAFAF8; padding:32px 24px; margin-bottom:24px;">
+    <div style="border-radius:16px; overflow:hidden; border:1px solid ${styles.tributeCardBorder}; background:#FAFAF8; padding:32px 24px; margin-bottom:32px;">
       <svg viewBox="0 0 ${VB_W} ${adjustedVBH}" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto; display:block;">
         ${circlesSvg}
       </svg>
+    </div>
+
+    <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">Countries Breakdown</p>
+    <div style="background:#FFFFFF; border-radius:12px; padding:14px 16px; border:1px solid rgba(0,0,0,0.07);">
+      ${sorted.map(([iso, count], i) => {
+        const name = countryLabels[iso] ?? iso;
+        const pct  = Math.round((count / totalContribs) * 100);
+        return `<div style="margin-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span style="font-size:10px; font-weight:800; color:${styles.accentColor}; width:16px; text-align:center;">${i + 1}</span>
+            <span style="font-family:${styles.bodyFont}; font-size:12px; font-weight:600; color:${styles.pageText}; flex:1;">${escapeHtml(name)}</span>
+            <span style="font-family:${styles.bodyFont}; font-size:12px; font-weight:700; color:${styles.pageText};">${count}</span>
+            <span style="font-family:${styles.bodyFont}; font-size:10px; color:${styles.secondaryText}; width:34px; text-align:right;">${pct}%</span>
+          </div>
+          <div style="margin-left:24px; height:4px; border-radius:2px; background:rgba(0,0,0,0.07);">
+            <div style="height:100%; border-radius:2px; width:${pct}%; background:${styles.accentColor};"></div>
+          </div>
+        </div>`;
+      }).join('')}
     </div>
   </div>`;
 }
