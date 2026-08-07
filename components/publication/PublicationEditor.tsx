@@ -729,7 +729,6 @@ export default function PublicationEditor({
           md:w-64 md:overflow-hidden
           sticky bottom-0 md:static md:bottom-auto
           z-10 md:z-auto
-          px-3 md:px-0
         "
         aria-label="PDF generation panel"
       >
@@ -740,7 +739,7 @@ export default function PublicationEditor({
         </div>
 
         {/* Generate button area */}
-        <div className="flex-1 md:overflow-y-auto px-4 py-3 md:py-4 space-y-0 overflow-x-hidden">
+        <div className="flex-1 overflow-y-auto px-4 py-3 md:py-4 space-y-0 overflow-x-hidden max-h-[55vh] md:max-h-none">
 
           {/* ══ TIER 0 — Publication Generation ══ */}
           <div className="pb-4 mb-4 border-b border-yellow-400/10">

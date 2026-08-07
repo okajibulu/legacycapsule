@@ -306,6 +306,40 @@ function renderCover(capsule: CapsuleData, heroUrl: string, styles: ThemeStyles)
   </div>`;
 }
 
+// ============================================================
+// SECTION 6B — Family Appreciation block
+// Rendered just before the closing page — the final human voice.
+// ============================================================
+
+function renderAppreciationBlock(section: ProfileSectionData, styles: ThemeStyles): string {
+  if (!section.content?.trim()) return '';
+  const content = escapeHtml(section.content);
+  const title   = section.custom_title ?? 'Family Appreciation';
+
+  return `<div style="page-break-before:always; ${SECTION_WRAP}">
+    ${renderSectionHeader(title, styles)}
+    <div style="
+      border:1px solid ${styles.tributeCardBorder};
+      border-left:4px solid ${styles.accentColor};
+      border-radius:4px;
+      padding:32px 36px;
+      max-width:680px;
+      margin:0 auto;
+      page-break-inside:avoid;
+      background:#FAFAF8;
+    ">
+      <p style="
+        font-family:${styles.bodyFont};
+        font-size:15px;
+        line-height:1.95;
+        color:${styles.pageText};
+        white-space:pre-wrap;
+        font-style:italic;
+        margin:0;
+      ">${content}</p>
+    </div>
+  </div>`;
+}
 
 // ============================================================
 // SECTION 7 — Honouree profile renderer (text sections)
@@ -317,7 +351,9 @@ function renderHonoureeProfile(
   styles: ThemeStyles
 ): string {
   if (!profileSections || profileSections.length === 0) return '';
-  const activeSections = profileSections.filter(s => s.is_active && s.content?.trim());
+  const activeSections = profileSections.filter(
+    s => s.is_active && s.content?.trim() && s.section_type !== 'appreciation'
+  );
   if (activeSections.length === 0) return '';
 
   const SECTION_LABELS: Record<string, string> = {
@@ -1324,6 +1360,10 @@ export default async function PublicationRenderPage({
     renderGuestCaptures(gallery, photoUrlMap, styles),
     renderCommunityStories(contribs, storyTopics, styles),
     renderMemories(memories, styles),
+    // Family appreciation — always just before closing
+    ...( profileSections.filter(s => s.is_active && s.section_type === 'appreciation' && s.content?.trim()).map(s =>
+      renderAppreciationBlock(s, styles)
+    )),
     // Closing message always last
     closingSection ? renderClosingMessage(capsule, styles, pub.version ?? null) : '',
   ].filter(Boolean).join('\n');

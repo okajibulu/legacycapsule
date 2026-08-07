@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     // Verify publication exists for this capsule
     const { data: pub } = await adminClient
       .from('publications')
-      .select('id, version')
+      .select('id, version, layout_config, distributed_layout_hash')
       .eq('capsule_id', capsuleId)
       .single()
 
@@ -31,18 +31,26 @@ export async function POST(req: NextRequest) {
     // Generate a fresh render token
     const token = crypto.randomBytes(32).toString('hex')
 
-    const nextVersion = (pub.version ?? 1) + 1
+    // Only bump version if layout has changed since last distribution
+    const crypto2 = await import('crypto')
+    const currentHash = crypto2.createHash('md5')
+      .update(JSON.stringify(pub.layout_config ?? {}))
+      .digest('hex')
+
+    const hasChanged = currentHash !== pub.distributed_layout_hash
+    const nextVersion = hasChanged ? (pub.version ?? 1) + 1 : (pub.version ?? 1)
 
     await adminClient
       .from('publications')
       .update({
-        render_token: token,
-        version:      nextVersion,
-        generated_at: new Date().toISOString(),
+        render_token:            token,
+        version:                 nextVersion,
+        generated_at:            new Date().toISOString(),
+        distributed_layout_hash: hasChanged ? currentHash : pub.distributed_layout_hash,
       })
       .eq('capsule_id', capsuleId)
 
-    return NextResponse.json({ token, version: nextVersion })
+    return NextResponse.json({ token, version: nextVersion, content_changed: hasChanged })
 
   } catch (err) {
     console.error('[preview-token] Error:', err)

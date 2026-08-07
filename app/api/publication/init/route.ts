@@ -51,6 +51,96 @@ const adminClient = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// ============================================================
+// SECTION 1B — Layout reconciliation
+// Called every time init runs against an existing layout_config.
+// Adds missing sections without disturbing organiser customisations.
+// ============================================================
+
+async function reconcileLayoutConfig(
+  existing: LayoutConfig,
+  capsule_id: string
+): Promise<LayoutConfig> {
+  let sections = [...existing.sections];
+  const typeSet = new Set(sections.map((s: { type: string }) => s.type));
+
+  // ── 1. Add world_map if missing ───────────────────────────
+  if (!typeSet.has('world_map')) {
+    // Insert after honouree_profile, before tributes
+    const profileIdx = sections.findIndex((s: { type: string }) => s.type === 'honouree_profile');
+    const insertAt = profileIdx >= 0 ? profileIdx + 1 : 1;
+    sections.splice(insertAt, 0, {
+      id:      'section_world_map',
+      type:    'world_map',
+      enabled: true,
+    });
+  }
+
+  // ── 2. Fetch current phases and reconcile phase_photos sections ──
+  const { data: phases } = await adminClient
+    .from('capsule_phases')
+    .select('id, name, event_date')
+    .eq('capsule_id', capsule_id)
+    .is('deleted_at', null)
+    .order('sort_order', { ascending: true });
+
+  if (phases && phases.length > 0) {
+    const existingPhaseIds = new Set(
+      (sections as Array<{ type: string; phase_id?: string }>)
+        .filter(s => s.type === 'phase_photos')
+        .map(s => s.phase_id)
+    );
+
+    const missingPhases = phases.filter(
+      (p: { id: string }) => !existingPhaseIds.has(p.id)
+    );
+
+    if (missingPhases.length > 0) {
+      // Find where to insert — after last existing phase_photos section,
+      // or after tributes if none exist yet
+      const lastPhaseIdx = sections.reduce(
+        (last: number, s: { type: string }, i: number) =>
+          s.type === 'phase_photos' ? i : last,
+        -1
+      );
+      const tributesIdx = sections.findIndex(
+        (s: { type: string }) => s.type === 'tributes'
+      );
+      const insertAt =
+        lastPhaseIdx >= 0
+          ? lastPhaseIdx + 1
+          : tributesIdx >= 0
+          ? tributesIdx + 1
+          : sections.length - 1; // before closing message
+
+      missingPhases.forEach(
+        (phase: { id: string; name: string }, i: number) => {
+          sections.splice(insertAt + i, 0, {
+            id:                 `section_phase_${phase.id}`,
+            type:               'phase_photos' as const,
+            phase_id:           phase.id,
+            phase_name:         phase.name,
+            enabled:            true,
+            slots:              [],
+            arrangement_source: 'auto' as const,
+            excluded_photos:    [],
+          } as unknown as typeof sections[number]);
+        }
+      );
+    }
+  }
+
+  // ── 3. Ensure closing_message is always last ──────────────
+  const closingIdx = sections.findIndex(
+    (s: { type: string }) => s.type === 'closing_message'
+  );
+  if (closingIdx >= 0 && closingIdx !== sections.length - 1) {
+    const [closing] = sections.splice(closingIdx, 1);
+    sections.push(closing);
+  }
+
+  return { ...existing, sections };
+}
 
 // ============================================================
 // SECTION 2 — Route handler
@@ -101,9 +191,30 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   if (existing?.layout_config) {
-    // Layout already exists — return it immediately, no algorithm needed.
+    // Layout exists — run reconciliation to pick up new content
+    // (new phases, world_map section, appreciation reposition, etc.)
+    // This is safe to call on every editor open — it only adds missing
+    // sections and never removes or reorders organiser-customised ones.
+    const existingConfig = existing.layout_config as LayoutConfig;
+    const reconciledConfig = await reconcileLayoutConfig(
+      existingConfig,
+      capsule_id
+    );
+
+    // Only write back if something actually changed
+    const changed = JSON.stringify(reconciledConfig) !== JSON.stringify(existingConfig);
+    if (changed) {
+      await adminClient
+        .from('publications')
+        .update({
+          layout_config: reconciledConfig,
+          updated_at:    new Date().toISOString(),
+        })
+        .eq('id', existing.id);
+    }
+
     const response: PublicationInitResponse = {
-      layout_config: existing.layout_config as LayoutConfig,
+      layout_config: reconciledConfig,
       source: 'existing',
       pub_id: existing.id,
     };
