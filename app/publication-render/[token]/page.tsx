@@ -498,7 +498,8 @@ function renderCover(capsule: CapsuleData, heroUrl: string, styles: ThemeStyles)
     </div>` : ''}
     <div style="position:relative; padding:64px 52px 60px; z-index:1;">
       <div style="width:52px; height:4px; background:${styles.accentColor}; margin-bottom:28px; border-radius:2px;"></div>
-      <p style="font-family:${styles.bodyFont}; font-size:10px; font-weight:700; letter-spacing:0.28em; text-transform:uppercase; opacity:0.55; margin-bottom:18px;">LEGACYCAPSULE</p>
+      <p style="font-family:${styles.bodyFont}; font-size:9px; font-weight:700; letter-spacing:0.28em; text-transform:uppercase; opacity:0.45; margin-bottom:6px;">DIGITAL PUBLICATION</p>
+      <p style="font-family:${styles.bodyFont}; font-size:9px; font-weight:400; letter-spacing:0.2em; text-transform:uppercase; opacity:0.35; margin-bottom:22px;">by LegacyCapsule</p>
       <h1 style="font-family:${styles.headingFont}; font-size:54px; font-weight:700; line-height:1.08; margin-bottom:18px;">${escapeHtml(displayName)}</h1>
       ${capsule.event_tag ? `<p style="font-family:${styles.bodyFont}; font-size:19px; opacity:0.7; font-style:italic; margin-bottom:10px; line-height:1.4;">${escapeHtml(capsule.event_tag)}</p>` : ''}
       ${dateStr ? `<p style="font-family:${styles.bodyFont}; font-size:13px; opacity:0.5; margin-bottom:0; letter-spacing:0.06em;">${escapeHtml(dateStr)}</p>` : ''}
@@ -880,7 +881,7 @@ function renderOfficialPhotography(
 
   return `<div style="page-break-before:always; ${SECTION_WRAP}">
     ${renderSectionHeader('Official Photography', styles)}
-    <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic;">${officialPhotos.length} photograph${officialPhotos.length !== 1 ? 's' : ''}</p>
+     
     ${gridHtml}
     ${SECTION_FOOTER}
   </div>`;
@@ -1300,9 +1301,26 @@ function renderCollectionIntelligence(
       <!-- Right column: Distribution only -->
       <div>
         <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">Message Character Lengths Breakdown</p>
-        <div style="background:#FFFFFF; border-radius:12px; padding:14px 16px; border:1px solid rgba(0,0,0,0.07);">
+        <div style="background:#FFFFFF; border-radius:12px; padding:14px 16px; border:1px solid rgba(0,0,0,0.07); margin-bottom:20px;">
           ${distribution.map(d => distBar(d.label, d.count)).join('')}
         </div>
+
+        ${((): string => {
+          const relCounts: Record<string, number> = {};
+          contribs.forEach(c => {
+            if (c.relationship?.trim())
+              relCounts[c.relationship.trim()] = (relCounts[c.relationship.trim()] ?? 0) + 1;
+          });
+          const topRels = Object.entries(relCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10);
+          if (topRels.length === 0) return '';
+          return `
+            <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">Received Voices — Top 10 Relationship Categories</p>
+            <div style="background:#FFFFFF; border-radius:12px; padding:4px 16px; border:1px solid rgba(0,0,0,0.07);">
+              ${topRels.map(([rel, count]) => metricRow(escapeHtml(rel), String(count))).join('')}
+            </div>`;
+        })()}
       </div>
     </div>
 
@@ -1342,33 +1360,7 @@ function renderCollectionIntelligence(
         })()}
       </div>
 
-      <!-- Received Voices — Top 10 Relationship Categories -->
-      ${((): string => {
-        const relCounts: Record<string, number> = {};
-        contribs.forEach(c => {
-          if (c.relationship?.trim()) {
-            relCounts[c.relationship.trim()] = (relCounts[c.relationship.trim()] ?? 0) + 1;
-          }
-        });
-        const topRels = Object.entries(relCounts)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 10);
-        if (topRels.length === 0) return '';
-
-        const pills = topRels.map(([rel, count]) =>
-          `<div style="display:inline-flex; align-items:center; gap:6px; padding:5px 14px; border-radius:20px; border:1px solid ${styles.tributeCardBorder}; background:#FFFFFF; margin:0 6px 8px 0;">
-            <span style="font-family:${styles.bodyFont}; font-size:11px; color:${styles.pageText}; font-weight:600;">${escapeHtml(rel)}</span>
-            <span style="font-family:${styles.bodyFont}; font-size:10px; color:${styles.accentColor}; font-weight:700;">${count}</span>
-          </div>`
-        ).join('');
-
-        return `<div>
-          <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">Received Voices — Top 10 Relationship Categories</p>
-          <div style="display:flex; flex-wrap:wrap;">
-            ${pills}
-          </div>
-        </div>`;
-      })()}
+       
 
     </div>
   </div>`
@@ -1540,7 +1532,7 @@ function countryToIso(name: string): string {
   }).join('');
 
   return `<div style="page-break-before:always; padding:0 0 40px; ${SECTION_WRAP}">
-    ${renderSectionHeader('Where The Voices Came From', styles)}
+    ${renderSectionHeader('Contributors Country Spread', styles)}
     <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:32px; font-style:italic;">
       ${totalContribs} voice${totalContribs !== 1 ? 's' : ''} gathered from ${countryCount} countr${countryCount !== 1 ? 'ies' : 'y'} across the world
     </p>
