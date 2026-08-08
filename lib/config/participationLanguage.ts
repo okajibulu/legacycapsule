@@ -74,7 +74,7 @@ birthday: {
   // ── Wedding ─────────────────────────────────────────────────────────────────
   wedding: {
     wallTitle:          'Blessings Wall',
-    cta:                'Share Your Blessings',
+    cta:                'Share Your Blessing',
     singular:           'Blessing',
     plural:             'Blessings',
     expressionCategory: 'celebration',
@@ -84,7 +84,7 @@ birthday: {
   // singular === plural by design. Component applies display rule.
   graduation: {
     wallTitle:          'Congratulations Wall',
-    cta:                'Offer Your Congratulations',
+    cta:                'Send Your Congratulations',
     singular:           'Congratulations',
     plural:             'Congratulations',
     expressionCategory: 'achievement',
@@ -93,9 +93,9 @@ birthday: {
   // ── Anniversary ─────────────────────────────────────────────────────────────
   // singular === plural by design. Component applies display rule.
   anniversary: {
-    wallTitle:          'Congratulations Wall',
-    cta:                'Offer Your Congratulations',
-    singular:           'Congratulations',
+    wallTitle:          'Congratulation Wall',
+    cta:                'Share Your Congratulations',
+    singular:           'Congratulation',
     plural:             'Congratulations',
     expressionCategory: 'celebration',
   },
@@ -103,17 +103,17 @@ birthday: {
   // ── Award Ceremony ──────────────────────────────────────────────────────────
   // singular === plural by design. Component applies display rule.
   award: {
-    wallTitle:          'Congratulations Wall',
-    cta:                'Offer Your Congratulations',
-    singular:           'Congratulations',
-    plural:             'Congratulations',
+    wallTitle:          'Encomium Wall',
+    cta:                'Share Your Encomium',
+    singular:           'Encomium',
+    plural:             'Encomiums',
     expressionCategory: 'achievement',
   },
 
   // ── Ordination ──────────────────────────────────────────────────────────────
   ordination: {
     wallTitle:          'Blessings Wall',
-    cta:                'Offer Your Blessings',
+    cta:                'Offer Your Blessing',
     singular:           'Blessing',
     plural:             'Blessings',
     expressionCategory: 'celebration',

@@ -1964,13 +1964,13 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
                     </div>
                     <span style={{ fontSize: '16px', color: goldMuted }}>{pending.length}</span>
                   </div>
-                  <SectionCard title="Awaiting Review" subtitle={`${pending.length} to review`}>
+                  <SectionCard title="Voices — Awaiting Review" subtitle={`${pending.length} to review`}>
                     {pending.map(c => <TributeReviewCard key={c.id} c={c} onApprove={handleApprove} onDecline={handleDecline} />)}
                   </SectionCard>
                 </div>
               )}
 
-              {/* ── Pending stories notice ── */}
+              {/* ── Pending stories — inline review ── */}
               {(() => {
                 const pendingStories = stories.filter(s => s.status === 'pending' || s.status === 'pending_review')
                 return pendingStories.length > 0 ? (
@@ -1978,9 +1978,22 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
                     <div style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(147,197,253,0.06)', border: '1px solid rgba(147,197,253,0.2)', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div>
                         <p style={{ fontSize: '13px', fontWeight: 700, color: 'rgba(147,197,253,0.9)', margin: 0 }}>{pendingStories.length} {pendingStories.length === 1 ? 'story' : 'stories'} awaiting review</p>
-                        <p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0' }}>Review in the S/Stories tab</p>
+                        <p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0' }}>Review and publish below</p>
                       </div>
                       <span style={{ fontSize: '16px', color: 'rgba(147,197,253,0.6)' }}>{pendingStories.length}</span>
+                    </div>
+                    <div style={{ padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(147,197,253,0.15)', background: 'rgba(147,197,253,0.02)' }}>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(147,197,253,0.7)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 12px' }}>Stories — Awaiting Review</p>
+                      {pendingStories.map(s => (
+                        <StoryReviewCard
+                          key={s.id}
+                          s={s}
+                          onApprove={handleStoryApprove}
+                          onDecline={handleStoryDecline}
+                          onDelete={handleStoryDelete}
+                          onEdit={handleStoryEdit}
+                        />
+                      ))}
                     </div>
                   </div>
                 ) : null
