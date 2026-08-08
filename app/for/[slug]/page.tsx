@@ -141,6 +141,7 @@ export default async function TributePage({
       .eq('capsule_id', capsule.id)
       .in('status', ['approved', 'pending_review', 'pending'])
       .is('deleted_at', null)
+      .is('story_topic_id', null)
       .order('created_at', { ascending: false }),
 
     supabase
