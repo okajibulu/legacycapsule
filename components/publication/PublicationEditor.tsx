@@ -756,7 +756,7 @@ export default function PublicationEditor({
           flex-shrink-0 flex flex-col
           border-t border-yellow-400/10 md:border-t-0 md:border-l border-yellow-400/10
           bg-gradient-to-b from-[#100018] to-[#0a000e]
-          w-full md:w-64
+          w-full md:w-64 md:min-w-[256px]
           sticky bottom-0 md:static md:bottom-auto
           z-10 md:z-auto
           overflow-hidden
@@ -764,14 +764,13 @@ export default function PublicationEditor({
         aria-label="PDF generation panel"
       >
         {/* Header — hidden on mobile (space-saving) */}
-        <div className="hidden md:block px-4 py-4 border-b border-yellow-400/10">
+      <div className="hidden md:block border-b border-yellow-400/10 flex-shrink-0" style={{ padding: '16px 20px' }}>
           <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-0.5">Publication</p>
           <p className="text-sm font-bold text-yellow-100 leading-tight">Generate PDF</p>
         </div>
 
         {/* Generate button area */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-3 md:py-4 space-y-0 max-h-[55vh] md:max-h-none">
-
+<div className="flex-1 overflow-y-auto overflow-x-hidden space-y-0 max-h-[55vh] md:max-h-none" style={{ padding: '12px 20px' }}>
           {/* ══ TIER 0 — Publication Generation ══ */}
           <div className="pb-4 mb-4 border-b border-yellow-400/10">
             <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-2">
@@ -1051,7 +1050,7 @@ export default function PublicationEditor({
         </div>
 
 {/* Footer — back link (desktop only) */}
-        <div className="hidden md:block px-4 py-3 border-t border-yellow-400/10 flex-shrink-0">
+     <div className="hidden md:block border-t border-yellow-400/10 flex-shrink-0" style={{ padding: '12px 20px' }}>
           <a
             href={'/manage/' + capsuleSlug}
             className="text-[11px] flex items-center gap-1 no-underline"

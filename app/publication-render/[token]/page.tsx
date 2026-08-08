@@ -395,8 +395,8 @@ function renderForeword(
   const SECTION_DESCRIPTIONS: Record<string, string> = {
     cover:                  'The opening page — honouree portrait, name, and event occasion.',
     honouree_profile:       'Background, occasion details, and curated notes about the honouree.',
-    world_map:              'A visual record of every country from which voices arrived.',
-    tributes:               'The full collection of voices — every appreciation, in full.',
+    world_map:              'A visual record of every country from which voices arrived, with a breakdown by nation.',
+    tributes:               `The full collection of ${getTributeHeading(capsule.event_type).toLowerCase()} — every voice gathered, in full.`,
     phase_photos:           'Photographs from this phase of the event, curated by the organiser.',
     official_photography:   'Professional photographs captured on the day of the event.',
     guest_captures:         'Candid photographs uploaded by guests present on the day.',
@@ -407,9 +407,20 @@ function renderForeword(
 
   const enabledSections = sections.filter(s => s.enabled && s.type !== 'closing_message')
   const tocRows = enabledSections.map(s => {
+    const SECTION_DISPLAY_NAMES: Record<string, string> = {
+      cover:                'Cover Page',
+      honouree_profile:     'Honouree Profile',
+      world_map:            'Contributors Country Spread',
+      tributes:             getTributeHeading(capsule.event_type),
+      official_photography: 'Official Photography',
+      guest_captures:       'In The Room',
+      memories:             'Memories',
+      community_stories:    'Community Stories',
+      closing_message:      'Closing Message',
+    }
     const label = s.type === 'phase_photos'
       ? (s as PhasePhotosSection).phase_name ?? 'Event Photographs'
-      : s.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+      : SECTION_DISPLAY_NAMES[s.type] ?? s.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
     const desc = s.type === 'phase_photos'
       ? `Photographs from ${(s as PhasePhotosSection).phase_name ?? 'this event phase'}, curated for this publication.`
       : SECTION_DESCRIPTIONS[s.type] ?? 'Content section.'
