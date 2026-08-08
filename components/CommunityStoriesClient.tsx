@@ -138,7 +138,8 @@ function StoryCard({ story, photos, honoureeName }: {
   return (
     <div style={{
       padding: '16px', borderRadius: '12px',
-      border: `1px solid ${cardBorder}`, background: cardBg,
+      border: '1px solid rgba(255,255,255,0.08)',
+      background: 'rgba(255,255,255,0.06)',
       marginBottom: '10px',
     }}>
       {/* Author row */}
@@ -246,7 +247,13 @@ function TopicSection({ topic, stories, photos, honoureeName, onShare }: {
   const displayName = topic.topic_name.replace(/\[honouree_name\]/g, honoureeName)
 
   return (
-    <div style={{ marginBottom: '28px' }}>
+    <div style={{
+      marginBottom: '28px',
+      padding: '16px',
+      borderRadius: '14px',
+      background: 'rgba(226,195,107,0.04)',
+      border: '1px solid rgba(226,195,107,0.12)',
+    }}>
       <div style={{
         display: 'flex', alignItems: 'flex-start',
         justifyContent: 'space-between', marginBottom: '12px', gap: '10px',
@@ -502,46 +509,64 @@ function CategoryDetailView({ category, topics, stories, photos, honoureeName, c
         </p>
       </div>
 
-      {/* Unanswered topics — shown as cards to invite response */}
+      {/* Unanswered topics — compact dropdown to save space */}
       {topicsWithoutStories.length > 0 && (
         <div style={{ marginBottom: '24px' }}>
           <p style={{
             fontSize: '10px', color: textFaint,
             textTransform: 'uppercase' as const, letterSpacing: '0.1em',
-            margin: '0 0 10px', fontWeight: 600,
+            margin: '0 0 8px', fontWeight: 600,
           }}>
-            Be the first to answer
+            Be the first to answer — {topicsWithoutStories.length} open {topicsWithoutStories.length === 1 ? 'prompt' : 'prompts'}
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
-            {topicsWithoutStories.map(topic => {
-              const displayText = topic.topic_name.replace(/\[honouree_name\]/g, honoureeName)
-              return (
-                <button
-                  key={topic.id}
-                  onClick={() => onShare(topic.id)}
-                  style={{
-                    textAlign: 'left' as const, padding: '14px 16px',
-                    borderRadius: '12px', border: `1px solid ${cardBorder}`,
-                    background: cardBg, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: '12px',
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <p style={{
-                      margin: 0, fontSize: '13px', color: textPrimary,
-                      lineHeight: 1.6, fontStyle: 'italic',
-                      fontFamily: "'Playfair Display', serif",
-                    }}>
-                      "{displayText}"
-                    </p>
-                    <p style={{ margin: '6px 0 0', fontSize: '10px', color: goldMuted, fontWeight: 600 }}>
-                      No memories yet — share yours
-                    </p>
-                  </div>
-                  <span style={{ fontSize: '14px', color: goldMuted, flexShrink: 0 }}>+</span>
-                </button>
-              )
-            })}
+          <div style={{
+            borderRadius: '12px',
+            border: '1px dashed rgba(226,195,107,0.2)',
+            background: 'rgba(226,195,107,0.03)',
+            overflow: 'hidden',
+          }}>
+            <select
+              defaultValue=""
+              onChange={e => {
+                if (e.target.value) {
+                  onShare(e.target.value)
+                  e.target.value = ''
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                background: 'transparent',
+                border: 'none',
+                color: goldMuted,
+                fontSize: '12px',
+                fontFamily: "'DM Sans', sans-serif",
+                cursor: 'pointer',
+                outline: 'none',
+                appearance: 'none' as const,
+                WebkitAppearance: 'none' as const,
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='rgba(226,195,107,0.5)' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 14px center',
+                paddingRight: '36px',
+              }}
+            >
+              <option value="" disabled style={{ background: '#1a0845', color: 'rgba(255,255,255,0.4)' }}>
+                ✦ Pick a prompt to answer…
+              </option>
+              {topicsWithoutStories.map(topic => {
+                const displayText = topic.topic_name.replace(/\[honouree_name\]/g, honoureeName)
+                return (
+                  <option
+                    key={topic.id}
+                    value={topic.id}
+                    style={{ background: '#1a0845', color: 'rgba(255,255,255,0.85)', padding: '8px' }}
+                  >
+                    {displayText}
+                  </option>
+                )
+              })}
+            </select>
           </div>
         </div>
       )}
