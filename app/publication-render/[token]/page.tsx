@@ -727,7 +727,7 @@ function renderCommunityStories(
   }).join('')
 
   return `<div style="page-break-before:always; ${SECTION_WRAP}">
-    ${renderSectionHeader('Community Memories & Stories', styles)}
+    ${renderSectionHeader('Community Stories', styles)}
     ${topicsHtml}
     ${SECTION_FOOTER}
   </div>`;

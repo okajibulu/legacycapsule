@@ -105,7 +105,7 @@ function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
   // Tab 2 -- Memories (always -- community stories is free for all capsules)
   tabs.push({
     id:     'memories',
-    label:  'Memories',
+    label:  'Stories',
     icon:   '📖',
     href:   `/for/${slug}/stories`,
     active: true,

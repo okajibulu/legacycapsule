@@ -71,8 +71,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   return {
     title: capsule
-      ? `Community Memories & Stories — ${capsule.honouree_name}`
-      : 'Community Memories & Stories',
+      ? `Community Stories — ${capsule.honouree_name}`
+      : 'Community Stories',
   }
 }
 
