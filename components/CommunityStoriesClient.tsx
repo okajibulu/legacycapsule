@@ -576,12 +576,13 @@ function CategoryDetailView({ category, topics, stories, photos, honoureeName, c
 
 // ═══ SECTION 8 — SubmitStoryPanel (unchanged from AI11/AI13) ═══
 
-function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess }: {
-  capsule:        CapsuleInfo
-  topics:         StoryTopic[]
-  hasPublication: boolean
-  onClose:        () => void
-  onSuccess:      () => void
+function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess, defaultCategory }: {
+  capsule:          CapsuleInfo
+  topics:           StoryTopic[]
+  hasPublication:   boolean
+  onClose:          () => void
+  onSuccess:        () => void
+  defaultCategory?: string
 }) {
   const [name,         setName]         = useState('')
   const [email,        setEmail]        = useState('')
@@ -614,7 +615,7 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess 
           capsule_id:   capsule.id,
           topic_name:   newTopicText.trim(),
           topic_source: 'community',
-          category:     'General',
+          category:     defaultCategory ?? 'General',
         }),
       })
       if (!res.ok) throw new Error('Failed')
@@ -650,12 +651,12 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess 
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
           capsule_id:            capsule.id,
-          story_topic_id:        topicId,
+          capsule_slug:          capsule.slug,
+          story_topic_id:        topicId || null,
           contributor_name:      name.trim(),
-          contributor_email:     email.trim() || undefined,
+          email:                 email.trim() || undefined,
           tribute_text:          text.trim(),
           relationship:          finalRelationship || undefined,
-           
           relationship_category: relationship || undefined,
         }),
       })
@@ -1070,6 +1071,7 @@ export default function CommunityStoriesClient({ capsule, topics, stories, story
             : (activeCategory ? topics.filter(t => (t.category ?? 'General') === activeCategory) : topics)
           }
           hasPublication={hasPublication}
+          defaultCategory={activeCategory ?? undefined}
           onClose={() => { setSubmitting(false); setSelectedTopicId(null) }}
           onSuccess={() => { setSubmitting(false); setSelectedTopicId(null); setSubmitted(true) }}
         />
