@@ -1182,17 +1182,10 @@ function renderCollectionIntelligence(
   // Countries
   const countryCounts: Record<string, number> = {}
   contribs.forEach(c => {
-    // Use ip_country (ISO code → resolve to display name) over free-text country
-    const co = c.ip_country?.trim()
-      ? c.ip_country.trim().toUpperCase()
-      : c.country?.trim()
-    if (co && co !== 'Not Listed') {
-      // For display, convert ISO back to name if we have ip_country
-      const displayName = c.ip_country?.trim()
-        ? (Object.entries(COUNTRY_NAME_TO_ISO).find(([, iso]) => iso === co)?.[0] ?? co)
-        : co
-      countryCounts[displayName] = (countryCounts[displayName] ?? 0) + 1
-    }
+    // ip_country stores full country name — prefer over contributor-typed country
+    const resolvedCountry = c.ip_country?.trim() || c.country?.trim()
+    if (!resolvedCountry || resolvedCountry === 'Not Listed') return
+    countryCounts[resolvedCountry] = (countryCounts[resolvedCountry] ?? 0) + 1
   })
   const topCountries = Object.entries(countryCounts)
     .sort((a, b) => b[1] - a[1])
@@ -1413,6 +1406,8 @@ const COUNTRY_NAME_TO_ISO: Record<string, string> = {
   'Singapore': 'SG', 'Malaysia': 'MY',
   'Saudi Arabia': 'SA', 'UAE': 'AE',
   'United Arab Emirates': 'AE', 'Qatar': 'QA',
+  'Greece': 'GR', 'Romania': 'RO',
+  'Hungary': 'HU', 'Czech Republic': 'CZ', 'Slovakia': 'SK',
 }
 
 function countryToIso(name: string): string {
@@ -1436,21 +1431,16 @@ function countryToIso(name: string): string {
   // Gather unique countries — prefer ip_country (ISO) over free text
   const countryCounts: Record<string, number> = {};
   const countryLabels: Record<string, string> = {};
-  contribs.forEach(c => {
-    const ipIso = c.ip_country?.trim().toUpperCase();
-    const rawCountry = c.country?.trim();
+   contribs.forEach(c => {
+    // ip_country stores full country name (resolved from Cloudflare ISO at submission)
+    // Prefer ip_country over contributor-typed country; both are full names
+    const resolvedCountry = c.ip_country?.trim() || c.country?.trim();
+    if (!resolvedCountry || resolvedCountry === 'Not Listed') return;
 
-    if (ipIso && ipIso.length === 2) {
-      countryCounts[ipIso] = (countryCounts[ipIso] ?? 0) + 1;
-      countryLabels[ipIso] = countryLabels[ipIso] ??
-        (Object.entries(COUNTRY_NAME_TO_ISO).find(([, iso]) => iso === ipIso)?.[0] ?? ipIso);
-    } else if (rawCountry && rawCountry !== 'Not Listed') {
-      const iso = countryToIso(rawCountry);
-      if (iso) {
-        countryCounts[iso] = (countryCounts[iso] ?? 0) + 1;
-        countryLabels[iso] = countryLabels[iso] ?? rawCountry;
-      }
-    }
+    const iso = countryToIso(resolvedCountry);
+    if (!iso) return;
+    countryCounts[iso] = (countryCounts[iso] ?? 0) + 1;
+    countryLabels[iso] = countryLabels[iso] ?? resolvedCountry;
   });
 
   const sorted = Object.entries(countryCounts)
