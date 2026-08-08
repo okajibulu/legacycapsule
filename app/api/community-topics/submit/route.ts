@@ -29,7 +29,8 @@ export async function POST(req: NextRequest) {
     const city = (fd.get('city') as string)?.trim() ?? ''
     const country = (fd.get('country') as string)?.trim() ?? ''
     const tribute_text = (fd.get('tribute_text') as string)?.trim()
-    const story_topic_id = (fd.get('story_topic_id') as string) ?? null
+    const story_topic_id_raw = fd.get('story_topic_id') as string | null
+    const story_topic_id = (story_topic_id_raw && story_topic_id_raw !== 'null' && story_topic_id_raw.trim() !== '') ? story_topic_id_raw : null
     const new_topic_name = (fd.get('new_topic_name') as string)?.trim() ?? ''
     const photoFile = fd.get('photo') as File | null
 
@@ -49,12 +50,12 @@ export async function POST(req: NextRequest) {
 
     const { data: capsule } = await supabase
       .from('capsules')
-      .select('id, page_state, components')
+      .select('id, components')
       .eq('id', capsule_id)
       .single()
 
-    if (!capsule || !['active', 'pending'].includes(capsule.page_state)) {
-      return NextResponse.json({ error: 'Capsule not found or inactive' }, { status: 404 })
+    if (!capsule) {
+      return NextResponse.json({ error: 'Capsule not found' }, { status: 404 })
     }
 
     const components: string[] = capsule.components ?? []
