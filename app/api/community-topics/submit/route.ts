@@ -19,20 +19,49 @@ function getServiceClient() {
 
 export async function POST(req: NextRequest) {
   try {
-    const fd = await req.formData()
+    // Accept both FormData (with photo) and JSON (text-only)
+    let capsule_id: string
+    let capsule_slug: string
+    let contributor_name: string
+    let email: string
+    let relationship: string
+    let city: string
+    let country: string
+    let tribute_text: string
+    let story_topic_id: string | null
+    let new_topic_name: string
+    let photoFile: File | null = null
 
-    const capsule_id = fd.get('capsule_id') as string
-    const capsule_slug = fd.get('capsule_slug') as string
-    const contributor_name = (fd.get('contributor_name') as string)?.trim()
-    const email = (fd.get('email') as string)?.trim() ?? ''
-    const relationship = (fd.get('relationship') as string)?.trim() ?? ''
-    const city = (fd.get('city') as string)?.trim() ?? ''
-    const country = (fd.get('country') as string)?.trim() ?? ''
-    const tribute_text = (fd.get('tribute_text') as string)?.trim()
-    const story_topic_id_raw = fd.get('story_topic_id') as string | null
-    const story_topic_id = (story_topic_id_raw && story_topic_id_raw !== 'null' && story_topic_id_raw.trim() !== '') ? story_topic_id_raw : null
-    const new_topic_name = (fd.get('new_topic_name') as string)?.trim() ?? ''
-    const photoFile = fd.get('photo') as File | null
+    const contentType = req.headers.get('content-type') ?? ''
+
+    if (contentType.includes('multipart/form-data') || contentType.includes('application/x-www-form-urlencoded')) {
+      const fd = await req.formData()
+      capsule_id       = fd.get('capsule_id') as string
+      capsule_slug     = fd.get('capsule_slug') as string
+      contributor_name = (fd.get('contributor_name') as string)?.trim()
+      email            = (fd.get('email') as string)?.trim() ?? ''
+      relationship     = (fd.get('relationship') as string)?.trim() ?? ''
+      city             = (fd.get('city') as string)?.trim() ?? ''
+      country          = (fd.get('country') as string)?.trim() ?? ''
+      tribute_text     = (fd.get('tribute_text') as string)?.trim()
+      const story_topic_id_raw = fd.get('story_topic_id') as string | null
+      story_topic_id   = (story_topic_id_raw && story_topic_id_raw !== 'null' && story_topic_id_raw.trim() !== '') ? story_topic_id_raw : null
+      new_topic_name   = (fd.get('new_topic_name') as string)?.trim() ?? ''
+      photoFile        = fd.get('photo') as File | null
+    } else {
+      const body       = await req.json()
+      capsule_id       = body.capsule_id
+      capsule_slug     = body.capsule_slug
+      contributor_name = body.contributor_name?.trim()
+      email            = body.email?.trim() ?? ''
+      relationship     = body.relationship?.trim() ?? ''
+      city             = body.city?.trim() ?? ''
+      country          = body.country?.trim() ?? ''
+      tribute_text     = body.tribute_text?.trim()
+      const raw        = body.story_topic_id
+      story_topic_id   = (raw && raw !== 'null' && String(raw).trim() !== '') ? raw : null
+      new_topic_name   = body.new_topic_name?.trim() ?? ''
+    }
 
     // ── SECTION: Validation ──────────────────────────────────
 
