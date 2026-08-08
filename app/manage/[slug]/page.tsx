@@ -39,6 +39,16 @@ interface Capsule {
   hero_image_fit: string | null; hero_panel_size: string | null
   hero_full_bleed: boolean | null
 }
+interface CommunityStory {
+  id:               string
+  contributor_name: string
+  relationship:     string | null
+  story_text:       string
+  status:           string
+  created_at:       string
+  topic_id:         string | null
+  topic_name?:      string | null
+}
 interface Contribution {
   id: string; contributor_name: string; city: string; country: string
   relationship: string | null; tribute_text: string; email: string | null
@@ -191,6 +201,83 @@ function TributeReviewCard({ c, onApprove, onDecline }: { c: Contribution; onApp
           <div style={{ display: 'flex', gap: '8px' }}>
             <button onClick={() => { onDecline(c.id); setDeclining(false) }} style={{ padding: '6px 16px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.25)', color: 'rgba(248,113,113,0.9)', cursor: 'pointer' }}>Confirm</button>
             <button onClick={() => setDeclining(false)} style={{ padding: '6px 14px', borderRadius: '6px', fontSize: '12px', background: 'transparent', border: `1px solid ${cardBorder}`, color: textFaint, cursor: 'pointer' }}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* -- STORY REVIEW CARD ---------------------------------- */
+function StoryReviewCard({ s, onApprove, onDecline, onDelete, onEdit }: {
+  s:         CommunityStory
+  onApprove: (id: string) => void
+  onDecline: (id: string) => void
+  onDelete:  (id: string) => void
+  onEdit:    (id: string, text: string) => void
+}) {
+  const [declining,  setDeclining]  = useState(false)
+  const [deleting,   setDeleting]   = useState(false)
+  const [editing,    setEditing]    = useState(false)
+  const [editText,   setEditText]   = useState(s.story_text)
+  const [approving,  setApproving]  = useState(false)
+  const [saving,     setSaving]     = useState(false)
+  const isPending = s.status === 'pending' || s.status === 'pending_review'
+
+  return (
+    <div style={{ borderRadius: '12px', border: `1px solid ${isPending ? 'rgba(226,195,107,0.2)' : 'rgba(255,255,255,0.06)'}`, background: isPending ? 'rgba(226,195,107,0.03)' : 'rgba(255,255,255,0.02)', padding: '14px 16px', marginBottom: '10px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '6px' }}>
+        <span style={{ fontSize: '13px', fontWeight: 600, color: gold }}>{s.contributor_name}</span>
+        {s.relationship && <span style={{ fontSize: '10px', color: textFaint }}>· {s.relationship}</span>}
+        <span style={{ fontSize: '10px', color: textFaint, marginLeft: 'auto' }}>{new Date(s.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+      </div>
+      {s.topic_name && (
+        <p style={{ fontSize: '10px', color: goldMuted, marginBottom: '6px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          {s.topic_name}
+        </p>
+      )}
+
+      {/* Story text / edit */}
+      {editing ? (
+        <div style={{ marginBottom: '10px' }}>
+          <textarea
+            value={editText}
+            onChange={e => setEditText(e.target.value)}
+            rows={5}
+            style={{ width: '100%', fontSize: '12px', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(226,195,107,0.18)', color: textPrimary, resize: 'vertical', fontFamily: "'DM Sans', sans-serif", boxSizing: 'border-box' }}
+          />
+          <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+            <button onClick={async () => { setSaving(true); await onEdit(s.id, editText); setSaving(false); setEditing(false) }} disabled={saving} style={{ padding: '7px 18px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', border: 'none', cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>{saving ? 'Saving…' : 'Save'}</button>
+            <button onClick={() => { setEditing(false); setEditText(s.story_text) }} style={{ padding: '7px 14px', borderRadius: '8px', fontSize: '12px', background: 'transparent', border: `1px solid ${cardBorder}`, color: textFaint, cursor: 'pointer' }}>Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <p style={{ fontSize: '13px', color: textPrimary, lineHeight: 1.7, marginBottom: '12px', fontStyle: 'italic' }}>"{s.story_text.slice(0, 200)}{s.story_text.length > 200 ? '…' : ''}"</p>
+      )}
+
+      {/* Actions */}
+      {!editing && (
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          {isPending && (
+            <button disabled={approving} onClick={async () => { setApproving(true); await onApprove(s.id) }} style={{ flex: 1, minWidth: '80px', padding: '7px', borderRadius: '8px', border: '1px solid rgba(74,222,128,0.28)', background: 'rgba(74,222,128,0.07)', color: approving ? textFaint : 'rgba(134,239,172,0.9)', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+              {approving ? 'Publishing…' : '✓ Publish'}
+            </button>
+          )}
+          <button onClick={() => setEditing(true)} style={{ padding: '7px 12px', borderRadius: '8px', border: `1px solid ${cardBorder}`, background: 'transparent', color: textFaint, fontSize: '12px', cursor: 'pointer' }}>Edit</button>
+          <button onClick={() => isPending ? onDecline(s.id) : setDeleting(true)} style={{ padding: '7px 12px', borderRadius: '8px', border: '1px solid rgba(248,113,113,0.2)', background: 'rgba(248,113,113,0.05)', color: 'rgba(248,113,113,0.7)', fontSize: '12px', cursor: 'pointer' }}>
+            {isPending ? 'Decline' : 'Delete'}
+          </button>
+        </div>
+      )}
+
+      {/* Delete confirm */}
+      {deleting && (
+        <div style={{ marginTop: '10px', padding: '10px 12px', borderRadius: '8px', background: 'rgba(248,113,113,0.05)', border: '1px solid rgba(248,113,113,0.15)' }}>
+          <p style={{ fontSize: '12px', color: textSecondary, marginBottom: '8px' }}>Delete this story? This cannot be undone.</p>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => { onDelete(s.id); setDeleting(false) }} style={{ padding: '6px 16px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.25)', color: 'rgba(248,113,113,0.9)', cursor: 'pointer' }}>Confirm Delete</button>
+            <button onClick={() => setDeleting(false)} style={{ padding: '6px 14px', borderRadius: '6px', fontSize: '12px', background: 'transparent', border: `1px solid ${cardBorder}`, color: textFaint, cursor: 'pointer' }}>Cancel</button>
           </div>
         </div>
       )}
@@ -1608,6 +1695,7 @@ export default function ManagePage() {
 
   const [capsule, setCapsule] = useState<Capsule | null>(null)
   const [contributions, setContributions] = useState<Contribution[]>([])
+  const [stories,       setStories]       = useState<CommunityStory[]>([])
   const [profileSections, setProfileSections] = useState<ProfileSection[]>([])
   const [galleryPhotos, setGalleryPhotos] = useState<any[]>([])
   const [visitorEmail, setVisitorEmail] = useState('')
@@ -1658,12 +1746,13 @@ const capRes = await supabase.from('capsules')
     const cap = capRes.data as Capsule
     setCapsule(cap); setHeroImage(cap.hero_image_url)
 
-const [contribRes, sectionsRes, galleryRes, topicsRes, phasesRes] = await Promise.all([
+const [contribRes, sectionsRes, galleryRes, topicsRes, phasesRes, storiesRes] = await Promise.all([
       supabase.from('contributions').select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, email, status, created_at, include_in_publication, include_in_programme_export').eq('capsule_id', cap.id).is('deleted_at', null).order('created_at', { ascending: false }),
       supabase.from('capsule_profile_sections').select('id, section_type, custom_title, content, sort_order, is_active').eq('capsule_id', cap.id).order('sort_order'),
       supabase.from('capsule_gallery').select('id, image_url, description, sort_order, section_index').eq('capsule_id', cap.id).order('section_index').order('sort_order'),
       supabase.from('community_story_topics').select('id, topic_name, topic_source, status, display_order, category').eq('capsule_id', cap.id).order('display_order', { ascending: true }),
       supabase.from('capsule_phases').select('id, name, event_date, sort_order').eq('capsule_id', cap.id).is('deleted_at', null).order('sort_order', { ascending: true }),
+      supabase.from('community_stories').select('id, contributor_name, relationship, story_text, status, created_at, topic_id, community_story_topics(topic_name)').eq('capsule_id', cap.id).is('deleted_at', null).order('created_at', { ascending: false }),
     ])
 
     if (contribRes.data) setContributions(contribRes.data as Contribution[])
@@ -1671,7 +1760,11 @@ const [contribRes, sectionsRes, galleryRes, topicsRes, phasesRes] = await Promis
     if (galleryRes.data) setGalleryPhotos(galleryRes.data)
     if (topicsRes.data) setCommunityTopics(topicsRes.data)
     if (phasesRes.data) setPhases(phasesRes.data)
-      setLoading(false)
+if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
+      ...s,
+      topic_name: s.community_story_topics?.topic_name ?? null,
+    })))
+    setLoading(false)
   }, [slug])
 
   useEffect(() => { fetchAll() }, [fetchAll])
@@ -1694,7 +1787,22 @@ const [contribRes, sectionsRes, galleryRes, topicsRes, phasesRes] = await Promis
     fetchAll()
   }
   const handleDecline = async (id: string) => { await supabase.from('contributions').delete().eq('id', id); fetchAll() }
- 
+ const handleStoryApprove = async (id: string) => {
+    await supabase.from('community_stories').update({ status: 'approved' }).eq('id', id)
+    fetchAll()
+  }
+  const handleStoryDecline = async (id: string) => {
+    await supabase.from('community_stories').delete().eq('id', id)
+    fetchAll()
+  }
+  const handleStoryDelete = async (id: string) => {
+    await supabase.from('community_stories').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+    fetchAll()
+  }
+  const handleStoryEdit = async (id: string, text: string) => {
+    await supabase.from('community_stories').update({ story_text: text }).eq('id', id)
+    fetchAll()
+  }
  const handleToggleFlag = async (id: string, field: string, current: boolean) => {
     await supabase.from('contributions').update({ [field]: !current }).eq('id', id)
     fetchAll()
@@ -1862,6 +1970,22 @@ const [contribRes, sectionsRes, galleryRes, topicsRes, phasesRes] = await Promis
                 </div>
               )}
 
+              {/* ── Pending stories notice ── */}
+              {(() => {
+                const pendingStories = stories.filter(s => s.status === 'pending' || s.status === 'pending_review')
+                return pendingStories.length > 0 ? (
+                  <div style={{ marginBottom: '14px' }}>
+                    <div style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(147,197,253,0.06)', border: '1px solid rgba(147,197,253,0.2)', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div>
+                        <p style={{ fontSize: '13px', fontWeight: 700, color: 'rgba(147,197,253,0.9)', margin: 0 }}>{pendingStories.length} {pendingStories.length === 1 ? 'story' : 'stories'} awaiting review</p>
+                        <p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0' }}>Review in the S/Stories tab</p>
+                      </div>
+                      <span style={{ fontSize: '16px', color: 'rgba(147,197,253,0.6)' }}>{pendingStories.length}</span>
+                    </div>
+                  </div>
+                ) : null
+              })()}
+
               <SectionCard title="Your Capsule Is Live">
                 <p style={{ fontSize: '12px', color: textFaint, marginBottom: '12px' }}>Share this link with contributors.</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: goldFaint, border: `1px solid rgba(226,195,107,0.15)`, marginBottom: '10px' }}>
@@ -1907,9 +2031,58 @@ const [contribRes, sectionsRes, galleryRes, topicsRes, phasesRes] = await Promis
                 textPrimary={textPrimary}
                 textFaint={textFaint}
               />
+
+              {/* ── Submitted Stories ── */}
+              {stories.length > 0 && (
+                <div style={{ marginTop: '28px', borderTop: `1px solid ${goldFaint}`, paddingTop: '24px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: goldMuted, margin: '0 0 4px' }}>Submitted Stories</p>
+                  <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.6, margin: '0 0 16px' }}>
+                    Review, edit, approve or delete stories submitted by contributors.
+                  </p>
+                  {/* Pending first */}
+                  {stories.filter(s => s.status === 'pending' || s.status === 'pending_review').length > 0 && (
+                    <div style={{ marginBottom: '20px' }}>
+                      <p style={{ fontSize: '11px', color: 'rgba(147,197,253,0.8)', fontWeight: 600, marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        Awaiting Review ({stories.filter(s => s.status === 'pending' || s.status === 'pending_review').length})
+                      </p>
+                      {stories
+                        .filter(s => s.status === 'pending' || s.status === 'pending_review')
+                        .map(s => (
+                          <StoryReviewCard
+                            key={s.id}
+                            s={s}
+                            onApprove={handleStoryApprove}
+                            onDecline={handleStoryDecline}
+                            onDelete={handleStoryDelete}
+                            onEdit={handleStoryEdit}
+                          />
+                        ))}
+                    </div>
+                  )}
+                  {/* Approved */}
+                  {stories.filter(s => s.status === 'approved').length > 0 && (
+                    <div>
+                      <p style={{ fontSize: '11px', color: 'rgba(134,239,172,0.7)', fontWeight: 600, marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        Published ({stories.filter(s => s.status === 'approved').length})
+                      </p>
+                      {stories
+                        .filter(s => s.status === 'approved')
+                        .map(s => (
+                          <StoryReviewCard
+                            key={s.id}
+                            s={s}
+                            onApprove={handleStoryApprove}
+                            onDecline={handleStoryDecline}
+                            onDelete={handleStoryDelete}
+                            onEdit={handleStoryEdit}
+                          />
+                        ))}
+                    </div>
+                  )}
+   </div>
+              )}
             </div>
           )}
-
           {/* -- SETPROFILE TAB -- */}
           {activeTab === 'setprofile' && (
             <div>
