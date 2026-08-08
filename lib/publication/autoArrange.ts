@@ -287,6 +287,8 @@ export function buildPhaseSection(
     type: 'phase_photos',
     phase_id: phase.id,
     phase_name: phase.name,
+    ...(((phase as any).event_date) ? { phase_date: (phase as any).event_date } : {}),
+    ...(((phase as any).venue) ? { phase_venue: (phase as any).venue } : {}),
     enabled: true,
     arrangement_source: 'auto',
     slots,

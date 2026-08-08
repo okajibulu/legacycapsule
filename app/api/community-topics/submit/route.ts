@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       .eq('id', capsule_id)
       .single()
 
-    if (!capsule || capsule.page_state !== 'active') {
+    if (!capsule || !['active', 'pending'].includes(capsule.page_state)) {
       return NextResponse.json({ error: 'Capsule not found or inactive' }, { status: 404 })
     }
 

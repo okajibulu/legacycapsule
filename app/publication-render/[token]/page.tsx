@@ -797,8 +797,7 @@ function renderPhasePhotos(
       if (!url) return '';
       const caption = slot.caption ?? '';
       return `<div style="margin-bottom:14px; page-break-inside:avoid; break-inside:avoid;">
-        <img src="${url}" alt="${escapeHtml(caption)}" style="width:100%; height:280px; object-fit:cover; object-position:top center; border-radius:10px; display:block; image-orientation:from-image;"/>
-        ${caption ? `<p style="font-size:10px; color:${styles.secondaryText}; margin-top:7px; font-style:italic; text-align:center; letter-spacing:0.03em;">${escapeHtml(caption)}</p>` : ''}
+        <img src="${url}" alt="" style="width:100%; height:280px; object-fit:cover; object-position:top center; border-radius:10px; display:block; image-orientation:from-image;"/>
       </div>`;
     }
 
@@ -808,7 +807,7 @@ function renderPhasePhotos(
         if (!url) return `<div style="flex:1; min-width:0;"></div>`;
         return `<div style="flex:1; min-width:0;">
           <img src="${url}" alt="${escapeHtml(p.caption)}" style="width:100%; height:210px; object-fit:cover; object-position:top center; border-radius:10px; display:block; image-orientation:from-image;"/>
-          ${p.caption ? `<p style="font-size:9px; color:${styles.secondaryText}; margin-top:5px; text-align:center; font-style:italic;">${escapeHtml(p.caption)}</p>` : ''}
+           
         </div>`;
       }).join('');
       return `<div style="display:flex; gap:14px; margin-bottom:14px; page-break-inside:avoid; break-inside:avoid;">
@@ -822,7 +821,7 @@ function renderPhasePhotos(
         if (!url) return `<div style="flex:1; min-width:0;"></div>`;
         return `<div style="flex:1; min-width:0;">
           <img src="${url}" alt="${escapeHtml(p.caption)}" style="width:100%; height:160px; object-fit:cover; object-position:top center; border-radius:8px; display:block; image-orientation:from-image;"/>
-          ${p.caption ? `<p style="font-size:9px; color:${styles.secondaryText}; margin-top:5px; text-align:center; font-style:italic;">${escapeHtml(p.caption)}</p>` : ''}
+           
         </div>`;
       }).join('');
       return `<div style="display:flex; gap:10px; margin-bottom:14px; page-break-inside:avoid; break-inside:avoid;">
@@ -837,6 +836,7 @@ function renderPhasePhotos(
 
   return `<div style="page-break-before:always; ${SECTION_WRAP}">
     ${renderSectionHeader(section.phase_name ?? 'Event Photographs', styles)}
+    ${(section as any).phase_date || (section as any).phase_venue ? `<p style="font-family:${styles.bodyFont}; font-size:12px; color:${styles.secondaryText}; margin:-20px 0 24px; font-style:italic; letter-spacing:0.03em;">${[(section as any).phase_date ? formatEventDate((section as any).phase_date) : '', (section as any).phase_venue ?? ''].filter(Boolean).join(' · ')}</p>` : ''}
     ${slotsHtml}
     ${SECTION_FOOTER}
   </div>`;
@@ -1289,6 +1289,37 @@ function renderCollectionIntelligence(
           ${metricRow('Gathering span', `${spanDays} day${spanDays !== 1 ? 's' : ''}`)}
           ${metricRow(`Average per day`, `${avgPerDay} ${lang.plural.toLowerCase()}`)}
         </div>
+
+        <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:20px 0 12px;">Engagement Breakdown</p>
+        <div style="background:#FFFFFF; border-radius:12px; padding:4px 16px; border:1px solid rgba(0,0,0,0.07);">
+          ${((): string => {
+            const stories      = contribs.filter(c => !!c.story_topic_id);
+            const ddayPhotos   = (galleryItems ?? []).filter((g: GalleryItemData) => g.source === 'dday' && !g.is_official_photography);
+            const officialPics = (galleryItems ?? []).filter((g: GalleryItemData) => g.is_official_photography);
+            const memoryCount  = (memories ?? []).length;
+            const withPhoto    = contribs.filter(c => !!(c.thumbnail_url || c.image_url)).length;
+            const anonCount    = contribs.filter(c => c.is_anonymous).length;
+            const nameCounts: Record<string, number> = {};
+            contribs.forEach(c => {
+              if (!c.is_anonymous && c.contributor_name)
+                nameCounts[c.contributor_name] = (nameCounts[c.contributor_name] ?? 0) + 1;
+            });
+            const repeatCount   = Object.values(nameCounts).filter(v => v > 1).length;
+            const ddayUploaders = new Set(ddayPhotos.map((g: GalleryItemData) => g.uploaded_by_name).filter(Boolean)).size;
+            const rows: string[] = [];
+            if (withPhoto > 0)         rows.push(metricRow('Voices with a photo', `${withPhoto} (${Math.round(withPhoto / total * 100)}%)`));
+            if (anonCount > 0)         rows.push(metricRow('Anonymous submissions', String(anonCount)));
+            if (repeatCount > 0)       rows.push(metricRow('Repeat contributors', String(repeatCount)));
+            if (stories.length > 0) {
+              const su = new Set(stories.map(s => s.contributor_name)).size;
+              rows.push(metricRow('Community stories', `${stories.length} · ${su} contributor${su !== 1 ? 's' : ''}`));
+            }
+            if (memoryCount > 0)       rows.push(metricRow('Memories shared', String(memoryCount)));
+            if (ddayPhotos.length > 0) rows.push(metricRow('Guest captures', `${ddayPhotos.length} · ${ddayUploaders} uploader${ddayUploaders !== 1 ? 's' : ''}`));
+            if (officialPics.length > 0) rows.push(metricRow('Official photographs', String(officialPics.length)));
+            return rows.join('');
+          })()}
+        </div>
       </div>
 
       <!-- Right column: Distribution only -->
@@ -1317,46 +1348,7 @@ function renderCollectionIntelligence(
       </div>
     </div>
 
- <!-- Engagement Breakdown + Relationship -->
-    <div style="margin-top:32px;">
-
-      <!-- Engagement Breakdown -->
-      <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:${styles.accentColor}; margin:0 0 12px;">Engagement Breakdown</p>
-      <div style="background:#FFFFFF; border-radius:12px; padding:4px 16px; border:1px solid rgba(0,0,0,0.07); margin-bottom:20px;">
-        ${((): string => {
-          const stories      = contribs.filter(c => !!c.story_topic_id);
-          const ddayPhotos   = (galleryItems ?? []).filter((g: GalleryItemData) => g.source === 'dday' && !g.is_official_photography);
-          const officialPics = (galleryItems ?? []).filter((g: GalleryItemData) => g.is_official_photography);
-          const memoryCount  = (memories ?? []).length;
-          const withPhoto    = contribs.filter(c => !!(c.thumbnail_url || c.image_url)).length;
-          const anonCount    = contribs.filter(c => c.is_anonymous).length;
-          const nameCounts: Record<string, number> = {};
-          contribs.forEach(c => {
-            if (!c.is_anonymous && c.contributor_name)
-              nameCounts[c.contributor_name] = (nameCounts[c.contributor_name] ?? 0) + 1;
-          });
-          const repeatCount  = Object.values(nameCounts).filter(v => v > 1).length;
-          const ddayUploaders = new Set(ddayPhotos.map((g: GalleryItemData) => g.uploaded_by_name).filter(Boolean)).size;
-
-          const rows: string[] = [];
-          if (withPhoto > 0)        rows.push(metricRow('Voices with a photo', `${withPhoto} (${Math.round(withPhoto / total * 100)}%)`));
-          if (anonCount > 0)        rows.push(metricRow('Anonymous submissions', String(anonCount)));
-          if (repeatCount > 0)      rows.push(metricRow('Repeat contributors', String(repeatCount)));
-          if (stories.length > 0) {
-            const su = new Set(stories.map(s => s.contributor_name)).size;
-            rows.push(metricRow('Community stories', `${stories.length} from ${su} contributor${su !== 1 ? 's' : ''}`));
-          }
-          if (memoryCount > 0)      rows.push(metricRow('Memories shared', String(memoryCount)));
-          if (ddayPhotos.length > 0) rows.push(metricRow('Guest captures (D-Day)', `${ddayPhotos.length} from ${ddayUploaders} uploader${ddayUploaders !== 1 ? 's' : ''}`));
-          if (officialPics.length > 0) rows.push(metricRow('Official photographs', String(officialPics.length)));
-          return rows.join('');
-        })()}
-      </div>
-
-       
-
-    </div>
-  </div>`
+ </div>`
 }
 
 // ============================================================
@@ -1590,7 +1582,7 @@ export default async function PublicationRenderPage({
   // ── Fetch all content in parallel ─────────────────────────
   const [
     capsuleRes, contribsRes, galleryRes,
-    profileRes, topicsRes, memoriesRes, profileGalleryRes,
+    profileRes, topicsRes, memoriesRes, profileGalleryRes, phasesRes,
   ] = await Promise.all([
     adminClient.from('capsules')
       .select('id, honouree_name, honouree_title, event_type, event_date, event_tag, hero_image_url, theme, cover_style')
@@ -1623,6 +1615,11 @@ adminClient.from('contributions')
       .eq('capsule_id', capsuleId)
       .order('section_index', { ascending: true })
       .order('sort_order', { ascending: true }),
+
+    adminClient.from('capsule_phases')
+      .select('id, name, event_date, venue')
+      .eq('capsule_id', capsuleId)
+      .is('deleted_at', null),
   ]);
 
   const capsule         = capsuleRes.data  as CapsuleData;
@@ -1633,6 +1630,7 @@ adminClient.from('contributions')
   const storyTopics     = (topicsRes.data          ?? []) as StoryTopicData[];
   const memories        = (memoriesRes.data        ?? []) as MemoryData[];
   const profileGallery  = (profileGalleryRes.data  ?? []) as ProfileGalleryItem[];
+  const phases          = (phasesRes.data          ?? []) as Array<{ id: string; name: string; event_date: string | null; venue: string | null }>;
 
   if (!capsule) return notFound();
 

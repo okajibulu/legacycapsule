@@ -716,11 +716,17 @@ export default function PublicationEditor({
             <PhotoSection
               section={activeSecData as PhasePhotosSection}
               photos={photos}
+              capsuleId={capsuleId}
               onSwap={handleSwapPhotos}
               onReplace={handleReplacePhoto}
               onRemove={handleRemovePhoto}
               onPromote={handlePromotePhoto}
               onReset={handleResetSection}
+              onPurged={(newLayout) => {
+                setLayout(newLayout);
+                setAutoLayout(newLayout);
+                setSaveState('saved');
+              }}
             />
           )}
 
