@@ -343,6 +343,100 @@ function renderAppreciationBlock(section: ProfileSectionData, styles: ThemeStyle
 }
 
 // ============================================================
+// SECTION 5C — Foreword page renderer
+// Page 2 — what this publication is, why they received it.
+// Includes dynamic Capsule Content (TOC) with section descriptions.
+// AI19 · 8 Aug 2026
+// ============================================================
+
+function renderForeword(
+  capsule: CapsuleData,
+  sections: Section[],
+  contribs: ContributionData[],
+  styles: ThemeStyles
+): string {
+  const langMap: Record<string, string> = {
+    memorial:        'tributes',
+    wedding:         'blessings',
+    birthday:        'birthday wishes',
+    graduation:      'congratulations',
+    chieftaincy:     'encomiums',
+    ordination:      'blessings',
+    award_ceremony:  'honours',
+    thanksgiving:    'gratitude messages',
+    retirement:      'appreciations',
+  }
+  const participationWord = langMap[capsule.event_type] ?? 'appreciations'
+  const displayName = capsule.honouree_title
+    ? `${capsule.honouree_title} ${capsule.honouree_name}`
+    : capsule.honouree_name
+
+  // ── Build Capsule Content entries from enabled sections ───
+  const SECTION_DESCRIPTIONS: Record<string, string> = {
+    cover:                  'The opening page — honouree portrait, name, and event occasion.',
+    honouree_profile:       'Background, occasion details, and curated notes about the honouree.',
+    world_map:              'A visual record of every country from which voices arrived.',
+    tributes:               'The full collection of voices — every appreciation, in full.',
+    phase_photos:           'Photographs from this phase of the event, curated by the organiser.',
+    official_photography:   'Professional photographs captured on the day of the event.',
+    guest_captures:         'Candid photographs uploaded by guests present on the day.',
+    memories:               'Personal memories shared by contributors, grouped by era.',
+    community_stories:      'Stories and reflections organised by topic from the community.',
+    closing_message:        'A closing note from LegacyCapsule.',
+  }
+
+  const enabledSections = sections.filter(s => s.enabled && s.type !== 'closing_message')
+  const tocRows = enabledSections.map(s => {
+    const label = s.type === 'phase_photos'
+      ? (s as PhasePhotosSection).phase_name ?? 'Event Photographs'
+      : s.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+    const desc = s.type === 'phase_photos'
+      ? `Photographs from ${(s as PhasePhotosSection).phase_name ?? 'this event phase'}, curated for this publication.`
+      : SECTION_DESCRIPTIONS[s.type] ?? 'Content section.'
+    return `<div style="display:flex; align-items:baseline; gap:12px; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.05);">
+      <span style="font-family:${styles.headingFont}; font-size:12px; font-weight:700; color:${styles.sectionHeaderTextColor}; white-space:nowrap; min-width:160px;">${escapeHtml(label)}</span>
+      <span style="font-family:${styles.bodyFont}; font-size:11px; color:${styles.secondaryText}; line-height:1.6;">${escapeHtml(desc)}</span>
+    </div>`
+  }).join('')
+
+  return `<div style="page-break-before:always; ${SECTION_WRAP}">
+
+    <!-- Foreword text -->
+    <div style="max-width:600px; margin:60px 0 48px;">
+      <p style="font-family:${styles.bodyFont}; font-size:15px; line-height:2; color:${styles.pageText}; margin-bottom:20px;">
+        This publication is a living record.
+      </p>
+      <p style="font-family:${styles.bodyFont}; font-size:14px; line-height:1.95; color:${styles.pageText}; margin-bottom:20px;">
+        It brings together the voices of everyone who chose to honour
+        <span style="font-weight:700;">${escapeHtml(displayName)}</span> —
+        through ${escapeHtml(participationWord)}, memories, and photographs gathered from across the world.
+        Every word here was written freely, from the heart, by someone whose life was touched by theirs.
+      </p>
+      <p style="font-family:${styles.bodyFont}; font-size:14px; line-height:1.95; color:${styles.pageText}; margin-bottom:20px;">
+        This digital publication has been shared to every email collected in connection with this occasion —
+        a keepsake of the legacy of
+        <span style="font-weight:700;">${escapeHtml(displayName)}</span>,
+        assembled and preserved by LegacyCapsule so that nothing of this moment is lost.
+      </p>
+      <p style="font-family:${styles.bodyFont}; font-size:14px; line-height:1.95; color:${styles.pageText}; margin-bottom:28px;">
+        You have received it because you were part of this story — or because someone who is
+        part of it wanted you to know.
+      </p>
+      <p style="font-family:${styles.headingFont}; font-size:14px; font-style:italic; color:${styles.secondaryText};">
+        Keep it. Return to it. Let someone else read it.
+      </p>
+    </div>
+
+    <!-- Capsule Content (TOC) -->
+    ${renderSectionHeader('Capsule Content', styles)}
+    <div style="margin-bottom:40px;">
+      ${tocRows}
+    </div>
+
+  </div>`
+}
+
+// ============================================================
 // SECTION 6 — Cover renderer
 // ============================================================
 
@@ -1514,7 +1608,8 @@ adminClient.from('contributions')
     ...mainSections.map((section: Section) => {
       switch (section.type) {
         case 'cover':
-          return renderCover(capsule, heroUrl, styles);
+          return renderCover(capsule, heroUrl, styles)
+            + renderForeword(capsule, layoutConfig.sections, contribs, styles);
         case 'honouree_profile':
           return renderHonoureeProfile(capsule, profileSections, styles);
         case 'tributes': {
