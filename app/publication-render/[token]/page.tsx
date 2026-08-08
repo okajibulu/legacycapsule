@@ -417,6 +417,8 @@ function renderForeword(
       memories:             'Memories',
       community_stories:    'Community Stories',
       closing_message:      'Closing Message',
+      collection_intelligence: 'Capsule Highlights',
+      appreciation:         'Family Appreciation',
     }
     const label = s.type === 'phase_photos'
       ? (s as PhasePhotosSection).phase_name ?? 'Event Photographs'
@@ -459,7 +461,7 @@ function renderForeword(
     </div>
 
     <!-- Capsule Content (TOC) -->
-    ${renderSectionHeader('Capsule Content', styles)}
+    ${renderSectionHeader('Capsule Digital Publication Content', styles)}
     <div style="margin-bottom:32px;">
       ${tocRows}
     </div>
