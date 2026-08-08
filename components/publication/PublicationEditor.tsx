@@ -296,6 +296,8 @@ export default function PublicationEditor({
     id: string; recipient_name: string; recipient_email: string;
     version_sent: number; sent_at: string;
   }>>([]);
+  // Multi-recipient list — built before sending
+  const [namedRecipients,      setNamedRecipients]      = useState<Array<{ name: string; email: string }>>([]);
 
   const hasUnsavedChanges = saveState === 'unsaved' || saveState === 'saving';
 
@@ -545,30 +547,52 @@ export default function PublicationEditor({
   }, [capsuleId, capsuleSlug])
 
   // ── 5.7c  Named send ─────────────────────────────────────
+  const handleAddRecipient = useCallback(() => {
+    if (!namedSendEmail.trim()) return
+    setNamedRecipients(prev => [
+      ...prev,
+      { name: namedSendName.trim() || 'Guest', email: namedSendEmail.trim() }
+    ])
+    setNamedSendEmail('')
+    setNamedSendName('')
+  }, [namedSendEmail, namedSendName])
+
+  const handleRemoveRecipient = useCallback((email: string) => {
+    setNamedRecipients(prev => prev.filter(r => r.email !== email))
+  }, [])
+
   const handleNamedSend = useCallback(async () => {
-    if (!capsuleId || !namedSendEmail.trim()) return
+    if (!capsuleId) return
+    // Include current input as recipient if filled
+    const allRecipients = [
+      ...namedRecipients,
+      ...(namedSendEmail.trim() ? [{ name: namedSendName.trim() || 'Guest', email: namedSendEmail.trim() }] : [])
+    ]
+    if (allRecipients.length === 0) return
     setNamedSending(true)
     setNamedSendError(null)
     try {
-      const res  = await fetch('/api/publication/named-send', {
+      const res = await fetch('/api/publication/named-send', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          capsule_id:      capsuleId,
-          capsule_slug:    capsuleSlug,
-          recipient_name:  namedSendName.trim() || 'Guest',
-          recipient_email: namedSendEmail.trim(),
+          capsule_id:   capsuleId,
+          capsule_slug: capsuleSlug,
+          recipients:   allRecipients,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Send failed')
-      setNamedSends(prev => [{
-        id:              Date.now().toString(),
-        recipient_name:  namedSendName.trim() || 'Guest',
-        recipient_email: namedSendEmail.trim(),
+      // Log all sent recipients
+      const newSends = allRecipients.map((r, i) => ({
+        id:              `${Date.now()}-${i}`,
+        recipient_name:  r.name,
+        recipient_email: r.email,
         version_sent:    data.version ?? 1,
         sent_at:         new Date().toISOString(),
-      }, ...prev])
+      }))
+      setNamedSends(prev => [...newSends, ...prev])
+      setNamedRecipients([])
       setNamedSendEmail('')
       setNamedSendName('')
     } catch (err) {
@@ -576,7 +600,7 @@ export default function PublicationEditor({
     } finally {
       setNamedSending(false)
     }
-  }, [capsuleId, capsuleSlug, namedSendEmail, namedSendName])
+  }, [capsuleId, capsuleSlug, namedSendEmail, namedSendName, namedRecipients])
 
   // ── 5.7d  Full distribution ───────────────────────────────
   const handlePreviewRecipients = useCallback(async () => {
@@ -726,9 +750,10 @@ export default function PublicationEditor({
           flex-shrink-0 flex flex-col
           border-t border-yellow-400/10 md:border-t-0 md:border-l border-yellow-400/10
           bg-gradient-to-b from-[#100018] to-[#0a000e]
-          md:w-64 md:overflow-hidden
+          w-full md:w-64
           sticky bottom-0 md:static md:bottom-auto
           z-10 md:z-auto
+          overflow-hidden
         "
         aria-label="PDF generation panel"
       >
@@ -739,7 +764,7 @@ export default function PublicationEditor({
         </div>
 
         {/* Generate button area */}
-        <div className="flex-1 overflow-y-auto px-4 py-3 md:py-4 space-y-0 overflow-x-hidden max-h-[55vh] md:max-h-none">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-3 md:py-4 space-y-0 max-h-[55vh] md:max-h-none">
 
           {/* ══ TIER 0 — Publication Generation ══ */}
           <div className="pb-4 mb-4 border-b border-yellow-400/10">
@@ -841,6 +866,8 @@ export default function PublicationEditor({
           {currentToken && (
             <div className="pb-4 mb-4 border-b border-yellow-400/10">
               <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-2">Named Send</p>
+
+              {/* Recipient input */}
               <div className="space-y-1.5 mb-2">
                 <input
                   type="text"
@@ -849,25 +876,65 @@ export default function PublicationEditor({
                   onChange={e => setNamedSendName(e.target.value)}
                   className="w-full px-2.5 py-1.5 rounded-md text-[11px] bg-white/5 border border-white/10 text-white/70 placeholder:text-white/25 focus:outline-none focus:border-yellow-400/30"
                 />
-                <input
-                  type="email"
-                  placeholder="Email address *"
-                  value={namedSendEmail}
-                  onChange={e => setNamedSendEmail(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-md text-[11px] bg-white/5 border border-white/10 text-white/70 placeholder:text-white/25 focus:outline-none focus:border-yellow-400/30"
-                />
-                <button
-                  type="button"
-                  onClick={handleNamedSend}
-                  disabled={namedSending || !namedSendEmail.trim() || hasUnsavedChanges}
-                  className="w-full py-1.5 rounded-md text-[11px] font-bold border border-yellow-400/20 text-yellow-400/70 hover:bg-yellow-400/8 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {namedSending ? 'Sending…' : 'Send →'}
-                </button>
+                <div className="flex gap-1.5">
+                  <input
+                    type="email"
+                    placeholder="Email address *"
+                    value={namedSendEmail}
+                    onChange={e => setNamedSendEmail(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleAddRecipient() }}
+                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-md text-[11px] bg-white/5 border border-white/10 text-white/70 placeholder:text-white/25 focus:outline-none focus:border-yellow-400/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddRecipient}
+                    disabled={!namedSendEmail.trim()}
+                    className="px-2.5 py-1.5 rounded-md text-[11px] border border-white/15 text-white/40 hover:text-white/70 hover:border-white/30 transition-colors disabled:opacity-30 flex-shrink-0"
+                    title="Add to recipient list"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-              {namedSendError && (
-                <p className="text-[10px] text-red-400/70 mb-1.5">{namedSendError}</p>
+
+              {/* Staged recipients list */}
+              {namedRecipients.length > 0 && (
+                <div className="mb-2 space-y-1">
+                  {namedRecipients.map(r => (
+                    <div key={r.email} className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/4 border border-white/8">
+                      <span className="text-[10px] text-white/60 flex-1 truncate">{r.name} · {r.email}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRecipient(r.email)}
+                        className="text-[9px] text-white/25 hover:text-red-400/60 flex-shrink-0 transition-colors"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
+
+              {/* Send button */}
+              <button
+                type="button"
+                onClick={handleNamedSend}
+                disabled={namedSending || (namedRecipients.length === 0 && !namedSendEmail.trim()) || hasUnsavedChanges}
+                className="w-full py-1.5 rounded-md text-[11px] font-bold border border-yellow-400/20 text-yellow-400/70 hover:bg-yellow-400/8 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {namedSending
+                  ? 'Sending…'
+                  : namedRecipients.length > 1
+                  ? `Send to ${namedRecipients.length} recipients →`
+                  : 'Send →'
+                }
+              </button>
+
+              {namedSendError && (
+                <p className="text-[10px] text-red-400/70 mt-1.5">{namedSendError}</p>
+              )}
+
+              {/* Send history */}
               {namedSends.length > 0 && (
                 <div className="space-y-1 mt-2">
                   {namedSends.slice(0, 4).map(s => (

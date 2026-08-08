@@ -64,6 +64,11 @@ async function reconcileLayoutConfig(
   let sections = [...existing.sections];
   const typeSet = new Set(sections.map((s: { type: string }) => s.type));
 
+  // ── 0. Remove retired section types ───────────────────────
+  sections = sections.filter(
+    (s: { type: string }) => s.type !== 'who_attended'
+  );
+  
   // ── 1. Add world_map if missing ───────────────────────────
   if (!typeSet.has('world_map')) {
     const profileIdx = sections.findIndex((s: { type: string }) => s.type === 'honouree_profile');
