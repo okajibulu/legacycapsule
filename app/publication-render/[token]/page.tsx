@@ -262,6 +262,25 @@ const THEME_STYLES: Record<string, ThemeStyles> = {
 // Applied to all section outer wrappers for screen and print consistency.
 const SECTION_WRAP = `padding:0 ${24}px;`
 
+// ── Section footer — subtle LC brand presence on every page ──
+// Appended to every section renderer. 8px, right-aligned, low opacity.
+// Renders as design element, not advertising.
+const SECTION_FOOTER = `<div style="
+  text-align:right;
+  padding:18px 0 0;
+  margin-top:32px;
+  border-top:1px solid rgba(0,0,0,0.04);
+">
+  <span style="
+    font-family:system-ui, sans-serif;
+    font-size:7.5px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:#B8960C;
+    opacity:0.22;
+  ">itslegacycapsule.com</span>
+</div>`
+
 function renderSectionHeader(title: string, styles: ThemeStyles): string {
   const base = `page-break-after:avoid;`
   switch (styles.sectionHeaderStyle) {
@@ -339,6 +358,7 @@ function renderAppreciationBlock(section: ProfileSectionData, styles: ThemeStyle
         margin:0;
       ">${content}</p>
     </div>
+    ${SECTION_FOOTER}
   </div>`;
 }
 
@@ -429,10 +449,35 @@ function renderForeword(
 
     <!-- Capsule Content (TOC) -->
     ${renderSectionHeader('Capsule Content', styles)}
-    <div style="margin-bottom:40px;">
+    <div style="margin-bottom:32px;">
       ${tocRows}
     </div>
 
+    <p style="
+      font-family:${styles.bodyFont};
+      font-size:12px;
+      line-height:1.85;
+      color:${styles.secondaryText};
+      font-style:italic;
+      max-width:540px;
+      padding-top:8px;
+      border-top:1px solid rgba(0,0,0,0.06);
+      margin-bottom:4px;
+    ">
+      This publication was created using LegacyCapsule — a platform built to gather voices
+      and preserve legacies for the people who deserve to be remembered.
+      If you have someone worth celebrating,
+    </p>
+    <p style="
+      font-family:${styles.bodyFont};
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:0.08em;
+      color:${styles.accentColor};
+      margin-bottom:32px;
+    ">itslegacycapsule.com</p>
+
+    ${SECTION_FOOTER}
   </div>`
 }
 
@@ -459,6 +504,7 @@ function renderCover(capsule: CapsuleData, heroUrl: string, styles: ThemeStyles)
       ${dateStr ? `<p style="font-family:${styles.bodyFont}; font-size:13px; opacity:0.5; margin-bottom:0; letter-spacing:0.06em;">${escapeHtml(dateStr)}</p>` : ''}
       <div style="width:52px; height:3px; background:${styles.accentColor}; margin:36px 0 0; border-radius:2px;"></div>
     </div>
+    ${SECTION_FOOTER}
   </div>`;
 }
 
@@ -526,6 +572,7 @@ function renderHonoureeProfile(
   return `<div style="page-break-before:always; ${SECTION_WRAP}">
     ${renderSectionHeader(displayName, styles)}
     ${sectionsHtml}
+    ${SECTION_FOOTER}
   </div>`;
 }
 
@@ -578,6 +625,7 @@ function renderProfileGallery(
   return `<div style="page-break-before:always; ${SECTION_WRAP}">
     ${renderSectionHeader('Photo Gallery', styles)}
     ${sectionsHtml}
+    ${SECTION_FOOTER}
   </div>`;
 }
 
@@ -638,6 +686,7 @@ function renderTributes(
     ${renderSectionHeader(getTributeHeading(eventType), styles)}
     <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic; letter-spacing:0.03em;">${tributeList.length} voice${tributeList.length !== 1 ? 's' : ''} gathered</p>
     ${cards}
+    ${SECTION_FOOTER}
   </div>`;
 }
 
@@ -679,6 +728,7 @@ function renderCommunityStories(
   return `<div style="page-break-before:always; ${SECTION_WRAP}">
     ${renderSectionHeader('Community Memories & Stories', styles)}
     ${topicsHtml}
+    ${SECTION_FOOTER}
   </div>`;
 }
 
@@ -718,6 +768,7 @@ function renderMemories(memories: MemoryData[], styles: ThemeStyles): string {
     ${renderSectionHeader('Memories', styles)}
     <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic;">${memories.length} memor${memories.length !== 1 ? 'ies' : 'y'} shared</p>
     ${groupsHtml}
+    ${SECTION_FOOTER}
   </div>`;
 }
 
@@ -786,6 +837,7 @@ function renderPhasePhotos(
   return `<div style="page-break-before:always; ${SECTION_WRAP}">
     ${renderSectionHeader(section.phase_name ?? 'Event Photographs', styles)}
     ${slotsHtml}
+    ${SECTION_FOOTER}
   </div>`;
 }
 
@@ -830,6 +882,7 @@ function renderOfficialPhotography(
     ${renderSectionHeader('Official Photography', styles)}
     <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic;">${officialPhotos.length} photograph${officialPhotos.length !== 1 ? 's' : ''}</p>
     ${gridHtml}
+    ${SECTION_FOOTER}
   </div>`;
 }
 
@@ -873,6 +926,7 @@ function renderGuestCaptures(
     ${renderSectionHeader('In The Room', styles)}
     <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic;">${guestPhotos.length} guest photograph${guestPhotos.length !== 1 ? 's' : ''} — moments captured by those who were there</p>
     ${gridHtml}
+    ${SECTION_FOOTER}
   </div>`;
 }
 
@@ -1008,25 +1062,36 @@ function renderClosingMessage(
       <div style="margin-bottom:52px;">
         <p style="
           font-family:${styles.bodyFont};
-          font-size:10px;
+          font-size:13px;
           color:${styles.coverTextColor ?? styles.pageText};
-          letter-spacing:0.22em;
-          text-transform:uppercase;
-          opacity:0.35;
-          margin:0 0 6px;
+          font-style:italic;
+          opacity:0.7;
+          margin:0 0 10px;
+          line-height:1.6;
         ">
-          VALNEX, UNIPESSOAL LDA · REVOWORLDTECH
+          Captures and Preserves Memories for ALL your events
         </p>
         <p style="
           font-family:${styles.bodyFont};
-          font-size:10px;
-          color:${styles.coverTextColor ?? styles.pageText};
-          letter-spacing:0.14em;
-          text-transform:uppercase;
-          opacity:0.2;
-          margin:0;
+          font-size:12px;
+          font-weight:700;
+          color:${styles.accentColor};
+          letter-spacing:0.1em;
+          opacity:0.9;
+          margin:0 0 16px;
         ">
           itslegacycapsule.com
+        </p>
+        <p style="
+          font-family:${styles.bodyFont};
+          font-size:9px;
+          color:${styles.coverTextColor ?? styles.pageText};
+          letter-spacing:0.22em;
+          text-transform:uppercase;
+          opacity:0.25;
+          margin:0;
+        ">
+          VALNEX, UNIPESSOAL LDA · REVOWORLDTECH
         </p>
       </div>
 
@@ -1503,6 +1568,7 @@ function countryToIso(name: string): string {
         </div>`;
       }).join('')}
     </div>
+    ${SECTION_FOOTER}
   </div>`;
 }
 
