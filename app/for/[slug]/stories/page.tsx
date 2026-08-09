@@ -156,24 +156,6 @@ export default async function CommunityStoriesPage({
       .order('sort_order', { ascending: true }),
   ])
 
-const { data: latestVoice } = await supabase
-  .from('contributions')
-  .select('created_at')
-  .eq('capsule_id', capsule.id)
-  .eq('status', 'approved')
-  .order('created_at', { ascending: false })
-  .limit(1)
-  .maybeSingle()
-
-const { data: latestStory } = await supabase
-  .from('contributions')
-  .select('created_at')
-  .eq('capsule_id', capsule.id)
-  .eq('status', 'approved')
-  .not('story_topic_id', 'is', null)
-  .order('created_at', { ascending: false })
-  .limit(1)
-  .maybeSingle()
 
   // ── Fetch story photos ────────────────────────────────────────────────────
   const storyContribIds = stories.map(s => s.id)
@@ -194,6 +176,19 @@ const { data: latestStory } = await supabase
       }
     }
   }
+// ── Latest story timestamp for notification dot ───────────────────────────
+  const latestStory = stories.length > 0 ? stories[0] : null
+
+  // ── Latest voice timestamp for other tab dots ─────────────────────────────
+  const { data: latestVoice } = await supabase
+    .from('contributions')
+    .select('created_at')
+    .eq('capsule_id', capsule.id)
+    .eq('status', 'approved')
+    .is('story_topic_id', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
   const hasPublication = components.includes('publication')
 
@@ -222,10 +217,11 @@ const { data: latestStory } = await supabase
         honourName={capsule.honouree_name}
         eventType={capsule.event_type}
         supportAccounts={supportAccounts ?? []}
-        phases={phasesData ?? []}
-latestVoiceAt={latestVoice?.created_at ?? null}
-latestMemoryAt={latestStory?.created_at ?? null}
-latestHighlightAt={latestVoice?.created_at ?? null} 
+       phases={phasesData ?? []}
+        latestVoiceAt={latestVoice?.created_at ?? null}
+        latestMemoryAt={latestStory?.created_at ?? null}
+        latestHighlightAt={latestVoice?.created_at ?? null}
+  
   />
     </>
   )

@@ -1435,9 +1435,9 @@ background:
 {/* ── Stories discovery teaser ── */}
           <div style={{ margin: '8px 12px 0', padding: '12px 16px', borderRadius: '12px', border: `1px solid ${t.accentFaint}`, background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div>
-              <p style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 700, color: t.accentMuted }}>📖 From the Stories Room</p>
+              <p style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 700, color: t.accentMuted }}>📖 Also Visit the Stories Room</p>
               <p style={{ margin: 0, fontSize: '11px', color: t.textFaint, lineHeight: 1.5 }}>
-                Every memory, lesson and chapter about {honourName} lives here.
+                Read and also post more stories and memories about {honourName}.
               </p>
             </div>
             <a href={`/for/${capsule.slug}/stories`} style={{ flexShrink: 0, fontSize: '11px', fontWeight: 700, color: t.accentPrimary, textDecoration: 'none', padding: '6px 12px', borderRadius: '8px', border: `1px solid ${t.accentFaint}`, background: 'rgba(226,195,107,0.06)', whiteSpace: 'nowrap' }}>
