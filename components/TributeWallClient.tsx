@@ -26,6 +26,7 @@ import { getThemeConfig } from '@/lib/themeConfig'
 import type { ThemeKey, ThemeConfig } from '@/lib/themeConfig'
 import PublicationSubscribePanel from '@/components/capsule/PublicationSubscribePanel'
 import { getParticipationLanguage, formatParticipationCount } from '@/lib/utils/getParticipationLanguage'
+import { getRelationshipQuestion, getRelationshipOptions, getFamiliarName } from '@/lib/utils/getRelationshipQuestion'
 import GlobalExpressionsStrip from '@/components/capsule/GlobalExpressionsStrip'
 
 const AudioTribute = dynamic(() => import('@/components/AudioTribute'), { ssr: false })
@@ -407,60 +408,6 @@ function ProfileSummarySection({ section, t, slug }: { section: ProfileSection; 
   )
 }
 
-const GENERAL_RELATIONSHIP_OPTIONS = [
-  'Son/Daughter',
-  'Parent (Mother/Father)',
-  'Sibling (Brother/Sister)',
-  'Grandchild',
-  'Grandparent',
-  'Spouse/Partner',
-  'Former Spouse/Partner',
-  'Extended Family',
-  'In-Law',
-  'Father/Mother Figure',
-  'Friend',
-  'Acquaintance',
-  'Classmate/Alumni',
-  'Community Member',
-  'Team/Club Member',
-  'Faith/Spiritual Connection',
-  'Colleague/Work Connection',
-  'Mentor/Teacher',
-  'Student/Mentee',
-  'Community Leader/Guide',
-  'Caregiver/Healthcare Worker',
-  'Legacy Beneficiary',
-  'Supporter/Well-wisher',
-  'Other',
-]
-
-const WEDDING_RELATIONSHIP_OPTIONS = [
-  'Friend of the Couple',
-  'Friend of the Bride',
-  'Friend of the Groom',
-  'Parent of the Bride',
-  'Parent of the Groom',
-  'Sibling of the Bride',
-  'Sibling of the Groom',
-  'Grandparent',
-  'Extended Family',
-  'In-Law',
-  'Best Man / Maid of Honour',
-  'Groomsman / Bridesmaid',
-  'Colleague/Work Connection',
-  'Classmate/Alumni',
-  'Community Member',
-  'Faith/Spiritual Connection',
-  'Mentor/Teacher',
-  'Supporter/Well-wisher',
-  'Other',
-]
-
-function getRelationshipOptions(eventType: string): string[] {
-  const e = eventType.toLowerCase()
-  if (e === 'wedding') return WEDDING_RELATIONSHIP_OPTIONS
-  return GENERAL_RELATIONSHIP_OPTIONS
-}
 
 function RelationshipSelect({ selected, onChange, error, t, eventType, honoureeName }: {
   selected: string[]
@@ -480,7 +427,7 @@ function RelationshipSelect({ selected, onChange, error, t, eventType, honoureeN
   return (
     <div style={{ position: 'relative' }}>
       <p style={{ fontSize: '11px', color: t.accentMuted, fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-        Who is {honoureeName.split(' ')[0]} to you? <span style={{ color: 'rgba(248,113,113,0.8)' }}>*</span>
+        {getRelationshipQuestion(eventType, honoureeName)} <span style={{ color: 'rgba(248,113,113,0.8)' }}>*</span>
       </p>
 
       {/* Trigger button */}
@@ -500,7 +447,7 @@ function RelationshipSelect({ selected, onChange, error, t, eventType, honoureeN
       >
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, flex: 1 }}>
           {selected.length === 0
-            ? `Who is ${honoureeName.split(' ')[0]} to you?`
+            ? getRelationshipQuestion(eventType, honoureeName)
             : selected.length === 1
               ? selected[0]
               : `${selected[0]} +${selected.length - 1} more`
@@ -552,10 +499,10 @@ function RelationshipSelect({ selected, onChange, error, t, eventType, honoureeN
 </div>
 
 {getRelationshipOptions(eventType)
-  .filter(opt =>
+  .filter((opt: string) =>
     opt.toLowerCase().includes(search.toLowerCase())
   )
-  .map(opt => {
+  .map((opt: string) => {
                 const isSelected = selected.includes(opt)
             return (
               <button
@@ -1381,7 +1328,7 @@ background:
                   {/* Tribute + Submit */}
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
                     <div style={{ flex: 1, position: 'relative' }}>
-                      <textarea style={{ ...inp, minHeight: '60px', maxHeight: '90px', resize: 'none', lineHeight: 1.7 }} placeholder="Share your voice…" value={fMsg} onChange={e => setFMsg(e.target.value)} maxLength={MAX_CHARS} rows={3} />
+                      <textarea style={{ ...inp, minHeight: '60px', maxHeight: '90px', resize: 'none', lineHeight: 1.7 }} placeholder={`${lang.cta}…`} value={fMsg} onChange={e => setFMsg(e.target.value)} maxLength={MAX_CHARS} rows={3} />
                       <span style={{ position: 'absolute', bottom: '8px', right: '10px', fontSize: '9px', color: fMsg.length > 1750 ? t.accentPrimary : t.textFaint, pointerEvents: 'none' }}>{fMsg.length}/{MAX_CHARS}</span>
                       {errors.msg && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.msg}</p>}
                     </div>

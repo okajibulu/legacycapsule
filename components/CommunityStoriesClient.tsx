@@ -24,6 +24,7 @@ import { useState, useRef } from 'react'
 import Link                 from 'next/link'
 import ActivePremiumsStrip  from '@/components/ActivePremiumsStrip'
 import type { CapsuleInfo, StoryTopic, CommunityStory } from '@/app/for/[slug]/stories/page'
+import { getRelationshipQuestion, getRelationshipOptions } from '@/lib/utils/getRelationshipQuestion'
 
 interface StoryPhoto {
   id:           string
@@ -53,35 +54,6 @@ const textFaint     = 'rgba(255,255,255,0.28)'
 
 const STORY_CHAR_LIMIT = 2000
 const MAX_PHOTOS       = 3
-
-const RELATIONSHIP_OPTIONS = [
-  'Son/Daughter',
-  'Parent (Mother/Father)',
-  'Sibling (Brother/Sister)',
-  'Grandchild',
-  'Grandparent',
-  'Spouse/Partner',
-  'Former Spouse/Partner',
-  'Extended Family',
-  'In-Law',
-  'Father/Mother Figure',
-  'Friend',
-  'Close Friend',
-  'Acquaintance',
-  'Neighbour',
-  'Classmate/Alumni',
-  'Community Member',
-  'Team/Club Member',
-  'Faith/Spiritual Connection',
-  'Colleague/Work Connection',
-  'Mentor/Teacher',
-  'Student/Mentee',
-  'Community Leader/Guide',
-  'Caregiver/Healthcare Worker',
-  'Legacy Beneficiary',
-  'Supporter/Well-wisher',
-  'Other',
-]
 
 const ERA_OPTIONS = [
   'The 1950s', 'The 1960s', 'The 1970s', 'The 1980s',
@@ -759,8 +731,8 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess,
           </div>
 
           <select style={{ ...inp, background: '#1a0845' }} value={relationship} onChange={e => setRelationship(e.target.value)}>
-            <option value="">Who is {capsule.honouree_name.split(' ')[0]} to you?</option>
-            {RELATIONSHIP_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+            <option value="">{getRelationshipQuestion(capsule.event_type, capsule.honouree_name)}</option>
+            {getRelationshipOptions(capsule.event_type).map(r => <option key={r} value={r}>{r}</option>)}
           </select>
           {relationship === 'Other' && (
             <input style={inp} placeholder="Describe your relationship..." value={customRel} onChange={e => setCustomRel(e.target.value)} />

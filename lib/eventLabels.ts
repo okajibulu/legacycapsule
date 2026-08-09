@@ -15,6 +15,8 @@
  *     it contains no server-only imports.
  */
 
+import { getRelationshipQuestion } from '@/lib/utils/getRelationshipQuestion'
+
 // ============================================================
 // SECTION 1 — Event type union
 // Matches all 12 supported event types exactly as stored
@@ -323,9 +325,7 @@ export function getConfirmationMessage(eventType: string, name: string): string 
 }
 
 export function getRelationshipLabel(eventType: string, name: string): string {
-  const e = norm(eventType)
-  if (e.includes('wedding')) return `Who is the couple to you?`
-  return `Who is ${name} to you?`
+  return getRelationshipQuestion(eventType, name)
 }
 
 export function getProfileLinkLabel(eventType: string, name: string): string {
