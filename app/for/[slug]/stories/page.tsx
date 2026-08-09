@@ -166,9 +166,11 @@ const { data: latestVoice } = await supabase
   .maybeSingle()
 
 const { data: latestStory } = await supabase
-  .from('community_stories')
+  .from('contributions')
   .select('created_at')
   .eq('capsule_id', capsule.id)
+  .eq('status', 'approved')
+  .not('story_topic_id', 'is', null)
   .order('created_at', { ascending: false })
   .limit(1)
   .maybeSingle()

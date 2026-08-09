@@ -1279,7 +1279,7 @@ background:
 
 ) : (
               /* Expanded — full form */
-              <div className="composer-enter" style={{ borderRadius: '18px', padding: '18px 16px', background: t.cardBg, border: `1px solid ${t.accentFaint}`, overflow: 'hidden' }}>
+              <div className="composer-enter" style={{ borderRadius: '18px', padding: '18px 16px', background: t.cardBg, border: `1px solid ${t.accentFaint}`, overflow: 'visible' }}>
                 {/* Close composer */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                   <span style={{ fontSize: '11px', color: t.accentMuted, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>{lang.cta}</span>

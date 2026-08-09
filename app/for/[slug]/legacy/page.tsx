@@ -445,6 +445,20 @@ export default async function LegacyRoomPage(
     }
 } catch { phases = []; phaseCount = 0 }
 
+// ── Latest voice for notification dot ────────────────────────────────────
+  let latestVoiceAt: string | null = null
+  try {
+    const { data: lv } = await supabase
+      .from('contributions')
+      .select('created_at')
+      .eq('capsule_id', capsule.id)
+      .eq('status', 'approved')
+      .is('story_topic_id', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    latestVoiceAt = lv?.created_at ?? null
+  } catch { latestVoiceAt = null }
 
   // ── Resolve theme ─────────────────────────────────────────────────────
   // ── Fetch support accounts for Premiums panel (EOH/Gifting) ──────────
@@ -456,11 +470,12 @@ export default async function LegacyRoomPage(
     .is('deleted_at', null)
     .order('sort_order', { ascending: true })
 
-const { data: latestVoice } = await supabase
+const { data: latestStory } = await supabase
   .from('contributions')
   .select('created_at')
   .eq('capsule_id', capsule.id)
   .eq('status', 'approved')
+  .not('story_topic_id', 'is', null)
   .order('created_at', { ascending: false })
   .limit(1)
   .maybeSingle()
@@ -598,9 +613,9 @@ publicationStatus={
       eventType={capsule.event_type}
       supportAccounts={supportAccounts ?? []}
       phases={phases.map(p => ({ id: p.id, name: p.name }))}
-      latestVoiceAt={latestVoice?.created_at ?? null}
-latestHighlightAt={latestVoice?.created_at ?? null}
-    />
+latestVoiceAt={latestVoiceAt}
+        latestHighlightAt={latestVoiceAt}
+            />
     </>
   )
 }
