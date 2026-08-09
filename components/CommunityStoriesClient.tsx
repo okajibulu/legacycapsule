@@ -201,7 +201,7 @@ function ReactionStrip({ storyId, capsuleId, initialCounts, initialMine }: {
 
 // ═══ SECTION 7 — StoryCard sub-component ═══
 
-function StoryCard({ story, photos, honoureeName, capsuleId, reactionCounts, myReactions, onShareUnder }: {
+function StoryCard({ story, photos, honoureeName, capsuleId, reactionCounts, myReactions, onShareUnder, serialNumber }: {
   story:          CommunityStory
   photos:         StoryPhoto[]
   honoureeName:   string
@@ -209,12 +209,12 @@ function StoryCard({ story, photos, honoureeName, capsuleId, reactionCounts, myR
   reactionCounts: ReactionCounts
   myReactions:    Set<string>
   onShareUnder:   () => void
+  serialNumber:   number
 }) {
   const [expanded, setExpanded] = useState(false)
   const location = [story.city, story.country].filter(Boolean).join(', ')
   const isLong   = story.tribute_text.length > 300
 
-  // Derive topic display name from story if available
   const topicDisplay = (story as any).community_story_topics?.topic_name
     ? (story as any).community_story_topics.topic_name.replace(/\[honouree_name\]/g, honoureeName)
     : null
@@ -227,39 +227,56 @@ function StoryCard({ story, photos, honoureeName, capsuleId, reactionCounts, myR
       background:   cardBg,
       marginBottom: '12px',
     }}>
-      {/* ── Author row ── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '10px' }}>
-        <div style={{
-          width: '34px', height: '34px', borderRadius: '50%',
-          background: goldFaint, border: `1px solid rgba(226,195,107,0.2)`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
-          <span style={{ fontSize: '13px', color: goldMuted, fontWeight: 700 }}>
-            {story.contributor_name.charAt(0).toUpperCase()}
+      {/* ── Card header: Line 1 = Topic + Date, Line 2 = Serial + Name + Relationship ── */}
+      <div style={{ marginBottom: '12px' }}>
+
+        {/* Line 1 — Topic (prominent) + Date */}
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
+          <p style={{
+            margin: 0, fontSize: '13px', fontWeight: 700,
+            color: topicDisplay ? gold : textFaint,
+            fontStyle: topicDisplay ? 'italic' : 'normal',
+            lineHeight: 1.4, flex: 1, minWidth: 0,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
+          }}>
+            {topicDisplay
+              ? `"${topicDisplay.slice(0, 60)}${topicDisplay.length > 60 ? '…' : ''}"`
+              : 'Community Memory'}
+          </p>
+          <span style={{ fontSize: '10px', color: textFaint, flexShrink: 0 }}>
+            {new Date(story.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
           </span>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: textPrimary }}>
+
+        {/* Line 2 — Serial circle + Name + Relationship */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{
+            width: '26px', height: '26px', borderRadius: '50%',
+            background: goldFaint, border: `1px solid rgba(226,195,107,0.2)`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <span style={{ fontSize: '10px', color: goldMuted, fontWeight: 700 }}>
+              {serialNumber}
+            </span>
+          </div>
+          <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: textSecondary }}>
             {story.contributor_name}
           </p>
-          <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' as const, alignItems: 'center', marginTop: '2px' }}>
-            {story.relationship && (
-              <span style={{ fontSize: '10px', color: goldMuted, fontWeight: 600 }}>{story.relationship}</span>
-            )}
-            {story.relationship && (location || topicDisplay) && (
+          {story.relationship && (
+            <>
               <span style={{ fontSize: '10px', color: textFaint }}>·</span>
-            )}
-            {location && <span style={{ fontSize: '10px', color: textFaint }}>{location}</span>}
-            {topicDisplay && (
-              <span style={{ fontSize: '9px', padding: '1px 6px', borderRadius: '8px', background: goldFaint, border: `1px solid ${goldBorder}`, color: goldMuted }}>
-                {topicDisplay.slice(0, 40)}{topicDisplay.length > 40 ? '…' : ''}
+              <span style={{ fontSize: '11px', color: goldMuted, fontWeight: 500 }}>
+                {story.relationship}
               </span>
-            )}
-          </div>
+            </>
+          )}
+          {location && (
+            <>
+              <span style={{ fontSize: '10px', color: textFaint }}>·</span>
+              <span style={{ fontSize: '10px', color: textFaint }}>{location}</span>
+            </>
+          )}
         </div>
-        <span style={{ fontSize: '10px', color: textFaint, flexShrink: 0, marginTop: '2px' }}>
-          {new Date(story.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-        </span>
       </div>
 
       {/* ── Story text ── */}
@@ -1016,7 +1033,7 @@ export default function CommunityStoriesClient({ capsule, topics, stories, story
                   </button>
                 </div>
               ) : (
-                filteredStories.map(story => (
+                filteredStories.map((story, idx) => (
                   <StoryCard
                     key={story.id}
                     story={story}
@@ -1025,6 +1042,7 @@ export default function CommunityStoriesClient({ capsule, topics, stories, story
                     capsuleId={capsule.id}
                     reactionCounts={reactionCounts[story.id] ?? { ...EMPTY_COUNTS }}
                     myReactions={myReactions[story.id] ?? new Set()}
+                    serialNumber={filteredStories.length - idx}
                     onShareUnder={() => {
                       const topic = topics.find(t => t.id === story.story_topic_id)
                       if (topic) handleShareUnder(topic.id)
