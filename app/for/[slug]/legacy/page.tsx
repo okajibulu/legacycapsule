@@ -243,6 +243,7 @@ function computeVoiceMetrics(
     singleCountries, attributionCount, attributionPct,
     consentCount, consentPct, emailCount, emailPct,
     photoCount: 0, photoPct: 0, anonymousCount,
+    // Note: photoCount computed live in page component — not from contribs
   }
 }
 
@@ -351,20 +352,31 @@ export default async function LegacyRoomPage(
   .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
   .slice(0, 3)
 
-  // ── Community stories count ───────────────────────────────────────────
+  // ── Community stories count — from contributions with story_topic_id ──
   const { count: storiesCount } = await supabase
-    .from('community_stories')
+    .from('contributions')
     .select('id', { count: 'exact', head: true })
     .eq('capsule_id', capsule.id)
     .eq('status', 'approved')
+    .not('story_topic_id', 'is', null)
+    .is('deleted_at', null)
 
-  // ── Event moments count ───────────────────────────────────────────────
+  // ── Event moments count (D-Day guest captures) ────────────────────────
   const { count: momentsCount } = await supabase
     .from('gallery_items')
     .select('id', { count: 'exact', head: true })
     .eq('capsule_id', capsule.id)
     .eq('source', 'dday')
     .eq('approved', true)
+    .is('deleted_at', null)
+
+  // ── Total approved photos count (all sources) ─────────────────────────
+  const { count: livePhotoCount } = await supabase
+    .from('gallery_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('capsule_id', capsule.id)
+    .eq('approved', true)
+    .is('deleted_at', null)
 
   // ── Attribution count ─────────────────────────────────────────────────
   const { count: attributionCount } = await supabase
@@ -481,14 +493,14 @@ const { data: latestVoice } = await supabase
         hero_panel_size: capsule.hero_panel_size,
         hero_full_bleed: capsule.hero_full_bleed,
       }}
-      summary={summary ?? {
-        contributor_count: 0,
-        photo_count: 0,
-        country_count: 0,
-        share_count: 0,
-        legacy_builder_count: 0,
-        attributed_contrib_count: 0,
-        last_activity_at: null,
+      summary={{
+        contributor_count: summary?.contributor_count ?? 0,
+        photo_count: livePhotoCount ?? summary?.photo_count ?? 0,
+        country_count: summary?.country_count ?? 0,
+        share_count: summary?.share_count ?? 0,
+        legacy_builder_count: summary?.legacy_builder_count ?? 0,
+        attributed_contrib_count: summary?.attributed_contrib_count ?? 0,
+        last_activity_at: summary?.last_activity_at ?? null,
       }}
       builders={showBuilders ? (builders ?? []) : []}
       showBuilders={showBuilders}
