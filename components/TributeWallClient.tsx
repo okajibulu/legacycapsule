@@ -668,6 +668,7 @@ const [fConsent, setFConsent] = useState(false)
       .select('id, contributor_name, city, country, ip_country, relationship, tribute_text, thumbnail_url, audio_url, video_url, lat, lng, status, email, created_at, tribute_responses(response_text, responded_by)')
       .eq('capsule_id', capsule.id)
       .is('deleted_at', null)
+      .is('story_topic_id', null)
       .order('created_at', { ascending: false })
     if (data) {
       // Flatten response onto contribution
