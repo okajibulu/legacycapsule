@@ -115,7 +115,7 @@ export default async function CommunityStoriesPage({
   // ── Fetch approved community stories ─────────────────────────────────────
   const { data: storiesRaw } = await supabase
     .from('contributions')
-    .select('id, story_topic_id, contributor_name, tribute_text, relationship, city, country, thumbnail_url, admin_response, era, relationship_category, created_at')
+    .select('id, story_topic_id, contributor_name, tribute_text, relationship, city, country, thumbnail_url, admin_response, era, relationship_category, created_at, community_story_topics(topic_name, category)')
     .eq('capsule_id', capsule.id)
     .eq('status', 'approved')
     .not('story_topic_id', 'is', null)

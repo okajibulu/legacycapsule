@@ -215,8 +215,8 @@ function StoryCard({ story, photos, honoureeName, capsuleId, reactionCounts, myR
   const isLong   = story.tribute_text.length > 300
 
   // Derive topic display name from story if available
-  const topicDisplay = (story as any).topic_name
-    ? (story as any).topic_name.replace(/\[honouree_name\]/g, honoureeName)
+  const topicDisplay = (story as any).community_story_topics?.topic_name
+    ? (story as any).community_story_topics.topic_name.replace(/\[honouree_name\]/g, honoureeName)
     : null
 
   return (
