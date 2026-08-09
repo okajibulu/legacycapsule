@@ -201,6 +201,10 @@ function buildKeepsakeCardHtml(params: ApprovalEmailParams): string {
           <p style="margin:12px 0 0;font-size:11px;color:rgba(255,255,255,0.2);word-break:break-all;">
             ${params.refCode ? capsuleUrl + '?ref=' + params.refCode : capsuleUrl}
           </p>
+          <p style="margin:20px 0 0;font-size:12px;color:rgba(255,255,255,0.3);line-height:1.7;border-top:1px solid rgba(226,195,107,0.08);padding-top:16px;">
+            Have a longer memory or story about ${subjectName}?<br/>
+            <a href="${capsuleUrl}/stories" style="color:rgba(226,195,107,0.65);text-decoration:underline;">Share it in the Stories room &mdash; every word belongs in this record.</a>
+          </p>
           <p style="margin:20px 0 0;font-size:12px;color:rgba(255,255,255,0.35);line-height:1.7;border-top:1px solid rgba(226,195,107,0.1);padding-top:16px;">
             Do you have a longer memory, story or chapter to share about ${subjectName}?<br/>
             <a href="${capsuleUrl}/stories" style="color:rgba(226,195,107,0.7);text-decoration:underline;">Share it in the Stories room — every word belongs in this record.</a>

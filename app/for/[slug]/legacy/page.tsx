@@ -312,7 +312,7 @@ export default async function LegacyRoomPage(
   // ── Fetch recent activity — Community Stories (last 3) ────────────────
   const { data: recentStories } = await supabase
     .from('community_stories')
-    .select('id, contributor_name, city, country, created_at')
+    .select('id, contributor_name, city, country, created_at, story_text, community_story_topics(topic_name)')
     .eq('capsule_id', capsule.id)
     .eq('status', 'approved')
     .order('created_at', { ascending: false })
@@ -511,7 +511,7 @@ const { data: latestVoice } = await supabase
       storiesCount={storiesCount ?? 0}
       momentsCount={momentsCount ?? 0}
       topBuilder={topBuilderRow ?? null}
-      publicationStatus={
+publicationStatus={
         pubRow
           ? {
               generationStatus: pubRow.generation_status ?? 'idle',
@@ -521,6 +521,14 @@ const { data: latestVoice } = await supabase
             }
           : null
       }
+      recentStories={(recentStories ?? []).map((s: any) => ({
+        id:               s.id,
+        contributor_name: s.contributor_name,
+        story_text:       s.story_text ?? '',
+        created_at:       s.created_at,
+        topic_name:       s.community_story_topics?.topic_name ?? null,
+      }))}
+    />
 
       recentStories={(recentStories ?? []).map((s: any) => ({
           id:               s.id,
@@ -530,7 +538,7 @@ const { data: latestVoice } = await supabase
           topic_name:       s.community_story_topics?.topic_name ?? null,
         }))}
 
-    />
+    
     {/* ── Event Phases strip ── */}
     {phases.length > 0 && (
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 24px', fontFamily: "'DM Sans', sans-serif" }}>

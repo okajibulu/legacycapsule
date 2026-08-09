@@ -143,7 +143,7 @@ function buildSubmissionEmail({
               <!-- Edit link -->
               <div style="text-align:center;margin-bottom:28px;">
                 <p style="margin:0 0 12px;font-size:13px;color:#6b6b80;">
-                  Need to make a change? You can edit your ${lang.singular.toLowerCase()} before it is added to the record.
+                  Need to make a change? You can edit your ${lang.singular.toLowerCase()} before it is approved.
                 </p>
                 <a href="${editLink}"
                   style="display:inline-block;padding:10px 28px;border-radius:8px;border:1px solid #D4AE2A;color:#B8960C;font-size:13px;font-weight:600;text-decoration:none;letter-spacing:0.05em;">
@@ -163,6 +163,18 @@ function buildSubmissionEmail({
                 <a href="${capsuleUrl}/stories"
                   style="display:inline-block;padding:9px 24px;border-radius:8px;border:1px solid rgba(212,174,42,0.25);color:rgba(212,174,42,0.8);font-size:12px;font-weight:600;text-decoration:none;letter-spacing:0.04em;">
                   Share a Story →
+                </a>
+              </div>
+
+<!-- Stories invitation -->
+              <div style="text-align:center;margin-bottom:20px;">
+                <p style="margin:0 0 10px;font-size:13px;color:#6b6b80;line-height:1.7;">
+                  Have a longer memory or story about ${subjectName}?<br/>
+                  The Stories room is where every chapter finds its place.
+                </p>
+                <a href="${capsuleUrl}/stories"
+                  style="display:inline-block;padding:9px 24px;border-radius:8px;border:1px solid rgba(212,174,42,0.25);color:rgba(212,174,42,0.8);font-size:12px;font-weight:600;text-decoration:none;letter-spacing:0.04em;">
+                  Share a Story &rarr;
                 </a>
               </div>
 

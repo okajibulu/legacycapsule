@@ -169,7 +169,6 @@ const { data: latestStory } = await supabase
   .from('community_stories')
   .select('created_at')
   .eq('capsule_id', capsule.id)
-  .eq('status', 'approved')
   .order('created_at', { ascending: false })
   .limit(1)
   .maybeSingle()
