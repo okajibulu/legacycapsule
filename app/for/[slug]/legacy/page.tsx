@@ -431,7 +431,8 @@ export default async function LegacyRoomPage(
       }))
       phases = counts
     }
-  } catch { phases = []; phaseCount = 0 }
+} catch { phases = []; phaseCount = 0 }
+
 
   // ── Resolve theme ─────────────────────────────────────────────────────
   // ── Fetch support accounts for Premiums panel (EOH/Gifting) ──────────
@@ -508,6 +509,15 @@ const { data: latestVoice } = await supabase
             }
           : null
       }
+
+      recentStories={(recentStories ?? []).map((s: any) => ({
+          id:               s.id,
+          contributor_name: s.contributor_name,
+          story_text:       s.story_text,
+          created_at:       s.created_at,
+          topic_name:       s.community_story_topics?.topic_name ?? null,
+        }))}
+
     />
     {/* ── Event Phases strip ── */}
     {phases.length > 0 && (

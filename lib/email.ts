@@ -71,9 +71,9 @@ function buildKeepsakeCardHtml(params: ApprovalEmailParams): string {
   const isWedding  = eventType === 'wedding'
 
   const headline = isMemorial
-    ? 'Your tribute for ' + subjectName + ' is now live'
+    ? 'Your tribute for ' + subjectName + ' is now part of this record'
     : isWedding
-    ? 'Your message for the couple is now live'
+    ? 'Your blessing for ' + subjectName + ' is now live'
     : 'Your ' + lang.singular.toLowerCase() + ' for ' + subjectName + ' is now live'
 
   const keepsakeLabel = isMemorial
@@ -115,8 +115,9 @@ function buildKeepsakeCardHtml(params: ApprovalEmailParams): string {
           <h1 style="margin:0;font-family:Georgia,'Playfair Display',serif;font-size:26px;font-weight:700;color:#F5F3EE;line-height:1.35;text-align:center;">
             ${headline}
           </h1>
-          <p style="margin:12px 0 0;font-size:14px;color:rgba(255,255,255,0.4);line-height:1.7;text-align:center;">
-            Your words are now part of the ${lang.wallTitle}.<br/>We have preserved a keepsake of your ${lang.singular.toLowerCase()} below.
+          <p style="margin:12px 0 0;font-size:14px;color:rgba(255,255,255,0.4);line-height:1.8;text-align:center;">
+            What you wrote will remain — long after the occasion has passed.<br/>
+            A keepsake of your ${lang.singular.toLowerCase()} is preserved below.
           </p>
         </td></tr>
 
@@ -189,9 +190,9 @@ function buildKeepsakeCardHtml(params: ApprovalEmailParams): string {
 
         <!-- Share prompt -->
         <tr><td style="padding:24px 28px;border-radius:12px;border:1px solid rgba(212,174,42,0.15);background-color:rgba(212,174,42,0.04);margin-bottom:36px;">
-          <p style="margin:0 0 8px;font-size:12px;color:rgba(212,174,42,0.7);text-transform:uppercase;letter-spacing:0.1em;">Help this collection grow</p>
+          <p style="margin:0 0 8px;font-size:12px;color:rgba(212,174,42,0.7);text-transform:uppercase;letter-spacing:0.1em;">Pass it on</p>
           <p style="margin:0 0 14px;font-size:13px;color:rgba(255,255,255,0.35);line-height:1.6;">
-            Know someone who should add their voice? Share the link below &mdash; every tribute you bring in helps build something lasting.
+            Is there someone else whose voice belongs in this collection? Share this link with them — the more voices that arrive, the richer the record becomes.
           </p>
           ${editUrl ? `<p style="font-family:Arial,sans-serif;font-size:12px;color:rgba(255,255,255,0.4);text-align:center;margin:0 0 10px;">Want to make a change? <a href="${editUrl}" style="color:rgba(226,195,107,0.7);text-decoration:underline;">Edit your ${lang.singular.toLowerCase()}</a></p>` : ''}
           <a href="${params.refCode ? capsuleUrl + '?ref=' + params.refCode : capsuleUrl}" style="display:inline-block;padding:10px 24px;border-radius:8px;background:rgba(212,174,42,0.12);border:1px solid rgba(212,174,42,0.25);color:rgba(212,174,42,0.8);font-size:13px;font-weight:600;text-decoration:none;letter-spacing:0.03em;">
@@ -200,10 +201,22 @@ function buildKeepsakeCardHtml(params: ApprovalEmailParams): string {
           <p style="margin:12px 0 0;font-size:11px;color:rgba(255,255,255,0.2);word-break:break-all;">
             ${params.refCode ? capsuleUrl + '?ref=' + params.refCode : capsuleUrl}
           </p>
+          <p style="margin:20px 0 0;font-size:12px;color:rgba(255,255,255,0.35);line-height:1.7;border-top:1px solid rgba(226,195,107,0.1);padding-top:16px;">
+            Do you have a longer memory, story or chapter to share about ${subjectName}?<br/>
+            <a href="${capsuleUrl}/stories" style="color:rgba(226,195,107,0.7);text-decoration:underline;">Share it in the Stories room — every word belongs in this record.</a>
+          </p>
         </td></tr>
 
         <!-- Spacer -->
         <tr><td style="height:36px;"></td></tr>
+
+        <!-- LC end note -->
+        <tr><td align="center" style="padding-bottom:24px;">
+          <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.22);line-height:1.7;max-width:400px;font-style:italic;">
+            LegacyCapsule preserves the voices that matter most &mdash;<br/>
+            for the people being celebrated, and for those who come after.
+          </p>
+        </td></tr>
 
         <!-- Footer -->
         <tr><td align="center">
@@ -233,8 +246,8 @@ export async function sendKeepsakeCard(params: ApprovalEmailParams): Promise<voi
   const lang       = getParticipationLanguage(params.eventType)
   const isMemorial = params.eventType === 'memorial'
   const subject    = isMemorial
-    ? 'Your tribute for ' + subjectName + ' is live — LegacyCapsule'
-    : 'Your ' + lang.singular.toLowerCase() + ' for ' + subjectName + ' has been approved — LegacyCapsule'
+    ? 'Your tribute for ' + subjectName + ' is now part of the record'
+    : 'Your ' + lang.singular.toLowerCase() + ' for ' + subjectName + ' is now live'
 
   const { error } = await resend.emails.send({
     from:    FROM,
@@ -279,29 +292,33 @@ export async function sendOrganiserWelcome(params: OrganisingWelcomeParams): Pro
           <p style="margin:0 0 20px;text-align:center;font-size:28px;color:#D4AE2A;">&#10022;</p>
 
           <h1 style="margin:0 0 12px;font-family:Georgia,serif;font-size:24px;font-weight:700;color:#1a1a2e;text-align:center;">
-            Your capsule for ${subjectName} is ready
+            ${subjectName}'s capsule is ready
           </h1>
 
-          <p style="margin:0 0 28px;font-size:14px;color:#5a5a70;text-align:center;line-height:1.7;">
-            Verify your email to activate the tribute wall and start receiving tributes.
+          <p style="margin:0 0 28px;font-size:14px;color:#5a5a70;text-align:center;line-height:1.8;">
+            You have started something meaningful. Verify your email to open the doors — and let the voices begin to arrive.
           </p>
 
           <div style="text-align:center;margin-bottom:28px;">
             <a href="${verifyUrl}" style="display:inline-block;padding:13px 36px;border-radius:10px;background:linear-gradient(135deg,#D4AE2A,#B8960C);color:#0D0820;font-size:15px;font-weight:700;text-decoration:none;letter-spacing:0.04em;">
-              Verify Email &amp; Go Live
+              Verify &amp; Open Your Capsule
             </a>
           </div>
 
           <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(212,174,42,0.3),transparent);margin:0 0 24px;"></div>
 
-          <p style="margin:0 0 8px;font-size:13px;color:#6b6b80;text-align:center;">Once verified, manage your tribute wall here:</p>
+          <p style="margin:0 0 8px;font-size:13px;color:#6b6b80;text-align:center;">Once verified, your capsule dashboard is here — you can shape every detail from there:</p>
           <p style="margin:0;text-align:center;">
             <a href="${manageUrl}" style="font-size:13px;color:#B8960C;text-decoration:none;">${manageUrl}</a>
           </p>
 
         </td></tr>
 
-        <tr><td align="center" style="padding-top:28px;">
+        <tr><td align="center" style="padding-top:28px;padding-bottom:16px;">
+          <p style="margin:0 0 16px;font-size:12px;color:rgba(255,255,255,0.22);line-height:1.7;max-width:380px;font-style:italic;">
+            Every great occasion deserves a permanent record.<br/>
+            LegacyCapsule helps you build one — one voice at a time.
+          </p>
           <p style="margin:0;font-size:10px;color:rgba(255,255,255,0.15);letter-spacing:0.1em;text-transform:uppercase;">
             VALNEX, UNIPESSOAL LDA &middot; RevoWorldTech &middot; LegacyCapsule
           </p>
@@ -316,7 +333,7 @@ export async function sendOrganiserWelcome(params: OrganisingWelcomeParams): Pro
   const { error } = await resend.emails.send({
     from:    FROM,
     to:      organiserEmail,
-    subject: 'Verify your email -- ' + subjectName + ' tribute wall',
+    subject: subjectName + '\u2019s capsule is ready \u2014 one step to go',
     html,
   })
 

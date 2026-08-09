@@ -118,6 +118,13 @@ interface Props {
   voiceMetrics: VoiceMetrics
   storiesCount: number
   momentsCount: number
+  recentStories?: Array<{
+    id:               string
+    contributor_name: string
+    story_text:       string
+    created_at:       string
+    topic_name:       string | null
+  }>
   topBuilder: {
     contributor_name: string
     display_name: string
@@ -487,7 +494,7 @@ function RankedBar({ label, count, total, rank, t }: {
 ========================================================= */
 export default function LegacyRoomClient({
   capsule, summary, builders, showBuilders, recentActivity, galleryPhotos, themeKey,
-  voiceMetrics, storiesCount, momentsCount, topBuilder, publicationStatus,
+  voiceMetrics, storiesCount, momentsCount, recentStories, topBuilder, publicationStatus,
 }: Props) {
   const t = getThemeConfig(themeKey)
   const lang = getParticipationLanguage(capsule.event_type)
@@ -1012,6 +1019,28 @@ export default function LegacyRoomClient({
             </Section>
           )}
 
+{/* ── SECTION 3B: STORIES PREVIEW ── */}
+          {recentStories && recentStories.length > 0 && (
+            <Section title="From the Stories Room" t={t}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {recentStories.map(story => (
+                  <Link key={story.id} href={`/for/${capsule.slug}/stories`} style={{ textDecoration: 'none', display: 'block', padding: '14px 16px', borderRadius: '12px', border: `1px solid rgba(255,255,255,0.06)`, background: 'rgba(255,255,255,0.02)' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: t.accentMuted }}>{story.contributor_name}</span>
+                      {story.topic_name && <span style={{ fontSize: '10px', color: t.textFaint }}>· {story.topic_name}</span>}
+                    </div>
+                    <p style={{ margin: '0 0 8px', fontSize: '12px', color: t.textMuted, lineHeight: 1.7, fontStyle: 'italic' }}>
+                      "{story.story_text.slice(0, 140)}{story.story_text.length > 140 ? '…' : ''}"
+                    </p>
+                  </Link>
+                ))}
+                <Link href={`/for/${capsule.slug}/stories`} style={{ display: 'block', textAlign: 'center', padding: '10px', fontSize: '12px', fontWeight: 600, color: t.accentMuted, textDecoration: 'none', borderRadius: '10px', border: `1px solid ${t.accentFaint}`, background: 'rgba(255,255,255,0.01)' }}>
+                  Read all stories →
+                </Link>
+              </div>
+            </Section>
+          )}
+          
           {/* ── SECTION 4: GALLERY — FEATURED MEMORIES ── */}
           {galleryPhotos.length > 0 && (
             <Section title="Featured Memories" subtitle="Curated by the organiser" t={t}>

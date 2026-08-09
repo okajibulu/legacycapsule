@@ -1464,13 +1464,38 @@ background:
 
           {/* Success toast when composer is closed */}
           {submitSuccess && !composerOpen && (
-            <div style={{ margin: '10px 12px 0', borderRadius: '12px', padding: '12px 16px', textAlign: 'center', border: `1px solid ${t.accentFaint}`, background: t.cardBg }}>
-              <p style={{ fontSize: '13px', color: t.accentPrimary, margin: '0 0 4px' }}>✦ Your {lang.singular.toLowerCase()} has been received — thank you.</p>
-              <p style={{ fontSize: '11px', color: t.textFaint, margin: 0, lineHeight: 1.6 }}>
-                {fEmail ? "We'll send you the keepsake publication after the event." : 'Leave your email when contributing to receive the keepsake publication.'}
-              </p>
+            <div style={{ margin: '10px 12px 0', borderRadius: '12px', border: `1px solid ${t.accentFaint}`, background: t.cardBg, overflow: 'hidden' }}>
+              <div style={{ padding: '14px 16px', textAlign: 'center', borderBottom: `1px solid ${t.accentFaint}` }}>
+                <p style={{ fontSize: '13px', color: t.accentPrimary, margin: '0 0 6px' }}>✦ Your {lang.singular.toLowerCase()} is now part of this record.</p>
+                <p style={{ fontSize: '11px', color: t.textFaint, margin: 0, lineHeight: 1.7 }}>
+                  {fEmail
+                    ? `You are part of ${honourName}'s story. The keepsake publication will be sent to you when it is ready.`
+                    : `Leave your email below to receive the keepsake publication — a permanent record of everything gathered for this occasion.`}
+                </p>
+              </div>
+              <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                <p style={{ margin: 0, fontSize: '11px', color: t.textFaint, lineHeight: 1.6 }}>
+                  Have a longer memory or story about {honourName}?
+                </p>
+                <a href={`/for/${capsule.slug}/stories`} style={{ flexShrink: 0, fontSize: '11px', fontWeight: 700, color: t.accentPrimary, textDecoration: 'none', padding: '6px 12px', borderRadius: '8px', border: `1px solid ${t.accentFaint}`, background: 'rgba(226,195,107,0.06)', whiteSpace: 'nowrap' }}>
+                  Share a Story →
+                </a>
+              </div>
             </div>
           )}
+
+{/* ── Stories discovery teaser ── */}
+          <div style={{ margin: '8px 12px 0', padding: '12px 16px', borderRadius: '12px', border: `1px solid ${t.accentFaint}`, background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <div>
+              <p style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 700, color: t.accentMuted }}>📖 From the Stories Room</p>
+              <p style={{ margin: 0, fontSize: '11px', color: t.textFaint, lineHeight: 1.5 }}>
+                Every memory, lesson and chapter about {honourName} lives here.
+              </p>
+            </div>
+            <a href={`/for/${capsule.slug}/stories`} style={{ flexShrink: 0, fontSize: '11px', fontWeight: 700, color: t.accentPrimary, textDecoration: 'none', padding: '6px 12px', borderRadius: '8px', border: `1px solid ${t.accentFaint}`, background: 'rgba(226,195,107,0.06)', whiteSpace: 'nowrap' }}>
+              Read →
+            </a>
+          </div>
 
           {/* ── TRIBUTE WALL HEADER ── */}
           <div style={{ flexShrink: 0, padding: '18px 16px 10px', textAlign: 'center' }}>
