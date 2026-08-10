@@ -45,7 +45,7 @@ const SECTION_LABELS: Record<string, string> = {
    
   collection_intelligence: 'Capsule Highlights',
   closing_message:         'Closing Message',
-  appreciation:            'Family Appreciation',
+  appreciation:            'Family Vote of Thanks',
 };
 
 /** Icon character for each section type — rendered at small size in the row. */

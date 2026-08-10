@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
     // ── Fetch capsule and publication ────────────────────────────────────
     const { data: capsule } = await db
       .from('capsules')
-      .select('honouree_name, event_tag')
+      .select('honouree_name, event_tag, slug')
       .eq('id', capsule_id)
       .maybeSingle()
 
@@ -164,9 +164,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const publicationUrl = pub.render_token
-      ? `${APP_URL}/publication-render/${pub.render_token}`
-      : pub.pdf_url!
+    const publicationUrl = `${APP_URL}/publication/${capsule_slug}`
 
     const eventLabel = capsule.event_tag ?? capsule.honouree_name
     const { recipients, no_email } = await collectRecipients(capsule_id)

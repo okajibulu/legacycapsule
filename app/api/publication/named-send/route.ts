@@ -91,9 +91,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const publicationUrl = pub.render_token
-      ? `${APP_URL}/publication-render/${pub.render_token}`
-      : pub.pdf_url!
+    const publicationUrl = `${APP_URL}/publication/${capsule_slug}`
 
     const eventLabel     = capsule.event_tag ?? capsule.honouree_name
     const currentVersion = pub.version ?? 1

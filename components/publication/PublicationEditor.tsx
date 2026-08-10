@@ -291,6 +291,7 @@ export default function PublicationEditor({
   const [namedSendEmail,       setNamedSendEmail]       = useState('');
   const [namedSendName,        setNamedSendName]        = useState('');
   const [namedSending,         setNamedSending]         = useState(false);
+  const [copiedPublicLink, setCopiedPublicLink] = useState(false)
   const [namedSendError,       setNamedSendError]       = useState<string | null>(null);
   const [namedSends,           setNamedSends]           = useState<Array<{
     id: string; recipient_name: string; recipient_email: string;
@@ -795,13 +796,23 @@ export default function PublicationEditor({
                     })}
                   </p>
                 )}
-                <button
-                  type="button"
-                  onClick={() => window.open(`/publication-render/${currentToken}`, '_blank')}
-                  className="w-full py-2 px-3 rounded-lg text-[11px] font-bold border border-yellow-400/25 text-yellow-300 hover:bg-yellow-400/8 transition-colors"
-                >
-                  Open Publication ↗
-                </button>
+<button
+                onClick={() => window.open(`/publication-render/${currentToken}`, '_blank')}
+                className="w-full py-2 rounded-lg text-[12px] font-bold bg-yellow-400/10 border border-yellow-400/30 text-yellow-300 hover:bg-yellow-400/20 transition-colors"
+              >
+                Open Publication ↗
+              </button>
+              <button
+                onClick={() => {
+                  const url = `${window.location.origin}/publication/${capsuleSlug}`
+                  navigator.clipboard.writeText(url)
+                  setCopiedPublicLink(true)
+                  setTimeout(() => setCopiedPublicLink(false), 2500)
+                }}
+                className="w-full py-1.5 rounded-lg text-[11px] border border-white/10 text-white/40 hover:text-white/60 hover:border-white/20 transition-colors"
+              >
+                {copiedPublicLink ? '✓ Link copied' : '⌘ Copy permanent link'}
+              </button>
               </div>
             )}
 

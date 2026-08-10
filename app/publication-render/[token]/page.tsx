@@ -333,7 +333,7 @@ function renderSubHeading(title: string, styles: ThemeStyles): string {
 function renderAppreciationBlock(section: ProfileSectionData, styles: ThemeStyles): string {
   if (!section.content?.trim()) return '';
   const content = escapeHtml(section.content);
-  const title   = section.custom_title ?? 'Family Appreciation';
+  const title = section.custom_title ?? 'Family Vote of Thanks';
 
   return `<div style="page-break-before:always; break-before:page; display:block; ${SECTION_WRAP}">
     ${renderSectionHeader(title, styles)}
@@ -402,7 +402,7 @@ function renderForeword(
     guest_captures:         'Candid photographs uploaded by guests present on the day.',
     memories:               'Personal memories shared by contributors, grouped by era.',
     community_stories:      'Stories and reflections organised by topic from the community.',
-    closing_message:        'A closing note from LegacyCapsule.',
+    appreciation:           'A formal closing word from the family — their vote of thanks to everyone who contributed to this record.',
   }
 
   // Build TOC — includes synthetic sections not in layout_config
@@ -447,7 +447,7 @@ function renderForeword(
       community_stories:    'Community Stories',
       closing_message:      'Closing Message',
       collection_intelligence: 'Capsule Highlights',
-      appreciation:         'Family Appreciation',
+      appreciation:         'Family Vote of Thanks',
     }
     const label = s.type === 'phase_photos'
       ? (s as PhasePhotosSection).phase_name ?? 'Event Photographs'
