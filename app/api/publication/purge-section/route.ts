@@ -1,12 +1,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FILE: app/api/publication/purge-section/route.ts
 // ROUTE: POST /api/publication/purge-section
-// PURPOSE: Purge and rebuild a specific phase_photos section from current
-//          gallery_items. Clears stale/deleted photo slots and rebuilds
-//          fresh from what actually exists in the DB right now.
-// ARCHITECTURE: LC03 Legacy Publication System
-// BUILT BY: AI19 · Claude Sonnet 4.6 · 8 August 2026
-// VERSION: v2.11.78
+// PURPOSE: Purges and rebuilds a specific phase_photos section from current
+//          gallery_items. Clears stale slots. Returns new layout_config.
+// BUILT BY: AI19 · Claude Sonnet 4.6 · 9 August 2026
+// VERSION: AI19v2.11.89
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -14,10 +12,14 @@ import { createClient }              from '@supabase/supabase-js'
 import { buildPhaseSection }         from '@/lib/publication/autoArrange'
 import type { LayoutConfig, PhasePhotosSection } from '@/lib/publication/types'
 
+// ═══ SECTION 1 — Client ═══
+
 const adminClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+// ═══ SECTION 2 — Route handler ═══
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,7 +44,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Publication not found' }, { status: 404 })
     }
 
-    const layout = pub.layout_config as LayoutConfig
+    const layout     = pub.layout_config as LayoutConfig
     const sectionIdx = layout.sections.findIndex(s => s.id === section_id)
 
     if (sectionIdx === -1) {
@@ -51,13 +53,16 @@ export async function POST(req: NextRequest) {
 
     const section = layout.sections[sectionIdx] as PhasePhotosSection
     if (section.type !== 'phase_photos') {
-      return NextResponse.json({ error: 'Only phase_photos sections can be purged' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Only phase_photos sections can be purged' },
+        { status: 400 }
+      )
     }
 
-    // ── Fetch current approved photos for this phase ──────────────────────
+    // ── Fetch phase metadata ──────────────────────────────────────────────
     const { data: phaseData } = await adminClient
       .from('capsule_phases')
-      .select('id, name, event_date')
+      .select('id, name, event_date, venue')
       .eq('id', section.phase_id)
       .maybeSingle()
 
@@ -65,6 +70,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Phase not found' }, { status: 404 })
     }
 
+    // ── Fetch current approved photos for this phase ──────────────────────
     const { data: photos } = await adminClient
       .from('gallery_items')
       .select('id, phase_id, image_url, caption, width_px, height_px, aspect_ratio, created_at, approved')
@@ -78,7 +84,7 @@ export async function POST(req: NextRequest) {
     const rebuilt = buildPhaseSection(phaseData, photos ?? [])
 
     // ── Splice rebuilt section into layout ────────────────────────────────
-    const newSections = [...layout.sections]
+    const newSections    = [...layout.sections]
     newSections[sectionIdx] = rebuilt as unknown as typeof newSections[number]
 
     const newLayout: LayoutConfig = { ...layout, sections: newSections }
@@ -100,9 +106,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      ok:          true,
-      photo_count: (photos ?? []).length,
-      slot_count:  rebuilt.slots.length,
+      ok:            true,
+      photo_count:   (photos ?? []).length,
+      slot_count:    rebuilt.slots.length,
       layout_config: newLayout,
     })
 
@@ -114,5 +120,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(): Promise<NextResponse> {
-  return NextResponse.json({ error: 'Method not allowed. Use POST.' }, { status: 405 })
+  return NextResponse.json(
+    { error: 'Method not allowed. Use POST.' },
+    { status: 405 }
+  )
 }
