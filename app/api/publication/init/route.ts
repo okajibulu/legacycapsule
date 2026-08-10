@@ -163,6 +163,25 @@ async function reconcileLayoutConfig(
     sections.push(closing);
   }
 
+  // ── 4. Enforce canonical section order ────────────────────
+  const CANONICAL_ORDER: Record<string, number> = {
+    cover:                1,
+    honouree_profile:     2,
+    world_map:            3,
+    tributes:             4,
+    phase_photos:         5,
+    official_photography: 6,
+    guest_captures:       7,
+    community_stories:    8,
+    memories:             9,
+    closing_message:      10,
+  };
+  sections.sort((a: { type: string }, b: { type: string }) => {
+    const orderA = CANONICAL_ORDER[a.type] ?? 5;
+    const orderB = CANONICAL_ORDER[b.type] ?? 5;
+    return orderA - orderB;
+  });
+
   return { ...existing, sections };
 }
 // ============================================================

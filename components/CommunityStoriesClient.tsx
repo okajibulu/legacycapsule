@@ -57,7 +57,7 @@ const textPrimary   = 'rgba(255,255,255,0.92)'
 const textSecondary = 'rgba(255,255,255,0.55)'
 const textFaint     = 'rgba(255,255,255,0.28)'
 
-const STORY_CHAR_LIMIT = 2000
+const STORY_CHAR_LIMIT = 3000
 const MAX_PHOTOS       = 3
 
 // ═══ SECTION 3 — Category config ═══
@@ -237,10 +237,10 @@ function StoryCard({ story, photos, honoureeName, capsuleId, reactionCounts, myR
             color: topicDisplay ? gold : textFaint,
             fontStyle: topicDisplay ? 'italic' : 'normal',
             lineHeight: 1.4, flex: 1, minWidth: 0,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
+            overflow: 'visible', whiteSpace: 'normal', wordBreak: 'break-word' as const,
           }}>
             {topicDisplay
-              ? `"${topicDisplay.slice(0, 60)}${topicDisplay.length > 60 ? '…' : ''}"`
+              ? `"${topicDisplay}"`
               : 'Community Memory'}
           </p>
           <span style={{ fontSize: '10px', color: textFaint, flexShrink: 0 }}>
@@ -249,7 +249,7 @@ function StoryCard({ story, photos, honoureeName, capsuleId, reactionCounts, myR
         </div>
 
         {/* Line 2 — Serial circle + Name + Relationship */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', flexWrap: 'wrap' }}>
           <div style={{
             width: '26px', height: '26px', borderRadius: '50%',
             background: goldFaint, border: `1px solid rgba(226,195,107,0.2)`,

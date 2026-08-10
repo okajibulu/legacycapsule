@@ -124,13 +124,13 @@ borderLeft: `3px solid ${isPending ? t.cardAccentPending : t.accentPrimary}`,
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
             {/* Line 1: Serial · Name · Relationship */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', marginBottom: '2px', flexWrap: 'wrap' }}>
               {serialNumber && <span style={{ fontSize: '9px', fontWeight: 700, color: t.textFaint, letterSpacing: '0.08em', fontFamily: 'monospace', flexShrink: 0 }}>#{String(serialNumber).padStart(3, '0')}</span>}
-              <span style={{ fontSize: '12px', fontWeight: 700, color: t.textHeading, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: t.textHeading, overflow: 'visible', whiteSpace: 'normal', wordBreak: 'break-word' }}>
                 {c.contributor_name}
               </span>
               {c.relationship && (
-                <span style={{ fontSize: '10px', color: t.accentMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {c.relationship}</span>
+                <span style={{ fontSize: '10px', color: t.accentMuted, overflow: 'visible', whiteSpace: 'normal', wordBreak: 'break-word' }}>· {c.relationship}</span>
               )}
               {isOwn && <span style={{ fontSize: '9px', fontWeight: 400, color: t.accentMuted, textTransform: 'uppercase', letterSpacing: '0.15em', flexShrink: 0 }}>you</span>}
             </div>
@@ -445,7 +445,7 @@ function RelationshipSelect({ selected, onChange, error, t, eventType, honoureeN
           transition: 'border-color 0.2s',
         }}
       >
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, flex: 1 }}>
+        <span style={{ overflow: 'visible', whiteSpace: 'normal', wordBreak: 'break-word' as const, flex: 1 }}>
           {selected.length === 0
             ? getRelationshipQuestion(eventType, honoureeName)
             : selected.length === 1
