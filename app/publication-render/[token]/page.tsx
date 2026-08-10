@@ -405,8 +405,26 @@ function renderForeword(
     closing_message:        'A closing note from LegacyCapsule.',
   }
 
+  // Build TOC — includes synthetic sections not in layout_config
   const enabledSections = sections.filter(s => s.enabled && s.type !== 'closing_message')
-  const tocRows = enabledSections.map(s => {
+
+  // Inject Capsule Highlights after tributes if tributes present
+  const tributesIdx = enabledSections.findIndex(s => s.type === 'tributes')
+  const syntheticHighlights = {
+    id: 'synthetic_highlights', type: 'collection_intelligence', enabled: true
+  }
+  const syntheticAppreciation = {
+    id: 'synthetic_appreciation', type: 'appreciation', enabled: true
+  }
+
+  const tocSections = [...enabledSections]
+  if (tributesIdx >= 0) {
+    tocSections.splice(tributesIdx + 1, 0, syntheticHighlights as any)
+  }
+  // Appreciation always just before closing
+  tocSections.push(syntheticAppreciation as any)
+
+  const tocRows = tocSections.map(s => {
     const SECTION_DISPLAY_NAMES: Record<string, string> = {
       cover:                'Cover Page',
       honouree_profile:     'Honouree Profile',

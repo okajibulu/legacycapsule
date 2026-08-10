@@ -712,7 +712,7 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess,
       onClick={onClose}
     >
       <div
-        style={{ width: '100%', maxWidth: '540px', background: 'linear-gradient(160deg,#1a0845,#120630)', borderRadius: '20px 20px 0 0', padding: '24px 20px 36px', maxHeight: '92vh', overflowY: 'auto' as const }}
+        style={{ width: '100%', maxWidth: '540px', background: 'linear-gradient(160deg,#1a0845,#120630)', borderRadius: '20px 20px 0 0', padding: '24px 20px 140px', maxHeight: '92vh', overflowY: 'auto' as const }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

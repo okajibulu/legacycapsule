@@ -754,7 +754,7 @@ const handleCopy = async () => {
 setFAudioUrl(null); setFVideoUrl(null); setFVideoThumb(null); setFConsent(false)
       setShowAudioRecorder(false); setShowVideoUploader(false)
       setSubmitSuccess(true); setComposerOpen(false); setTimeout(() => setSubmitSuccess(false), 3500); poll()
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 200)
+       
     } catch { setSubmitErr('Something went wrong. Please try again.') }
     setSubmitting(false)
   }
