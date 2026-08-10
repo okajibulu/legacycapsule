@@ -101,7 +101,7 @@ function TributeCard({ c, capsuleId, isAdmin, isOwn, onApprove, onDelete, onEdit
   const isPending = c.status === 'pending_review' || c.status === 'pending'
   const canEdit = (isOwn && isPending) || isAdmin
   const canDelete = (isOwn && isPending) || isAdmin
-  const displayName = c.relationship ? `${c.contributor_name} (${c.relationship})` : c.contributor_name
+  const displayName = c.relationship ? `${c.contributor_name} (My ${c.relationship})` : c.contributor_name
 
   return (
     <div style={{
@@ -130,7 +130,7 @@ borderLeft: `3px solid ${isPending ? t.cardAccentPending : t.accentPrimary}`,
                 {c.contributor_name}
               </span>
               {c.relationship && (
-                <span style={{ fontSize: '10px', color: t.accentMuted, overflow: 'visible', whiteSpace: 'normal', wordBreak: 'break-word' }}>· {c.relationship}</span>
+                <span style={{ fontSize: '10px', color: t.accentMuted, overflow: 'visible', whiteSpace: 'normal', wordBreak: 'break-word' }}>· My {c.relationship}</span>
               )}
               {isOwn && <span style={{ fontSize: '9px', fontWeight: 400, color: t.accentMuted, textTransform: 'uppercase', letterSpacing: '0.15em', flexShrink: 0 }}>you</span>}
             </div>

@@ -266,7 +266,7 @@ function StoryCard({ story, photos, honoureeName, capsuleId, reactionCounts, myR
             <>
               <span style={{ fontSize: '10px', color: textFaint }}>·</span>
               <span style={{ fontSize: '11px', color: goldMuted, fontWeight: 500 }}>
-                {story.relationship}
+                My {story.relationship}
               </span>
             </>
           )}
