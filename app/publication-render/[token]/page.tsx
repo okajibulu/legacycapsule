@@ -1085,20 +1085,21 @@ function renderClosingMessage(
       </p>
 
       <!-- The deeper thought -->
-      <p style="
-        font-family:${styles.bodyFont};
-        font-size:13px;
-        color:${styles.coverTextColor ?? styles.pageText};
-        line-height:1.9;
-        margin:0 0 52px;
-        opacity:0.55;
-        max-width:380px;
-        margin-left:auto; margin-right:auto;
-      ">
-        Every voice in these pages is a permanent record — not just of
-        an occasion, but of the lives it touched, the bonds it honoured,
-        and the love that travelled across cities, countries and generations
-        to arrive here.
+     <p style="font-family:${styles.bodyFont}; font-size:15px; line-height:1.95; color:${styles.coverTextColor ?? styles.pageText}; max-width:480px; text-align:center; opacity:0.75; margin:0 0 52px;">
+        ${(() => {
+          const et = (capsule.event_type ?? '').toLowerCase();
+          if (et === 'retirement' || et === 'inauguration' || et === 'inaugural_lecture')
+            return 'Every voice in these pages is a permanent record — not just of a career, but of the lives it shaped, the minds it opened, and the lasting mark left on everyone who had the privilege of learning from, working beside, or being loved by this remarkable person.';
+          if (et === 'memorial')
+            return 'Every voice in these pages is a permanent record — not just of a life, but of the love it carried, the bonds it honoured, and the memory that will travel across cities, countries and generations long after this moment.';
+          if (et === 'wedding')
+            return 'Every voice in these pages is a permanent record — not just of a day, but of the joy it carried, the love it celebrated, and the blessings that arrived from every corner of the lives these two people have touched.';
+          if (et === 'birthday' || et === 'milestone_birthday')
+            return 'Every voice in these pages is a permanent record — not just of a milestone, but of a life fully lived, deeply felt, and celebrated by everyone lucky enough to have been part of the story so far.';
+          if (et === 'chieftaincy')
+            return 'Every voice in these pages is a permanent record — not just of an honour bestowed, but of the leadership it recognises, the community it serves, and the legacy already written in the lives of those who follow.';
+          return 'Every voice in these pages is a permanent record — not just of an occasion, but of the lives it touched, the bonds it created, and the love that travelled across cities, countries and generations to arrive here.';
+        })()}
       </p>
 
       <!-- Bottom LC identity -->
