@@ -37,7 +37,6 @@ export async function POST(req: NextRequest) {
       .from('publications')
       .select('id, layout_config')
       .eq('capsule_id', capsule_id)
-      .is('deleted_at', null)
       .maybeSingle()
 
     if (pubErr || !pub) {
