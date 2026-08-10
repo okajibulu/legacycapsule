@@ -410,8 +410,11 @@ function renderForeword(
 
   // Inject Capsule Highlights after tributes if tributes present
   const tributesIdx = enabledSections.findIndex(s => s.type === 'tributes')
-  const syntheticHighlights = {
+   const syntheticHighlights = {
     id: 'synthetic_highlights', type: 'collection_intelligence', enabled: true
+  }
+  const syntheticCommunityStories = {
+    id: 'synthetic_community_stories', type: 'community_stories', enabled: true
   }
   const syntheticAppreciation = {
     id: 'synthetic_appreciation', type: 'appreciation', enabled: true
@@ -421,7 +424,15 @@ function renderForeword(
   if (tributesIdx >= 0) {
     tocSections.splice(tributesIdx + 1, 0, syntheticHighlights as any)
   }
-  // Appreciation always just before closing
+  // Community Stories — after phase photos, before appreciation
+  const lastPhaseIdx = tocSections.reduce(
+    (last: number, s: { type: string }, i: number) =>
+      s.type === 'phase_photos' ? i : last, -1
+  )
+  if (lastPhaseIdx >= 0) {
+    tocSections.splice(lastPhaseIdx + 1, 0, syntheticCommunityStories as any)
+  }
+  // Family Appreciation always just before closing
   tocSections.push(syntheticAppreciation as any)
 
   const tocRows = tocSections.map(s => {
