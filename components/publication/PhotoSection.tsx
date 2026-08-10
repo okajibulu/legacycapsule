@@ -278,10 +278,13 @@ export default function PhotoSection({
     setShowTray(false);
   };
 
+
+  
   const handlePurge = async () => {
     setPurging(true);
     setPurgeError(null);
     try {
+      console.log('[purge-section] sending:', { capsule_id: capsuleId, section_id: section.id });
       const res = await fetch('/api/publication/purge-section', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
