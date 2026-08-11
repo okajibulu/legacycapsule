@@ -625,7 +625,7 @@ export default function PublicationEditor({
   }, [capsuleId])
 
   const handleDistribute = useCallback(async () => {
-    if (!capsuleId || !existingPdfUrl) return
+    if (!capsuleId || !currentToken) return
     setDistributing(true)
     setDistributeError(null)
     setDistributeResult(null)
