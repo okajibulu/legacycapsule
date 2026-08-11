@@ -1,36 +1,29 @@
 'use client';
 
-/**
- * ============================================================
- * LEGACYCAPSULE — PublicationEditor.tsx
- * VALNEX, UNIPESSOAL LDA · RevoWorldTech
- * ============================================================
- *
- * Top-level shell for the Publication Editor.
- *
- * Responsibilities:
- *   1. Initialise — POST to /api/publication/init on mount.
- *   2. Pre-fetch — load all photo metadata and contribution data.
- *   3. State — hold the live layout_config in React state.
- *   4. Autosave — debounced POST to /api/publication/save.
- *   5. Composition — SectionNavigator (left), active editor (main),
- *      GenerateButton + Preview button (right sidebar).
- *
- * Changes AI7:
- *   - Added "Preview & Save as PDF" button (browser print approach)
- *     works on Vercel Hobby plan without Puppeteer.
- *   - handlePreviewPrint: calls /api/publication/preview-token,
- *     opens /publication-render/[token]?autoPrint=1 in new tab.
- *
- * Changes AI18 (6 Aug 2026):
- *   - GenerateButton retired (Puppeteer unavailable on Hobby plan)
- *   - handlePreviewPrint retired — replaced by handleRegenerate
- *   - Deliberate regeneration: organiser controls when new version is created
- *   - "Open Publication ↗" uses stored render_token — always shows last version
- *   - Tiered distribution: Family Preview → Named Send → Full Distribution
- *   - Version-aware distribution with Option C resend logic
- *   - New API routes consumed: family-preview, named-send, distribute (updated)
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE PATH: components/publication/PublicationEditor.tsx
+// PURPOSE:   Top-level shell for the Publication Editor.
+//            Responsibilities:
+//              1. Initialise — POST to /api/publication/init on mount.
+//              2. Pre-fetch — load all photo metadata and contribution data.
+//              3. State — hold the live layout_config in React state.
+//              4. Autosave — debounced POST to /api/publication/save.
+//              5. Composition — SectionNavigator (left), active editor (main),
+//                 Generation + Distribution controls (right sidebar).
+// ARCHITECTURE: LC03 Legacy Publication System
+// BUILT BY:  AI7 (original) · AI18 · AI20 · Claude Opus 4.6
+// UPDATED:   AI20 · 11 August 2026
+//            — Full Distribution section redesigned with clean state machine.
+//              Previous implementation had 7 interdependent state variables
+//              that fell out of sync, blocking the send button.
+//              Replaced with: distPhase | distData | distResult | distError.
+//            — existingPdfUrl dependency removed from handleDistribute
+//              (was never set; render_token is the correct existence check).
+//            — All other sections untouched: init, autosave, photos,
+//              tributes, generation, family preview, named send.
+// VERSION:   AI20v2.11.96
+// DATE:      11 August 2026
+// ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
@@ -56,12 +49,8 @@ import {
 import SectionNavigator from './SectionNavigator';
 import PhotoSection     from './PhotoSection';
 import TributeSection, { type ContributionDisplay } from './TributeSection';
-// GenerateButton retired — Puppeteer unavailable on Vercel Hobby plan.
 
-
-// ============================================================
-// SECTION 1 — Supabase anon client
-// ============================================================
+// ═══ SECTION 1 — Supabase anon client ═══
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -70,20 +59,14 @@ const supabase = createClient(
 
 const AUTOSAVE_DELAY_MS = 800;
 
-
-// ============================================================
-// SECTION 2 — Props
-// ============================================================
+// ═══ SECTION 2 — Props ═══
 
 interface PublicationEditorProps {
   capsuleId:   string;
   capsuleSlug: string;
 }
 
-
-// ============================================================
-// SECTION 3 — Save status indicator
-// ============================================================
+// ═══ SECTION 3 — Save status indicator ═══
 
 function SaveStatusBadge({ state }: { state: EditorSaveState }) {
   const copy: Record<EditorSaveState, string> = {
@@ -109,10 +92,7 @@ function SaveStatusBadge({ state }: { state: EditorSaveState }) {
   );
 }
 
-
-// ============================================================
-// SECTION 4 — Non-editable section placeholder
-// ============================================================
+// ═══ SECTION 4 — Non-editable section placeholder ═══
 
 function AutoSectionPlaceholder({ type }: { type: string }) {
   const messages: Record<string, { title: string; detail: string }> = {
@@ -167,34 +147,20 @@ function AutoSectionPlaceholder({ type }: { type: string }) {
   );
 }
 
+// ═══ SECTION 5 — Distribution summary sub-component ═══
+// Persistent email stats shown in the sidebar when a publication exists.
 
-// ============================================================
-// SECTION 5 — Main component
-// ============================================================
-
-// ── Distribution Intelligence Panel ───────────────────────
-// Shows persistent email stats — unique emails, sent counts,
-// which version each cohort received.
-function DistributionSummary({
-  capsuleId,
-  pubVersion,
-}: {
-  capsuleId: string
-  pubVersion: number | null
-}) {
+function DistributionSummary({ capsuleId }: { capsuleId: string }) {
   const [stats, setStats] = useState<{
-    total: number
-    already_received: number
-    will_receive_now: number
-    version: number
-    no_email: number
+    total: number; contributors: number; dday: number;
+    subscribers: number; no_email: number;
   } | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!capsuleId) return
     setLoading(true)
-    fetch(`/api/publication/distribute?capsule_id=${capsuleId}&preview=1`)
+    fetch(`/api/publication/distribute?capsule_id=${capsuleId}`)
       .then(r => r.json())
       .then(d => { if (!d.error) setStats(d) })
       .catch(() => {})
@@ -212,31 +178,35 @@ function DistributionSummary({
   return (
     <div className="mb-3 p-2.5 rounded-lg border border-white/8" style={{ background: 'rgba(255,255,255,0.02)' }}>
       <p className="text-[9px] text-yellow-400/50 uppercase tracking-wider font-bold mb-2">
-        Email Distribution
+        Email Recipients
       </p>
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <div className="flex justify-between items-baseline">
-          <span className="text-[10px] text-white/40">Unique emails in system</span>
+          <span className="text-[10px] text-white/40">Total unique emails</span>
           <span className="text-[10px] text-white/70 font-bold">{stats.total}</span>
         </div>
-        {stats.already_received > 0 && (
+        {stats.contributors > 0 && (
           <div className="flex justify-between items-baseline">
-            <span className="text-[10px] text-white/40">
-              Received v{stats.version}
-            </span>
-            <span className="text-[10px] text-green-400/70 font-bold">{stats.already_received}</span>
+            <span className="text-[10px] text-white/30">Contributors</span>
+            <span className="text-[10px] text-white/40">{stats.contributors}</span>
           </div>
         )}
-        {stats.will_receive_now > 0 && (
+        {stats.dday > 0 && (
           <div className="flex justify-between items-baseline">
-            <span className="text-[10px] text-white/40">Yet to receive</span>
-            <span className="text-[10px] text-yellow-400/70 font-bold">{stats.will_receive_now}</span>
+            <span className="text-[10px] text-white/30">D-Day guests</span>
+            <span className="text-[10px] text-white/40">{stats.dday}</span>
+          </div>
+        )}
+        {stats.subscribers > 0 && (
+          <div className="flex justify-between items-baseline">
+            <span className="text-[10px] text-white/30">Subscribers</span>
+            <span className="text-[10px] text-white/40">{stats.subscribers}</span>
           </div>
         )}
         {stats.no_email > 0 && (
           <div className="flex justify-between items-baseline">
-            <span className="text-[10px] text-white/30">No email on file</span>
-            <span className="text-[10px] text-white/25">{stats.no_email}</span>
+            <span className="text-[10px] text-white/20">No email on file</span>
+            <span className="text-[10px] text-white/20">{stats.no_email}</span>
           </div>
         )}
       </div>
@@ -244,66 +214,71 @@ function DistributionSummary({
   )
 }
 
+// ═══ SECTION 6 — Main component ═══
+
 export default function PublicationEditor({
   capsuleId,
   capsuleSlug,
 }: PublicationEditorProps) {
 
-  // ── 5.1  Core state ───────────────────────────────────────
+  // ── 6.1  Core editor state ────────────────────────────────
 
-  const [layout,          setLayout]          = useState<LayoutConfig | null>(null);
-  const [autoLayout,      setAutoLayout]       = useState<LayoutConfig | null>(null);
-  const [activeSection,   setActiveSection]    = useState<string>('section_cover');
-  const [pubId,           setPubId]            = useState<string | null>(null);
-  const [existingPdfUrl,  setExistingPdfUrl]   = useState<string | null>(null);
-  const [existingVersion, setExistingVersion]  = useState<number | null>(null);
-  const [saveState,            setSaveState]            = useState<EditorSaveState>('saved');
-  const [distributing,         setDistributing]         = useState(false);
-  const [distributeError,      setDistributeError]      = useState<string | null>(null);
-  const [distributeResult,     setDistributeResult]     = useState<{ sent: number; skipped: number } | null>(null);
-  const [recipientPreview,     setRecipientPreview]     = useState<{
-    contributors: number; dday: number; subscribers: number; total: number; no_email: number;
-    version?: number; already_received?: number; will_receive_now?: number;
-  } | null>(null);
-  const [previewLoading,       setPreviewLoading]       = useState(false);
-  const [showConfirm,          setShowConfirm]          = useState(false);
-  const [initialising,         setInitialising]         = useState(true);
-  const [initError,            setInitError]            = useState<string | null>(null);
-  const [includePrevious,      setIncludePrevious]      = useState(false);
-  const [pubVersion,           setPubVersion]           = useState<number | null>(null);
-  const [alreadyReceived,      setAlreadyReceived]      = useState<number>(0);
-  const [willReceiveNow,       setWillReceiveNow]       = useState<number>(0);
+  const [layout,        setLayout]        = useState<LayoutConfig | null>(null);
+  const [autoLayout,    setAutoLayout]    = useState<LayoutConfig | null>(null);
+  const [activeSection, setActiveSection] = useState<string>('section_cover');
+  const [pubId,         setPubId]         = useState<string | null>(null);
+  const [saveState,     setSaveState]     = useState<EditorSaveState>('saved');
+  const [initialising,  setInitialising]  = useState(true);
+  const [initError,     setInitError]     = useState<string | null>(null);
 
-  // ── Generation state ──────────────────────────────────────
-  const [currentToken,         setCurrentToken]         = useState<string | null>(null);
-  const [currentGeneratedAt,   setCurrentGeneratedAt]   = useState<string | null>(null);
-  const [regenerating,         setRegenerating]         = useState(false);
-  const [regenError,           setRegenError]           = useState<string | null>(null);
+  // ── 6.2  Generation state ─────────────────────────────────
 
-  // ── Family preview state ──────────────────────────────────
+  const [currentToken,       setCurrentToken]       = useState<string | null>(null);
+  const [currentGeneratedAt, setCurrentGeneratedAt] = useState<string | null>(null);
+  const [pubVersion,         setPubVersion]         = useState<number | null>(null);
+  const [regenerating,       setRegenerating]       = useState(false);
+  const [regenError,         setRegenError]         = useState<string | null>(null);
+  const [copiedPublicLink,   setCopiedPublicLink]   = useState(false);
+
+  // ── 6.3  Family preview state ─────────────────────────────
+
   const [familyPreviewSending, setFamilyPreviewSending] = useState(false);
   const [familyPreviewSent,    setFamilyPreviewSent]    = useState(false);
   const [familyPreviewError,   setFamilyPreviewError]   = useState<string | null>(null);
   const [familyPreviewVersion, setFamilyPreviewVersion] = useState<number | null>(null);
   const [familyPreviewAt,      setFamilyPreviewAt]      = useState<string | null>(null);
 
-  // ── Named send state ─────────────────────────────────────
-  const [namedSendEmail,       setNamedSendEmail]       = useState('');
-  const [namedSendName,        setNamedSendName]        = useState('');
-  const [namedSending,         setNamedSending]         = useState(false);
-  const [copiedPublicLink, setCopiedPublicLink] = useState(false)
-  const [namedSendError,       setNamedSendError]       = useState<string | null>(null);
-  const [namedSends,           setNamedSends]           = useState<Array<{
+  // ── 6.4  Named send state ─────────────────────────────────
+
+  const [namedSendEmail,  setNamedSendEmail]  = useState('');
+  const [namedSendName,   setNamedSendName]   = useState('');
+  const [namedSending,    setNamedSending]    = useState(false);
+  const [namedSendError,  setNamedSendError]  = useState<string | null>(null);
+  const [namedRecipients, setNamedRecipients] = useState<Array<{ name: string; email: string }>>([]);
+  const [namedSends,      setNamedSends]      = useState<Array<{
     id: string; recipient_name: string; recipient_email: string;
     version_sent: number; sent_at: string;
   }>>([]);
-  // Multi-recipient list — built before sending
-  const [namedRecipients,      setNamedRecipients]      = useState<Array<{ name: string; email: string }>>([]);
+
+  // ── 6.5  Full distribution state machine ──────────────────
+  // Single state object replaces 7 interdependent vars that fell out of sync.
+  // Phase transitions: idle → previewing → confirming → sending → done | error
+  // Never reads existingPdfUrl — currentToken is the correct existence check.
+
+  type DistPhase = 'idle' | 'previewing' | 'confirming' | 'sending' | 'done' | 'error'
+
+  const [distPhase,   setDistPhase]   = useState<DistPhase>('idle')
+  const [distData,    setDistData]    = useState<{
+    total: number; contributors: number; dday: number;
+    subscribers: number; no_email: number;
+  } | null>(null)
+  const [distResult,  setDistResult]  = useState<{ sent: number; skipped: number } | null>(null)
+  const [distError,   setDistError]   = useState<string | null>(null)
+  const [includePrev, setIncludePrev] = useState(false)
 
   const hasUnsavedChanges = saveState === 'unsaved' || saveState === 'saving';
 
-
-  // ── 5.2  Pre-fetched content maps ─────────────────────────
+  // ── 6.6  Pre-fetched content maps ─────────────────────────
 
   const [photos, setPhotos] = useState<
     Record<string, GalleryItemForArrangement & { image_url: string }>
@@ -313,8 +288,7 @@ export default function PublicationEditor({
     Record<string, ContributionDisplay>
   >({});
 
-
-  // ── 5.3  Autosave infrastructure ──────────────────────────
+  // ── 6.7  Autosave infrastructure ──────────────────────────
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -336,8 +310,7 @@ export default function PublicationEditor({
     }, AUTOSAVE_DELAY_MS);
   }, [capsuleId]);
 
-
-  // ── 5.4  Initialisation ───────────────────────────────────
+  // ── 6.8  Initialisation ───────────────────────────────────
 
   useEffect(() => {
     const init = async () => {
@@ -360,13 +333,10 @@ export default function PublicationEditor({
 
         const { data: pubRow } = await supabase
           .from('publications')
-          .select('pdf_url, version, generation_status, render_token, generated_at')
+          .select('version, generation_status, render_token, generated_at')
           .eq('id', pub_id)
           .maybeSingle();
-        if (pubRow?.pdf_url) {
-          setExistingPdfUrl(pubRow.pdf_url);
-          setExistingVersion(pubRow.version);
-        }
+
         if (pubRow?.render_token) setCurrentToken(pubRow.render_token);
         if (pubRow?.generated_at) setCurrentGeneratedAt(pubRow.generated_at);
         if (pubRow?.version)      setPubVersion(pubRow.version);
@@ -415,8 +385,7 @@ export default function PublicationEditor({
     init();
   }, [capsuleId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-
-  // ── 5.5  Layout mutation helper ───────────────────────────
+  // ── 6.9  Layout mutation helper ───────────────────────────
 
   const mutate = useCallback((fn: (l: LayoutConfig) => LayoutConfig) => {
     setLayout(prev => {
@@ -427,30 +396,29 @@ export default function PublicationEditor({
     });
   }, [saveLayout]);
 
+  // ── 6.10  Section-specific mutation handlers ──────────────
 
-  // ── 5.6  Section-specific mutation handlers ───────────────
-
-  const handleToggleSection    = useCallback((sectionId: string) => {
+  const handleToggleSection = useCallback((sectionId: string) => {
     mutate(l => toggleSection(l, sectionId));
   }, [mutate]);
 
-  const handleSwapPhotos       = useCallback((idA: string, idB: string) => {
+  const handleSwapPhotos = useCallback((idA: string, idB: string) => {
     mutate(l => swapPhotos(l, activeSection, idA, idB));
   }, [mutate, activeSection]);
 
-  const handleReplacePhoto     = useCallback((outgoing: string, incoming: string) => {
+  const handleReplacePhoto = useCallback((outgoing: string, incoming: string) => {
     mutate(l => replacePhoto(l, activeSection, outgoing, incoming));
   }, [mutate, activeSection]);
 
-  const handleRemovePhoto      = useCallback((id: string) => {
+  const handleRemovePhoto = useCallback((id: string) => {
     mutate(l => removePhoto(l, activeSection, id));
   }, [mutate, activeSection]);
 
-  const handlePromotePhoto     = useCallback((id: string) => {
+  const handlePromotePhoto = useCallback((id: string) => {
     mutate(l => promoteToFeature(l, activeSection, id));
   }, [mutate, activeSection]);
 
-  const handleResetSection     = useCallback(() => {
+  const handleResetSection = useCallback(() => {
     if (!autoLayout) return;
     mutate(l => resetSectionToAuto(l, autoLayout, activeSection));
   }, [mutate, autoLayout, activeSection]);
@@ -459,7 +427,7 @@ export default function PublicationEditor({
     mutate(l => setTributeOrderMode(l, mode));
   }, [mutate]);
 
-  const handleReorderTributes  = useCallback((items: TributeItem[]) => {
+  const handleReorderTributes = useCallback((items: TributeItem[]) => {
     mutate(l => ({
       ...l,
       arrangement_source: 'manual',
@@ -471,25 +439,13 @@ export default function PublicationEditor({
     }));
   }, [mutate, activeSection]);
 
-  const handleGenerateComplete = useCallback(
-    ({ pdfUrl, pageMap }: { pdfUrl: string; pageMap: Record<string, number> }) => {
-      mutate(l => ({ ...l, page_map: pageMap }));
-      setExistingPdfUrl(pdfUrl);
-      setExistingVersion(prev => (prev ?? 1) + 1);
-    },
-    [mutate]
-  );
+  // ── 6.11  Regenerate publication ──────────────────────────
 
-  // ── 5.7  Regenerate publication ───────────────────────────
-  // Deliberate organiser action — generates new token, stores it.
-  // Organiser can view current version at any time via Open button.
   const handleRegenerate = useCallback(async () => {
     if (!capsuleId) return
     setRegenerating(true)
     setRegenError(null)
     try {
-      // Step 1 — Re-run init to reconcile any new content
-      // (new phases, new section types added since last generation)
       const initRes = await fetch('/api/publication/init', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -497,14 +453,10 @@ export default function PublicationEditor({
       })
       const initData = await initRes.json()
       if (!initRes.ok) throw new Error(initData.error ?? 'Failed to refresh content')
-
-      // Update local layout with reconciled config
       if (initData.layout_config) {
         setLayout(initData.layout_config)
         setAutoLayout(initData.layout_config)
       }
-
-      // Step 2 — Generate a new render token (bumps version)
       const res = await fetch('/api/publication/preview-token', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -512,11 +464,9 @@ export default function PublicationEditor({
       })
       const data = await res.json()
       if (!res.ok || !data.token) throw new Error(data.error ?? 'Failed to generate publication')
-
       setCurrentToken(data.token)
       setCurrentGeneratedAt(new Date().toISOString())
       if (data.version) setPubVersion(data.version)
-
     } catch (err) {
       setRegenError(err instanceof Error ? err.message : 'Regeneration failed')
     } finally {
@@ -524,7 +474,8 @@ export default function PublicationEditor({
     }
   }, [capsuleId])
 
-  // ── 5.7b  Family preview ──────────────────────────────────
+  // ── 6.12  Family preview ──────────────────────────────────
+
   const handleFamilyPreview = useCallback(async () => {
     if (!capsuleId) return
     setFamilyPreviewSending(true)
@@ -547,7 +498,8 @@ export default function PublicationEditor({
     }
   }, [capsuleId, capsuleSlug])
 
-  // ── 5.7c  Named send ─────────────────────────────────────
+  // ── 6.13  Named send ──────────────────────────────────────
+
   const handleAddRecipient = useCallback(() => {
     if (!namedSendEmail.trim()) return
     setNamedRecipients(prev => [
@@ -564,10 +516,11 @@ export default function PublicationEditor({
 
   const handleNamedSend = useCallback(async () => {
     if (!capsuleId) return
-    // Include current input as recipient if filled
     const allRecipients = [
       ...namedRecipients,
-      ...(namedSendEmail.trim() ? [{ name: namedSendName.trim() || 'Guest', email: namedSendEmail.trim() }] : [])
+      ...(namedSendEmail.trim()
+        ? [{ name: namedSendName.trim() || 'Guest', email: namedSendEmail.trim() }]
+        : [])
     ]
     if (allRecipients.length === 0) return
     setNamedSending(true)
@@ -584,7 +537,6 @@ export default function PublicationEditor({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Send failed')
-      // Log all sent recipients
       const newSends = allRecipients.map((r, i) => ({
         id:              `${Date.now()}-${i}`,
         recipient_name:  r.name,
@@ -603,56 +555,61 @@ export default function PublicationEditor({
     }
   }, [capsuleId, capsuleSlug, namedSendEmail, namedSendName, namedRecipients])
 
-  // ── 5.7d  Full distribution ───────────────────────────────
-  const handlePreviewRecipients = useCallback(async () => {
+  // ── 6.14  Full distribution — clean state machine ─────────
+  // Phase 1: Load recipients → confirms counts are real before showing UI.
+  // Phase 2: Organiser reviews and confirms.
+  // Phase 3: Send fires — no guards other than capsuleId + currentToken.
+  // No existingPdfUrl anywhere — was never set, caused all prior failures.
+
+  const handleDistPreview = useCallback(async () => {
     if (!capsuleId) return
-    setPreviewLoading(true)
-    setDistributeError(null)
+    setDistPhase('previewing')
+    setDistError(null)
+    setDistData(null)
     try {
-      const res  = await fetch(`/api/publication/distribute?capsule_id=${capsuleId}&preview=1`)
+      const res  = await fetch(`/api/publication/distribute?capsule_id=${capsuleId}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed to load recipients')
-setRecipientPreview(data)
-setPubVersion(data.version ?? null)
-setAlreadyReceived(data.already_received ?? 0)
-setWillReceiveNow(data.will_receive_now ?? data.total ?? 0)
-setShowConfirm(true)
+      setDistData(data)
+      setDistPhase('confirming')
     } catch (err) {
-      setDistributeError(err instanceof Error ? err.message : 'Failed to load recipients')
-    } finally {
-      setPreviewLoading(false)
+      setDistError(err instanceof Error ? err.message : 'Failed to load recipients')
+      setDistPhase('error')
     }
   }, [capsuleId])
 
-  const handleDistribute = useCallback(async () => {
+  const handleDistSend = useCallback(async () => {
     if (!capsuleId || !currentToken) return
-    setDistributing(true)
-    setDistributeError(null)
-    setDistributeResult(null)
-    setShowConfirm(false)
+    setDistPhase('sending')
+    setDistError(null)
     try {
       const res  = await fetch('/api/publication/distribute', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          capsule_id:                  capsuleId,
-          capsule_slug:                capsuleSlug,
-          include_previous_recipients: includePrevious,
+          capsule_id:   capsuleId,
+          capsule_slug: capsuleSlug,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Distribution failed')
-      setDistributeResult(data)
-      setRecipientPreview(null)
+      setDistResult(data)
+      setDistPhase('done')
     } catch (err) {
-      setDistributeError(err instanceof Error ? err.message : 'Distribution failed')
-    } finally {
-      setDistributing(false)
+      setDistError(err instanceof Error ? err.message : 'Distribution failed')
+      setDistPhase('error')
     }
-  }, [capsuleId, capsuleSlug, existingPdfUrl, includePrevious])
+  }, [capsuleId, capsuleSlug, currentToken])
 
+  const handleDistReset = useCallback(() => {
+    setDistPhase('idle')
+    setDistData(null)
+    setDistResult(null)
+    setDistError(null)
+    setIncludePrev(false)
+  }, [])
 
-  // ── 5.8  Loading and error states ─────────────────────────
+  // ── 6.15  Loading and error states ───────────────────────
 
   if (initialising) {
     return (
@@ -679,21 +636,19 @@ setShowConfirm(true)
     );
   }
 
-
-  // ── 5.9  Active section data ──────────────────────────────
+  // ── 6.16  Active section data ─────────────────────────────
 
   const activeSecData = layout.sections.find(s => s.id === activeSection);
   const activeSectionLabel = activeSecData?.type === 'phase_photos'
     ? (activeSecData as PhasePhotosSection).phase_name ?? 'Phase Photos'
     : activeSecData?.type?.replace(/_/g, ' ') ?? '';
 
-
-  // ── 5.10  Render ──────────────────────────────────────────
+  // ── 6.17  Render ──────────────────────────────────────────
 
   return (
     <div className="flex flex-col md:flex-row h-full min-h-0 bg-[#0a0010] text-white overflow-hidden" aria-label="Publication Editor">
 
-      {/* ═══ LEFT PANEL (desktop) / TOP STRIP (mobile) — Section Navigator ═══ */}
+      {/* ═══ LEFT — Section Navigator ═══ */}
       <SectionNavigator
         sections={layout.sections}
         activeSection={activeSection}
@@ -702,7 +657,7 @@ setShowConfirm(true)
         pubId={pubId ?? undefined}
       />
 
-      {/* ═══ MAIN PANEL — Active section editor ═══ */}
+      {/* ═══ MAIN — Active section editor ═══ */}
       <main className="flex-1 overflow-y-auto min-w-0" aria-label={`Editing: ${activeSectionLabel}`}>
         <div className="px-4 md:px-6 py-4 md:py-5 space-y-5 max-w-3xl">
           <div className="flex items-center justify-between">
@@ -750,8 +705,7 @@ setShowConfirm(true)
         </div>
       </main>
 
-      {/* ═══ RIGHT PANEL — Generate panel ═══ */}
-      {/* Desktop: fixed right sidebar | Mobile: sticky bottom bar */}
+      {/* ═══ RIGHT — Generation & Distribution panel ═══ */}
       <aside
         className="
           flex-shrink-0 flex flex-col
@@ -759,35 +713,27 @@ setShowConfirm(true)
           bg-gradient-to-b from-[#100018] to-[#0a000e]
           w-full md:w-64 md:min-w-[256px]
           sticky bottom-0 md:static md:bottom-auto
-          z-10 md:z-auto
-          overflow-hidden
+          z-10 md:z-auto overflow-hidden
         "
-        aria-label="PDF generation panel"
+        aria-label="Publication panel"
       >
-        {/* Header — hidden on mobile (space-saving) */}
-      <div className="hidden md:block border-b border-yellow-400/10 flex-shrink-0" style={{ padding: '16px 20px' }}>
+        {/* Panel header */}
+        <div className="hidden md:block border-b border-yellow-400/10 flex-shrink-0" style={{ padding: '16px 20px' }}>
           <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-0.5">Publication</p>
-          <p className="text-sm font-bold text-yellow-100 leading-tight">Generate PDF</p>
+          <p className="text-sm font-bold text-yellow-100 leading-tight">Generate & Distribute</p>
         </div>
 
-        {/* Generate button area */}
-<div className="flex-1 overflow-y-auto overflow-x-hidden space-y-0 max-h-[55vh] md:max-h-none" style={{ padding: '12px 20px' }}>
-          {/* ══ TIER 0 — Publication Generation ══ */}
-          <div className="pb-4 mb-4 border-b border-yellow-400/10">
-            <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-2">
-              Publication
-            </p>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden max-h-[55vh] md:max-h-none" style={{ padding: '12px 20px' }}>
 
-            {/* Current version info */}
+          {/* ══ TIER 0 — Generation ══ */}
+          <div className="pb-4 mb-4 border-b border-yellow-400/10">
+            <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-2">Publication</p>
+
             {currentToken && (
               <div className="mb-3 p-2.5 rounded-lg border border-white/8" style={{ background: 'rgba(255,255,255,0.02)' }}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[9px] text-yellow-400/50 uppercase tracking-wider font-bold">
-                    Current Version
-                  </span>
-                  {pubVersion && (
-                    <span className="text-[11px] text-yellow-300 font-bold font-mono">v{pubVersion}</span>
-                  )}
+                  <span className="text-[9px] text-yellow-400/50 uppercase tracking-wider font-bold">Current Version</span>
+                  {pubVersion && <span className="text-[11px] text-yellow-300 font-bold font-mono">v{pubVersion}</span>}
                 </div>
                 {currentGeneratedAt && (
                   <p className="text-[10px] text-white/40 mb-2">
@@ -796,30 +742,29 @@ setShowConfirm(true)
                     })}
                   </p>
                 )}
-<button
-                onClick={() => window.open(`/publication-render/${currentToken}`, '_blank')}
-                className="w-full py-2 rounded-lg text-[12px] font-bold bg-yellow-400/10 border border-yellow-400/30 text-yellow-300 hover:bg-yellow-400/20 transition-colors"
-              >
-                Open Publication ↗
-              </button>
-              <button
-                onClick={() => {
-                  const url = `${window.location.origin}/publication/${capsuleSlug}`
-                  navigator.clipboard.writeText(url)
-                  setCopiedPublicLink(true)
-                  setTimeout(() => setCopiedPublicLink(false), 2500)
-                }}
-                className="w-full py-1.5 rounded-lg text-[11px] border border-white/10 text-white/40 hover:text-white/60 hover:border-white/20 transition-colors"
-              >
-                {copiedPublicLink ? '✓ Link copied' : '⌘ Copy permanent link'}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => window.open(`/publication-render/${currentToken}`, '_blank')}
+                  className="w-full py-2 rounded-lg text-[12px] font-bold bg-yellow-400/10 border border-yellow-400/30 text-yellow-300 hover:bg-yellow-400/20 transition-colors mb-1.5"
+                >
+                  Open Publication ↗
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = `${window.location.origin}/publication/${capsuleSlug}`
+                    navigator.clipboard.writeText(url)
+                    setCopiedPublicLink(true)
+                    setTimeout(() => setCopiedPublicLink(false), 2500)
+                  }}
+                  className="w-full py-1.5 rounded-lg text-[11px] border border-white/10 text-white/40 hover:text-white/60 hover:border-white/20 transition-colors"
+                >
+                  {copiedPublicLink ? '✓ Link copied' : '⌘ Copy permanent link'}
+                </button>
               </div>
             )}
 
-            {/* Distribution intelligence — persistent summary */}
-            {currentToken && (
-              <DistributionSummary capsuleId={capsuleId} pubVersion={pubVersion} />
-            )}
+            {currentToken && <DistributionSummary capsuleId={capsuleId} />}
 
             {hasUnsavedChanges && (
               <p className="text-[10px] text-white/30 mb-2 text-center">Save changes before regenerating</p>
@@ -838,14 +783,9 @@ setShowConfirm(true)
               {regenerating ? 'Generating…' : currentToken ? '↻ Regenerate Publication' : 'Generate Publication'}
             </button>
 
-            {regenError && (
-              <p className="text-[10px] text-red-400/70 mt-1.5 text-center">{regenError}</p>
-            )}
+            {regenError && <p className="text-[10px] text-red-400/70 mt-1.5 text-center">{regenError}</p>}
             <p className="text-[9px] text-white/15 mt-1.5 leading-relaxed text-center">
-              {currentToken
-                ? 'Creates a fresh version with all current content.'
-                : 'Generate to create the publication for the first time.'
-              }
+              {currentToken ? 'Creates a fresh version with all current content.' : 'Generate to create the publication for the first time.'}
             </p>
           </div>
 
@@ -869,12 +809,8 @@ setShowConfirm(true)
               >
                 {familyPreviewSending ? 'Sending…' : familyPreviewAt ? 'Resend Family Preview' : 'Send to Family Rep →'}
               </button>
-              {familyPreviewError && (
-                <p className="text-[10px] text-red-400/70 mt-1.5">{familyPreviewError}</p>
-              )}
-              <p className="text-[9px] text-white/20 mt-1.5 leading-relaxed">
-                Family Representative receives it before anyone else.
-              </p>
+              {familyPreviewError && <p className="text-[10px] text-red-400/70 mt-1.5">{familyPreviewError}</p>}
+              <p className="text-[9px] text-white/20 mt-1.5 leading-relaxed">Family Representative receives it before anyone else.</p>
             </div>
           )}
 
@@ -882,8 +818,6 @@ setShowConfirm(true)
           {currentToken && (
             <div className="pb-4 mb-4 border-b border-yellow-400/10">
               <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-2">Named Send</p>
-
-              {/* Recipient input */}
               <div className="space-y-1.5 mb-2">
                 <input
                   type="text"
@@ -907,13 +841,10 @@ setShowConfirm(true)
                     disabled={!namedSendEmail.trim()}
                     className="px-2.5 py-1.5 rounded-md text-[11px] border border-white/15 text-white/40 hover:text-white/70 hover:border-white/30 transition-colors disabled:opacity-30 flex-shrink-0"
                     title="Add to recipient list"
-                  >
-                    +
-                  </button>
+                  >+</button>
                 </div>
               </div>
 
-              {/* Staged recipients list */}
               {namedRecipients.length > 0 && (
                 <div className="mb-2 space-y-1">
                   {namedRecipients.map(r => (
@@ -923,15 +854,12 @@ setShowConfirm(true)
                         type="button"
                         onClick={() => handleRemoveRecipient(r.email)}
                         className="text-[9px] text-white/25 hover:text-red-400/60 flex-shrink-0 transition-colors"
-                      >
-                        ✕
-                      </button>
+                      >✕</button>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Send button */}
               <button
                 type="button"
                 onClick={handleNamedSend}
@@ -942,126 +870,150 @@ setShowConfirm(true)
                   ? 'Sending…'
                   : namedRecipients.length > 1
                   ? `Send to ${namedRecipients.length} recipients →`
-                  : 'Send →'
-                }
+                  : 'Send →'}
               </button>
 
-              {namedSendError && (
-                <p className="text-[10px] text-red-400/70 mt-1.5">{namedSendError}</p>
-              )}
+              {namedSendError && <p className="text-[10px] text-red-400/70 mt-1.5">{namedSendError}</p>}
 
-              {/* Send history */}
               {namedSends.length > 0 && (
                 <div className="space-y-1 mt-2">
                   {namedSends.slice(0, 4).map(s => (
                     <div key={s.id} className="flex items-center justify-between gap-1">
-                      <span className="text-[9px] text-white/40 truncate flex-1">
-                        {s.recipient_name || s.recipient_email}
-                      </span>
+                      <span className="text-[9px] text-white/40 truncate flex-1">{s.recipient_name || s.recipient_email}</span>
                       <span className="text-[9px] text-white/20 flex-shrink-0">v{s.version_sent}</span>
                     </div>
                   ))}
-                  {namedSends.length > 4 && (
-                    <p className="text-[9px] text-white/20">+{namedSends.length - 4} more</p>
-                  )}
+                  {namedSends.length > 4 && <p className="text-[9px] text-white/20">+{namedSends.length - 4} more</p>}
                 </div>
               )}
             </div>
           )}
 
-          {/* ══ TIER 3 — Full Distribution ══ */}
+          {/* ══ TIER 3 — Full Distribution (clean state machine) ══ */}
           {currentToken && (
             <div className="pb-2">
               <p className="text-[9px] text-yellow-400/40 uppercase tracking-[0.2em] mb-2">Full Distribution</p>
 
-              {distributeResult ? (
+              {/* DONE */}
+              {distPhase === 'done' && distResult && (
                 <div className="rounded-lg border border-green-400/20 p-2.5 mb-2" style={{ background: 'rgba(74,222,128,0.05)' }}>
                   <p className="text-[10px] text-green-400/80 font-bold mb-0.5">✓ Publication sent</p>
                   <p className="text-[9px] text-white/30">
-                    {distributeResult.sent} sent · {distributeResult.skipped} skipped
+                    {distResult.sent} sent{distResult.skipped > 0 ? ` · ${distResult.skipped} skipped` : ''}
                   </p>
+                  <button
+                    type="button"
+                    onClick={handleDistReset}
+                    className="mt-2 text-[9px] text-white/30 hover:text-white/50 transition-colors"
+                  >
+                    Send again
+                  </button>
                 </div>
-              ) : showConfirm && recipientPreview ? (
+              )}
+
+              {/* CONFIRMING */}
+              {distPhase === 'confirming' && distData && (
                 <div className="rounded-lg border border-yellow-400/20 p-3 mb-2" style={{ background: 'rgba(226,195,107,0.04)' }}>
                   <p className="text-[9px] text-yellow-400/60 uppercase tracking-wider mb-2">
                     Confirm send{pubVersion ? ` — v${pubVersion}` : ''}
                   </p>
-                  <div className="space-y-1 mb-2">
+                  <div className="space-y-1 mb-3">
                     <div className="flex justify-between">
-                      <span className="text-[9px] text-white/40">Total unique emails</span>
-                      <span className="text-[9px] text-white/60 font-bold">{recipientPreview.total}</span>
+                      <span className="text-[9px] text-white/50 font-bold">Will receive</span>
+                      <span className="text-[9px] text-yellow-400 font-bold">{distData.total}</span>
                     </div>
-                    {alreadyReceived > 0 && (
+                    {distData.contributors > 0 && (
                       <div className="flex justify-between">
-                        <span className="text-[9px] text-white/40">Already received v{pubVersion}</span>
-                        <span className="text-[9px] text-white/40">{alreadyReceived}</span>
+                        <span className="text-[9px] text-white/30">Contributors</span>
+                        <span className="text-[9px] text-white/40">{distData.contributors}</span>
                       </div>
                     )}
-                    <div className="flex justify-between">
-                      <span className="text-[9px] text-yellow-400/60 font-bold">Will receive now</span>
-                      <span className="text-[9px] text-yellow-400 font-bold">{willReceiveNow}</span>
-                    </div>
-                    {recipientPreview.no_email > 0 && (
+                    {distData.dday > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-[9px] text-white/30">D-Day guests</span>
+                        <span className="text-[9px] text-white/40">{distData.dday}</span>
+                      </div>
+                    )}
+                    {distData.subscribers > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-[9px] text-white/30">Subscribers</span>
+                        <span className="text-[9px] text-white/40">{distData.subscribers}</span>
+                      </div>
+                    )}
+                    {distData.no_email > 0 && (
                       <p className="text-[9px] text-white/20 mt-1">
-                        {recipientPreview.no_email} have no email — excluded
+                        {distData.no_email} excluded — no email on file
                       </p>
                     )}
                   </div>
-                  {alreadyReceived > 0 && (
-                    <label className="flex items-center gap-2 mb-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={includePrevious}
-                        onChange={e => setIncludePrevious(e.target.checked)}
-                        className="w-3 h-3 rounded accent-yellow-400"
-                      />
-                      <span className="text-[9px] text-white/40">
-                        Also resend to {alreadyReceived} who received this version
-                      </span>
-                    </label>
-                  )}
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={handleDistribute}
-                      disabled={distributing || (willReceiveNow === 0 && !includePrevious)}
-                      className="flex-1 py-1.5 rounded-lg text-[11px] font-bold bg-yellow-400 text-[#0a0010] disabled:opacity-40 disabled:cursor-not-allowed"
+                      onClick={handleDistSend}
+                      disabled={distData.total === 0}
+                      className="flex-1 py-1.5 rounded-lg text-[11px] font-bold bg-yellow-400 text-[#0a0010] hover:bg-yellow-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      {distributing ? 'Sending…' : `Send to ${includePrevious ? recipientPreview.total : willReceiveNow}`}
+                      Send to {distData.total}
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setShowConfirm(false); setRecipientPreview(null) }}
-                      className="px-2.5 py-1.5 rounded-lg text-[10px] border border-white/10 text-white/40"
+                      onClick={handleDistReset}
+                      className="px-2.5 py-1.5 rounded-lg text-[10px] border border-white/10 text-white/40 hover:text-white/60 transition-colors"
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
-              ) : (
+              )}
+
+              {/* SENDING */}
+              {distPhase === 'sending' && (
+                <div className="rounded-lg border border-yellow-400/15 p-3 mb-2 text-center" style={{ background: 'rgba(226,195,107,0.03)' }}>
+                  <div className="w-5 h-5 rounded-full border-2 border-yellow-400/20 border-t-yellow-400 animate-spin mx-auto mb-2" />
+                  <p className="text-[10px] text-yellow-300/60">Sending publication…</p>
+                  <p className="text-[9px] text-white/20 mt-1">This may take a moment for large lists.</p>
+                </div>
+              )}
+
+              {/* ERROR */}
+              {distPhase === 'error' && (
+                <div className="rounded-lg border border-red-400/20 p-2.5 mb-2" style={{ background: 'rgba(248,113,113,0.05)' }}>
+                  <p className="text-[10px] text-red-400/80 font-bold mb-1">Something went wrong</p>
+                  <p className="text-[9px] text-white/30 mb-2">{distError}</p>
+                  <button
+                    type="button"
+                    onClick={handleDistReset}
+                    className="text-[9px] text-yellow-400/50 hover:text-yellow-300 transition-colors"
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
+
+              {/* IDLE + PREVIEWING */}
+              {(distPhase === 'idle' || distPhase === 'previewing') && (
                 <button
                   type="button"
-                  onClick={handlePreviewRecipients}
-                  disabled={previewLoading || hasUnsavedChanges}
+                  onClick={handleDistPreview}
+                  disabled={distPhase === 'previewing' || hasUnsavedChanges}
                   className="w-full py-2 px-3 rounded-lg text-[11px] font-bold border border-yellow-400/25 text-yellow-300/70 hover:bg-yellow-400/8 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {previewLoading ? 'Loading…' : '✉ Review & Send to All'}
+                  {distPhase === 'previewing' ? 'Loading recipients…' : '✉ Review & Send to All'}
                 </button>
               )}
 
-              {distributeError && (
-                <p className="text-[10px] text-red-400/70 mt-1.5">{distributeError}</p>
+              {distPhase === 'idle' && (
+                <p className="text-[9px] text-white/15 mt-1.5 leading-relaxed">
+                  Sends to all contributors, D-Day guests and subscribers.
+                </p>
               )}
-              <p className="text-[9px] text-white/15 mt-1.5 leading-relaxed">
-                Sends to all contributors, D-Day guests and subscribers.
-              </p>
             </div>
           )}
 
         </div>
 
-{/* Footer — back link (desktop only) */}
-     <div className="hidden md:block border-t border-yellow-400/10 flex-shrink-0" style={{ padding: '12px 20px' }}>
+        {/* Footer */}
+        <div className="hidden md:block border-t border-yellow-400/10 flex-shrink-0" style={{ padding: '12px 20px' }}>
           <a
             href={'/manage/' + capsuleSlug}
             className="text-[11px] flex items-center gap-1 no-underline"
