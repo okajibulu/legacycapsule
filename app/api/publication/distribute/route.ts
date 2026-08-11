@@ -173,30 +173,42 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ sent: 0, skipped: 0, no_email })
     }
 
-    // ── Send emails ───────────────────────────────────────────────────────
+    // ── Send emails — batched with delay to protect inbox delivery ────────
+    // Batch size: 5 per batch · Delay: 2 minutes between batches
+    const BATCH_SIZE = 5
+    const BATCH_DELAY_MS = 30 * 1000 // 30 seconds
+
+    const recipientList = Array.from(recipients.entries())
     let sent    = 0
     let skipped = 0
 
-    for (const [email, { name }] of recipients) {
-      try {
-        await resend.emails.send({
-          from:    'LegacyCapsule <events@itslegacycapsule.com>',
-          to:      email,
-          subject: `The keepsake publication is ready — ${eventLabel}`,
-          html:    publicationEmailHtml({
-            recipientName:   name,
-            honoureeName:    capsule.honouree_name,
-            eventLabel,
-            publicationUrl,
-            capsuleUrl:      `${APP_URL}/for/${capsule_slug}`,
-          }),
-        })
+    for (let i = 0; i < recipientList.length; i += BATCH_SIZE) {
+      const batch = recipientList.slice(i, i + BATCH_SIZE)
 
-        sent++
+      await Promise.all(batch.map(async ([email, { name }]) => {
+        try {
+          await resend.emails.send({
+            from:    'LegacyCapsule <events@itslegacycapsule.com>',
+            to:      email,
+            subject: `The keepsake publication is ready — ${eventLabel}`,
+            html:    publicationEmailHtml({
+              recipientName:   name,
+              honoureeName:    capsule.honouree_name,
+              eventLabel,
+              publicationUrl,
+              capsuleUrl:      `${APP_URL}/for/${capsule_slug}`,
+            }),
+          })
+          sent++
+        } catch (emailErr) {
+          console.error(`[publication/distribute] Failed for ${email}:`, emailErr)
+          skipped++
+        }
+      }))
 
-      } catch (emailErr) {
-        console.error(`[publication/distribute] Failed for ${email}:`, emailErr)
-        skipped++
+      // Wait 2 minutes before next batch (skip delay after last batch)
+      if (i + BATCH_SIZE < recipientList.length) {
+        await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS))
       }
     }
 
