@@ -612,11 +612,11 @@ export default function PublicationEditor({
       const res  = await fetch(`/api/publication/distribute?capsule_id=${capsuleId}&preview=1`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed to load recipients')
-      setRecipientPreview(data)
-      setPubVersion(data.version ?? null)
-      setAlreadyReceived(data.already_received ?? 0)
-      setWillReceiveNow(data.will_receive_now ?? data.total)
-      setShowConfirm(true)
+setRecipientPreview(data)
+setPubVersion(data.version ?? null)
+setAlreadyReceived(data.already_received ?? 0)
+setWillReceiveNow(data.will_receive_now ?? data.total ?? 0)
+setShowConfirm(true)
     } catch (err) {
       setDistributeError(err instanceof Error ? err.message : 'Failed to load recipients')
     } finally {
@@ -1024,7 +1024,7 @@ export default function PublicationEditor({
                     <button
                       type="button"
                       onClick={handleDistribute}
-                      disabled={distributing || willReceiveNow === 0}
+                      disabled={distributing || (willReceiveNow === 0 && !includePrevious)}
                       className="flex-1 py-1.5 rounded-lg text-[11px] font-bold bg-yellow-400 text-[#0a0010] disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       {distributing ? 'Sending…' : `Send to ${includePrevious ? recipientPreview.total : willReceiveNow}`}
