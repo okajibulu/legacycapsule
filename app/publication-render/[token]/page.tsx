@@ -896,7 +896,7 @@ function renderOfficialPhotography(
   styles: ThemeStyles
 ): string {
   const officialPhotos = galleryItems
-    .filter(g => g.is_official_photography && photoUrlMap[g.id])
+    .filter(g => g.is_official_photography && photoUrlMap[g.id] && !g.phase_id)
     .sort((a, b) => {
       if (a.display_order !== null && b.display_order !== null) return a.display_order - b.display_order
       if (a.display_order !== null) return -1
@@ -1717,9 +1717,7 @@ adminClient.from('contributions')
     }),
     // Profile gallery — always included when content exists
     renderProfileGallery(profileGallery, styles),
-    // Auto-included sections — Official first, then Guest, then Stories, then Memories
-    renderOfficialPhotography(gallery, photoUrlMap, styles),
-    renderGuestCaptures(gallery, photoUrlMap, styles),
+    // Community stories and memories — auto-included when content exists
     renderCommunityStories(contribs, storyTopics, styles),
     renderMemories(memories, styles),
     
