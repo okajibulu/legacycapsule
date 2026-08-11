@@ -1,72 +1,61 @@
-/**
- * ============================================================
- * LEGACYCAPSULE — app/api/email/appreciation/route.ts
- * VALNEX, UNIPESSOAL LDA · RevoWorldTech
- * ============================================================
- *
- * POST — Send appreciation email(s) from the honouree portal.
- *
- * Handles two send modes:
- *   individual  — one email to one contributor
- *   collective  — one personalised email to all reachable contributors
- *
- * Backend always batches regardless of UI trigger (D56).
- * Progress is updated on the broadcast row for real-time UI.
- *
- * Body: {
- *   capsule_id: string
- *   mode: 'individual' | 'collective'
- *   -- individual only --
- *   contribution_id: string
- *   -- collective has no extra fields --
- * }
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE PATH: app/api/email/appreciation/route.ts
+// PURPOSE:   Sends appreciation email(s) from the honouree portal.
+//            Handles two send modes:
+//              individual  — one personalised email to one contributor
+//              collective  — one personalised email to all reachable contributors
+//            Backend always batches regardless of UI trigger (D56).
+//            Progress is updated on the broadcast row for real-time UI.
+// ARCHITECTURE: LC05 Engagement Engine — Honouree Portal (D56).
+//               ECS copy lives in lib/honoureeEmail.ts → sendAppreciationEmail
+//               and sendCollectiveEmail. Route is a pure orchestrator.
+// BUILT BY:  AI20 · Claude Sonnet 4.6
+// UPDATED:   11 August 2026
+// VERSION:   AI20v2.11.91
+// DATE:      11 August 2026
+// NOTE:      ECS copy audit for sendAppreciationEmail / sendCollectiveEmail
+//            lives in lib/honoureeEmail.ts — requires separate upload session.
+// ─────────────────────────────────────────────────────────────────────────────
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient }              from '@supabase/supabase-js';
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient }              from '@supabase/supabase-js'
 import {
   sendAppreciationEmail,
   sendCollectiveEmail,
-}                                    from '@/lib/honoureeEmail';
+}                                    from '@/lib/honoureeEmail'
 
-// ============================================================
-// SECTION 1 — Admin client
-// ============================================================
+// ═══ SECTION 1 — Admin client ═══
 
 const adminClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+)
 
-
-// ============================================================
-// SECTION 2 — Route handler
-// ============================================================
+// ═══ SECTION 2 — POST handler ═══
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
 
   // ── 2.1  Parse body ───────────────────────────────────────
   let body: {
-    capsule_id:      string;
-    mode:            'individual' | 'collective';
-    contribution_id?: string;
-  };
-
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON.' }, { status: 400 });
+    capsule_id:       string
+    mode:             'individual' | 'collective'
+    contribution_id?: string
   }
 
-  const { capsule_id, mode } = body;
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
+  }
+
+  const { capsule_id, mode } = body
 
   if (!capsule_id || !mode) {
     return NextResponse.json(
       { error: 'capsule_id and mode are required.' },
       { status: 400 }
-    );
+    )
   }
-
 
   // ── 2.2  Fetch capsule metadata ───────────────────────────
   const { data: capsule, error: capErr } = await adminClient
@@ -74,33 +63,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     .select('id, slug, event_type, honouree_name, family_rep_name, tier')
     .eq('id', capsule_id)
     .is('deleted_at', null)
-    .maybeSingle();
+    .maybeSingle()
 
   if (capErr || !capsule) {
-    return NextResponse.json({ error: 'Capsule not found.' }, { status: 404 });
+    return NextResponse.json({ error: 'Capsule not found.' }, { status: 404 })
   }
-
 
   // ── 2.3  Fetch custom template if set ─────────────────────
   const { data: template } = await adminClient
     .from('honouree_email_templates')
     .select('template_type, custom_body')
     .eq('capsule_id', capsule_id)
-    .maybeSingle();
+    .maybeSingle()
 
   const customBody = template?.template_type === 'custom'
     ? (template.custom_body ?? null)
-    : null;
-
+    : null
 
   // ── 2.4  Individual mode ───────────────────────────────────
   if (mode === 'individual') {
-    const { contribution_id } = body;
+    const { contribution_id } = body
     if (!contribution_id) {
       return NextResponse.json(
-        { error: 'contribution_id required for individual mode.' },
+        { error: 'contribution_id is required for individual mode.' },
         { status: 400 }
-      );
+      )
     }
 
     const { data: contrib } = await adminClient
@@ -108,16 +95,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       .select('id, contributor_name, email, tribute_text')
       .eq('id', contribution_id)
       .eq('capsule_id', capsule_id)
-      .maybeSingle();
+      .maybeSingle()
 
     if (!contrib || !contrib.email) {
       return NextResponse.json(
-        { error: 'Contributor not found or has no email.' },
+        { error: 'Contributor not found or has no email on record.' },
         { status: 404 }
-      );
+      )
     }
 
-    const excerpt = (contrib.tribute_text ?? '').slice(0, 120);
+    const excerpt = (contrib.tribute_text ?? '').slice(0, 120)
 
     const result = await sendAppreciationEmail({
       capsuleId:        capsule_id,
@@ -130,18 +117,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       contributorEmail: contrib.email,
       tributeExcerpt:   excerpt,
       customBody,
-    });
+    })
 
     if (!result.ok) {
       return NextResponse.json(
-        { error: result.error ?? 'Send failed.' },
+        { error: result.error ?? 'We could not send that email just now. Please try again.' },
         { status: 500 }
-      );
+      )
     }
 
-    return NextResponse.json({ ok: true, resend_id: result.resendId });
+    return NextResponse.json({ ok: true, resend_id: result.resendId })
   }
-
 
   // ── 2.5  Collective mode ───────────────────────────────────
   if (mode === 'collective') {
@@ -153,10 +139,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       .eq('status', 'approved')
       .eq('is_anonymous', false)
       .is('deleted_at', null)
-      .not('email', 'is', null);
+      .not('email', 'is', null)
 
-    const allContribs = contribs ?? [];
-    const reachable   = allContribs.filter(c => c.email && c.contributor_name);
+    const allContribs = contribs ?? []
+    const reachable   = allContribs.filter(c => c.email && c.contributor_name)
 
     // Count total approved (including anonymous)
     const { count: totalCount } = await adminClient
@@ -164,7 +150,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       .select('id', { count: 'exact' })
       .eq('capsule_id', capsule_id)
       .eq('status', 'approved')
-      .is('deleted_at', null);
+      .is('deleted_at', null)
 
     // Count unique countries
     const { data: countryRows } = await adminClient
@@ -173,9 +159,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       .eq('capsule_id', capsule_id)
       .eq('status', 'approved')
       .is('deleted_at', null)
-      .not('country', 'is', null);
+      .not('country', 'is', null)
 
-    const countryCount = new Set((countryRows ?? []).map(r => r.country)).size;
+    const countryCount = new Set((countryRows ?? []).map(r => r.country)).size
 
     const result = await sendCollectiveEmail({
       capsuleId:      capsule_id,
@@ -192,18 +178,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         email:          c.email!,
         contributionId: c.id,
       })),
-    });
+    })
 
     return NextResponse.json({
       ok:     true,
       sent:   result.sent,
       failed: result.failed,
-    });
+    })
   }
 
-  return NextResponse.json({ error: 'Invalid mode.' }, { status: 400 });
+  return NextResponse.json({ error: 'Invalid mode. Use individual or collective.' }, { status: 400 })
 }
 
+// ═══ SECTION 3 — Method guard ═══
+
 export async function GET(): Promise<NextResponse> {
-  return NextResponse.json({ error: 'Method not allowed.' }, { status: 405 });
+  return NextResponse.json(
+    { error: 'This endpoint only accepts POST requests.' },
+    { status: 405 }
+  )
 }

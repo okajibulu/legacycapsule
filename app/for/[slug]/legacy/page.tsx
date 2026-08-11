@@ -1,13 +1,24 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// FILE: app/for/[slug]/legacy/page.tsx
-// ROUTE: /for/[slug]/legacy
-// PURPOSE: Legacy Room — Phase 2 of LC-PARTICIPATION-001
-//          Public-facing community participation page.
-//          Three-Room Model Room 3: View community participation + preservation.
-//          ISR with 60s revalidation (E6). Reads pre-computed data only (D9).
-// OWNER: AI7
-// UPDATED: AI18 · 6 Aug 2026 — voice metrics computation, multi-source
-//          activity feed, publication status, community stories + moments counts
+// FILE PATH: app/for/[slug]/legacy/page.tsx
+// PURPOSE:   Legacy Room — Phase 2 of LC-PARTICIPATION-001.
+//            Public-facing community participation page.
+//            Three-Room Model Room 3: View community participation + preservation.
+//            ISR with 60s revalidation (E6). Reads pre-computed data only (D9).
+// ARCHITECTURE: LC05 Engagement Engine — Legacy Room.
+//               Voice metrics computed server-side — raw tribute_text never
+//               sent to browser. Community stories sourced from contributions
+//               table (story_topic_id IS NOT NULL) — not community_stories table
+//               (that table is empty/legacy and must never be queried for stories).
+// BUILT BY:  AI7
+// UPDATED:   AI20 · Claude Sonnet 4.6 · 11 August 2026
+//            — FIXED: recentStories now queries contributions WHERE story_topic_id
+//              IS NOT NULL (was querying empty community_stories table)
+//            — FIXED: duplicate recentStories JSX block removed (was causing
+//              dangling JSX outside LegacyRoomClient closing tag → build error)
+//            — Previous update: AI18 · 6 Aug 2026 — voice metrics, multi-source
+//              activity feed, publication status, community stories + moments counts
+// VERSION:   AI20v2.11.91
+// DATE:      11 August 2026
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createClient } from '@supabase/supabase-js'
@@ -20,24 +31,18 @@ import PublicationSubscribePanel  from '@/components/capsule/PublicationSubscrib
 import ActivePremiumsStrip        from '@/components/ActivePremiumsStrip'
 import type { VoiceMetrics, ActivityItem } from '@/components/LegacyRoomClient'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SECTION 1 — ISR config
-// ─────────────────────────────────────────────────────────────────────────────
+// ═══ SECTION 1 — ISR config ═══
 
 export const revalidate = 60 // 60s ISR per E6
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SECTION 2 — Supabase service client
-// ─────────────────────────────────────────────────────────────────────────────
+// ═══ SECTION 2 — Supabase service client ═══
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SECTION 3 — OG metadata (E5)
-// ─────────────────────────────────────────────────────────────────────────────
+// ═══ SECTION 3 — OG metadata (E5) ═══
 
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> }
@@ -78,9 +83,7 @@ export async function generateMetadata(
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SECTION 4 — Server component
-// ─────────────────────────────────────────────────────────────────────────────
+// ═══ SECTION 4 — Server component ═══
 
 // ═══ SECTION 4B — Voice metrics computation ═══
 // All computation server-side — raw tribute_text never sent to browser.
@@ -133,14 +136,14 @@ function computeVoiceMetrics(
 
   // Distribution buckets
   const buckets = [
-    { label: 'Under 100',       min: 0,    max: 99   },
-    { label: '100–300',         min: 100,  max: 300  },
-    { label: '301–500',         min: 301,  max: 500  },
-    { label: '501–750',         min: 501,  max: 750  },
-    { label: '751–1,000',       min: 751,  max: 1000 },
-    { label: '1,001–1,500',     min: 1001, max: 1500 },
-    { label: '1,501–2,000',     min: 1501, max: 2000 },
-    { label: 'Over 2,000',      min: 2001, max: Infinity },
+    { label: 'Under 100',   min: 0,    max: 99       },
+    { label: '100–300',     min: 100,  max: 300      },
+    { label: '301–500',     min: 301,  max: 500      },
+    { label: '501–750',     min: 501,  max: 750      },
+    { label: '751–1,000',   min: 751,  max: 1000     },
+    { label: '1,001–1,500', min: 1001, max: 1500     },
+    { label: '1,501–2,000', min: 1501, max: 2000     },
+    { label: 'Over 2,000',  min: 2001, max: Infinity },
   ]
   const distribution = buckets.map(b => ({
     label: b.label,
@@ -167,7 +170,9 @@ function computeVoiceMetrics(
   const topDay = Object.entries(dayCounts).sort((a, b) => b[1] - a[1])[0]
   const mostActiveDay = topDay
     ? {
-        date: new Date(topDay[0]).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+        date: new Date(topDay[0]).toLocaleDateString('en-GB', {
+          day: 'numeric', month: 'long', year: 'numeric',
+        }),
         count: topDay[1],
       }
     : null
@@ -305,16 +310,23 @@ export default async function LegacyRoomPage(
     .select('id, contributor_name, city, country, created_at, thumbnail_url')
     .eq('capsule_id', capsule.id)
     .eq('status', 'approved')
+    .is('story_topic_id', null)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(3)
 
-  // ── Fetch recent activity — Community Stories (last 3) ────────────────
+  // ═══ SECTION 4C — Recent Stories query (FIXED) ═══
+  // ARCHITECTURE FACT: community stories live in the contributions table with
+  // story_topic_id IS NOT NULL. The community_stories table is empty/legacy
+  // and must NEVER be queried for story data.
+  // PREVIOUS BUG: was querying community_stories table → always returned empty.
   const { data: recentStories } = await supabase
-    .from('community_stories')
-    .select('id, contributor_name, city, country, created_at, story_text, community_story_topics(topic_name)')
+    .from('contributions')
+    .select('id, contributor_name, city, country, created_at, tribute_text, story_topic_id')
     .eq('capsule_id', capsule.id)
     .eq('status', 'approved')
+    .not('story_topic_id', 'is', null)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(3)
 
@@ -419,7 +431,7 @@ export default async function LegacyRoomPage(
     .order('section_index')
     .order('sort_order')
 
-  // ── Fetch phases with D-Day photo counts ────────────────────────────────
+  // ── Fetch phases with D-Day photo counts ──────────────────────────────
   let phases: Array<{ id: string; name: string; event_date: string | null; photo_count: number }> = []
   let phaseCount = 0
   try {
@@ -443,9 +455,9 @@ export default async function LegacyRoomPage(
       }))
       phases = counts
     }
-} catch { phases = []; phaseCount = 0 }
+  } catch { phases = []; phaseCount = 0 }
 
-// ── Latest voice for notification dot ────────────────────────────────────
+  // ── Latest voice for notification dot ─────────────────────────────────
   let latestVoiceAt: string | null = null
   try {
     const { data: lv } = await supabase
@@ -460,7 +472,17 @@ export default async function LegacyRoomPage(
     latestVoiceAt = lv?.created_at ?? null
   } catch { latestVoiceAt = null }
 
-  // ── Resolve theme ─────────────────────────────────────────────────────
+  // ── Fetch latest story for notification ───────────────────────────────
+  const { data: latestStory } = await supabase
+    .from('contributions')
+    .select('created_at')
+    .eq('capsule_id', capsule.id)
+    .eq('status', 'approved')
+    .not('story_topic_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
   // ── Fetch support accounts for Premiums panel (EOH/Gifting) ──────────
   const { data: supportAccounts } = await supabase
     .from('capsule_support_accounts')
@@ -470,16 +492,7 @@ export default async function LegacyRoomPage(
     .is('deleted_at', null)
     .order('sort_order', { ascending: true })
 
-const { data: latestStory } = await supabase
-  .from('contributions')
-  .select('created_at')
-  .eq('capsule_id', capsule.id)
-  .eq('status', 'approved')
-  .not('story_topic_id', 'is', null)
-  .order('created_at', { ascending: false })
-  .limit(1)
-  .maybeSingle()
-
+  // ── Resolve theme ─────────────────────────────────────────────────────
   const themeKey: ThemeKey = resolveTheme(
     (capsule.theme as ThemeKey | 'classic') ?? 'classic',
     capsule.event_type
@@ -490,132 +503,128 @@ const { data: latestStory } = await supabase
   const attributedCount = summary?.attributed_contrib_count ?? 0
   const showBuilders = attributedCount >= threshold && (builders?.length ?? 0) > 0
 
+  // ═══ SECTION 4D — Render ═══
+  // IMPORTANT: recentStories is passed to LegacyRoomClient ONCE only.
+  // The duplicate JSX block that previously existed outside the component
+  // closing tag has been removed — it was causing a build error.
+
   return (
     <>
       <LegacyRoomClient
-      capsule={{
-        id: capsule.id,
-        slug: capsule.slug,
-        honouree_name: capsule.honouree_name,
-        honouree_title: capsule.honouree_title,
-        event_type: capsule.event_type,
-        event_tag: capsule.event_tag,
-        hero_image_url: capsule.hero_image_url,
-        components: capsule.components ?? [],
-        hero_image_position: capsule.hero_image_position,
-        hero_image_zoom: capsule.hero_image_zoom,
-        hero_image_fit: capsule.hero_image_fit,
-        hero_panel_size: capsule.hero_panel_size,
-        hero_full_bleed: capsule.hero_full_bleed,
-      }}
-      summary={{
-        contributor_count: summary?.contributor_count ?? 0,
-        photo_count: livePhotoCount ?? summary?.photo_count ?? 0,
-        country_count: summary?.country_count ?? 0,
-        share_count: summary?.share_count ?? 0,
-        legacy_builder_count: summary?.legacy_builder_count ?? 0,
-        attributed_contrib_count: summary?.attributed_contrib_count ?? 0,
-        last_activity_at: summary?.last_activity_at ?? null,
-      }}
-      builders={showBuilders ? (builders ?? []) : []}
-      showBuilders={showBuilders}
-      recentActivity={mergedActivity}
-      galleryPhotos={galleryPhotos ?? []}
-      themeKey={themeKey}
-      voiceMetrics={voiceMetrics}
-      storiesCount={storiesCount ?? 0}
-      momentsCount={momentsCount ?? 0}
-      topBuilder={topBuilderRow ?? null}
-publicationStatus={
-        pubRow
-          ? {
-              generationStatus: pubRow.generation_status ?? 'idle',
-              version: pubRow.version ?? 1,
-              generatedAt: pubRow.generated_at ?? null,
-              sentCount: pubSentCount ?? 0,
-            }
-          : null
-      }
-      recentStories={(recentStories ?? []).map((s: any) => ({
-        id:               s.id,
-        contributor_name: s.contributor_name,
-        story_text:       s.story_text ?? '',
-        created_at:       s.created_at,
-        topic_name:       s.community_story_topics?.topic_name ?? null,
-      }))}
-    />
-
-      recentStories={(recentStories ?? []).map((s: any) => ({
+        capsule={{
+          id:                   capsule.id,
+          slug:                 capsule.slug,
+          honouree_name:        capsule.honouree_name,
+          honouree_title:       capsule.honouree_title,
+          event_type:           capsule.event_type,
+          event_tag:            capsule.event_tag,
+          hero_image_url:       capsule.hero_image_url,
+          components:           capsule.components ?? [],
+          hero_image_position:  capsule.hero_image_position,
+          hero_image_zoom:      capsule.hero_image_zoom,
+          hero_image_fit:       capsule.hero_image_fit,
+          hero_panel_size:      capsule.hero_panel_size,
+          hero_full_bleed:      capsule.hero_full_bleed,
+        }}
+        summary={{
+          contributor_count:       summary?.contributor_count ?? 0,
+          photo_count:             livePhotoCount ?? summary?.photo_count ?? 0,
+          country_count:           summary?.country_count ?? 0,
+          share_count:             summary?.share_count ?? 0,
+          legacy_builder_count:    summary?.legacy_builder_count ?? 0,
+          attributed_contrib_count: summary?.attributed_contrib_count ?? 0,
+          last_activity_at:        summary?.last_activity_at ?? null,
+        }}
+        builders={showBuilders ? (builders ?? []) : []}
+        showBuilders={showBuilders}
+        recentActivity={mergedActivity}
+        galleryPhotos={galleryPhotos ?? []}
+        themeKey={themeKey}
+        voiceMetrics={voiceMetrics}
+        storiesCount={storiesCount ?? 0}
+        momentsCount={momentsCount ?? 0}
+        topBuilder={topBuilderRow ?? null}
+        publicationStatus={
+          pubRow
+            ? {
+                generationStatus: pubRow.generation_status ?? 'idle',
+                version:          pubRow.version ?? 1,
+                generatedAt:      pubRow.generated_at ?? null,
+                sentCount:        pubSentCount ?? 0,
+              }
+            : null
+        }
+        recentStories={(recentStories ?? []).map(s => ({
           id:               s.id,
           contributor_name: s.contributor_name,
-          story_text:       s.story_text,
+          story_text:       s.tribute_text ?? '',
           created_at:       s.created_at,
-          topic_name:       s.community_story_topics?.topic_name ?? null,
+          topic_name:       null, // topic join not available on contributions — add if needed
         }))}
+      />
 
-    
-    {/* ── Event Phases strip ── */}
-    {phases.length > 0 && (
-      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 24px', fontFamily: "'DM Sans', sans-serif" }}>
-        <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(226,195,107,0.55)', marginBottom: '10px' }}>
-          Event Phases
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {phases.map(phase => (
-            <div key={phase.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(226,195,107,0.12)' }}>
-              <div>
-                <p style={{ fontSize: '13px', fontWeight: 700, color: 'rgba(255,255,255,0.92)', margin: '0 0 2px' }}>{phase.name}</p>
-                {phase.event_date && (
-                  <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', margin: 0 }}>
-                    {new Date(phase.event_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                  </p>
+      {/* ── Event Phases strip ── */}
+      {phases.length > 0 && (
+        <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 24px', fontFamily: "'DM Sans', sans-serif" }}>
+          <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(226,195,107,0.55)', marginBottom: '10px' }}>
+            Event Phases
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {phases.map(phase => (
+              <div key={phase.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(226,195,107,0.12)' }}>
+                <div>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: 'rgba(255,255,255,0.92)', margin: '0 0 2px' }}>{phase.name}</p>
+                  {phase.event_date && (
+                    <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', margin: 0 }}>
+                      {new Date(phase.event_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  )}
+                </div>
+                {phase.photo_count > 0 ? (
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(226,195,107,0.55)', flexShrink: 0 }}>
+                    📸 {phase.photo_count} photo{phase.photo_count !== 1 ? 's' : ''}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>
+                    Photos on event day
+                  </span>
                 )}
               </div>
-              {phase.photo_count > 0 ? (
-                <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(226,195,107,0.55)', flexShrink: 0 }}>
-                  📸 {phase.photo_count} photo{phase.photo_count !== 1 ? 's' : ''}
-                </span>
-              ) : (
-                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', flexShrink: 0 }}>
-                  Photos on event day
-                </span>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
+          <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.28)', marginTop: '10px', lineHeight: 1.65 }}>
+            On event day, guests can share their own photos and memories from each phase. Scan the QR code at the venue or visit the tribute wall link.
+          </p>
         </div>
-        <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.28)', marginTop: '10px', lineHeight: 1.65 }}>
-          On event day, guests can share their own photos and memories from each phase. Scan the QR code at the venue or visit the tribute wall link.
-        </p>
+      )}
+
+      {/* ── Publication subscribe panel ── */}
+      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 16px' }}>
+        <PublicationSubscribePanel
+          capsuleId={capsule.id}
+          honoureeName={capsule.honouree_name}
+        />
       </div>
-    )}
 
-    {/* ── Publication subscribe panel ── */}
-    <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 16px' }}>
-      <PublicationSubscribePanel
+      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 8px' }}>
+        <ActivePremiumsStrip slug={slug} components={capsule.components ?? []} />
+      </div>
+
+      <CapsuleBottomNav
+        slug={slug}
+        currentPage="legacy"
+        components={capsule.components ?? []}
+        contributorCount={summary?.contributor_count ?? 0}
+        hasPhases={(phaseCount ?? 0) > 0}
+        themeKey={themeKey}
         capsuleId={capsule.id}
-        honoureeName={capsule.honouree_name}
+        honourName={capsule.honouree_name}
+        eventType={capsule.event_type}
+        supportAccounts={supportAccounts ?? []}
+        phases={phases.map(p => ({ id: p.id, name: p.name }))}
+        latestVoiceAt={latestVoiceAt}
+        latestHighlightAt={latestStory?.created_at ?? latestVoiceAt}
       />
-    </div>
-
-    <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 8px' }}>
-      <ActivePremiumsStrip slug={slug} components={capsule.components ?? []} />
-    </div>
-
-    <CapsuleBottomNav
-      slug={slug}
-      currentPage="legacy"
-      components={capsule.components ?? []}
-      contributorCount={summary?.contributor_count ?? 0}
-      hasPhases={(phaseCount ?? 0) > 0}
-      themeKey={themeKey}
-      capsuleId={capsule.id}
-      honourName={capsule.honouree_name}
-      eventType={capsule.event_type}
-      supportAccounts={supportAccounts ?? []}
-      phases={phases.map(p => ({ id: p.id, name: p.name }))}
-latestVoiceAt={latestVoiceAt}
-        latestHighlightAt={latestVoiceAt}
-            />
     </>
   )
 }

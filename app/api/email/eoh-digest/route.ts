@@ -1,19 +1,28 @@
-// FILE: app/api/email/eoh-digest/route.ts
-// PURPOSE: EOH Daily Digest -- sends midnight summary of the day's gifters
-//          to the honouree portal email (family rep or honouree directly).
-//          Called by Resend scheduled send mechanism.
-// ARCHITECTURE: LC05 Engagement Engine - Gifting (EOH)
-// UPDATED: AI13 - Claude Opus 4.6 - 22 July 2026
-//   -- Header badge updated to 'GIFTING DIGEST' (matches product rename)
-//   -- Amount display made safe -- shows count only, avoids misleading raw numbers
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE PATH: app/api/email/eoh-digest/route.ts
+// PURPOSE:   EOH Daily Digest — sends a midnight summary of the day's Expressions
+//            of Honour to the honouree portal email (family rep or honouree directly).
+//            Called by scheduled send mechanism (Resend / cron).
+//            Only sent on days where new expressions of honour have arrived.
+// ARCHITECTURE: LC05 Engagement Engine — Gifting (EOH).
+//               Private briefing tone — reads like a trusted daily summary,
+//               not a notification or receipt.
+// BUILT BY:  AI13 · Claude Opus 4.6 · 22 July 2026
+// UPDATED:   AI20 · Claude Sonnet 4.6 · 11 August 2026
+//            — Header standardised to project format
+//            — Section markers unified to ═══ SECTION N ═══ style
+//            — Subject line warmed per ECS tone standard
+//            — No logic changes
+// VERSION:   AI20v2.11.91
+// DATE:      11 August 2026
+// POST body: { capsule_id, digest_date }
+// ─────────────────────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 
-// ============================================================
-// SECTION 1 -- Clients
-// ============================================================
+// ═══ SECTION 1 — Clients ═══
 
 const adminClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,20 +31,21 @@ const adminClient = createClient(
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
 
-// ============================================================
-// SECTION 2 -- Route handler
+// ═══ SECTION 2 — Route handler ═══
 // POST body: { capsule_id, digest_date }
-// ============================================================
 
 export async function POST(req: NextRequest) {
   try {
     const { capsule_id, digest_date } = await req.json()
 
     if (!capsule_id || !digest_date) {
-      return NextResponse.json({ error: 'capsule_id and digest_date required' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'capsule_id and digest_date are required.' },
+        { status: 400 }
+      )
     }
 
-    // Fetch capsule
+    // ── Fetch capsule ──────────────────────────────────────────────────────
     const { data: capsule } = await adminClient
       .from('capsules')
       .select('honouree_name, event_type, organiser_email')
@@ -43,10 +53,10 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (!capsule) {
-      return NextResponse.json({ error: 'Capsule not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Capsule not found.' }, { status: 404 })
     }
 
-    // Fetch honouree portal email
+    // ── Fetch honouree portal email ────────────────────────────────────────
     const { data: portal } = await adminClient
       .from('honouree_portal_tokens')
       .select('honouree_email')
@@ -57,7 +67,7 @@ export async function POST(req: NextRequest) {
 
     const recipientEmail = portal?.honouree_email ?? capsule.organiser_email
 
-    // Fetch today's gifters
+    // ── Fetch today's gifters ──────────────────────────────────────────────
     const dateStart = `${digest_date}T00:00:00.000Z`
     const dateEnd   = `${digest_date}T23:59:59.999Z`
 
@@ -70,10 +80,11 @@ export async function POST(req: NextRequest) {
       .order('acknowledged_at', { ascending: true })
 
     if (!todayGifters || todayGifters.length === 0) {
-      return NextResponse.json({ skipped: true, reason: 'No gifters today' })
+      return NextResponse.json({ skipped: true, reason: 'No gifters today.' })
     }
 
-    // Fetch YTD count only (no amount aggregation -- currency unknown)
+    // ── Fetch YTD count — count only, no amount aggregation ───────────────
+    // Currency is unknown; amounts not surfaced to avoid misleading display.
     const { data: allGifters } = await adminClient
       .from('support_acknowledgements')
       .select('id')
@@ -81,12 +92,13 @@ export async function POST(req: NextRequest) {
 
     const ytdCount = allGifters?.length ?? 0
 
-    // Send digest
+    // ── Send digest ────────────────────────────────────────────────────────
     await resend.emails.send({
       from: 'LegacyCapsule <memories@itslegacycapsule.com>',
-      to: recipientEmail,
+      to:   recipientEmail,
       ...(capsule.organiser_email !== recipientEmail && { cc: capsule.organiser_email }),
-      subject: `${todayGifters.length} new expression${todayGifters.length !== 1 ? 's' : ''} of honour for ${capsule.honouree_name} -- Daily Summary`,
+      // ECS: subject communicates the moment, not a system action
+      subject: `${todayGifters.length} voice${todayGifters.length !== 1 ? 's' : ''} of honour arrived today — ${capsule.honouree_name}`,
       html: eohDigestHtml({
         honoureeName: capsule.honouree_name,
         digestDate:   digest_date,
@@ -95,26 +107,31 @@ export async function POST(req: NextRequest) {
       }),
     })
 
-    // Mark digest as sent
+    // ── Mark digest as sent ────────────────────────────────────────────────
     await adminClient
       .from('eoh_digest_schedule')
       .update({ sent_at: new Date().toISOString() })
       .eq('capsule_id', capsule_id)
       .eq('digest_date', digest_date)
 
-    return NextResponse.json({ ok: true, sent_to: recipientEmail, gifter_count: todayGifters.length })
+    return NextResponse.json({
+      ok:           true,
+      sent_to:      recipientEmail,
+      gifter_count: todayGifters.length,
+    })
 
   } catch (err) {
     console.error('[eoh-digest]', err)
-    return NextResponse.json({ error: 'Failed to send digest' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Something went wrong sending the digest. Please try again.' },
+      { status: 500 }
+    )
   }
 }
 
-// ============================================================
-// SECTION 3 -- EOH Digest email template
-// Private briefing tone -- reads like a personal daily summary
-// from a trusted aide, not a notification or receipt.
-// ============================================================
+// ═══ SECTION 3 — EOH Digest email template ═══
+// Private briefing tone — reads like a personal daily summary from a trusted
+// aide. Not a notification or receipt. Audience: honouree / family rep only.
 
 interface DigestGifter {
   supporter_name:      string
@@ -152,7 +169,7 @@ function eohDigestHtml(d: {
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Gifting Digest -- ${d.honoureeName}</title>
+  <title>Daily Summary &mdash; ${d.honoureeName}</title>
 </head>
 <body style="margin:0;padding:0;background:#F5F3EE;font-family:'Georgia',serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F3EE;">
@@ -181,7 +198,7 @@ function eohDigestHtml(d: {
         <!-- Today's gifters -->
         <tr><td style="padding:24px 40px 0;">
           <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(226,195,107,0.55);">
-            ${todayCount} New Expression${todayCount !== 1 ? 's' : ''} of Honour Today
+            ${todayCount} Expression${todayCount !== 1 ? 's' : ''} of Honour Today
           </p>
           <table width="100%" cellpadding="0" cellspacing="0">
             ${gifterRows}
@@ -191,7 +208,9 @@ function eohDigestHtml(d: {
         <!-- YTD count -->
         <tr><td style="padding:24px 40px 32px;">
           <div style="background:rgba(226,195,107,0.06);border:1px solid rgba(226,195,107,0.15);border-radius:10px;padding:16px 20px;">
-            <p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(226,195,107,0.5);">Total Expressions of Honour Received</p>
+            <p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(226,195,107,0.5);">
+              Total Expressions of Honour Received
+            </p>
             <p style="margin:0;font-family:'Georgia',serif;font-size:28px;font-weight:700;color:#E2C36B;">${d.ytdCount}</p>
             <p style="margin:4px 0 0;font-family:Arial,sans-serif;font-size:11px;color:rgba(255,255,255,0.25);line-height:1.6;">
               Cumulative count since the capsule was created.
