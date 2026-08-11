@@ -1439,8 +1439,8 @@ background:
               <p style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 700, color: t.accentMuted }}>📖 Also Visit the Stories Room</p>
               <p style={{ margin: 0, fontSize: '11px', color: t.textFaint, lineHeight: 1.5 }}>
                 {storiesCount > 0
-                  ? `${storiesCount} ${storiesCount === 1 ? 'story' : 'stories'} inside. Read, React & Add Yours.`
-                  : `Add a memory or photo for ${honourName}.`}
+                  ? <><span style={{ color: t.accentPrimary, fontWeight: 700 }}>{storiesCount}</span> {storiesCount === 1 ? 'story' : 'stories'} inside. Read, React & <span style={{ color: t.accentPrimary, fontWeight: 700 }}>Add Yours.</span></>
+                  : <><span style={{ color: t.accentPrimary, fontWeight: 700 }}>Visit</span> and <span style={{ color: t.accentPrimary, fontWeight: 700 }}>Add</span> a memory or photo for {honourName}.</>}
               </p>
             </div>
             <a href={`/for/${capsule.slug}/stories`} style={{ flexShrink: 0, fontSize: '11px', fontWeight: 700, color: t.accentPrimary, textDecoration: 'none', padding: '6px 12px', borderRadius: '8px', border: `1px solid ${t.accentFaint}`, background: 'rgba(226,195,107,0.06)', whiteSpace: 'nowrap' }}>
