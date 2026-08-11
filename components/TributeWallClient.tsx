@@ -1302,7 +1302,24 @@ background:
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <div style={{ flex: 1 }}><input style={inp} placeholder="City *" value={fCity} onChange={e => setFCity(e.target.value)} maxLength={50} />{errors.city && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.city}</p>}</div>
                     <div style={{ flex: 1, position: 'relative' }} ref={countryRef}>
-                      <input style={inp} placeholder="Country *" value={countryQuery || fCountry} onChange={e => { setCountryQuery(e.target.value); setFCountry(''); setShowCountryList(true) }} onFocus={() => setShowCountryList(true)} maxLength={50} />
+                      <input
+  style={inp}
+  placeholder="Country *"
+  value={countryQuery || fCountry}
+  autoComplete="country-name"
+  onChange={e => { setCountryQuery(e.target.value); setFCountry(''); setShowCountryList(true) }}
+  onInput={e => {
+    const val = (e.target as HTMLInputElement).value
+    if (val && !countryQuery) {
+      // Browser autofilled — check if it matches a known country
+      const matched = COUNTRIES.find(c => c.toLowerCase() === val.toLowerCase())
+      if (matched) { setFCountry(matched); setCountryQuery('') }
+      else { setCountryQuery(val); setFCountry('') }
+    }
+  }}
+  onFocus={() => setShowCountryList(true)}
+  maxLength={50}
+/>
                       {errors.country && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.country}</p>}
                       {showCountryList && <div style={{ position: 'absolute', zIndex: 30, marginTop: '4px', width: '100%', maxHeight: '150px', overflowY: 'auto', borderRadius: '12px', background: 'rgba(18,6,48,0.97)', backdropFilter: 'blur(16px)', border: `1px solid ${t.accentFaint}`, boxShadow: '0 12px 32px rgba(0,0,0,0.75)' }}>
                         {COUNTRIES.filter(c => c.toLowerCase().includes((countryQuery || '').toLowerCase())).slice(0, 20).map(c => (
