@@ -60,6 +60,7 @@ interface Props {
   capsule: Capsule; initialContributions: Contribution[]
   profileSections: ProfileSection[]; featuredPhotos: FeaturedPhoto[]
   supportAccounts: any[]; themeKey: ThemeKey
+  storiesCount?: number
 }
 
 /* ── CONSTANTS ── */
@@ -544,7 +545,7 @@ function RelationshipSelect({ selected, onChange, error, t, eventType, honoureeN
 /* =========================================================
    MAIN COMPONENT
 ========================================================= */
-export default function TributeWallClient({ capsule, initialContributions, profileSections, featuredPhotos, supportAccounts, themeKey }: Props) {
+export default function TributeWallClient({ capsule, initialContributions, profileSections, featuredPhotos, supportAccounts, themeKey, storiesCount = 0 }: Props) {
   const t = getThemeConfig(themeKey)
   const supabaseClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 const searchParams = useSearchParams()
@@ -1437,11 +1438,13 @@ background:
             <div>
               <p style={{ margin: '0 0 2px', fontSize: '12px', fontWeight: 700, color: t.accentMuted }}>📖 Also Visit the Stories Room</p>
               <p style={{ margin: 0, fontSize: '11px', color: t.textFaint, lineHeight: 1.5 }}>
-                Read and also post more stories and memories about {honourName}.
+                {storiesCount > 0
+                  ? `${storiesCount} ${storiesCount === 1 ? 'story' : 'stories'} inside. Read, React & Add Yours.`
+                  : `Add a memory or photo for ${honourName}.`}
               </p>
             </div>
             <a href={`/for/${capsule.slug}/stories`} style={{ flexShrink: 0, fontSize: '11px', fontWeight: 700, color: t.accentPrimary, textDecoration: 'none', padding: '6px 12px', borderRadius: '8px', border: `1px solid ${t.accentFaint}`, background: 'rgba(226,195,107,0.06)', whiteSpace: 'nowrap' }}>
-              Read →
+              {storiesCount > 0 ? 'Read →' : 'Add →'}
             </a>
           </div>
 

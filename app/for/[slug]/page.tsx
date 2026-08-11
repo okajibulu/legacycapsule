@@ -132,7 +132,7 @@ export default async function TributePage({
   .limit(1)
   .maybeSingle()
   
-  const [contribRes, profileRes, featuredRes, supportRes] = await Promise.all([
+  const [contribRes, profileRes, featuredRes, supportRes, storiesCountRes] = await Promise.all([
     supabase
       .from('contributions')
       .select(
@@ -164,7 +164,16 @@ supabase
       .eq('is_active', true)
       .is('deleted_at', null)
 .order('sort_order', { ascending: true }),
+
+    supabase
+      .from('contributions')
+      .select('id', { count: 'exact', head: true })
+      .eq('capsule_id', capsule.id)
+      .eq('status', 'approved')
+      .not('story_topic_id', 'is', null),
   ])
+
+  const storiesCount = storiesCountRes.count ?? 0
 
    // Fetch phase count for bottom nav
   const { data: phasesData } = await supabase
@@ -186,6 +195,7 @@ supabase
         featuredPhotos={featuredRes.data ?? []}
         supportAccounts={supportRes.data ?? []}
         themeKey={themeKey}
+        storiesCount={storiesCount}
       />
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 8px' }}>
         <ActivePremiumsStrip slug={slug} components={capsule.components ?? []} />

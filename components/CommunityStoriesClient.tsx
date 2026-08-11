@@ -31,9 +31,9 @@ interface ReactionCounts {
   heart:  number
   prayer: number
   star:   number
-  sad:    number
+  laugh:  number
   clap:   number
-  dove:   number
+  thumbs: number
 }
 
 interface Props {
@@ -92,15 +92,15 @@ const CATEGORY_ICON: Record<string, string> = {
 // ═══ SECTION 4 — Reaction config ═══
 
 const REACTIONS: { key: keyof ReactionCounts; emoji: string; label: string }[] = [
-  { key: 'heart',  emoji: '❤️',  label: 'Love'      },
-  { key: 'prayer', emoji: '🙏',  label: 'Grateful'  },
-  { key: 'star',   emoji: '✦',  label: 'Inspiring' },
-  { key: 'sad',    emoji: '😢', label: 'Moving'    },
+  { key: 'heart',  emoji: '❤️', label: 'Love'      },
+  { key: 'prayer', emoji: '🙏', label: 'Grateful'  },
+  { key: 'star',   emoji: '⭐', label: 'Inspiring' },
+  { key: 'laugh',  emoji: '😂', label: 'Funny'     },
   { key: 'clap',   emoji: '👏', label: 'Celebrate' },
-  { key: 'dove',   emoji: '🕊️',  label: 'Peace'     },
+  { key: 'thumbs', emoji: '👍', label: 'Agree'     },
 ]
 
-const EMPTY_COUNTS: ReactionCounts = { heart: 0, prayer: 0, star: 0, sad: 0, clap: 0, dove: 0 }
+const EMPTY_COUNTS: ReactionCounts = { heart: 0, prayer: 0, star: 0, laugh: 0, clap: 0, thumbs: 0 }
 
 // ═══ SECTION 5 — Device token (localStorage UUID) ═══
 

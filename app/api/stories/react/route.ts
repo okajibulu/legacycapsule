@@ -19,7 +19,7 @@ const db = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const VALID_REACTIONS = new Set(['heart', 'prayer', 'star', 'sad', 'clap', 'dove'])
+const VALID_REACTIONS = new Set(['heart', 'prayer', 'star', 'laugh', 'clap', 'thumbs'])
 
 export async function POST(req: NextRequest) {
   try {
