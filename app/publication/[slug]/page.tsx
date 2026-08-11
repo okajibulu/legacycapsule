@@ -109,5 +109,8 @@ export default async function PublicationSlugPage({ params }: Props) {
   // Pass token to the render page as a server component import
   // so the slug URL stays in the browser bar permanently.
   const TokenPage = (await import('@/app/publication-render/[token]/page')).default;
-  return TokenPage({ params: Promise.resolve({ token: pub.render_token }) });
+  return TokenPage({
+    params:       Promise.resolve({ token: pub.render_token }),
+    searchParams: Promise.resolve({}),
+  });
 }
