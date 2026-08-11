@@ -26,14 +26,15 @@ const adminClient = createClient(
 );
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateMetadata({ params }: Props) {
+  const { slug } = await params;
   const { data: capsule } = await adminClient
     .from('capsules')
     .select('honouree_name, event_tag')
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .maybeSingle();
 
   if (!capsule) return { title: 'Publication — LegacyCapsule' };
@@ -54,7 +55,7 @@ export async function generateMetadata({ params }: Props) {
 // ═══ SECTION 1 — Page component ═══
 
 export default async function PublicationSlugPage({ params }: Props) {
-  const { slug } = params;
+  const { slug } = await params;
 
   // ── Resolve capsule + publication ─────────────────────────
   const { data: capsule } = await adminClient
