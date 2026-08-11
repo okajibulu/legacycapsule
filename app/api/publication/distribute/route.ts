@@ -175,8 +175,8 @@ export async function POST(req: NextRequest) {
 
     // ── Send emails — batched with delay to protect inbox delivery ────────
     // Batch size: 5 per batch · Delay: 2 minutes between batches
-    const BATCH_SIZE = 5
-    const BATCH_DELAY_MS = 30 * 1000 // 30 seconds
+    const BATCH_SIZE = 10
+    const BATCH_DELAY_MS = 30 * 1000 // 3 seconds
 
     const recipientList = Array.from(recipients.entries())
     let sent    = 0
