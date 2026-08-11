@@ -105,9 +105,9 @@ export default async function PublicationSlugPage({ params }: Props) {
     );
   }
 
-  // ── Publication exists — serve via token render pipeline ──
-  // We redirect internally to the token render page.
-  // The slug URL remains permanent — the redirect is transparent.
-  const { redirect } = await import('next/navigation');
-  redirect(`/publication-render/${pub.render_token}`);
+  // ── Publication exists — fetch capsuleId and render directly ──
+  // Pass token to the render page as a server component import
+  // so the slug URL stays in the browser bar permanently.
+  const TokenPage = (await import('@/app/publication-render/[token]/page')).default;
+  return TokenPage({ params: Promise.resolve({ token: pub.render_token }) });
 }
