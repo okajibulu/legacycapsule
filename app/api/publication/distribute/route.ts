@@ -1,19 +1,28 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// FILE: app/api/publication/distribute/route.ts
-// PURPOSE: Distribute the generated publication to all recipients.
-//          GET ?capsule_id=&preview=1  — returns recipient counts without sending
-//          POST                        — sends to all deduped recipients
+// FILE PATH: app/api/publication/distribute/route.ts
+// PURPOSE:   Distribute the Digital Capsule Publication to all recipients.
+//            GET ?capsule_id=  — returns recipient counts without sending
+//            POST              — sends to all deduped recipients
 //
-//          Recipients (deduped by email):
-//            1. Tribute contributors with email (contributions table)
-//            2. D-Day photo contributors with email (gallery_items source='dday')
-//            3. Publication subscribers (publication_subscribers table)
+//            Recipients (deduped by email):
+//              1. Tribute contributors with email (contributions table)
+//              2. D-Day photo contributors with email (gallery_items source='dday')
+//              3. Publication subscribers (publication_subscribers table)
 //
-//          Deduplication: Set on lowercase email — nobody receives twice.
-//          Organiser always controls dispatch — never automatic.
+//            Deduplication: Set on lowercase email — nobody receives twice.
+//            Organiser always controls dispatch — never automatic.
 //
 // ARCHITECTURE: LC03 Legacy Publication System
-// BUILT BY: AI12 · Claude Opus 4.6 · 20 July 2026
+// BUILT BY:  AI12 · Claude Opus 4.6 · 20 July 2026
+// UPDATED:   AI20 · Claude Sonnet 4.6 · 11 August 2026
+//            v2.11.93 — Subject fixed: honouree name as primary identifier
+//            v2.11.94 — Subject finalised: "Your copy of [Name]'s [Event Type]
+//                       Digital Capsule is ready" — personal possessive framing.
+//                       Body copy now event-type aware (6 variants).
+//                       "Digital Capsule Publication" established as brand term.
+//                       Pronouns: neutral "their" throughout.
+// VERSION:   AI20v2.11.94
+// DATE:      11 August 2026
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -30,7 +39,72 @@ const db = createClient(
 const resend  = new Resend(process.env.RESEND_API_KEY!)
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
 
-// ═══ SECTION 2 — Recipient collector ═══
+// ═══ SECTION 2 — Event type helpers ═══
+// getEventTypeLabel: converts event_type key → human occasion label.
+// getEventBodyCopy:  returns event-aware body paragraph for email.
+// Pronouns are neutral "their" throughout — no gender assumptions.
+// "Digital Capsule Publication" is a brand term — never abbreviated.
+
+function getEventTypeLabel(eventType: string | null, eventTag: string | null): string {
+  const map: Record<string, string> = {
+    retirement:         'Retirement Celebration',
+    memorial:           'Memorial',
+    wedding:            'Wedding Celebration',
+    milestone_birthday: 'Milestone Birthday',
+    birthday:           'Birthday Celebration',
+    chieftaincy:        'Chieftaincy & Recognition',
+    graduation:         'Graduation',
+    anniversary:        'Anniversary',
+    naming_ceremony:    'Naming Ceremony',
+    corporate:          'Corporate Recognition',
+  }
+  return map[eventType ?? ''] ?? eventTag ?? 'Special Occasion'
+}
+
+function getEventBodyCopy(
+  eventType: string | null,
+  honoureeName: string,
+  eventTypeLabel: string
+): { intro: string; privilege: string } {
+  const name = honoureeName
+
+  switch (eventType) {
+    case 'memorial':
+      return {
+        intro:     `This Digital Capsule Publication was assembled from the tributes, memories, and stories shared in memory of <strong style="color:rgba(255,255,255,0.9);">${name}</strong> — every voice gathered here preserved as a permanent record of a life that mattered.`,
+        privilege: `As one of those who took the time to honour ${name}'s memory, it is a privilege to share this keepsake with you.`,
+      }
+    case 'wedding':
+      return {
+        intro:     `This Digital Capsule Publication captures the blessings, memories, and well-wishes gathered from everyone who celebrated <strong style="color:rgba(255,255,255,0.9);">${name}</strong> on their wedding day — a permanent record of the love and community surrounding this occasion.`,
+        privilege: `As one of those who shared a blessing for ${name}, it is a privilege to share this keepsake with you.`,
+      }
+    case 'milestone_birthday':
+    case 'birthday':
+      return {
+        intro:     `This Digital Capsule Publication was assembled from the appreciation, memories, and well-wishes gathered to celebrate <strong style="color:rgba(255,255,255,0.9);">${name}</strong> on this milestone — a permanent record of the voices of those who love and value them.`,
+        privilege: `As one of those who honoured ${name} on this occasion, it is a privilege to share this keepsake with you.`,
+      }
+    case 'chieftaincy':
+      return {
+        intro:     `This Digital Capsule Publication was assembled from the tributes, commendations, and voices gathered to honour <strong style="color:rgba(255,255,255,0.9);">${name}</strong> on this occasion — a permanent record worthy of the significance of this moment.`,
+        privilege: `As one of those who stepped forward to honour ${name}, it is a privilege to share this keepsake with you.`,
+      }
+    case 'graduation':
+      return {
+        intro:     `This Digital Capsule Publication captures the congratulations, memories, and encouragement gathered to celebrate <strong style="color:rgba(255,255,255,0.9);">${name}</strong>'s achievement — a permanent record of the community that cheered them to this moment.`,
+        privilege: `As one of those who shared in celebrating ${name}'s achievement, it is a privilege to share this keepsake with you.`,
+      }
+    case 'retirement':
+    default:
+      return {
+        intro:     `This Digital Capsule Publication was assembled from the voices, memories, and stories shared by those who honoured <strong style="color:rgba(255,255,255,0.9);">${name}</strong> on the occasion of their ${eventTypeLabel} — a permanent record of a career and life well celebrated.`,
+        privilege: `As one of those who took the time to contribute, it is a privilege to share this keepsake with you.`,
+      }
+  }
+}
+
+// ═══ SECTION 3 — Recipient collector ═══
 // Returns a deduped map of email → { name, source }
 
 async function collectRecipients(capsule_id: string): Promise<{
@@ -94,7 +168,7 @@ async function collectRecipients(capsule_id: string): Promise<{
   return { recipients, no_email }
 }
 
-// ═══ SECTION 3 — GET — Preview recipient counts ═══
+// ═══ SECTION 4 — GET — Preview recipient counts ═══
 
 export async function GET(req: NextRequest) {
   const capsule_id = req.nextUrl.searchParams.get('capsule_id')
@@ -105,7 +179,6 @@ export async function GET(req: NextRequest) {
   try {
     const { recipients, no_email } = await collectRecipients(capsule_id)
 
-    // Count by source for the preview breakdown
     let contributors = 0, dday = 0, subscribers = 0
     for (const [, v] of recipients) {
       if (v.source === 'contributor') contributors++
@@ -114,20 +187,23 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
-      total:        recipients.size,
+      total: recipients.size,
       contributors,
       dday,
       subscribers,
       no_email,
     })
 
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[publication/distribute GET]', e)
-    return NextResponse.json({ error: 'Failed to load recipients' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to load recipients. Please try again.' },
+      { status: 500 }
+    )
   }
 }
 
-// ═══ SECTION 4 — POST — Send publication ═══
+// ═══ SECTION 5 — POST — Send publication ═══
 
 export async function POST(req: NextRequest) {
   try {
@@ -135,20 +211,20 @@ export async function POST(req: NextRequest) {
 
     if (!capsule_id || !capsule_slug) {
       return NextResponse.json(
-        { error: 'capsule_id and capsule_slug required' },
+        { error: 'capsule_id and capsule_slug are required.' },
         { status: 400 }
       )
     }
 
-    // ── Fetch capsule and publication ────────────────────────────────────
+    // ── Fetch capsule ────────────────────────────────────────────────────
     const { data: capsule } = await db
       .from('capsules')
-      .select('honouree_name, event_tag, slug')
+      .select('honouree_name, event_type, event_tag, slug')
       .eq('id', capsule_id)
       .maybeSingle()
 
     if (!capsule) {
-      return NextResponse.json({ error: 'Capsule not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Capsule not found.' }, { status: 404 })
     }
 
     const { data: pub } = await db
@@ -165,8 +241,9 @@ export async function POST(req: NextRequest) {
     }
 
     const publicationUrl = `${APP_URL}/publication/${capsule_slug}`
+    const eventTypeLabel = getEventTypeLabel(capsule.event_type, capsule.event_tag)
+    const bodyCopy       = getEventBodyCopy(capsule.event_type, capsule.honouree_name, eventTypeLabel)
 
-    const eventLabel = capsule.event_tag ?? capsule.honouree_name
     const { recipients, no_email } = await collectRecipients(capsule_id)
 
     if (recipients.size === 0) {
@@ -174,9 +251,8 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Send emails — batched with delay to protect inbox delivery ────────
-    // Batch size: 5 per batch · Delay: 2 minutes between batches
-    const BATCH_SIZE = 10
-    const BATCH_DELAY_MS = 30 * 1000 // 3 seconds
+    const BATCH_SIZE     = 10
+    const BATCH_DELAY_MS = 30 * 1000
 
     const recipientList = Array.from(recipients.entries())
     let sent    = 0
@@ -190,13 +266,14 @@ export async function POST(req: NextRequest) {
           await resend.emails.send({
             from:    'LegacyCapsule <events@itslegacycapsule.com>',
             to:      email,
-            subject: `The keepsake publication is ready — ${eventLabel}`,
-            html:    publicationEmailHtml({
-              recipientName:   name,
-              honoureeName:    capsule.honouree_name,
-              eventLabel,
+            subject: `Your copy of ${capsule.honouree_name}\u2019s ${eventTypeLabel} Digital Capsule is ready`,
+            html:    distributeEmailHtml({
+              recipientName:  name,
+              honoureeName:   capsule.honouree_name,
+              eventTypeLabel,
+              bodyCopy,
               publicationUrl,
-              capsuleUrl:      `${APP_URL}/for/${capsule_slug}`,
+              capsuleUrl:     `${APP_URL}/for/${capsule_slug}`,
             }),
           })
           sent++
@@ -206,7 +283,6 @@ export async function POST(req: NextRequest) {
         }
       }))
 
-      // Wait 2 minutes before next batch (skip delay after last batch)
       if (i + BATCH_SIZE < recipientList.length) {
         await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS))
       }
@@ -221,18 +297,25 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ sent, skipped, no_email })
 
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[publication/distribute POST]', e)
-    return NextResponse.json({ error: e.message ?? 'Distribution failed' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Something went wrong sending the publication. Please try again.' },
+      { status: 500 }
+    )
   }
 }
 
-// ═══ SECTION 5 — Email template ═══
+// ═══ SECTION 6 — Email template — distribute ═══
+// Audience: contributors, D-Day participants, subscribers.
+// All have honoured the honouree in some way — body copy reflects that.
+// "Digital Capsule Publication" used as brand term throughout.
 
-function publicationEmailHtml(d: {
+function distributeEmailHtml(d: {
   recipientName:  string
   honoureeName:   string
-  eventLabel:     string
+  eventTypeLabel: string
+  bodyCopy:       { intro: string; privilege: string }
   publicationUrl: string
   capsuleUrl:     string
 }) {
@@ -241,7 +324,7 @@ function publicationEmailHtml(d: {
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>The keepsake publication is ready — ${d.eventLabel}</title>
+  <title>${d.honoureeName}&rsquo;s ${d.eventTypeLabel} Digital Capsule Publication</title>
 </head>
 <body style="margin:0;padding:0;background:#F5F3EE;font-family:'Georgia',serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F3EE;">
@@ -249,46 +332,65 @@ function publicationEmailHtml(d: {
       <td align="center" style="padding:40px 20px;">
         <table width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#1a0d3a;border-radius:16px;overflow:hidden;">
 
-          <tr><td height="3" style="background:linear-gradient(90deg,transparent,#E2C36B,transparent);"></td></tr>
+          <tr><td height="3" style="background:linear-gradient(90deg,transparent,#E2C36B,transparent);font-size:0;">&nbsp;</td></tr>
 
+          <!-- Header -->
           <tr>
             <td style="padding:40px 44px 8px;text-align:center;">
-              <p style="margin:0 0 10px;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:rgba(226,195,107,0.6);">YOUR KEEPSAKE IS READY</p>
-              <h1 style="margin:0 0 6px;font-family:Georgia,serif;font-size:24px;font-weight:700;color:#FFFFFF;line-height:1.3;">${d.eventLabel}</h1>
+              <p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:rgba(226,195,107,0.6);">
+                DIGITAL CAPSULE PUBLICATION
+              </p>
+              <h1 style="margin:0 0 6px;font-family:Georgia,serif;font-size:26px;font-weight:700;color:#FFFFFF;line-height:1.3;">
+                ${d.honoureeName}
+              </h1>
+              <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:rgba(226,195,107,0.65);letter-spacing:0.08em;">
+                ${d.eventTypeLabel}
+              </p>
             </td>
           </tr>
 
-          <tr><td style="padding:20px 44px 0;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(226,195,107,0.3),transparent);"></div></td></tr>
+          <tr><td style="padding:20px 44px 0;">
+            <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(226,195,107,0.3),transparent);"></div>
+          </td></tr>
 
+          <!-- Body -->
           <tr>
-            <td style="padding:24px 44px;text-align:center;">
+            <td style="padding:28px 44px 8px;text-align:center;">
               <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:14px;color:rgba(255,255,255,0.75);">
                 Dear <strong style="color:#FFFFFF;">${d.recipientName}</strong>,
               </p>
-              <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:rgba(255,255,255,0.55);line-height:1.8;">
-                The keepsake publication for <strong style="color:rgba(255,255,255,0.8);">${d.honoureeName}</strong> is now ready.
-                Every tribute, memory, story, and photograph — assembled into a permanent record for everyone who was part of this occasion.
+              <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:13px;color:rgba(255,255,255,0.55);line-height:1.85;">
+                ${d.bodyCopy.intro}
+              </p>
+              <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:rgba(255,255,255,0.55);line-height:1.85;">
+                ${d.bodyCopy.privilege}
               </p>
             </td>
           </tr>
 
+          <!-- CTA -->
           <tr>
-            <td style="padding:0 44px 36px;text-align:center;">
-              <a href="${d.publicationUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#E2C36B,#C9A84E);color:#1a0845;font-family:Arial,sans-serif;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.06em;">
-                View the Publication →
+            <td style="padding:28px 44px 36px;text-align:center;">
+              <a href="${d.publicationUrl}"
+                style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#E2C36B,#C9A84E);color:#1a0845;font-family:Arial,sans-serif;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.06em;">
+                Open Your Digital Capsule &rarr;
               </a>
               <p style="margin:16px 0 0;font-family:Arial,sans-serif;font-size:11px;color:rgba(255,255,255,0.25);">
-                Or visit the capsule: <a href="${d.capsuleUrl}" style="color:rgba(226,195,107,0.5);">${d.capsuleUrl}</a>
+                Or visit the record:
+                <a href="${d.capsuleUrl}" style="color:rgba(226,195,107,0.5);">${d.capsuleUrl}</a>
+              </p>
+              <p style="margin:20px 0 0;font-family:Arial,sans-serif;font-size:10px;color:rgba(255,255,255,0.2);font-style:italic;">
+                LegacyCapsule preserves the voices that matter most &mdash; for the people being celebrated, and for those who come after.
               </p>
             </td>
           </tr>
 
-          <tr><td height="3" style="background:linear-gradient(90deg,transparent,#E2C36B,transparent);"></td></tr>
+          <tr><td height="3" style="background:linear-gradient(90deg,transparent,#E2C36B,transparent);font-size:0;">&nbsp;</td></tr>
 
           <tr>
             <td style="padding:14px 44px 18px;text-align:center;">
               <p style="margin:0;font-family:Arial,sans-serif;font-size:9px;color:rgba(255,255,255,0.18);letter-spacing:2px;text-transform:uppercase;">
-                LEGACYCAPSULE · VALNEX, UNIPESSOAL LDA · REVOWORLDTECH
+                LEGACYCAPSULE &middot; VALNEX, UNIPESSOAL LDA &middot; REVOWORLDTECH
               </p>
             </td>
           </tr>
