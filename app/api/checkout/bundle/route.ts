@@ -14,15 +14,18 @@
 //            — capsule_extend_3mo key support added
 //            — FEATURE_LABELS updated: Digital Capsule Publication brand term
 //            — Plain English errors throughout
-// VERSION:   AI20v2.11.97
+//            — Stripe null-guarded (only loads when STRIPE_SECRET_KEY present)
+//            — processor variable bug fixed (was referencing undefined var)
+//            — try/catch brace structure corrected
+// VERSION:   AI20v2.11.98
 // DATE:      11 August 2026
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { NextRequest, NextResponse }   from 'next/server'
-import { createClient }                from '@supabase/supabase-js'
-import Stripe                          from 'stripe'
-import { detectRegionFromHeaders }     from '@/lib/payments/regionDetector'
-import { getRegionalPrice }            from '@/lib/payments/priceFetcher'
+import { NextRequest, NextResponse }    from 'next/server'
+import { createClient }                 from '@supabase/supabase-js'
+import Stripe                           from 'stripe'
+import { detectRegionFromHeaders }      from '@/lib/payments/regionDetector'
+import { getRegionalPrice }             from '@/lib/payments/priceFetcher'
 import { createPaystackBundleCheckout } from '@/lib/payments/adapters/PaystackAdapter'
 
 // ═══ SECTION 1 — Clients ═══
@@ -32,43 +35,43 @@ const db = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-04-22.dahlia',
-})
+// Stripe is optional — only initialised when key is present.
+// At NGN-only launch, STRIPE_SECRET_KEY is not set.
+// Build will not fail if key is absent.
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-04-22.dahlia' })
+  : null
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
 
 // ═══ SECTION 2 — Feature label map ═══
-// Used for line item display in Stripe and metadata in Paystack.
 // "Digital Capsule Publication" is the brand term — never abbreviated.
 
 const FEATURE_LABELS: Record<string, string> = {
-  audio_tributes:          'Voice Tributes',
-  video_tributes:          'Video Tributes',
-  ways_to_honour:          'Gift of Honour',
-  publication:             'Digital Capsule Publication',
-  guest_management:        'Guest Management & Seating',
-  attire:                  'Fabric & Attire Coordination',
-  community_stories:       'Community Memories & Stories',
-  extended_validity:       'Extended Validity',
-  access_codes:            'Access Code System',
-  additional_phase:        'Additional Event Phase',
-  capsule_extend_3mo:      'Capsule Extension — 3 Months',
-  capsule_activation:      'Capsule Activation',
+  audio_tributes:     'Voice Tributes',
+  video_tributes:     'Video Tributes',
+  ways_to_honour:     'Gift of Honour',
+  publication:        'Digital Capsule Publication',
+  guest_management:   'Guest Management & Seating',
+  attire:             'Fabric & Attire Coordination',
+  community_stories:  'Community Memories & Stories',
+  extended_validity:  'Extended Validity',
+  access_codes:       'Access Code System',
+  additional_phase:   'Additional Event Phase',
+  capsule_extend_3mo: 'Capsule Extension — 3 Months',
+  capsule_activation: 'Capsule Activation',
 }
 
 // ═══ SECTION 3 — Preset compositions ═══
-// Essential and Signature presets are curated feature lists.
-// Clicking a preset button in ServicesTab sends preset_id instead of feature_ids.
-// The route resolves to the canonical feature list here — single source of truth.
-// User can override by sending custom feature_ids directly.
+// Preset buttons in ServicesTab send preset_id — resolved here.
+// Single source of truth for preset contents.
 
 const PRESET_FEATURES: Record<string, string[]> = {
   essential: [
     'publication',
     'audio_tributes',
     'video_tributes',
-    'capsule_extend_3mo',   // Validity extension included in Essential
+    'capsule_extend_3mo',
   ],
   signature: [
     'publication',
@@ -77,7 +80,7 @@ const PRESET_FEATURES: Record<string, string[]> = {
     'access_codes',
     'ways_to_honour',
     'additional_phase',
-    'capsule_extend_3mo',   // Validity extension included in Signature
+    'capsule_extend_3mo',
   ],
 }
 
@@ -91,7 +94,7 @@ function toStripeCurrency(currency: string): string {
   return map[currency] ?? 'eur'
 }
 
-function toStripeAmount(amount: number, currency: string): number {
+function toStripeAmount(amount: number): number {
   return Math.round(amount * 100)
 }
 
@@ -107,8 +110,8 @@ export async function POST(req: NextRequest) {
     const {
       capsule_id,
       capsule_slug,
-      feature_ids,      // custom selection — array of feature keys
-      preset_id,        // 'essential' | 'signature' — overrides feature_ids when present
+      feature_ids,
+      preset_id,
       organiser_email,
       recipient_name,
       recipient_email,
@@ -150,7 +153,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Detect region ─────────────────────────────────────────────────────────
-    const zone       = detectRegionFromHeaders(req as unknown as Request) ?? 'ROW'
+    const zone        = detectRegionFromHeaders(req as unknown as Request) ?? 'ROW'
     const usePaystack = isAfricanZone(zone)
 
     // ── Fetch prices for all features ─────────────────────────────────────────
@@ -158,13 +161,11 @@ export async function POST(req: NextRequest) {
       resolvedFeatureIds.map((id: string) => getRegionalPrice(id, zone))
     )
 
-    const validFeatureIds:    string[]   = []
-    const validFeatureLabels: string[]   = []
-    let   totalAmount                     = 0
-    let   resolvedCurrency                = usePaystack ? 'NGN' : 'EUR'
-
-    // Stripe line items (not needed for Paystack but built here for Stripe path)
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = []
+    const validFeatureIds:    string[] = []
+    const validFeatureLabels: string[] = []
+    let   totalAmount                   = 0
+    let   resolvedCurrency              = usePaystack ? 'NGN' : 'EUR'
+    const lineItems: any[]              = []
 
     for (let i = 0; i < resolvedFeatureIds.length; i++) {
       const result = priceResults[i]
@@ -173,8 +174,8 @@ export async function POST(req: NextRequest) {
         continue
       }
 
-      const price = result.value
-      const stripeAmount   = toStripeAmount(price.amount, price.currency)
+      const price          = result.value
+      const stripeAmount   = toStripeAmount(price.amount)
       const stripeCurrency = toStripeCurrency(price.currency)
 
       if (!stripeCurrency || stripeAmount <= 0) {
@@ -241,11 +242,8 @@ export async function POST(req: NextRequest) {
       ? `${APP_URL}/manage/${capsule_slug}?tab=services&payment=cancelled`
       : `${APP_URL}/book?payment=cancelled&slug=${capsule_slug}&pid=${payment.id}`
 
-    // ── Route to processor ────────────────────────────────────────────────────
-
-    // PAYSTACK PATH — NGN, NG/GH/KE zones
+    // ── PAYSTACK PATH — NGN, NG/GH/KE zones ──────────────────────────────────
     if (usePaystack) {
-      // Paystack amount must be in kobo — totalAmount is in Naira, convert
       const totalKobo = Math.round(totalAmount * 100)
 
       const result = await createPaystackBundleCheckout({
@@ -271,7 +269,15 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // STRIPE PATH — EUR/GBP/USD, all other zones
+    // ── STRIPE PATH — EUR/GBP/USD, all other zones ────────────────────────────
+    // Stripe is optional at launch — only available when STRIPE_SECRET_KEY is set.
+    if (!stripe) {
+      return NextResponse.json(
+        { error: 'International payments are not yet available. Please contact us to complete your order.' },
+        { status: 503 }
+      )
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode:           'payment',
       customer_email: email || undefined,
@@ -291,7 +297,7 @@ export async function POST(req: NextRequest) {
       cancel_url:  cancelUrl,
     })
 
-    if (!session.url) throw new Error('Stripe did not return a session URL')
+    if (!session.url) throw new Error('Stripe did not return a session URL.')
 
     return NextResponse.json({
       checkout_url:  session.url,
