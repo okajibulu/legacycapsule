@@ -874,7 +874,7 @@ function BookPage() {
           </PrimaryBtn>
 
           <p style={{ fontSize: '11px', color: textFaint, marginTop: '12px', textAlign: 'center', lineHeight: 1.65 }}>
-            Secure checkout via Stripe. Your capsule and selected services will be ready when you choose to activate it.
+            Secure checkout. Your capsule and selected services will be ready when you choose to activate it.
           </p>
           <Footer />
         </div>
