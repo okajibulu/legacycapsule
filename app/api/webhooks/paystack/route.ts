@@ -1,125 +1,175 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// FILE: app/api/webhooks/paystack/route.ts
-// PURPOSE: Paystack webhook handler. Mirrors Stripe webhook handler pattern.
-//          Verifies signature → confirms payment → unlocks features.
-//          Primary event: charge.success
-// ARCHITECTURE: LC04 Payment Engine
-// BUILT BY: Claude Sonnet 4.6 · July 2026
+// FILE PATH: app/api/webhooks/paystack/route.ts
+// PURPOSE:   Receives and processes Paystack webhook events.
+//            Verifies HMAC-SHA512 signature before any processing.
+//            On charge.success: verifies transaction server-side,
+//            confirms payment record, calls featureUnlocker.
+//            On charge.failure: marks payment failed.
+//            All other events: acknowledged and ignored.
+// ARCHITECTURE: LC04 Payment Engine — Paystack webhook handler.
+//               Mirrors Stripe webhook handler pattern.
+//               Raw body must be read before JSON parsing — required for
+//               HMAC signature verification.
+// BUILT BY:  AI20 · Claude Opus 4.6
+// UPDATED:   11 August 2026
+// VERSION:   AI20v2.11.97
+// DATE:      11 August 2026
+//
+// SETUP REQUIRED:
+//   1. Register https://itslegacycapsule.com/api/webhooks/paystack in
+//      Paystack dashboard → Settings → Webhooks
+//   2. Copy the webhook secret Paystack generates
+//   3. Add to .env: PAYSTACK_WEBHOOK_SECRET=whsec_...
+//   Events to subscribe: charge.success, charge.dispute.create,
+//   transfer.success, transfer.failed (future)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyPaystackSignature, verifyPaystackTransaction } from '@/lib/payments/adapters/PaystackAdapter'
-import { confirmPayment }                                      from '@/lib/payments/PaymentService'
-import { unlockCapsuleFeatures }                               from '@/lib/payments/featureUnlocker'
+import { createClient }              from '@supabase/supabase-js'
+import {
+  verifyPaystackWebhookSignature,
+  verifyPaystackTransaction,
+} from '@/lib/payments/adapters/PaystackAdapter'
+import { unlockCapsuleFeatures }     from '@/lib/payments/featureUnlocker'
+import { confirmPayment, failPayment } from '@/lib/payments/PaymentService'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SECTION 1 — Config
-// Paystack sends raw JSON — no special body parsing needed
-// ─────────────────────────────────────────────────────────────────────────────
+// ═══ SECTION 1 — DB client ═══
+
+const db = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+// ═══ SECTION 2 — Route config ═══
+// Must disable body parsing — raw body required for HMAC verification.
 
 export const dynamic = 'force-dynamic'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SECTION 2 — Route handler
-// ─────────────────────────────────────────────────────────────────────────────
+// ═══ SECTION 3 — POST handler ═══
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
+export async function POST(req: NextRequest) {
+  // ── Read raw body for signature verification ──────────────────────────────
   const rawBody  = await req.text()
   const signature = req.headers.get('x-paystack-signature') ?? ''
 
   // ── Verify signature ──────────────────────────────────────────────────────
-  let event
-  try {
-    event = verifyPaystackSignature(rawBody, signature)
-  } catch (err) {
-    console.error('[paystack webhook] Signature verification failed:', err)
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
+  // Reject immediately if signature is missing or invalid.
+  // Prevents spoofed webhooks from activating paid features.
+  if (!signature) {
+    console.warn('[paystack-webhook] Missing x-paystack-signature header')
+    return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
   }
 
-  console.log(`[paystack webhook] Event received: ${event.event}`)
+  const isValid = verifyPaystackWebhookSignature(rawBody, signature)
+  if (!isValid) {
+    console.warn('[paystack-webhook] Invalid signature — rejected')
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+  }
 
-  // ── Handle events ─────────────────────────────────────────────────────────
+  // ── Parse event ───────────────────────────────────────────────────────────
+  let event: { event: string; data: Record<string, unknown> }
   try {
-    switch (event.event) {
+    event = JSON.parse(rawBody)
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 })
+  }
 
-      // ── charge.success — primary payment confirmation ─────────────────────
+  const eventType = event.event
+  const data      = event.data as Record<string, unknown>
+
+  console.log(`[paystack-webhook] Received: ${eventType}`)
+
+  // ── Route by event type ───────────────────────────────────────────────────
+  try {
+    switch (eventType) {
+
+      // ── Charge success ────────────────────────────────────────────────────
       case 'charge.success': {
-        const { reference, metadata, status } = event.data
-
-        if (status !== 'success') {
-          console.warn(`[paystack webhook] charge.success but status is: ${status}`)
+        const reference = data.reference as string
+        if (!reference) {
+          console.error('[paystack-webhook] charge.success missing reference')
           break
         }
 
-        // Extract payment_id from metadata or from reference (lc_<payment_id>)
-        const payment_id = metadata?.payment_id ?? reference.replace('lc_', '')
+        // Extract payment_id from reference (format: lc_{payment_id})
+        const payment_id = reference.startsWith('lc_')
+          ? reference.slice(3)
+          : null
 
         if (!payment_id) {
-          console.error('[paystack webhook] No payment_id found in event')
+          console.error('[paystack-webhook] Could not extract payment_id from reference:', reference)
           break
         }
 
-        // Verify transaction independently — never trust webhook data alone
+        // Server-side verification — never trust webhook payload amount alone
         let verified
         try {
           verified = await verifyPaystackTransaction(reference)
         } catch (verifyErr) {
-          console.error('[paystack webhook] Transaction verification failed:', verifyErr)
+          console.error('[paystack-webhook] Transaction verification failed:', verifyErr)
+          // Return 200 so Paystack doesn't retry — log for manual investigation
           break
         }
 
         if (verified.status !== 'success') {
-          console.warn(`[paystack webhook] Verification returned status: ${verified.status}`)
+          console.warn(`[paystack-webhook] Transaction ${reference} status: ${verified.status} — skipping`)
           break
         }
 
-        // Step 1: confirm payment in our DB
+        // Confirm payment record
         await confirmPayment(
           payment_id,
-          reference,              // processor_ref
-          'charge.success',       // webhook_event
+          reference,
+          eventType,
         )
 
-        // Step 2: unlock purchased features on capsule
+        // Unlock capsule features
         await unlockCapsuleFeatures(payment_id)
 
-        // Step 3: gift notification if applicable
-        const capsule_slug    = metadata?.capsule_slug ?? verified.metadata?.capsule_slug
-        const recipient_email = metadata?.recipient_email ?? verified.metadata?.recipient_email
-        const book_mode       = metadata?.book_mode ?? verified.metadata?.book_mode
-        const capsule_id      = metadata?.capsule_id ?? verified.metadata?.capsule_id
+        console.log(`[paystack-webhook] Payment ${payment_id} confirmed + features unlocked`)
+        break
+      }
 
-        if (book_mode === 'gift' && recipient_email && capsule_slug) {
-          try {
-            await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/email/gift-notification`, {
-              method:  'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body:    JSON.stringify({ recipient_email, capsule_slug, capsule_id }),
-            })
-          } catch (giftErr) {
-            console.error('[paystack webhook] Gift notification failed:', giftErr)
-          }
+      // ── Charge failure ────────────────────────────────────────────────────
+      case 'charge.failed': {
+        const reference = data.reference as string
+        const payment_id = reference?.startsWith('lc_') ? reference.slice(3) : null
+
+        if (payment_id) {
+          const gateway_response = (data.gateway_response as string) ?? 'Payment failed'
+          await failPayment(payment_id, gateway_response)
+          console.log(`[paystack-webhook] Payment ${payment_id} marked failed: ${gateway_response}`)
         }
-
-        console.log(`[paystack webhook] Payment confirmed and features unlocked — payment ${payment_id}`)
         break
       }
 
-      // ── transfer.failed — payment reversal (future use) ───────────────────
-      case 'transfer.failed': {
-        console.warn('[paystack webhook] Transfer failed event received — no action taken')
+      // ── Subscription events (future) ──────────────────────────────────────
+      case 'subscription.create':
+      case 'subscription.disable':
+      case 'invoice.payment_failed':
+        console.log(`[paystack-webhook] Subscription event noted (not yet handled): ${eventType}`)
         break
-      }
 
+      // ── All other events — acknowledge and ignore ─────────────────────────
       default:
-        console.log(`[paystack webhook] Unhandled event: ${event.event}`)
+        console.log(`[paystack-webhook] Unhandled event type: ${eventType} — acknowledged`)
+        break
     }
   } catch (err) {
-    console.error('[paystack webhook] Handler error:', err)
-    // Return 200 regardless — Paystack retries on non-200 responses
-    // and we don't want infinite retries for handler bugs
+    console.error('[paystack-webhook] Processing error:', err)
+    // Return 200 — Paystack will retry on 5xx. We log for manual investigation.
+    // Retrying a partially-processed event is worse than a missed one.
   }
 
-  // Always return 200 — Paystack expects this
+  // Always return 200 to Paystack — prevents aggressive retries
   return NextResponse.json({ received: true })
+}
+
+// ═══ SECTION 4 — GET guard ═══
+
+export async function GET(): Promise<NextResponse> {
+  return NextResponse.json(
+    { error: 'Webhook endpoint — POST only.' },
+    { status: 405 }
+  )
 }
