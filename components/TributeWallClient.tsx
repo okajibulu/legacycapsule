@@ -40,6 +40,10 @@ interface Capsule {
   page_state: string; tier: string | null; hero_image_url: string | null
   organiser_email: string; free_tier_expires_at: string | null; created_at: string
   approved_contrib_count: number; components: string[]
+  // Sprint 1 — commercial model columns
+  lifecycle_state?:   string | null   // 'active' | 'dormant' | 'deleted'
+  contribution_tier?: string | null   // 'free' | 'foundation_150v' | etc.
+  voice_ceiling?:     number | null   // null = unlimited (Estate-∞V)
 }
 interface Contribution {
   id: string; contributor_name: string; city: string; country: string
@@ -590,6 +594,71 @@ const [fConsent, setFConsent] = useState(false)
   const [myRefCode, setMyRefCode] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null); const countryRef = useRef<HTMLDivElement>(null); const photoRef = useRef<HTMLInputElement>(null)
 
+  // ── Wall state — contribution tier ceiling enforcement ────────────────────
+  const [wallStatus,       setWallStatus]     = useState<'open'|'warning_60'|'warning_80'|'warning_95'|'full'>('open')
+  const [wallVoicesUsed,   setWallVoicesUsed] = useState<{ tributes: number; stories: number; combined: number }>({ tributes: 0, stories: 0, combined: 0 })
+  const [wallCeiling,      setWallCeiling]    = useState<number | null>(null)
+  const [wallHit,          setWallHit]        = useState(false)
+  const [queuedToken,      setQueuedToken]    = useState<string | null>(null)
+  const [queueSaving,      setQueueSaving]    = useState(false)
+  const [wallEmailCapture, setWallEmailCapture] = useState('')
+
+  // ── Fetch wall status on mount ────────────────────────────────────────────
+  // Reads /api/capsule/limits for current tier ceiling and usage.
+  // Runs once on mount — refreshed after successful submission.
+  useEffect(() => {
+    fetch(`/api/capsule/limits?capsule_id=${capsule.id}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.wall_status) setWallStatus(d.wall_status)
+        if (d.voice_ceiling !== undefined) setWallCeiling(d.voice_ceiling)
+        if (d.voices?.combined) {
+          setWallVoicesUsed({
+            tributes: d.voices.tributes?.used ?? 0,
+            stories:  d.voices.stories?.used  ?? 0,
+            combined: d.voices.combined?.used  ?? 0,
+          })
+        }
+      })
+      .catch(() => {})
+  }, [capsule.id])
+
+  // ── Autosave to queued_submissions when wall is hit ───────────────────────
+  // Called immediately when handleSubmit detects ceiling reached.
+  // Uploads photo/audio/video first so content is truly preserved.
+  // Returns session token for return URL.
+  const handleWallAutosave = async (photoUrl: string | null): Promise<string | null> => {
+    setQueueSaving(true)
+    try {
+      const res = await fetch('/api/capsule/queue-submission', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          capsule_id:       capsule.id,
+          contributor_name: fName.trim()  || null,
+          contributor_email: (fEmail.trim() || wallEmailCapture.trim()) || null,
+          city:             fCity.trim()  || null,
+          country:          fCountry      || null,
+          relationship:     fRel.length > 0 ? fRel.join(', ') : null,
+          tribute_text:     fMsg.trim()   || null,
+          photo_url:        photoUrl,
+          audio_url:        fAudioUrl     || null,
+          video_url:        fVideoUrl     || null,
+        }),
+      })
+      const data = await res.json()
+      if (data.session_token) {
+        setQueuedToken(data.session_token)
+        return data.session_token
+      }
+      return null
+    } catch {
+      return null
+    } finally {
+      setQueueSaving(false)
+    }
+  }
+
   /* ── DERIVED ── */
   const honourName = capsule.honouree_name
   const pageTitle = getTributePageTitle(capsule.event_type, honourName)
@@ -726,6 +795,36 @@ const handleCopy = async () => {
     try {
       let photoUrl: string | null = null
       if (fPhoto) { const ext = fPhoto.name.split('.').pop() ?? 'jpg'; const path = capsule.id + '/' + Date.now() + '.' + ext; const { error: ue } = await supabaseClient.storage.from(BUCKET).upload(path, fPhoto, { upsert: false }); if (!ue) photoUrl = supabaseClient.storage.from(BUCKET).getPublicUrl(path).data.publicUrl }
+
+      // ── Wall ceiling check — before DB insert ─────────────────────────────
+      // Re-fetch current voice count to get most accurate number at submit time.
+      // If ceiling is reached, autosave and show wall-hit experience.
+      // Never block silently — always explain and preserve contributor's work.
+      if (wallStatus === 'full' || wallCeiling !== null) {
+        const limitsRes = await fetch(`/api/capsule/limits?capsule_id=${capsule.id}`)
+        const limitsData = await limitsRes.json()
+        const currentStatus  = limitsData.wall_status   ?? 'open'
+        const currentCeiling = limitsData.voice_ceiling ?? null
+        const currentUsed    = limitsData.voices?.combined?.used ?? 0
+
+        // Update local state with fresh counts
+        if (limitsData.wall_status) setWallStatus(limitsData.wall_status)
+        if (limitsData.voices?.combined) {
+          setWallVoicesUsed({
+            tributes: limitsData.voices.tributes?.used ?? 0,
+            stories:  limitsData.voices.stories?.used  ?? 0,
+            combined: limitsData.voices.combined?.used  ?? 0,
+          })
+        }
+
+        if (currentStatus === 'full' || (currentCeiling !== null && currentUsed >= currentCeiling)) {
+          // Ceiling reached — autosave and show wall-hit UI
+          await handleWallAutosave(photoUrl)
+          setWallHit(true)
+          setSubmitting(false)
+          return
+        }
+      }
       const coords = await getIPCoords()
       const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, phase_id: phaseId || null, contributor_name: fName.trim(), city: fCity.trim(), country: fCountry, relationship: fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review', legacy_builder_consent: fConsent, story_topic_id: null }).select('id').single()
       if (ie) { setSubmitErr(ie.message); setSubmitting(false); return }
@@ -807,6 +906,94 @@ setFAudioUrl(null); setFVideoUrl(null); setFVideoThumb(null); setFConsent(false)
       )}
 
 {mapOpen && <MapModal pins={pins} honourName={honourName} uniqueCountries={uniqueCountries} onClose={() => setMapOpen(false)} t={t} />}
+
+      {/* ── Wall Hit Modal — capsule has reached contribution ceiling ── */}
+      {/* ECS: dignified, not alarming. Contributor's work is safe. */}
+      {wallHit && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(8,2,20,0.92)', backdropFilter: 'blur(8px)' }}>
+          <div style={{ width: '100%', maxWidth: '380px', borderRadius: '20px', background: 'linear-gradient(145deg, #1e0d4e, #2a1060)', border: '1px solid rgba(226,195,107,0.25)', boxShadow: '0 24px 64px rgba(0,0,0,0.6)', overflow: 'hidden' }}>
+            <div style={{ height: '2px', background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.7), transparent)' }} />
+            <div style={{ padding: '28px 24px' }}>
+              {queueSaving ? (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid rgba(226,195,107,0.2)', borderTopColor: '#E2C36B', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>Saving your tribute — just a moment…</p>
+                </div>
+              ) : queuedToken ? (
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '32px', marginBottom: '14px' }}>✦</div>
+                  <p style={{ fontSize: '17px', fontWeight: 700, color: 'rgba(226,195,107,1)', fontFamily: "'Playfair Display', serif", marginBottom: '10px' }}>Your tribute is safe.</p>
+                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.75, marginBottom: '16px' }}>
+                    Every word you wrote has been saved. The capsule has momentarily reached its current capacity — the organiser has been notified and will expand it shortly.
+                  </p>
+                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.75, marginBottom: '20px' }}>
+                    When the wall re-opens, {(fEmail.trim() || wallEmailCapture.trim()) ? `we'll send a link to <strong>${fEmail.trim() || wallEmailCapture.trim()}</strong>` : "you'll receive an email"} — and your tribute will be waiting for you, exactly as you left it.
+                  </p>
+
+                  {/* Email capture if not already provided */}
+                  {!fEmail.trim() && (
+                    <div style={{ marginBottom: '16px', textAlign: 'left' }}>
+                      <p style={{ fontSize: '11px', color: 'rgba(226,195,107,0.6)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px' }}>
+                        Your email — so we can bring you back
+                      </p>
+                      <input
+                        type="email"
+                        placeholder="your@email.com"
+                        value={wallEmailCapture}
+                        onChange={e => setWallEmailCapture(e.target.value)}
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(226,195,107,0.25)', color: '#ffffff', fontSize: '13px', outline: 'none', fontFamily: "'DM Sans', sans-serif", boxSizing: 'border-box' as const }}
+                      />
+                      {wallEmailCapture.includes('@') && (
+                        <button
+                          onClick={async () => {
+                            await fetch('/api/capsule/queue-update-email', {
+                              method:  'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body:    JSON.stringify({ session_token: queuedToken, email: wallEmailCapture.trim() }),
+                            }).catch(() => {})
+                          }}
+                          style={{ marginTop: '8px', width: '100%', padding: '9px', borderRadius: '10px', background: 'rgba(226,195,107,0.12)', border: '1px solid rgba(226,195,107,0.3)', color: 'rgba(226,195,107,0.85)', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Save my email →
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', fontStyle: 'italic', lineHeight: 1.6 }}>
+                    Nothing has been lost. Your tribute will be submitted the moment the wall re-opens.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '32px', marginBottom: '14px' }}>⚠</div>
+                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
+                    Something went wrong saving your tribute. Please try again or contact the organiser.
+                  </p>
+                  <button onClick={() => setWallHit(false)} style={{ marginTop: '16px', padding: '10px 24px', borderRadius: '10px', background: 'rgba(226,195,107,0.12)', border: '1px solid rgba(226,195,107,0.25)', color: 'rgba(226,195,107,0.8)', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                    Close
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Wall Warning Banner — shown when wall_status is warning ── */}
+      {/* Non-blocking — organiser may upgrade before it fills. */}
+      {(wallStatus === 'warning_80' || wallStatus === 'warning_95') && !wallHit && composerOpen && (
+        <div style={{ position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)', zIndex: 50, width: 'calc(100% - 32px)', maxWidth: '440px' }}>
+          <div style={{ borderRadius: '12px', padding: '12px 16px', background: wallStatus === 'warning_95' ? 'rgba(251,191,36,0.12)' : 'rgba(226,195,107,0.08)', border: `1px solid ${wallStatus === 'warning_95' ? 'rgba(251,191,36,0.4)' : 'rgba(226,195,107,0.2)'}` }}>
+            <p style={{ fontSize: '11px', color: wallStatus === 'warning_95' ? 'rgba(251,191,36,0.9)' : 'rgba(226,195,107,0.7)', lineHeight: 1.65, margin: 0, textAlign: 'center' }}>
+              {wallStatus === 'warning_95'
+                ? `${capsule.honouree_name}'s capsule is nearly full — ${wallCeiling !== null ? wallCeiling - wallVoicesUsed.combined : 'a few'} more voices can be added before it pauses. Submit your tribute now.`
+                : `${capsule.honouree_name}'s capsule is growing — ${wallVoicesUsed.combined} of ${wallCeiling ?? '—'} voices received (${wallVoicesUsed.tributes} tributes · ${wallVoicesUsed.stories} stories).`
+              }
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── Family Rep Access Modal ── */}
       {repAccessOpen && (

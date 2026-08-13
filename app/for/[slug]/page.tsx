@@ -104,7 +104,7 @@ export default async function TributePage({
   const { data: capsule, error: capsuleError } = await supabase
     .from('capsules')
     .select(
-      'id, slug, honouree_name, honouree_title, event_type, event_tag, event_date, page_state, tier, theme, hero_image_url, organiser_email, free_tier_expires_at, created_at, approved_contrib_count, components, hero_image_position, hero_image_zoom, hero_image_fit, hero_panel_size, hero_full_bleed'
+      'id, slug, honouree_name, honouree_title, event_type, event_tag, event_date, page_state, tier, theme, hero_image_url, organiser_email, free_tier_expires_at, created_at, approved_contrib_count, components, hero_image_position, hero_image_zoom, hero_image_fit, hero_panel_size, hero_full_bleed, lifecycle_state, contribution_tier, voice_ceiling'
     )
     .eq('slug', slug)
     .single()
