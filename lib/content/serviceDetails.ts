@@ -15,6 +15,18 @@
 // ARCHITECTURE: LC04 Payment Engine (product definitions) · RW02 (platform services)
 // BUILT BY: AI12 · Claude Opus 4.6 · 20 July 2026
 // REPLACES: Previous version by Claude Sonnet 4.6 · July 2026
+// UPDATED:  AI20 · Claude Sonnet 4.6 · 11 August 2026
+//           — extended_validity summary + FAQ: removed hardcoded 3/6 months
+//             → "90 days from first tribute" for all paths
+//           — additional_phase FAQ: removed "pre-booked includes two phases"
+//             → "every capsule includes one event phase"
+//           — BOOKING_SERVICE_ORDER: reordered — active services first,
+//             coming_soon (guest_management, attire) after active services
+//           — COMING_SOON_SERVICES constant added — single place to manage
+//             which services are visible but not yet purchasable
+//           — CATEGORY_BREAKS updated to match new order
+//           — Single source of truth note added to BOOKING_SERVICE_ORDER
+// VERSION:  AI20v2.11.99c
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ═══ SECTION 1 — Types ═══
@@ -297,7 +309,7 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
     bestFor: ['Wedding', 'Memorial & Funeral', 'Chieftaincy', 'Retirement', 'Conference'],
     exampleUseCase: 'A family organising a three-day memorial weekend uses their two included phases for the Wake Keep and Funeral Service, then adds one Additional Event Phase for the Thanksgiving Service on the third day. Each phase has its own QR code printed on the order of service for that day. Guests scan and contribute to the right chapter. The final publication tells the story of all three days — each with its own tributes, photos, and guest captures.',
     faqs: [
-      { q: 'How many phases are included in my capsule?', a: 'Free capsules include one event phase. Pre-booked capsules include two. You can add more from your dashboard at any time, one at a time.' },
+      { q: 'How many phases are included in my capsule?', a: 'Every capsule — free or pre-booked — includes one event phase. You can add more from your dashboard at any time, one at a time.' },
       { q: 'Can I add more than one additional phase?', a: 'Yes. Each purchase adds one phase. Add as many as your occasion needs.' },
       { q: 'What does each phase include?', a: 'A name, an event date, a location, its own QR code, and a 24-hour D-Day capture window on the event date. The QR code directs guests to the tribute (voice) wall before the event and to the D-Day upload portal on the day itself.' },
     ],
@@ -312,7 +324,7 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
     title:   'Extended Validity',
     icon:    '⏳',
     tagline: 'Keep the record reachable for longer.',
-    summary: 'Keep your capsule online and accessible for longer. Extend your capsule\'s availability so family and friends can continue returning to the record long after the event. Free capsules stay online for 3 months; pre-booked capsules for 6 months. Extended Validity adds more time whenever you need it.',
+    summary: 'Keep your capsule online and accessible for longer. Extend your capsule\'s availability so family and friends can continue returning to the record long after the event. Every capsule stays active for 90 days from when the first tribute arrives. Extended Validity adds three more months — purchasable at any time from your dashboard.',
     whatYouGet: [
       'Extended online availability beyond your included period',
       'Your capsule remains fully accessible — all tributes, stories, photos, and the publication link stay live',
@@ -327,7 +339,7 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
     bestFor: ['Memorial & Funeral', 'Retirement', 'Anniversary', 'Milestone Birthday'],
     exampleUseCase: 'A memorial capsule reaches its 6-month mark with 112 tributes and a published record. A cousin discovers the capsule link eight months after the funeral and wants to visit. The organiser purchases Extended Validity from the dashboard — the capsule stays live and the cousin reads every tribute, hears every voice note, and sees the published record. The story remains accessible for as long as the family wants it to be.',
     faqs: [
-      { q: 'How long does my capsule stay online without Extended Validity?', a: 'Free capsules are online for 3 months from when the first tribute (voice) arrives. Pre-booked capsules are online for 6 months. After that, the capsule becomes read-only — existing content is preserved but no new tributes can be submitted.' },
+      { q: 'How long does my capsule stay online without Extended Validity?', a: 'Every capsule — free or pre-booked — stays active for 90 days from when the first tribute arrives. After that, the capsule becomes read-only — existing content is preserved but no new tributes can be submitted. Extended Validity adds three more months whenever you need it.' },
       { q: 'Does the capsule lose content when it expires?', a: 'No. Content is never deleted. The capsule becomes read-only. Extended Validity makes it active again so new contributions can be accepted.' },
       { q: 'Can I purchase Extended Validity after my capsule has already expired?', a: 'Yes. You can reactivate your capsule from your dashboard even after the standard period has ended.' },
     ],
@@ -411,17 +423,29 @@ export const ALL_SERVICE_IDS = Object.keys(SERVICE_DETAILS)
 // Used by booking flow Step 3 to render services in the correct
 // category grouping. No visible headers — grouped by proximity.
 // Extended Validity is NOT included — it appears only in ServicesTab.
+//
+// RULE: coming_soon services (guest_management, attire) are in
+// COMING_SOON_SERVICES below. They render as faded/unavailable in
+// the booking flow and ServicesTab when they have no published price.
+// Do not remove them from BOOKING_SERVICE_ORDER — they should remain
+// visible as "Available soon" to signal upcoming capability.
+// But they must never appear in SUGGESTED_BY_EVENT.
+//
+// SINGLE SOURCE OF TRUTH: All prices come from lc_pricing table
+// via LCAdmin Pricing Configuration. The booking page and ServicesTab
+// both read from /api/regional-prices — never hardcode a price here.
 
 export const BOOKING_SERVICE_ORDER = [
-  // tribute (voice) Experience
+  // Voice & Video Experience
   'audio_tributes',
   'video_tributes',
-  // Event Services
-  'guest_management',
+  // Event Services (active)
   'access_codes',
-  'attire',
   'ways_to_honour',
-  // Memories
+  // Event Services (coming soon — renders faded, no price)
+  'guest_management',
+  'attire',
+  // Publication & Lifecycle
   'publication',
   'additional_phase',
 ]
@@ -432,9 +456,20 @@ export const BOOKING_SERVICE_ORDER = [
 
 export const CATEGORY_BREAKS: Record<string, number> = {
   'audio_tributes': 0,    // first group — no divider above
-  'guest_management': 1,  // divider before Event Services
-  'publication': 2,       // divider before Memories
+  'access_codes': 1,      // divider before Event Services
+  'publication': 2,       // divider before Publication & Lifecycle
 }
+
+// ═══ SECTION 10 — Coming Soon Services ═══
+// These services are real but not yet ready for purchase.
+// They appear in the booking flow and ServicesTab as faded "Available soon"
+// entries — visible but not selectable.
+// Remove from this list when the service is ready and priced in LCAdmin.
+
+export const COMING_SOON_SERVICES = [
+  'guest_management',  // spec complete — implementation pending
+  'attire',            // LC11 spec doc not yet delivered
+]
 
 // ServicesTab additionally shows:
 export const SERVICESTAB_ONLY_SERVICES = ['extended_validity']
