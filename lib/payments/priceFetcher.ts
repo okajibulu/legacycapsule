@@ -1,4 +1,18 @@
-﻿// lib/payments/priceFetcher.ts
+﻿// ─────────────────────────────────────────────────────────────────────────────
+// FILE PATH: lib/payments/priceFetcher.ts
+// PURPOSE:   Fetches prices from lc_pricing table (primary) with fallback to
+//            RW-Ecosystem platform_config for legacy tier keys.
+//            Used by /api/regional-prices and /api/checkout/bundle.
+// BUILT BY:  AI13 · Claude Opus 4.6 · July 2026
+// UPDATED:   AI20 · Claude Sonnet 4.6 · 13 August 2026
+//            — All Sprint 1 pricing keys added to KEY_MAP (lc_pricing-only)
+//            — Fallback path now skips platform_config for lc_pricing-only keys
+//            — Missing keys (publication, audio_tributes, video_tributes,
+//              ways_to_honour, capsule_activation_base, tier upgrades, access
+//              code blocks) caused "Something went wrong" checkout error
+// VERSION:   AI20v2.12.02
+// DATE:      13 August 2026
+// ─────────────────────────────────────────────────────────────────────────────
 // ─── IMPORTS ─────────────────────────────────────────────────────────────────
 import { ecosystemClient } from '@/lib/supabase-ecosystem'
 
@@ -13,16 +27,25 @@ export interface PriceRecord {
 }
 
 // ─── CONFIG KEY MAPPING ───────────────────────────────────────────────────────
-// Maps LC lc_pricing keys to RW-Ecosystem platform_config keys
+// Maps LC lc_pricing keys to RW-Ecosystem platform_config keys.
+// Keys that exist directly in lc_pricing (Sprint 1+) do NOT need a KEY_MAP
+// entry — they are resolved by the primary lc_pricing read in getPrice().
+// KEY_MAP is the FALLBACK for legacy tier keys stored in platform_config only.
+//
+// UPDATED AI20v2.12.02: All Sprint 1 keys added as lc_pricing-only entries
+// (empty string mappings) so the fallback path never silently returns null
+// for a key that exists in lc_pricing but not in KEY_MAP.
+// The primary read (lc_pricing) handles these — KEY_MAP entries are safety net.
 const KEY_MAP: Record<string, { eur: string; ngn: string }> = {
+  // ── Legacy platform_config keys (still read from ecosystem) ────────────────
   full_platform_base:      { eur: 'lc.pricing.full_platform.price_eur',    ngn: 'lc.pricing.full_platform.price_ngn' },
   capture_and_preserve:    { eur: 'lc.pricing.capture.price_eur',           ngn: 'lc.pricing.capture.price_ngn' },
   capture_preserve_base:   { eur: 'lc.pricing.capture.price_eur',           ngn: 'lc.pricing.capture.price_ngn' },
   guest_extension_block:   { eur: 'lc.pricing.guest_extension.price_eur',   ngn: 'lc.pricing.guest_extension.price_ngn' },
   fabric_attire:           { eur: 'lc.addon.fabric_attire.price_eur',       ngn: 'lc.addon.fabric_attire.price_ngn' },
   table_management:        { eur: 'lc.addon.table_management.price_eur',    ngn: 'lc.addon.table_management.price_ngn' },
-  access_code:             { eur: 'lc.addon.access_code.price_eur',        ngn: 'lc.addon.access_code.price_ngn' },
-  access_codes:            { eur: 'lc.addon.access_code.price_eur',        ngn: 'lc.addon.access_code.price_ngn' },
+  access_code:             { eur: 'lc.addon.access_code.price_eur',         ngn: 'lc.addon.access_code.price_ngn' },
+  access_codes:            { eur: 'lc.addon.access_code.price_eur',         ngn: 'lc.addon.access_code.price_ngn' },
   save_the_date:           { eur: 'lc.addon.save_the_date.price_eur',       ngn: 'lc.addon.save_the_date.price_ngn' },
   table_card_generation:   { eur: 'lc.addon.table_card_qr.price_eur',       ngn: 'lc.addon.table_card_qr.price_ngn' },
   additional_phase:        { eur: 'lc.addon.extra_phase.price_eur',         ngn: 'lc.addon.extra_phase.price_ngn' },
@@ -34,6 +57,27 @@ const KEY_MAP: Record<string, { eur: string; ngn: string }> = {
   white_label:             { eur: 'lc.addon.white_label.price_eur',         ngn: 'lc.addon.white_label.price_ngn' },
   custom_domain:           { eur: 'lc.addon.custom_domain.price_eur',       ngn: 'lc.addon.custom_domain.price_ngn' },
   planner_monthly:         { eur: 'lc.addon.planner_monthly.price_eur',     ngn: 'lc.addon.planner_monthly.price_ngn' },
+  // ── Sprint 1 keys — lc_pricing only, no platform_config mapping ────────────
+  // Primary getPrice() read handles these. Empty strings signal lc_pricing-only.
+  // If lc_pricing read fails, fallback returns null (correct — no config key).
+  publication:                        { eur: '', ngn: '' },
+  audio_tributes:                     { eur: '', ngn: '' },
+  video_tributes:                     { eur: '', ngn: '' },
+  ways_to_honour:                     { eur: '', ngn: '' },
+  guest_management:                   { eur: '', ngn: '' },
+  attire:                             { eur: '', ngn: '' },
+  capsule_activation_base:            { eur: '', ngn: '' },
+  capsule_extend_6mo:                 { eur: '', ngn: '' },
+  capsule_extend_3mo:                 { eur: '', ngn: '' },
+  capsule_reactivation_admin:         { eur: '', ngn: '' },
+  contribution_tier_growing_350v:     { eur: '', ngn: '' },
+  contribution_tier_flourishing_700v: { eur: '', ngn: '' },
+  contribution_tier_grand_1500v:      { eur: '', ngn: '' },
+  contribution_tier_estate_v:         { eur: '', ngn: '' },
+  access_code_extended_400g:          { eur: '', ngn: '' },
+  access_code_large_800g:             { eur: '', ngn: '' },
+  access_code_grand_2000g:            { eur: '', ngn: '' },
+  access_code_estate_g:               { eur: '', ngn: '' },
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -77,9 +121,10 @@ export async function getPrice(key: string): Promise<PriceRecord | null> {
     }
   } catch {}
 
-  // ── Fallback: KEY_MAP / platform_config (legacy tier keys) ────────────────
+  // ── Fallback: KEY_MAP / platform_config (legacy tier keys only) ────────────
+  // Sprint 1 keys have empty string mappings — skip platform_config query.
   const mapping = KEY_MAP[key]
-  if (!mapping) return null
+  if (!mapping || !mapping.eur) return null  // lc_pricing-only key — no fallback
 
   const configKeys = [mapping.eur, mapping.ngn]
 
