@@ -1,31 +1,42 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FILE PATH: app/api/capsule/limits/route.ts
 // PURPOSE:   Returns live limit counters for a capsule — used by the
-//            manage dashboard Limits Bar component.
-//            Reads both current usage (live DB counts) and configured limits
-//            (from free_tier_limits table, LCAdmin-modifiable).
+//            manage dashboard Limits Bar component and wall enforcement logic.
+//            Reads current usage (live DB counts) and active ceilings from
+//            the capsule row (voice_ceiling column set by featureUnlocker).
 //            Always returns the full set of counters — client renders all.
 // ARCHITECTURE: LC04 Payment Engine + LC02 Event Services Engine.
-//               Called on manage dashboard load and on any state change.
-//               Reads are cheap — all queries use indexed columns.
-//               capsule.components array determines which limits apply:
-//               if a component is active (paid), limit is set to null (unlimited).
-// BUILT BY:  AI20 · Claude Opus 4.6
-// UPDATED:   11 August 2026
-// VERSION:   AI20v2.11.97
-// DATE:      11 August 2026
+// BUILT BY:  AI20 · Claude Opus 4.6· 11 August 2026
+// UPDATED:   AI20 · Claude Opus 4.6 · 13 August 2026
+//            — Tier-aware voice ceiling: reads voice_ceiling from capsule row
+//              (set by featureUnlocker on activation/upgrade) instead of
+//              always using free_tier_limits table.
+//            — Combined voice count: tributes + stories compared to voice_ceiling
+//            — contribution_tier now included in response for dashboard display
+//            — isPaidTier now reads lifecycle_state + contribution_tier columns
+//              instead of checking old capture_preserve/full_platform components
+//            — tributary/storiesUnlimited now tier-aware (Estate-∞V = unlimited)
+//            — Wall trigger data included: ceiling_pct for 60/80/95/100% checks
+// VERSION:   AI20v2.12.01
+// DATE:      13 August 2026
 //
 // GET /api/capsule/limits?capsule_id=xxx
 //
 // Response shape:
 // {
-//   tributes:        { used: 27, limit: 30, unlimited: false, pct: 90 }
-//   stories:         { used: 11, limit: 15, unlimited: false, pct: 73 }
-//   audio_tributes:  { used: 2,  limit: 3,  unlimited: false, pct: 67 }
-//   video_tributes:  { used: 1,  limit: 3,  unlimited: false, pct: 33 }
+//   is_free_tier:       true,
+//   contribution_tier:  'foundation_150v',
+//   voice_ceiling:      150,              -- null = unlimited (Estate-∞V)
+//   voices: {
+//     tributes:  { used: 27, limit: 30,  pct: 90 }
+//     stories:   { used: 11, limit: 15,  pct: 73 }
+//     combined:  { used: 38, limit: 150, pct: 25, ceiling_pct: 25 }
+//   }
+//   audio_tributes:  { used: 2, limit: 3, unlimited: false, pct: 67 }
+//   video_tributes:  { used: 1, limit: 3, unlimited: false, pct: 33 }
 //   event_moments:   { uploaded: 47, displaying: 20, limit: 20, unlimited: false }
 //   days_remaining:  { days: 34, expires_at: '2026-09-14', pct: 37 }
-//   is_free_tier:    true
+//   wall_status:     'open' | 'warning_60' | 'warning_80' | 'warning_95' | 'full'
 // }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -39,23 +50,23 @@ const db = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// ═══ SECTION 2 — Default free tier limits ═══
-// These are the fallback values if free_tier_limits table is empty or missing.
+// ═══ SECTION 2 — Free tier defaults ═══
+// Fallback if free_tier_limits table is empty or missing.
 // Source of truth is LCAdmin → free_tier_limits table.
-// Update that table; these defaults are last-resort only.
 
 const FREE_TIER_DEFAULTS = {
   tributes:              30,
   stories:               15,
   audio_tributes:         3,
   video_tributes:         3,
-  event_moments_display: 20,   // max photos shown publicly (Option C soft cap)
-  capsule_days:          90,   // days from first tribute
+  event_moments_display: 20,
+  capsule_days:          90,
+  voice_ceiling_free:    30,  // combined ceiling on free tier
 }
 
-// ═══ SECTION 3 — Fetch configured limits from LCAdmin table ═══
+// ═══ SECTION 3 — Fetch configured free tier limits ═══
 
-async function getConfiguredLimits(): Promise<typeof FREE_TIER_DEFAULTS> {
+async function getFreeTierLimits(): Promise<typeof FREE_TIER_DEFAULTS> {
   try {
     const { data } = await db
       .from('free_tier_limits')
@@ -71,12 +82,28 @@ async function getConfiguredLimits(): Promise<typeof FREE_TIER_DEFAULTS> {
     }
     return limits
   } catch {
-    // Table may not exist yet — fall back to defaults silently
     return FREE_TIER_DEFAULTS
   }
 }
 
-// ═══ SECTION 4 — GET handler ═══
+// ═══ SECTION 4 — Wall status helper ═══
+// Returns the notification tier based on ceiling percentage.
+// Used by: Limits Bar (colour), notification email triggers, wall enforcement.
+
+function getWallStatus(
+  used: number,
+  ceiling: number | null
+): 'open' | 'warning_60' | 'warning_80' | 'warning_95' | 'full' {
+  if (ceiling === null) return 'open'           // Estate-∞V — no ceiling
+  if (used >= ceiling)  return 'full'
+  const pct = used / ceiling
+  if (pct >= 0.95) return 'warning_95'
+  if (pct >= 0.80) return 'warning_80'
+  if (pct >= 0.60) return 'warning_60'
+  return 'open'
+}
+
+// ═══ SECTION 5 — GET handler ═══
 
 export async function GET(req: NextRequest) {
   const capsule_id = req.nextUrl.searchParams.get('capsule_id')
@@ -89,10 +116,11 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // ── Fetch capsule basics ──────────────────────────────────────────────────
+    // ── Fetch capsule ─────────────────────────────────────────────────────────
+    // Now reads Sprint 1 columns: lifecycle_state, contribution_tier, voice_ceiling
     const { data: capsule, error: capsuleError } = await db
       .from('capsules')
-      .select('components, expires_at, tier, page_state')
+      .select('components, expires_at, tier, page_state, lifecycle_state, contribution_tier, voice_ceiling')
       .eq('id', capsule_id)
       .maybeSingle()
 
@@ -102,20 +130,35 @@ export async function GET(req: NextRequest) {
 
     const components: string[] = capsule.components ?? []
 
-    // ── Determine if free tier ────────────────────────────────────────────────
-    // Free tier = no base tier in components and page_state is not expired/suspended
-    const isPaidTier = components.includes('capture_preserve') ||
-                       components.includes('full_platform') ||
-                       capsule.tier === 'capture_preserve' ||
-                       capsule.tier === 'full_platform'
+    // ── Determine tier status ─────────────────────────────────────────────────
+    // Sprint 1: use lifecycle_state + contribution_tier columns.
+    // Fallback to old component/tier check for capsules created before Sprint 1.
+    const isActivated = capsule.lifecycle_state === 'active' ||
+                        components.includes('capture_preserve') ||
+                        components.includes('full_platform') ||
+                        capsule.tier === 'capture_preserve' ||
+                        capsule.tier === 'full_platform'
 
-    const isFreeTier = !isPaidTier
+    const isFreeTier       = !isActivated
+    const contributionTier = capsule.contribution_tier ?? (isFreeTier ? 'free' : 'foundation_150v')
+    const isEstate         = contributionTier === 'estate_v'
 
-    // ── Fetch configured limits ───────────────────────────────────────────────
-    const limits = await getConfiguredLimits()
+    // ── Voice ceiling ─────────────────────────────────────────────────────────
+    // For activated capsules: read from capsule.voice_ceiling (Sprint 1 column).
+    // NULL = unlimited (Estate-∞V). 0 = not yet set (use free default).
+    // For free tier: read from free_tier_limits table.
+    const freeLimits = await getFreeTierLimits()
 
-    // ── Count tributes (voices) ───────────────────────────────────────────────
-    const tributesUnlimited = !isFreeTier || components.includes('tributes_unlimited')
+    let voiceCeiling: number | null
+    if (isEstate) {
+      voiceCeiling = null                                    // unlimited
+    } else if (!isFreeTier && capsule.voice_ceiling) {
+      voiceCeiling = capsule.voice_ceiling                  // from Sprint 1 column
+    } else {
+      voiceCeiling = freeLimits.voice_ceiling_free          // free tier default (30)
+    }
+
+    // ── Count tributes ────────────────────────────────────────────────────────
     const { count: tributeCount } = await db
       .from('contributions')
       .select('id', { count: 'exact', head: true })
@@ -125,7 +168,6 @@ export async function GET(req: NextRequest) {
       .is('deleted_at', null)
 
     // ── Count stories ─────────────────────────────────────────────────────────
-    const storiesUnlimited = !isFreeTier || components.includes('stories_unlimited')
     const { count: storyCount } = await db
       .from('contributions')
       .select('id', { count: 'exact', head: true })
@@ -133,6 +175,14 @@ export async function GET(req: NextRequest) {
       .eq('status', 'approved')
       .not('story_topic_id', 'is', null)
       .is('deleted_at', null)
+
+    const tributesUsed = tributeCount ?? 0
+    const storiesUsed  = storyCount   ?? 0
+    const voicesUsed   = tributesUsed + storiesUsed
+
+    // Individual free tier display limits (shown as sub-counts in notification)
+    const tributeDisplayLimit = isFreeTier ? freeLimits.tributes : null
+    const storyDisplayLimit   = isFreeTier ? freeLimits.stories  : null
 
     // ── Count audio tributes ──────────────────────────────────────────────────
     const audioUnlimited = components.includes('audio_tributes')
@@ -154,9 +204,7 @@ export async function GET(req: NextRequest) {
       .not('video_url', 'is', null)
       .is('deleted_at', null)
 
-    // ── Count event moments (D-Day photos) ────────────────────────────────────
-    // Option C: all photos stored, only limit_display shown publicly on free tier.
-    // Paid tier: all photos display.
+    // ── Count event moments ───────────────────────────────────────────────────
     const momentsUnlimited = !isFreeTier
     const { count: momentsUploadedCount } = await db
       .from('gallery_items')
@@ -177,54 +225,66 @@ export async function GET(req: NextRequest) {
       const exp  = new Date(capsule.expires_at)
       const diff = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
       daysRemaining = Math.max(0, diff)
-
-      // Percentage of validity period remaining
-      // Use limit (90 days free / 365 paid) as denominator
-      const totalDays = isFreeTier ? limits.capsule_days : 365
+      const totalDays = isFreeTier ? freeLimits.capsule_days : 180  // 6 months for paid
       daysPct = Math.max(0, Math.min(100, Math.round((daysRemaining / totalDays) * 100)))
     }
 
+    // ── Compute wall status ───────────────────────────────────────────────────
+    const wallStatus = getWallStatus(voicesUsed, voiceCeiling)
+
+    // ── Percentage helper ─────────────────────────────────────────────────────
+    const pct = (used: number, limit: number | null) =>
+      limit === null ? null : Math.min(100, Math.round((used / limit) * 100))
+
     // ── Build response ────────────────────────────────────────────────────────
-    const pct = (used: number, limit: number) =>
-      Math.min(100, Math.round((used / limit) * 100))
-
     return NextResponse.json({
-      is_free_tier: isFreeTier,
+      is_free_tier:      isFreeTier,
+      contribution_tier: contributionTier,
+      voice_ceiling:     voiceCeiling,     // null = unlimited
+      wall_status:       wallStatus,
 
-      tributes: {
-        used:      tributeCount ?? 0,
-        limit:     tributesUnlimited ? null : limits.tributes,
-        unlimited: tributesUnlimited,
-        pct:       tributesUnlimited ? null : pct(tributeCount ?? 0, limits.tributes),
-      },
-
-      stories: {
-        used:      storyCount ?? 0,
-        limit:     storiesUnlimited ? null : limits.stories,
-        unlimited: storiesUnlimited,
-        pct:       storiesUnlimited ? null : pct(storyCount ?? 0, limits.stories),
+      voices: {
+        // Combined voice count (tributes + stories) vs tier ceiling
+        combined: {
+          used:        voicesUsed,
+          limit:       voiceCeiling,
+          unlimited:   isEstate,
+          pct:         pct(voicesUsed, voiceCeiling),
+          ceiling_pct: pct(voicesUsed, voiceCeiling),  // alias — used for wall trigger
+        },
+        // Individual breakdown — shown in notifications and limits bar
+        tributes: {
+          used:  tributesUsed,
+          limit: tributeDisplayLimit,   // null for paid tier (no individual cap)
+          pct:   pct(tributesUsed, tributeDisplayLimit),
+        },
+        stories: {
+          used:  storiesUsed,
+          limit: storyDisplayLimit,     // null for paid tier (no individual cap)
+          pct:   pct(storiesUsed, storyDisplayLimit),
+        },
       },
 
       audio_tributes: {
         used:      audioCount ?? 0,
-        limit:     audioUnlimited ? null : limits.audio_tributes,
+        limit:     audioUnlimited ? null : freeLimits.audio_tributes,
         unlimited: audioUnlimited,
-        pct:       audioUnlimited ? null : pct(audioCount ?? 0, limits.audio_tributes),
+        pct:       audioUnlimited ? null : pct(audioCount ?? 0, freeLimits.audio_tributes),
       },
 
       video_tributes: {
         used:      videoCount ?? 0,
-        limit:     videoUnlimited ? null : limits.video_tributes,
+        limit:     videoUnlimited ? null : freeLimits.video_tributes,
         unlimited: videoUnlimited,
-        pct:       videoUnlimited ? null : pct(videoCount ?? 0, limits.video_tributes),
+        pct:       videoUnlimited ? null : pct(videoCount ?? 0, freeLimits.video_tributes),
       },
 
       event_moments: {
         uploaded:   momentsUploadedCount ?? 0,
         displaying: momentsUnlimited
           ? (momentsUploadedCount ?? 0)
-          : Math.min(momentsUploadedCount ?? 0, limits.event_moments_display),
-        limit:      momentsUnlimited ? null : limits.event_moments_display,
+          : Math.min(momentsUploadedCount ?? 0, freeLimits.event_moments_display),
+        limit:      momentsUnlimited ? null : freeLimits.event_moments_display,
         unlimited:  momentsUnlimited,
       },
 
@@ -232,7 +292,7 @@ export async function GET(req: NextRequest) {
         days:       daysRemaining,
         expires_at: expiresAt,
         pct:        daysPct,
-        unlimited:  !isFreeTier && !capsule.expires_at,
+        unlimited:  !capsule.expires_at,
       },
     })
 
