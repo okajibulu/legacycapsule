@@ -41,6 +41,18 @@
    — Voice/Video durations corrected to 60 seconds
    — Guest Management copy updated with RSVP, VVIP, full participant types
    — All copy written from organiser's mental model
+
+   UPDATED: AI20 · Claude Sonnet 4.6 · 11 August 2026
+   — Screen 1: visual card grid replaces dropdown (12 event type cards, one tap)
+   — SUGGESTED_BY_EVENT: guest_management + attire removed (both coming_soon)
+   — Always Included: hardcoded durations removed (was 6mo/3mo/2 phases)
+     Now: 90 days from first tribute, 1 Event Phase — correct free tier limits
+   — Essential + Signature preset buttons added to Screen 3 services selector
+   — Gift delivery date picker added (immediate vs specific future date)
+   — gift_deliver_at passed to bundle checkout route
+   — Event tag placeholder: practical example, not event description copy
+   — Gift mode note clarified: delivery is on chosen date, not automatic
+   VERSION: AI20v2.11.99b
 ========================================================= */
 
 /* =========================================================
@@ -81,18 +93,21 @@ const EVENT_TYPES = [
 ]
 
 // ═══ Suggested services pre-selected per event type ═══
+// RULE: Only include services that are published and purchasable.
+// coming_soon services (guest_management, attire) must never appear here.
+// Prices come from LCAdmin lc_pricing table via /api/regional-prices.
 const SUGGESTED_BY_EVENT: Record<string, string[]> = {
   'Retirement':           ['publication', 'ways_to_honour', 'audio_tributes'],
   'Memorial & Funeral':   ['publication', 'ways_to_honour'],
-  'Wedding':              ['publication', 'ways_to_honour', 'attire', 'guest_management', 'access_codes'],
+  'Wedding':              ['publication', 'ways_to_honour', 'access_codes'],
   'Milestone Birthday':   ['publication', 'ways_to_honour', 'audio_tributes'],
   'Anniversary':          ['publication', 'ways_to_honour'],
   'Graduation':           ['publication', 'audio_tributes'],
   'Ordination':           ['publication', 'ways_to_honour'],
-  'Chieftaincy':          ['publication', 'ways_to_honour', 'guest_management', 'attire', 'access_codes'],
-  'Award Ceremony':       ['publication', 'guest_management', 'access_codes'],
+  'Chieftaincy':          ['publication', 'ways_to_honour', 'access_codes'],
+  'Award Ceremony':       ['publication', 'access_codes'],
   'Thanksgiving Service': ['publication', 'ways_to_honour'],
-  'Conference':           ['publication', 'guest_management', 'access_codes'],
+  'Conference':           ['publication', 'access_codes'],
   'Other Event':          ['publication'],
 }
 
@@ -271,6 +286,11 @@ function BookPage() {
   const [featurePrices, setFeaturePrices] = useState<Record<string, { amount: number; symbol: string; currency: string } | null>>({})
   const [pricesLoading, setPricesLoading] = useState(false)
 
+  // Gift delivery state — controls when recipient is notified
+  // giftDeliverNow: true = immediate after payment, false = on specific date
+  const [giftDeliverNow, setGiftDeliverNow] = useState(true)
+  const [giftDeliverAt, setGiftDeliverAt] = useState('')
+
   /* =========================================================
      SECTION 7 — EFFECTS
   ========================================================= */
@@ -405,13 +425,18 @@ function BookPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          capsule_id: capsuleId,
-          capsule_slug: capsuleSlug,
-          feature_ids: selectedServices,
+          capsule_id:      capsuleId,
+          capsule_slug:    capsuleSlug,
+          feature_ids:     selectedServices,
           organiser_email: organiserEmail.trim().toLowerCase(),
-          recipient_name: bookMode === 'gift' ? recipientName.trim() : undefined,
+          recipient_name:  bookMode === 'gift' ? recipientName.trim() : undefined,
           recipient_email: bookMode === 'gift' ? recipientEmail.trim() : undefined,
-          book_mode: bookMode,
+          book_mode:       bookMode,
+          // Gift delivery: null = immediate, ISO string = scheduled date
+          gift_deliver_at: bookMode === 'gift' && !giftDeliverNow && giftDeliverAt
+            ? new Date(giftDeliverAt).toISOString()
+            : null,
+          source: 'booking',
         }),
       })
       const data = await res.json()
@@ -487,7 +512,7 @@ function BookPage() {
                 </div>
                 {bookMode === 'gift' && (
                   <p style={{ fontSize: '11px', color: textFaint, marginTop: '10px', lineHeight: 1.65 }}>
-                    You'll set up the capsule details and services. After payment, the recipient receives an email with access to their capsule.
+                    You set up everything and pay. The recipient only hears about it when you choose — perfect for a surprise gift or a future delivery date.
                   </p>
                 )}
               </div>
@@ -520,24 +545,47 @@ function BookPage() {
           </div>
           <GoldRule />
 
-          <div style={{ position: 'relative', margin: '24px 0 32px' }}>
-            <div style={{ position: 'relative', borderRadius: '12px', border: `1px solid ${eventType ? 'rgba(226,195,107,0.5)' : 'rgba(226,195,107,0.2)'}`, background: eventType ? 'rgba(226,195,107,0.06)' : 'rgba(255,255,255,0.04)', transition: 'all 0.2s', boxShadow: eventType ? '0 0 20px rgba(226,195,107,0.1)' : 'none' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 18px', pointerEvents: 'none', position: 'absolute', top: 0, left: 0, right: 0 }}>
-                {selectedEvent ? (<><span style={{ fontSize: '20px', lineHeight: 1 }}>{selectedEvent.emoji}</span><span style={{ fontSize: '15px', fontWeight: 600, color: textPrimary }}>{selectedEvent.label}</span></>) : <span style={{ fontSize: '14px', color: textFaint }}>Select occasion type…</span>}
-                <span style={{ marginLeft: 'auto', color: 'rgba(226,195,107,0.5)', fontSize: '12px' }}>▾</span>
-              </div>
-              <select value={eventType} onChange={e => setEventType(e.target.value)} style={{ width: '100%', padding: '16px 18px', background: 'transparent', border: 'none', outline: 'none', color: 'transparent', fontSize: '15px', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', position: 'relative', zIndex: 1 }}>
-                <option value="" disabled>Select occasion type…</option>
-                {EVENT_TYPES.map(e => (<option key={e.label} value={e.label} style={{ background: '#1a0845', color: '#fff' }}>{e.emoji} {e.label}</option>))}
-              </select>
+          {/* ═══ Event type card grid ═══ */}
+          <div style={{ margin: '24px 0 8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '16px' }}>
+              {EVENT_TYPES.map(e => {
+                const isSelected = eventType === e.label
+                return (
+                  <button
+                    key={e.label}
+                    onClick={() => setEventType(e.label)}
+                    style={{
+                      padding: '14px 8px',
+                      borderRadius: '12px',
+                      border: `1px solid ${isSelected ? 'rgba(226,195,107,0.65)' : 'rgba(255,255,255,0.07)'}`,
+                      background: isSelected ? 'rgba(226,195,107,0.1)' : 'rgba(255,255,255,0.03)',
+                      boxShadow: isSelected ? '0 0 16px rgba(226,195,107,0.12)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.18s',
+                      display: 'flex',
+                      flexDirection: 'column' as const,
+                      alignItems: 'center',
+                      gap: '6px',
+                      textAlign: 'center' as const,
+                    }}
+                  >
+                    <span style={{ fontSize: '24px', lineHeight: 1 }}>{e.emoji}</span>
+                    <span style={{ fontSize: '10px', fontWeight: isSelected ? 700 : 500, color: isSelected ? gold : textFaint, lineHeight: 1.3 }}>{e.label}</span>
+                  </button>
+                )
+              })}
             </div>
+
+            {/* Description line — shown when event type is selected */}
             {eventType && (
-              <div style={{ marginTop: '10px' }}>
-                <p style={{ fontSize: '12px', color: 'rgba(226,195,107,0.65)', margin: 0, lineHeight: 1.6 }}>{getEventDescription(eventType)}</p>
+              <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(226,195,107,0.05)', border: '1px solid rgba(226,195,107,0.12)', marginBottom: '12px' }}>
+                <p style={{ fontSize: '12px', color: 'rgba(226,195,107,0.75)', margin: 0, lineHeight: 1.6 }}>{getEventDescription(eventType)}</p>
               </div>
             )}
+
+            {/* Other Event — custom label input */}
             {eventType === 'Other Event' && (
-              <div style={{ marginTop: '12px' }}>
+              <div style={{ marginBottom: '12px' }}>
                 <label style={{ display: 'block', fontSize: '10px', textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: 'rgba(226,195,107,0.55)', marginBottom: '8px' }}>
                   What is the occasion?
                 </label>
@@ -605,7 +653,7 @@ function BookPage() {
               <input style={inputStyle} placeholder={getHonoureePlaceholder(eventType)} maxLength={80} value={honoureeName} onChange={e => setHonoureeName(e.target.value)} />
             </InputField>
             <InputField label="Event Tag" hint="A short subtitle shown on the tribute wall — optional but recommended">
-              <input style={inputStyle} placeholder={getEventDescription(eventType)} maxLength={80} value={eventTag} onChange={e => setEventTag(e.target.value)} />
+              <input style={inputStyle} placeholder="e.g. A Life Well Lived · 40 Years of Dedicated Service" maxLength={80} value={eventTag} onChange={e => setEventTag(e.target.value)} />
             </InputField>
             <InputField label="Your Email" hint="We'll send a 4-character verification code to confirm your email">
               <input type="email" style={inputStyle} placeholder="you@example.com" maxLength={120} value={organiserEmail} onChange={e => setOrganiserEmail(e.target.value)} />
@@ -681,8 +729,10 @@ function BookPage() {
     const total = getTotal()
     const hasUnpublished = selectedServices.some(id => featurePrices[id] === null)
 
-    // ═══ Always Included — Free (path-aware) ═══
-    const isPreBooked = path === 'book'
+    // ═══ Always Included — Free strip ═══
+    // RULE: No hardcoded durations. Validity is always 90 days from first tribute.
+    // Phase count is always 1 on free tier. Both paths same free tier limits.
+    // All limits are LCAdmin-configurable via free_tier_limits table.
     const freeItems = [
       {
         icon: '◈',
@@ -704,18 +754,14 @@ function BookPage() {
       },
       {
         icon: '📅',
-        label: isPreBooked ? '2 Event Phases' : '1 Event Phase',
-        desc: isPreBooked
-          ? 'Two chapters in your event story — perfect for occasions that unfold across more than one day or setting.'
-          : 'One chapter in your event story, with its own tribute collection window and QR code.',
+        label: '1 Event Phase',
+        desc: 'One chapter in your event story, with its own tribute collection window and D-Day guest capture portal.',
         helpKey: 'additional_phase',
       },
       {
         icon: '⏳',
-        label: isPreBooked ? '6 Months Online' : '3 Months Online',
-        desc: isPreBooked
-          ? 'Your capsule stays online and active for 6 months from when the first tribute arrives.'
-          : 'Your capsule stays online and active for 3 months from when the first tribute arrives.',
+        label: '90 Days Active',
+        desc: 'Your capsule stays online from the day the first tribute arrives. Extend anytime from your dashboard.',
         helpKey: 'extended_validity',
       },
     ]
@@ -759,6 +805,84 @@ function BookPage() {
               </div>
             ))}
           </div>
+
+          {/* ═══ Preset package buttons ═══ */}
+          {/* Clicking a preset pre-fills selectedServices from the same
+              PRESET_FEATURES definition used in bundle/route.ts.
+              Only services with a published price are pre-selected —
+              if a service has no price (coming_soon), it is excluded. */}
+          <div style={{ marginBottom: '20px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(226,195,107,0.55)', letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginBottom: '10px' }}>
+              Quick start — or build your own below
+            </p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+
+              {/* Essential preset */}
+              <button
+                onClick={() => {
+                  const preset = ['publication', 'audio_tributes', 'video_tributes', 'capsule_extend_3mo']
+                  setSelectedServices(preset.filter(id => featurePrices[id] !== null))
+                }}
+                style={{ flex: 1, padding: '12px 10px', borderRadius: '12px', border: `1px solid ${selectedServices.includes('publication') && selectedServices.includes('audio_tributes') && !selectedServices.includes('access_codes') ? 'rgba(226,195,107,0.65)' : 'rgba(226,195,107,0.2)'}`, background: selectedServices.includes('publication') && selectedServices.includes('audio_tributes') && !selectedServices.includes('access_codes') ? 'rgba(226,195,107,0.1)' : 'rgba(255,255,255,0.02)', cursor: 'pointer', textAlign: 'left' as const, transition: 'all 0.18s' }}
+              >
+                <p style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.85)', margin: '0 0 3px' }}>Essential</p>
+                <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', margin: '0 0 4px', lineHeight: 1.5 }}>Publication · Voice · Video · +3 months</p>
+                <p style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(226,195,107,0.65)', margin: 0 }}>Select all →</p>
+              </button>
+
+              {/* Signature preset */}
+              <button
+                onClick={() => {
+                  const preset = ['publication', 'audio_tributes', 'video_tributes', 'access_codes', 'ways_to_honour', 'additional_phase', 'capsule_extend_3mo']
+                  setSelectedServices(preset.filter(id => featurePrices[id] !== null))
+                }}
+                style={{ flex: 1, padding: '12px 10px', borderRadius: '12px', border: `1px solid ${selectedServices.includes('access_codes') && selectedServices.includes('ways_to_honour') ? 'rgba(226,195,107,0.65)' : 'rgba(226,195,107,0.2)'}`, background: selectedServices.includes('access_codes') && selectedServices.includes('ways_to_honour') ? 'rgba(226,195,107,0.1)' : 'rgba(255,255,255,0.02)', cursor: 'pointer', textAlign: 'left' as const, transition: 'all 0.18s' }}
+              >
+                <p style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.85)', margin: '0 0 3px' }}>Signature</p>
+                <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', margin: '0 0 4px', lineHeight: 1.5 }}>All Essential + Access · Honour · Extra Phase</p>
+                <p style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(226,195,107,0.65)', margin: 0 }}>Select all →</p>
+              </button>
+
+            </div>
+            <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.2)', margin: '6px 0 0', textAlign: 'center' as const }}>
+              Presets pre-fill your selection — adjust anything below to customise.
+            </p>
+          </div>
+
+          {/* ═══ Gift delivery date — shown in gift mode only ═══ */}
+          {bookMode === 'gift' && (
+            <div style={{ padding: '16px 18px', borderRadius: '12px', border: '1px solid rgba(180,140,255,0.2)', background: 'rgba(180,140,255,0.04)', marginBottom: '20px' }}>
+              <p style={{ fontSize: '10px', color: 'rgba(200,170,255,0.7)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: '12px', fontWeight: 700 }}>🎁 When should they receive this?</p>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: giftDeliverNow ? 0 : '12px' }}>
+                <button
+                  onClick={() => setGiftDeliverNow(true)}
+                  style={{ flex: 1, padding: '10px', borderRadius: '10px', border: `1px solid ${giftDeliverNow ? 'rgba(180,140,255,0.5)' : 'rgba(255,255,255,0.06)'}`, background: giftDeliverNow ? 'rgba(180,140,255,0.1)' : 'transparent', color: giftDeliverNow ? 'rgba(200,170,255,0.9)' : textFaint, fontSize: '12px', fontWeight: giftDeliverNow ? 700 : 400, cursor: 'pointer', transition: 'all 0.2s' }}
+                >
+                  Right after payment
+                </button>
+                <button
+                  onClick={() => setGiftDeliverNow(false)}
+                  style={{ flex: 1, padding: '10px', borderRadius: '10px', border: `1px solid ${!giftDeliverNow ? 'rgba(180,140,255,0.5)' : 'rgba(255,255,255,0.06)'}`, background: !giftDeliverNow ? 'rgba(180,140,255,0.1)' : 'transparent', color: !giftDeliverNow ? 'rgba(200,170,255,0.9)' : textFaint, fontSize: '12px', fontWeight: !giftDeliverNow ? 700 : 400, cursor: 'pointer', transition: 'all 0.2s' }}
+                >
+                  On a specific date
+                </button>
+              </div>
+              {!giftDeliverNow && (
+                <div>
+                  <input
+                    type="datetime-local"
+                    value={giftDeliverAt}
+                    onChange={e => setGiftDeliverAt(e.target.value)}
+                    min={new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16)}
+                    style={{ ...inputStyle, color: giftDeliverAt ? textPrimary : textFaint, fontSize: '13px' }}
+                  />
+                  <p style={{ fontSize: '11px', color: textFaint, marginTop: '6px', lineHeight: 1.65 }}>
+                    The recipient will receive their capsule access on this date. Nothing is sent before then.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ═══ Paid Add-ons ═══ */}
           <p style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(226,195,107,0.55)', letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginBottom: '10px' }}>
