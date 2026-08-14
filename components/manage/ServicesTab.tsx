@@ -382,245 +382,9 @@ function LimitsBar({ capsuleId, onUpgrade }: { capsuleId: string; onUpgrade: () 
   )
 }
 
-// ═══ SECTION 3B — ServiceCardWithPrice ═══
-// Full-width service card with price + checkbox inline in the header.
-// Replaces the two-column layout — no side price column needed.
-
-interface ServiceCardWithPriceProps extends Omit<ServiceCardProps, 'onHeightChange'> {
-  price:    { amount: number; symbol: string } | null
-  inCart:   boolean
-  onToggle: (id: string) => void
-}
-
-function ServiceCardWithPrice({
-  id, title, description, icon, status, externalLink, children,
-  price, inCart, onToggle, detailSummary, detailPoints, learnMoreUrl,
-}: ServiceCardWithPriceProps) {
-  const [expanded, setExpanded] = useState(false)
-
-  const isActive     = status === 'active'
-  const isLocked     = status === 'locked'
-  const isComingSoon = status === 'coming_soon'
-  const isExpandable = isLocked && !!detailSummary
-
-  return (
-    <div style={{
-      borderRadius: '14px',
-      border: `1px solid ${isActive ? cardBorder : isComingSoon ? 'rgba(255,255,255,0.04)' : inCart ? 'rgba(226,195,107,0.35)' : cardBorder}`,
-      background: isComingSoon ? 'rgba(255,255,255,0.01)' : inCart ? 'rgba(226,195,107,0.05)' : cardBg,
-      marginBottom: '10px',
-      opacity: isComingSoon ? 0.45 : 1,
-      overflow: 'hidden',
-      transition: 'all 0.2s',
-    }}>
-      {/* Card header */}
-      <div
-        onClick={() => { if (isExpandable) setExpanded(e => !e) }}
-        style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px', cursor: isExpandable ? 'pointer' : 'default' }}
-      >
-        {/* Icon */}
-        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isActive ? goldFaint : 'rgba(255,255,255,0.04)', border: `1px solid ${isActive ? 'rgba(226,195,107,0.2)' : 'rgba(255,255,255,0.06)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px', flexShrink: 0 }}>
-          {icon}
-        </div>
-
-        {/* Title + description */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: '13px', fontWeight: 700, color: isComingSoon ? textFaint : textPrimary, margin: 0 }}>{title}</p>
-          <p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{description}</p>
-        </div>
-
-        {/* Right side — status/price/checkbox */}
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {isActive && externalLink && (
-            <a href={externalLink} style={{ fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '20px', background: goldFaint, border: `1px solid rgba(226,195,107,0.25)`, color: gold, textDecoration: 'none' }}>Open →</a>
-          )}
-          {isActive && !externalLink && (
-            <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: '11px', color: 'rgba(134,239,172,0.9)' }}>✓</span>
-            </div>
-          )}
-          {isComingSoon && (
-            <span style={{ fontSize: '9px', padding: '3px 10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)', color: textFaint, letterSpacing: '0.1em' }}>Soon</span>
-          )}
-          {isLocked && (
-            <div style={{ textAlign: 'right' as const }}>
-              {price ? (
-                <>
-                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: inCart ? gold : textSecondary, lineHeight: 1 }}>
-                    {price.symbol}{price.amount.toLocaleString()}
-                  </p>
-                  <button
-                    onClick={e => { e.stopPropagation(); onToggle(id) }}
-                    style={{ marginTop: '4px', fontSize: '10px', padding: '3px 10px', borderRadius: '8px', border: `1px solid ${inCart ? 'rgba(226,195,107,0.5)' : 'rgba(255,255,255,0.15)'}`, background: inCart ? 'rgba(226,195,107,0.15)' : 'transparent', color: inCart ? gold : textFaint, cursor: 'pointer', fontWeight: 600 }}
-                  >
-                    {inCart ? '✓ Added' : '+ Add'}
-                  </button>
-                </>
-              ) : (
-                <span style={{ fontSize: '9px', color: textFaint }}>—</span>
-              )}
-            </div>
-          )}
-          {isExpandable && (
-            <span style={{ fontSize: '10px', color: textFaint, marginLeft: '4px' }}>{expanded ? '▲' : '▼'}</span>
-          )}
-        </div>
-      </div>
-
-      {/* Expanded detail */}
-      {expanded && isLocked && detailSummary && (
-        <div style={{ padding: '0 16px 16px', borderTop: `1px solid rgba(255,255,255,0.04)`, paddingTop: '12px' }}>
-          <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.7, margin: '0 0 10px' }}>{detailSummary}</p>
-          {detailPoints && (
-            <ul style={{ margin: '0 0 12px', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              {detailPoints.slice(0, 4).map((pt, i) => (
-                <li key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                  <span style={{ color: gold, fontSize: '10px', marginTop: '3px', flexShrink: 0 }}>✦</span>
-                  <span style={{ fontSize: '11px', color: textFaint, lineHeight: 1.6 }}>{pt}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          {learnMoreUrl && (
-            <a href={learnMoreUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', padding: '7px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', color: textFaint, fontSize: '12px', fontWeight: 600, textDecoration: 'none' }}>
-              Find out more
-            </a>
-          )}
-        </div>
-      )}
-
-      {/* Active expanded content (EOH editor etc) */}
-      {children && isActive && (
-        <div style={{ padding: '0 16px 16px', borderTop: `1px solid rgba(255,255,255,0.04)`, paddingTop: '12px' }}>
-          {children}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ═══ SECTION 4 — FloatingCheckoutBar ═══
-// Replaces the side PriceColumn. Appears at bottom of screen when cart has items.
-// Always visible without scrolling. Shows selected services as chips + total + Pay.
-// Dismisses automatically when cart is emptied.
-
-interface FloatingBarProps {
-  rows:       PriceRow[]
-  cart:       string[]
-  onToggle:   (id: string) => void
-  onCheckout: () => void
-  onSendLink: () => void
-  unlocking:  string | null
-}
-
-function FloatingCheckoutBar({ rows, cart, onToggle, onCheckout, onSendLink, unlocking }: FloatingBarProps) {
-  const cartRows  = rows.filter(r => cart.includes(r.id))
-  const cartTotal = cartRows.reduce((s, r) => s + (r.price?.amount ?? 0), 0)
-  const symbol    = cartRows.find(r => r.price?.symbol)?.price?.symbol ?? ''
-
-  if (cart.length === 0) return null
-
-  return (
-    <div style={{
-      position:     'fixed',
-      bottom:       0,
-      left:         0,
-      right:        0,
-      zIndex:       50,
-      padding:      '12px 16px 20px',
-      background:   'linear-gradient(to top, #0a0010 80%, transparent)',
-      backdropFilter: 'blur(12px)',
-    }}>
-      <div style={{
-        maxWidth:     '520px',
-        margin:       '0 auto',
-        borderRadius: '16px',
-        border:       '1px solid rgba(226,195,107,0.3)',
-        background:   'linear-gradient(135deg, rgba(26,8,69,0.98), rgba(18,6,48,0.98))',
-        padding:      '14px 16px',
-        boxShadow:    '0 -4px 40px rgba(0,0,0,0.6)',
-      }}>
-
-        {/* Selected services chips */}
-        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '6px', marginBottom: '12px' }}>
-          {cartRows.map(r => (
-            <div key={r.id} style={{
-              display:    'flex',
-              alignItems: 'center',
-              gap:        '5px',
-              padding:    '4px 10px',
-              borderRadius: '20px',
-              background: 'rgba(226,195,107,0.1)',
-              border:     '1px solid rgba(226,195,107,0.25)',
-            }}>
-              <span style={{ fontSize: '11px', color: gold, fontWeight: 600 }}>{r.label}</span>
-              {r.price && (
-                <span style={{ fontSize: '10px', color: goldMuted }}>
-                  {r.price.symbol}{r.price.amount.toLocaleString()}
-                </span>
-              )}
-              <button
-                onClick={() => onToggle(r.id)}
-                style={{ background: 'none', border: 'none', color: goldMuted, cursor: 'pointer', fontSize: '13px', lineHeight: 1, padding: 0, marginLeft: '2px' }}
-              >×</button>
-            </div>
-          ))}
-        </div>
-
-        {/* Total + action buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* Total */}
-          <div style={{ flex: 1 }}>
-            <p style={{ margin: 0, fontSize: '10px', color: textFaint, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>Total</p>
-            <p style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: gold, lineHeight: 1.2 }}>
-              {symbol}{cartTotal.toLocaleString()}
-            </p>
-          </div>
-
-          {/* Send Link */}
-          <button
-            onClick={onSendLink}
-            style={{
-              padding:      '10px 14px',
-              borderRadius: '10px',
-              border:       '1px solid rgba(226,195,107,0.25)',
-              background:   'transparent',
-              color:        goldMuted,
-              fontSize:     '11px',
-              fontWeight:   700,
-              cursor:       'pointer',
-              letterSpacing: '0.04em',
-              flexShrink:   0,
-            }}
-          >
-            ✉ Link
-          </button>
-
-          {/* Pay */}
-          <button
-            onClick={onCheckout}
-            disabled={unlocking === 'cart'}
-            style={{
-              padding:      '10px 24px',
-              borderRadius: '10px',
-              border:       'none',
-              background:   'linear-gradient(135deg, #E2C36B, #C9A84E)',
-              color:        '#1a0845',
-              fontSize:     '14px',
-              fontWeight:   800,
-              cursor:       unlocking === 'cart' ? 'not-allowed' : 'pointer',
-              letterSpacing: '0.04em',
-              opacity:      unlocking === 'cart' ? 0.7 : 1,
-              flexShrink:   0,
-            }}
-          >
-            {unlocking === 'cart' ? '…' : 'Pay →'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
+// ═══ SECTION 4 — PriceColumn ═══
+// Only purchasable (locked) services appear in the price column.
+// coming_soon services are excluded — no checkbox, no price.
 
 interface PriceRow {
   id:     string
@@ -748,26 +512,32 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
   const audioActive        = components.includes('audio_tributes')
   const videoActive        = components.includes('video_tributes')
 
-  // ── Price rows for floating bar (all purchasable services) ───────────────
+  // ── Price column rows ──────────────────────────────────────────────────────
+  // RULE: coming_soon services are included for height alignment but get
+  // no checkbox and no price. Organiser cannot add them to cart.
   const priceRows: PriceRow[] = [
-    { id: 'guest_management', label: 'Guest Management', status: 'coming_soon',                                    price: null },
-    { id: 'access_codes',     label: 'Access Codes',     status: accessCodesActive ? 'active' : 'locked',         price: featurePrices['access_codes'] },
-    { id: 'ways_to_honour',   label: 'Gift of Honour',   status: eohActive         ? 'active' : 'locked',         price: featurePrices['ways_to_honour'] },
-    { id: 'publication',      label: 'Publication',       status: publicationActive ? 'active' : 'locked',         price: featurePrices['publication'] },
-    { id: 'attire',           label: 'Fabric & Attire',  status: 'coming_soon',                                    price: null },
-    { id: 'audio_tributes',   label: 'Voice Tributes',   status: audioActive       ? 'active' : 'locked',         price: featurePrices['audio_tributes'] },
-    { id: 'video_tributes',   label: 'Video Tributes',   status: videoActive       ? 'active' : 'locked',         price: featurePrices['video_tributes'] },
+    // coming_soon — Guest Management (not ready)
+    { id: 'guest_management', label: 'Guest Management', status: 'coming_soon', price: null },
+    { id: 'access_codes',     label: 'Access Codes',     status: accessCodesActive ? 'active' : 'locked', price: featurePrices['access_codes'] },
+    { id: 'ways_to_honour',   label: 'Gift of Honour',   status: eohActive ? 'active' : 'locked',         price: featurePrices['ways_to_honour'] },
+    { id: 'publication',      label: 'Publication',       status: publicationActive ? 'active' : 'locked', price: featurePrices['publication'] },
+    // coming_soon — Fabric & Attire (spec incomplete)
+    { id: 'attire',           label: 'Fabric & Attire',  status: 'coming_soon', price: null },
+    { id: 'audio_tributes',   label: 'Voice Tributes',   status: audioActive ? 'active' : 'locked',       price: featurePrices['audio_tributes'] },
+    { id: 'video_tributes',   label: 'Video Tributes',   status: videoActive ? 'active' : 'locked',       price: featurePrices['video_tributes'] },
   ]
 
+  // Presets are available when publication is not yet active
   const showPresets = !publicationActive
 
+
   return (
-    <div style={{ paddingBottom: cart.length > 0 ? '120px' : '16px' }}>
+    <div style={{ paddingBottom: cart.length > 0 ? '200px' : '16px' }}>
 
       {/* ── Limits bar — free tier only ── */}
       <LimitsBar capsuleId={capsule.id} onUpgrade={() => {}} />
 
-      {/* ── Preset buttons ── */}
+      {/* ── Preset package buttons ── */}
       {showPresets && (
         <div style={{ marginBottom: '16px', padding: '14px 16px', borderRadius: '14px', border: '1px solid rgba(226,195,107,0.2)', background: 'rgba(226,195,107,0.04)' }}>
           <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' as const, color: 'rgba(226,195,107,0.55)', margin: '0 0 10px' }}>
@@ -790,128 +560,125 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
 
       {/* ════ Always-on services ════ */}
       <div style={{ marginBottom: '4px' }}>
-        <ServiceCard id="exports" title="Programme Exports" description="Export tributes and Community Stories to clipboard" icon="⬇" status="always_on">
+        <ServiceCard id='exports' title='Programme Exports' description='Export tributes and Community Stories to clipboard' icon='⬇' status='always_on'>
           <ExportsSection contributions={approvedContributions} slug={capsule.slug} onToggleFlag={onToggleFlag} />
         </ServiceCard>
-        <ServiceCard id="phases" title="Event Moments — D-Day Guest Capture" description="Manage programme phases · QR codes · Guest photo capture · Official photography" icon="◈" status="always_on">
+        <ServiceCard id='phases' title='Event Moments — D-Day Guest Capture' description='Manage programme phases · QR codes · Guest photo capture · Official photography' icon='◈' status='always_on'>
           <EventPhasesSection capsuleId={capsule.id} capsuleSlug={capsule.slug} />
         </ServiceCard>
-        <ServiceCard id="live_wall" title="D-Day Live Wall" description="Full-screen real-time tribute display for your venue screen or projector" icon="◇" status="always_on">
+        <ServiceCard id='live_wall' title='D-Day Live Wall' description='Full-screen real-time tribute display for your venue screen or projector' icon='◇' status='always_on'>
           <LiveWallSection capsuleSlug={capsule.slug} />
         </ServiceCard>
       </div>
 
-      {/* ════ Purchasable services — full width, price inline ════ */}
+      {/* ════ Purchasable services — full width, price + Add inline ════ */}
       <div>
+
         {/* Guest Management — coming_soon */}
-        <ServiceCardWithPrice id="guest_management" title="Guest Management & Seating" description="Guest list · RSVP · Table assignment · Seating" icon="◉" status="coming_soon" price={null} inCart={false} onToggle={() => {}} detailSummary="Full guest coordination — RSVPs, seating, VIP protocol. Coming soon." />
+        <ServiceCard id='guest_management' title='Guest Management & Seating' description='Guest list · RSVP · Table assignment · Seating' icon='◉' status='coming_soon' detailSummary='Full guest coordination — RSVPs, seating, VIP protocol. Coming soon.' />
 
         {/* Access Codes */}
-        <ServiceCardWithPrice id="access_codes" title="Access Code System" description="Personal entry codes · Usher check-in · Live arrivals" icon="🔐" status={accessCodesActive ? 'active' : 'locked'} price={featurePrices['access_codes']} inCart={cart.includes('access_codes')} onToggle={toggleCart} externalLink={accessCodesActive ? `/manage/${capsule.slug}/access` : undefined} detailSummary="Give every guest a personal entry code. Ushers check guests in on any phone." detailPoints={['Unique QR and numeric code per guest', 'Auto-email codes directly to guests', 'Print access passes for physical cards', 'Live arrivals dashboard with VVIP list']} />
+        <ServiceCard id='access_codes' title='Access Code System' description='Personal entry codes · Usher check-in · Live arrivals' icon='🔐'
+          status={accessCodesActive ? 'active' : 'locked'}
+          externalLink={accessCodesActive ? `/manage/${capsule.slug}/access` : undefined}
+          detailSummary='Give every guest a personal entry code. Ushers check guests in on any phone.'
+          detailPoints={['Unique QR and numeric code per guest', 'Auto-email codes directly to guests', 'Print access passes for physical cards', 'Live arrivals dashboard with VVIP list']}>
+          {!accessCodesActive && featurePrices['access_codes'] && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 800, color: cart.includes('access_codes') ? gold : textSecondary }}>{featurePrices['access_codes'].symbol}{featurePrices['access_codes'].amount.toLocaleString()}</span>
+              <button onClick={() => toggleCart('access_codes')} style={{ padding: '6px 16px', borderRadius: '8px', border: `1px solid ${cart.includes('access_codes') ? 'rgba(226,195,107,0.5)' : 'rgba(255,255,255,0.15)'}`, background: cart.includes('access_codes') ? 'rgba(226,195,107,0.15)' : 'transparent', color: cart.includes('access_codes') ? gold : textFaint, fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>{cart.includes('access_codes') ? '✓ Added' : '+ Add'}</button>
+            </div>
+          )}
+        </ServiceCard>
 
         {/* Gift of Honour */}
-        <ServiceCardWithPrice id="ways_to_honour" title="Gift of Honour" description="A dignified channel for guests to express financial support — private, tasteful" icon="✦" status={eohActive ? 'active' : 'locked'} price={featurePrices['ways_to_honour']} inCart={cart.includes('ways_to_honour')} onToggle={toggleCart} detailSummary="A dignified, private channel for guests to send financial support." detailPoints={['Full privacy — amounts never shown publicly', 'Multiple payment channels supported', 'Daily digest email to family representative', 'No transaction fees — LC handles no funds']}>
+        <ServiceCard id='ways_to_honour' title='Gift of Honour' description='A dignified channel for guests to express financial support — private, tasteful' icon='✦'
+          status={eohActive ? 'active' : 'locked'}
+          detailSummary='A dignified, private channel for guests to send financial support. No transaction fees — LC handles no funds.'
+          detailPoints={['Full privacy — amounts never shown publicly', 'Multiple payment channels supported', 'Daily digest email to family representative', 'No transaction fees — LC handles no funds']}>
           {eohEditor}
-        </ServiceCardWithPrice>
+          {!eohActive && featurePrices['ways_to_honour'] && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 800, color: cart.includes('ways_to_honour') ? gold : textSecondary }}>{featurePrices['ways_to_honour'].symbol}{featurePrices['ways_to_honour'].amount.toLocaleString()}</span>
+              <button onClick={() => toggleCart('ways_to_honour')} style={{ padding: '6px 16px', borderRadius: '8px', border: `1px solid ${cart.includes('ways_to_honour') ? 'rgba(226,195,107,0.5)' : 'rgba(255,255,255,0.15)'}`, background: cart.includes('ways_to_honour') ? 'rgba(226,195,107,0.15)' : 'transparent', color: cart.includes('ways_to_honour') ? gold : textFaint, fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>{cart.includes('ways_to_honour') ? '✓ Added' : '+ Add'}</button>
+            </div>
+          )}
+        </ServiceCard>
 
         {/* Digital Capsule Publication */}
-        <ServiceCardWithPrice id="publication" title="Digital Capsule Publication" description="Curated commemorative PDF — arrange, preview, generate" icon="◎" status={publicationActive ? 'active' : 'locked'} price={featurePrices['publication']} inCart={cart.includes('publication')} onToggle={toggleCart} externalLink={publicationActive ? `/manage/${capsule.slug}/publication` : undefined} detailSummary="Every tribute compiled into a beautifully designed keepsake PDF." detailPoints={['Drag-and-drop arrangement in Publication Editor', 'Five professional design themes', 'One-click distribution to all contributors', 'Permanent download link for every recipient']} />
+        <ServiceCard id='publication' title='Digital Capsule Publication' description='Curated commemorative PDF — arrange, preview, generate' icon='◎'
+          status={publicationActive ? 'active' : 'locked'}
+          externalLink={publicationActive ? `/manage/${capsule.slug}/publication` : undefined}
+          detailSummary='Every tribute compiled into a beautifully designed keepsake PDF — arranged by you, distributed to all contributors in one click.'
+          detailPoints={['Drag-and-drop arrangement in Publication Editor', 'Five professional design themes', 'One-click distribution to all contributors', 'Permanent download link for every recipient']}>
+          {!publicationActive && featurePrices['publication'] && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 800, color: cart.includes('publication') ? gold : textSecondary }}>{featurePrices['publication'].symbol}{featurePrices['publication'].amount.toLocaleString()}</span>
+              <button onClick={() => toggleCart('publication')} style={{ padding: '6px 16px', borderRadius: '8px', border: `1px solid ${cart.includes('publication') ? 'rgba(226,195,107,0.5)' : 'rgba(255,255,255,0.15)'}`, background: cart.includes('publication') ? 'rgba(226,195,107,0.15)' : 'transparent', color: cart.includes('publication') ? gold : textFaint, fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>{cart.includes('publication') ? '✓ Added' : '+ Add'}</button>
+            </div>
+          )}
+        </ServiceCard>
 
         {/* Fabric & Attire — coming_soon */}
-        <ServiceCardWithPrice id="attire" title="Fabric & Attire" description="Showcase, orders, payments, dispatch lifecycle" icon="◐" status="coming_soon" price={null} inCart={false} onToggle={() => {}} detailSummary="Complete Aso-Ebi and dress code coordination — orders, payments, collection. Coming soon." />
+        <ServiceCard id='attire' title='Fabric & Attire' description='Showcase, orders, payments, dispatch lifecycle' icon='◐' status='coming_soon' detailSummary='Complete Aso-Ebi and dress code coordination — orders, payments, collection. Coming soon.' />
 
         {/* Voice Tributes */}
-        <ServiceCardWithPrice id="audio_tributes" title="Voice Tributes" description="Contributors record personal audio messages" icon="🎙" status={audioActive ? 'active' : 'locked'} price={featurePrices['audio_tributes']} inCart={cart.includes('audio_tributes')} onToggle={toggleCart} detailSummary="Contributors record personal audio messages directly from their phone — no app needed." detailPoints={['Works on any smartphone with a microphone', 'Up to 60 seconds per recording', 'Plays inline in tribute card', 'Same moderation queue as written tributes']} />
+        <ServiceCard id='audio_tributes' title='Voice Tributes' description='Contributors record personal audio messages' icon='🎙'
+          status={audioActive ? 'active' : 'locked'}
+          detailSummary='Contributors record personal audio messages directly from their phone — no app needed.'
+          detailPoints={['Works on any smartphone with a microphone', 'Up to 60 seconds per recording', 'Plays inline in tribute card', 'Same moderation queue as written tributes']}>
+          {!audioActive && featurePrices['audio_tributes'] && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 800, color: cart.includes('audio_tributes') ? gold : textSecondary }}>{featurePrices['audio_tributes'].symbol}{featurePrices['audio_tributes'].amount.toLocaleString()}</span>
+              <button onClick={() => toggleCart('audio_tributes')} style={{ padding: '6px 16px', borderRadius: '8px', border: `1px solid ${cart.includes('audio_tributes') ? 'rgba(226,195,107,0.5)' : 'rgba(255,255,255,0.15)'}`, background: cart.includes('audio_tributes') ? 'rgba(226,195,107,0.15)' : 'transparent', color: cart.includes('audio_tributes') ? gold : textFaint, fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>{cart.includes('audio_tributes') ? '✓ Added' : '+ Add'}</button>
+            </div>
+          )}
+        </ServiceCard>
 
         {/* Video Tributes */}
-        <ServiceCardWithPrice id="video_tributes" title="Video Tributes" description="Contributors record or upload short video messages" icon="🎬" status={videoActive ? 'active' : 'locked'} price={featurePrices['video_tributes']} inCart={cart.includes('video_tributes')} onToggle={toggleCart} detailSummary="Contributors record directly in the browser or upload a video file." detailPoints={['Record in browser or upload file', 'Up to 60 seconds per video', 'Plays inline in tribute card', 'Works on any device, no app required']} />
+        <ServiceCard id='video_tributes' title='Video Tributes' description='Contributors record or upload short video messages' icon='🎬'
+          status={videoActive ? 'active' : 'locked'}
+          detailSummary='Contributors record directly in the browser or upload a video file — plays inline in their tribute card.'
+          detailPoints={['Record in browser or upload file', 'Up to 60 seconds per video', 'Plays inline in tribute card', 'Works on any device, no app required']}>
+          {!videoActive && featurePrices['video_tributes'] && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 800, color: cart.includes('video_tributes') ? gold : textSecondary }}>{featurePrices['video_tributes'].symbol}{featurePrices['video_tributes'].amount.toLocaleString()}</span>
+              <button onClick={() => toggleCart('video_tributes')} style={{ padding: '6px 16px', borderRadius: '8px', border: `1px solid ${cart.includes('video_tributes') ? 'rgba(226,195,107,0.5)' : 'rgba(255,255,255,0.15)'}`, background: cart.includes('video_tributes') ? 'rgba(226,195,107,0.15)' : 'transparent', color: cart.includes('video_tributes') ? gold : textFaint, fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>{cart.includes('video_tributes') ? '✓ Added' : '+ Add'}</button>
+            </div>
+          )}
+        </ServiceCard>
 
-        {/* Capacity packs if alert active */}
-        {capacityAlert !== 'none' && (
-          <div style={{ marginTop: '8px', padding: '16px', borderRadius: '14px', border: `1px solid ${capacityAlert === 'grace' || capacityAlert === 'strong' ? 'rgba(248,113,113,0.25)' : 'rgba(251,191,36,0.2)'}`, background: capacityAlert === 'grace' || capacityAlert === 'strong' ? 'rgba(248,113,113,0.05)' : 'rgba(251,191,36,0.05)' }}>
-            <p style={{ fontSize: '11px', fontWeight: 700, color: capacityAlert === 'grace' || capacityAlert === 'strong' ? 'rgba(248,113,113,0.8)' : 'rgba(251,191,36,0.8)', marginBottom: '8px', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
-              {capacityAlert === 'grace' ? 'Guest limit exceeded' : 'Guest capacity'}
-            </p>
-            {['capacity_pack_growth', 'capacity_pack_celebration', 'capacity_pack_grand'].map(packKey => {
-              const price    = featurePrices[packKey]
-              const isInCart = cart.includes(packKey)
-              const isActive = capsule.components.includes(packKey)
-              const labels: Record<string, string> = { capacity_pack_growth: 'Growth Pack +250', capacity_pack_celebration: 'Celebration Pack +750', capacity_pack_grand: 'Grand Event Pack +2,000' }
-              return (
-                <div key={packKey} onClick={() => !isActive && toggleCart(packKey)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: '10px', border: `1px solid ${isInCart ? 'rgba(226,195,107,0.45)' : 'rgba(255,255,255,0.07)'}`, background: isInCart ? goldFaint : 'rgba(255,255,255,0.03)', cursor: isActive ? 'default' : 'pointer', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: isActive ? textFaint : textSecondary }}>{labels[packKey]}{recommendedPack === packKey && !isActive && <span style={{ marginLeft: '6px', fontSize: '9px', color: gold }}>Recommended</span>}</span>
-                  {isActive ? <span style={{ fontSize: '10px', color: 'rgba(134,239,172,0.8)', fontWeight: 700 }}>✓ Active</span> : price ? <span style={{ fontSize: '12px', fontWeight: 700, color: isInCart ? gold : textFaint }}>{price.symbol}{price.amount.toLocaleString()}</span> : null}
-                </div>
-              )
-            })}
-          </div>
-        )}
       </div>
 
       {/* ════ Floating checkout bar ════ */}
-      <FloatingCheckoutBar
-        rows={priceRows}
-        cart={cart}
-        onToggle={toggleCart}
-        onCheckout={handleCartCheckout}
-        onSendLink={() => setShowSendModal(true)}
-        unlocking={unlocking}
-      />
-
-      {/* ── Limits bar — free tier only ──────────────────────────────────── */}
-      <LimitsBar capsuleId={capsule.id} onUpgrade={() => {
-        document.getElementById('services-price-column')?.scrollIntoView({ behavior: 'smooth' })
-      }} />
-
-      {/* ── Preset package buttons ────────────────────────────────────────── */}
-      {showPresets && (
-        <div style={{ marginBottom: '16px', padding: '14px 16px', borderRadius: '14px', border: '1px solid rgba(226,195,107,0.2)', background: 'rgba(226,195,107,0.04)' }}>
-          <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' as const, color: 'rgba(226,195,107,0.55)', margin: '0 0 10px' }}>
-            Quick Start — Select a Package
-          </p>
-          <div style={{ display: 'flex', gap: '8px' }}>
-
-            {/* Essential */}
-            <button onClick={() => applyPreset('essential')}
-              style={{ flex: 1, padding: '12px 10px', borderRadius: '12px', border: `1px solid ${cart.includes('publication') && !cart.includes('access_codes') ? 'rgba(226,195,107,0.7)' : 'rgba(226,195,107,0.2)'}`, background: cart.includes('publication') && !cart.includes('access_codes') ? 'rgba(226,195,107,0.1)' : 'rgba(255,255,255,0.02)', cursor: 'pointer', textAlign: 'left' as const }}>
-              <p style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.85)', margin: '0 0 3px' }}>Essential</p>
-              <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', margin: '0 0 4px', lineHeight: 1.5 }}>
-                Publication · Voice · Video · +3 months
-              </p>
-              <p style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(226,195,107,0.7)', margin: 0 }}>Select →</p>
-            </button>
-
-            {/* Signature */}
-            <button onClick={() => applyPreset('signature')}
-              style={{ flex: 1, padding: '12px 10px', borderRadius: '12px', border: `1px solid ${cart.includes('access_codes') ? 'rgba(226,195,107,0.7)' : 'rgba(226,195,107,0.2)'}`, background: cart.includes('access_codes') ? 'rgba(226,195,107,0.1)' : 'rgba(255,255,255,0.02)', cursor: 'pointer', textAlign: 'left' as const }}>
-              <p style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.85)', margin: '0 0 3px' }}>Signature</p>
-              <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', margin: '0 0 4px', lineHeight: 1.5 }}>
-                All Essential + Access · Honour · Extra Phase
-              </p>
-              <p style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(226,195,107,0.7)', margin: 0 }}>Select →</p>
-            </button>
-
+      {cart.length > 0 && (
+        <div style={{ position: 'fixed', bottom: 72, left: 0, right: 0, zIndex: 50, padding: '12px 16px 12px', background: 'linear-gradient(to top, #0a0010 80%, transparent)', backdropFilter: 'blur(12px)' }}>
+          <div style={{ maxWidth: '520px', margin: '0 auto', borderRadius: '16px', border: '1px solid rgba(226,195,107,0.3)', background: 'linear-gradient(135deg, rgba(26,8,69,0.98), rgba(18,6,48,0.98))', padding: '14px 16px', boxShadow: '0 -4px 40px rgba(0,0,0,0.6)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '6px', marginBottom: '12px' }}>
+              {priceRows.filter(r => cart.includes(r.id)).map(r => (
+                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '20px', background: 'rgba(226,195,107,0.1)', border: '1px solid rgba(226,195,107,0.25)' }}>
+                  <span style={{ fontSize: '11px', color: gold, fontWeight: 600 }}>{r.label}</span>
+                  {r.price && <span style={{ fontSize: '10px', color: goldMuted }}>{r.price.symbol}{r.price.amount.toLocaleString()}</span>}
+                  <button onClick={() => toggleCart(r.id)} style={{ background: 'none', border: 'none', color: goldMuted, cursor: 'pointer', fontSize: '13px', lineHeight: 1, padding: 0, marginLeft: '2px' }}>×</button>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, fontSize: '10px', color: textFaint, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>Total</p>
+                <p style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: gold, lineHeight: 1.2 }}>
+                  {priceRows.filter(r => cart.includes(r.id)).find(r => r.price?.symbol)?.price?.symbol ?? ''}
+                  {priceRows.filter(r => cart.includes(r.id)).reduce((s, r) => s + (r.price?.amount ?? 0), 0).toLocaleString()}
+                </p>
+              </div>
+              <button onClick={() => setShowSendModal(true)} style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(226,195,107,0.25)', background: 'transparent', color: goldMuted, fontSize: '11px', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>✉ Link</button>
+              <button onClick={handleCartCheckout} disabled={unlocking === 'cart'} style={{ padding: '10px 24px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #E2C36B, #C9A84E)', color: '#1a0845', fontSize: '14px', fontWeight: 800, cursor: unlocking === 'cart' ? 'not-allowed' : 'pointer', letterSpacing: '0.04em', opacity: unlocking === 'cart' ? 0.7 : 1, flexShrink: 0 }}>
+                {unlocking === 'cart' ? '…' : 'Pay →'}
+              </button>
+            </div>
           </div>
-          <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.2)', margin: '8px 0 0', textAlign: 'center' as const }}>
-            Presets pre-fill your selection. Adjust in the price column to customise.
-          </p>
         </div>
       )}
-
-      {/* ════ FULL WIDTH — Always-on cards ═══════════════════════════════════ */}
-      <div style={{ marginBottom: '4px' }}>
-        <ServiceCard id="exports" title="Programme Exports" description="Export tributes and Community Stories to clipboard" icon="⬇" status="always_on">
-          <ExportsSection contributions={approvedContributions} slug={capsule.slug} onToggleFlag={onToggleFlag} />
-        </ServiceCard>
-
-        <ServiceCard id="phases" title="Event Moments — D-Day Guest Capture" description="Manage programme phases · QR codes · Guest photo capture · Official photography" icon="◈" status="always_on">
-          <EventPhasesSection capsuleId={capsule.id} capsuleSlug={capsule.slug} />
-        </ServiceCard>
-
-        <ServiceCard id="live_wall" title="D-Day Live Wall" description="Full-screen real-time tribute display for your venue screen or projector" icon="◇" status="always_on">
-          <LiveWallSection capsuleSlug={capsule.slug} />
-        </ServiceCard>
-      </div>
 
       {/* ── Send Payment Link modal ── */}
       {showSendModal && (
@@ -921,15 +688,6 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
             <div style={{ padding: '20px 20px 24px' }}>
               <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: '16px', fontWeight: 700, color: '#E2C36B', margin: '0 0 6px' }}>Send a Payment Link</h3>
               <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.65, margin: '0 0 16px' }}>Send a personalised payment link — they pay directly, and the services activate on your capsule instantly.</p>
-              <div style={{ padding: '10px 12px', borderRadius: '10px', background: 'rgba(226,195,107,0.06)', border: '1px solid rgba(226,195,107,0.12)', marginBottom: '16px' }}>
-                <p style={{ fontSize: '9px', color: 'rgba(226,195,107,0.55)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', margin: '0 0 6px' }}>Services in this link</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '4px' }}>
-                  {cart.map(id => {
-                    const row = priceRows.find(r => r.id === id)
-                    return <span key={id} style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '20px', background: 'rgba(226,195,107,0.1)', border: '1px solid rgba(226,195,107,0.2)', color: 'rgba(226,195,107,0.75)' }}>{row?.label ?? id}</span>
-                  })}
-                </div>
-              </div>
               {sendResult === 'success' ? (
                 <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', textAlign: 'center' as const }}>
                   <p style={{ fontSize: '13px', fontWeight: 700, color: 'rgba(134,239,172,0.9)', margin: '0 0 4px' }}>✓ Payment link sent</p>
@@ -939,22 +697,16 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
                 <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '10px' }}>
                   <div>
                     <label style={{ fontSize: '9px', color: 'rgba(226,195,107,0.55)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', display: 'block', marginBottom: '5px' }}>Their name</label>
-                    <input style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(226,195,107,0.2)', color: 'rgba(255,255,255,0.92)', fontSize: '13px', outline: 'none', fontFamily: "'DM Sans',sans-serif", boxSizing: 'border-box' as const }} placeholder="Who is paying?" value={sendName} onChange={e => setSendName(e.target.value)} maxLength={80} autoFocus />
+                    <input style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(226,195,107,0.2)', color: 'rgba(255,255,255,0.92)', fontSize: '13px', outline: 'none', fontFamily: "'DM Sans',sans-serif", boxSizing: 'border-box' as const }} placeholder='Who is paying?' value={sendName} onChange={e => setSendName(e.target.value)} maxLength={80} autoFocus />
                   </div>
                   <div>
                     <label style={{ fontSize: '9px', color: 'rgba(226,195,107,0.55)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', display: 'block', marginBottom: '5px' }}>Their email</label>
-                    <input type="email" style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(226,195,107,0.2)', color: 'rgba(255,255,255,0.92)', fontSize: '13px', outline: 'none', fontFamily: "'DM Sans',sans-serif", boxSizing: 'border-box' as const }} placeholder="Where should we send the link?" value={sendEmail} onChange={e => setSendEmail(e.target.value)} maxLength={120} />
+                    <input type='email' style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(226,195,107,0.2)', color: 'rgba(255,255,255,0.92)', fontSize: '13px', outline: 'none', fontFamily: "'DM Sans',sans-serif", boxSizing: 'border-box' as const }} placeholder='Where should we send the link?' value={sendEmail} onChange={e => setSendEmail(e.target.value)} maxLength={120} />
                   </div>
                   {sendResult === 'error' && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.8)', margin: 0 }}>Something went wrong. Please try again.</p>}
                   <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                    <button onClick={handleSendLink} disabled={sending || !sendName.trim() || !sendEmail.includes('@')}
-                      style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: sendName.trim() && sendEmail.includes('@') ? 'linear-gradient(135deg,#E2C36B,#C8A84A)' : 'rgba(255,255,255,0.06)', color: sendName.trim() && sendEmail.includes('@') ? '#1a0845' : 'rgba(255,255,255,0.2)', fontSize: '13px', fontWeight: 700, cursor: 'pointer', opacity: sending ? 0.7 : 1 }}>
-                      {sending ? 'Sending…' : '✉ Send Payment Link'}
-                    </button>
-                    <button onClick={() => { setShowSendModal(false); setSendName(''); setSendEmail(''); setSendResult(null) }}
-                      style={{ padding: '11px 16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: 'rgba(255,255,255,0.3)', fontSize: '13px', cursor: 'pointer' }}>
-                      Cancel
-                    </button>
+                    <button onClick={handleSendLink} disabled={sending || !sendName.trim() || !sendEmail.includes('@')} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: sendName.trim() && sendEmail.includes('@') ? 'linear-gradient(135deg,#E2C36B,#C8A84A)' : 'rgba(255,255,255,0.06)', color: sendName.trim() && sendEmail.includes('@') ? '#1a0845' : 'rgba(255,255,255,0.2)', fontSize: '13px', fontWeight: 700, cursor: 'pointer', opacity: sending ? 0.7 : 1 }}>{sending ? 'Sending…' : '✉ Send Payment Link'}</button>
+                    <button onClick={() => { setShowSendModal(false); setSendName(''); setSendEmail(''); setSendResult(null) }} style={{ padding: '11px 16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: 'rgba(255,255,255,0.3)', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
                   </div>
                 </div>
               )}
@@ -966,4 +718,3 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
     </div>
   )
 }
-
