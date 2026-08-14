@@ -133,13 +133,11 @@ export async function GET(req: NextRequest) {
     // ── Determine tier status ─────────────────────────────────────────────────
     // Sprint 1: use lifecycle_state + contribution_tier columns.
     // Fallback to old component/tier check for capsules created before Sprint 1.
-    const isActivated = capsule.lifecycle_state === 'active' ||
-                        components.includes('capture_preserve') ||
-                        components.includes('full_platform') ||
-                        capsule.tier === 'capture_preserve' ||
-                        capsule.tier === 'full_platform'
-
-    const isFreeTier       = !isActivated
+// Free tier = contribution_tier is 'free' or null (not yet upgraded)
+    // lifecycle_state = 'active' alone does NOT mean paid — free capsules
+    // also get lifecycle_state = 'active' from the Sprint 1 migration default
+const isFreeTier = !capsule.contribution_tier || 
+                       capsule.contribution_tier === 'free'
     const contributionTier = capsule.contribution_tier ?? (isFreeTier ? 'free' : 'foundation_150v')
     const isEstate         = contributionTier === 'estate_v'
 

@@ -9,6 +9,12 @@
 // VERSION:   v2.1.2
 // DATE:      5 August 2026
 // UPDATED:   AI18 — delete + hide/show buttons wired to profile section editor
+// UPDATED:   AI20 · Claude Sonnet 4.6 · 14 August 2026
+//            — FREE_TRIBUTE_LIMIT: 50 → 30 (matches locked spec + lc_pricing table)
+//            — FreeTierBar: "Expand Capsule" button removed (redundant — Services tab exists)
+//            — FreeTierBar: plain English expiry copy, amber colour when ≤14 days
+//            — FreeTierBar: expiry shown only when ≤30 days remain (not always visible)
+//            — FreeTierBar: no-tribute state copy improved
 // ============================================================
 // SECTIONS:
 //   See sub-section headers (// === SECTION N) within file
@@ -65,7 +71,10 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const FREE_TRIBUTE_LIMIT = 50
+// NOTE: Free tribute limit is configurable in LCAdmin → free_tier_limits table.
+// This constant is a fallback display value only — actual enforcement is server-side.
+// Must match the 'tributes' key in free_tier_limits table (default: 30).
+const FREE_TRIBUTE_LIMIT = 30
 const LS_EMAIL = 'lc_visitor_email'
 
 // -- NO character limits on any section type --------------
@@ -125,32 +134,53 @@ const TributeMap = dynamic(() => import('@/components/TributeMap'), {
 })
 
 /* -- FREE TIER BAR --------------------------------------- */
+// Shows contribution count and expiry status at the top of every manage tab.
+// RULES:
+//   - No button — organiser can reach Services from the nav tab
+//   - Expiry shown only when a first tribute exists (clock hasn't started otherwise)
+//   - Amber colour when ≤14 days remaining — visually distinct from page header
+//   - Plain English — no jargon, no vague terms like "Expand Capsule"
 function FreeTierBar({ approvedCount, daysLeft, hasFirstTribute, onUpgrade }: {
   approvedCount: number; daysLeft: number | null; hasFirstTribute: boolean; onUpgrade: () => void
 }) {
-  const pct = Math.min(100, (approvedCount / FREE_TRIBUTE_LIMIT) * 100)
+  const pct    = Math.min(100, (approvedCount / FREE_TRIBUTE_LIMIT) * 100)
   const urgent = (daysLeft !== null && hasFirstTribute && daysLeft < 14) || pct > 80
+
   return (
-    <div style={{ background: urgent ? 'rgba(226,195,107,0.07)' : 'rgba(255,255,255,0.02)', borderBottom: `1px solid ${urgent ? 'rgba(226,195,107,0.2)' : 'rgba(255,255,255,0.05)'}`, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' as const }}>
+    <div style={{
+      borderBottom: `1px solid ${urgent ? 'rgba(226,195,107,0.25)' : 'rgba(255,255,255,0.05)'}`,
+      padding: '8px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '16px',
+      flexWrap: 'wrap' as const,
+      background: urgent ? 'rgba(226,195,107,0.06)' : 'rgba(255,255,255,0.02)',
+    }}>
+
+      {/* Voice count progress */}
       <div style={{ flex: 1, minWidth: '140px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
           <span style={{ fontSize: '10px', color: goldMuted, letterSpacing: '0.1em', textTransform: 'uppercase' as const }}>Voices</span>
-          <span style={{ fontSize: '10px', color: urgent ? gold : textFaint }}>{approvedCount} / {FREE_TRIBUTE_LIMIT}</span>
+          <span style={{ fontSize: '10px', fontWeight: 600, color: urgent ? gold : textFaint }}>{approvedCount} / {FREE_TRIBUTE_LIMIT}</span>
         </div>
         <div style={{ height: '3px', borderRadius: '2px', background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${pct}%`, background: pct > 80 ? `linear-gradient(to right, ${gold}, #F0D878)` : 'linear-gradient(to right, rgba(226,195,107,0.5), rgba(226,195,107,0.8))', borderRadius: '2px', transition: 'width 0.6s ease' }} />
         </div>
       </div>
+
+      {/* Expiry status — plain English, context-aware */}
       {!hasFirstTribute ? (
-        <span style={{ fontSize: '10px', color: textFaint, fontStyle: 'italic', maxWidth: '160px', lineHeight: 1.4 }}>
-          Expiry countdown starts after first voice is posted
+        <span style={{ fontSize: '10px', color: textFaint, fontStyle: 'italic' }}>
+          Free for your first 30 voices. Expiry clock starts after the first tribute arrives.
         </span>
-      ) : daysLeft !== null ? (
-        <span style={{ fontSize: '11px', color: daysLeft < 14 ? gold : textSecondary, fontWeight: daysLeft < 14 ? 600 : 400 }}>
-          {daysLeft} {daysLeft === 1 ? 'day' : 'days'} before capsule expiry
+      ) : daysLeft !== null && daysLeft <= 30 ? (
+        <span style={{ fontSize: '11px', color: daysLeft < 14 ? '#E2C36B' : textSecondary, fontWeight: daysLeft < 14 ? 600 : 400, letterSpacing: daysLeft < 14 ? '0.01em' : 'normal' }}>
+          {daysLeft > 0
+            ? `${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} left — add more time from the Services tab if needed`
+            : 'This capsule has reached its free period. Visit Services to extend it.'}
         </span>
       ) : null}
-      <button onClick={onUpgrade} style={{ fontSize: '11px', fontWeight: 700, padding: '5px 14px', borderRadius: '20px', border: `1px solid rgba(226,195,107,0.35)`, background: 'rgba(226,195,107,0.08)', color: gold, cursor: 'pointer', letterSpacing: '0.04em' }}>Expand Capsule</button>
+
     </div>
   )
 }
