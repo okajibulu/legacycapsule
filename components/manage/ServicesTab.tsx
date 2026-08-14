@@ -451,9 +451,15 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
       essential: ['publication', 'audio_tributes', 'video_tributes', 'capsule_extend_3mo'],
       signature: ['publication', 'audio_tributes', 'video_tributes', 'access_codes', 'ways_to_honour', 'additional_phase', 'capsule_extend_3mo'],
     }
-    // Only include features not already active
+    // Only include features not already active on the capsule
     const toAdd = presets[presetId].filter(id => !components.includes(id))
-    setCart(toAdd)
+    // Toggle: if all preset items already in cart, clear them; otherwise apply preset
+    const allAlreadyInCart = toAdd.every(id => cart.includes(id))
+    if (allAlreadyInCart) {
+      setCart(prev => prev.filter(id => !toAdd.includes(id)))
+    } else {
+      setCart(toAdd)
+    }
   }
 
   const handleCartCheckout = async () => {
@@ -534,32 +540,27 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
   return (
     <div style={{ paddingBottom: cart.length > 0 ? '200px' : '16px' }}>
 
+      {/* ── Page header ── */}
+      {/* ECS: plain English, warm, no jargon. Tells organiser exactly what this page is for. */}
+      <div style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid rgba(226,195,107,0.1)' }}>
+        <p style={{ fontSize: '18px', fontWeight: 700, color: textPrimary, margin: '0 0 6px', fontFamily: "'Playfair Display', serif" }}>
+          Services & Add-ons
+        </p>
+        <p style={{ fontSize: '13px', color: textSecondary, lineHeight: 1.7, margin: 0 }}>
+          Your capsule comes with a set of tools already included at no charge. Below, you can add extra services
+          that enhance your event — from a beautifully designed keepsake publication to voice and video tributes.
+          Tap any service to learn more, then add what fits your occasion.
+        </p>
+      </div>
+
       {/* ── Limits bar — free tier only ── */}
       <LimitsBar capsuleId={capsule.id} onUpgrade={() => {}} />
 
-      {/* ── Preset package buttons ── */}
-      {showPresets && (
-        <div style={{ marginBottom: '16px', padding: '14px 16px', borderRadius: '14px', border: '1px solid rgba(226,195,107,0.2)', background: 'rgba(226,195,107,0.04)' }}>
-          <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' as const, color: 'rgba(226,195,107,0.55)', margin: '0 0 10px' }}>
-            Quick Start — Select a Package
-          </p>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => applyPreset('essential')}
-              style={{ flex: 1, padding: '12px 10px', borderRadius: '12px', border: `1px solid ${cart.includes('publication') && !cart.includes('access_codes') ? 'rgba(226,195,107,0.7)' : 'rgba(226,195,107,0.2)'}`, background: cart.includes('publication') && !cart.includes('access_codes') ? 'rgba(226,195,107,0.1)' : 'rgba(255,255,255,0.02)', cursor: 'pointer', textAlign: 'left' as const }}>
-              <p style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.85)', margin: '0 0 2px' }}>Essential</p>
-              <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', margin: 0 }}>Publication · Voice · Video</p>
-            </button>
-            <button onClick={() => applyPreset('signature')}
-              style={{ flex: 1, padding: '12px 10px', borderRadius: '12px', border: `1px solid ${cart.includes('access_codes') ? 'rgba(226,195,107,0.7)' : 'rgba(226,195,107,0.2)'}`, background: cart.includes('access_codes') ? 'rgba(226,195,107,0.1)' : 'rgba(255,255,255,0.02)', cursor: 'pointer', textAlign: 'left' as const }}>
-              <p style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.85)', margin: '0 0 2px' }}>Signature</p>
-              <p style={{ fontSize: '9px', color: 'rgba(255,255,255,0.35)', margin: 0 }}>All Essential + Access · Honour</p>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ════ Always-on services ════ */}
+      {/* ════ Always-on services — included with every capsule ════ */}
       <div style={{ marginBottom: '4px' }}>
+        <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' as const, color: 'rgba(226,195,107,0.4)', margin: '0 0 10px' }}>
+          Included with your capsule — no charge
+        </p>
         <ServiceCard id='exports' title='Programme Exports' description='Export tributes and Community Stories to clipboard' icon='⬇' status='always_on'>
           <ExportsSection contributions={approvedContributions} slug={capsule.slug} onToggleFlag={onToggleFlag} />
         </ServiceCard>
@@ -571,8 +572,52 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         </ServiceCard>
       </div>
 
-      {/* ════ Purchasable services — full width, price + Add inline ════ */}
+      {/* ── Preset package buttons — sits directly above the add-ons they control ── */}
+      {showPresets && (
+        <div style={{ margin: '20px 0 12px', padding: '14px 16px', borderRadius: '14px', border: '1px solid rgba(226,195,107,0.2)', background: 'rgba(226,195,107,0.04)' }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, color: textPrimary, margin: '0 0 4px' }}>
+            Not sure what to pick?
+          </p>
+          <p style={{ fontSize: '11px', color: textSecondary, lineHeight: 1.65, margin: '0 0 12px' }}>
+            Choose a ready-made package below — it will pre-select the right services for you. You can still adjust
+            the selection before paying.
+          </p>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => applyPreset('essential')}
+              style={{
+                flex: 1, padding: '12px 10px', borderRadius: '12px', cursor: 'pointer', textAlign: 'left' as const,
+                border: `1px solid ${cart.includes('publication') && !cart.includes('access_codes') ? 'rgba(226,195,107,0.7)' : 'rgba(226,195,107,0.2)'}`,
+                background: cart.includes('publication') && !cart.includes('access_codes') ? 'rgba(226,195,107,0.1)' : 'rgba(255,255,255,0.02)',
+              }}>
+              <p style={{ fontSize: '12px', fontWeight: 700, color: textPrimary, margin: '0 0 2px' }}>Essential</p>
+              <p style={{ fontSize: '9px', color: textFaint, margin: '0 0 6px' }}>Publication · Voice · Video</p>
+              <p style={{ fontSize: '9px', fontWeight: 700, color: cart.includes('publication') && !cart.includes('access_codes') ? 'rgba(248,113,113,0.7)' : 'rgba(226,195,107,0.7)', margin: 0 }}>
+                {cart.includes('publication') && !cart.includes('access_codes') ? '✕ Clear selection' : 'Select all →'}
+              </p>
+            </button>
+            <button
+              onClick={() => applyPreset('signature')}
+              style={{
+                flex: 1, padding: '12px 10px', borderRadius: '12px', cursor: 'pointer', textAlign: 'left' as const,
+                border: `1px solid ${cart.includes('access_codes') && cart.includes('ways_to_honour') ? 'rgba(226,195,107,0.7)' : 'rgba(226,195,107,0.2)'}`,
+                background: cart.includes('access_codes') && cart.includes('ways_to_honour') ? 'rgba(226,195,107,0.1)' : 'rgba(255,255,255,0.02)',
+              }}>
+              <p style={{ fontSize: '12px', fontWeight: 700, color: textPrimary, margin: '0 0 2px' }}>Signature</p>
+              <p style={{ fontSize: '9px', color: textFaint, margin: '0 0 6px' }}>All Essential + Access · Honour</p>
+              <p style={{ fontSize: '9px', fontWeight: 700, color: cart.includes('access_codes') && cart.includes('ways_to_honour') ? 'rgba(248,113,113,0.7)' : 'rgba(226,195,107,0.7)', margin: 0 }}>
+                {cart.includes('access_codes') && cart.includes('ways_to_honour') ? '✕ Clear selection' : 'Select all →'}
+              </p>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ════ Purchasable add-ons ════ */}
       <div>
+        <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' as const, color: 'rgba(226,195,107,0.4)', margin: '0 0 10px' }}>
+          Add to your capsule
+        </p>
 
         {/* Guest Management — coming_soon */}
         <ServiceCard id='guest_management' title='Guest Management & Seating' description='Guest list · RSVP · Table assignment · Seating' icon='◉' status='coming_soon' detailSummary='Full guest coordination — RSVPs, seating, VIP protocol. Coming soon.' />
