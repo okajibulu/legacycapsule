@@ -148,13 +148,13 @@ function FreeTierBar({ approvedCount, daysLeft, hasFirstTribute, onUpgrade }: {
 
   return (
     <div style={{
-      borderBottom: `1px solid ${urgent ? 'rgba(226,195,107,0.25)' : 'rgba(255,255,255,0.05)'}`,
+      borderBottom: `1px solid ${urgent ? 'rgba(226,195,107,0.3)' : 'rgba(255,255,255,0.07)'}`,
       padding: '8px 16px',
       display: 'flex',
       alignItems: 'center',
       gap: '16px',
       flexWrap: 'wrap' as const,
-      background: urgent ? 'rgba(226,195,107,0.06)' : 'rgba(255,255,255,0.02)',
+      background: urgent ? 'rgba(226,195,107,0.1)' : 'rgba(255,255,255,0.05)',
     }}>
 
       {/* Voice count progress */}

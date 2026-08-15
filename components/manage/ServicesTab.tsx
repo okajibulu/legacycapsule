@@ -66,6 +66,8 @@ interface ServiceCardProps {
   externalLink?: string
   children?: React.ReactNode
   price?: { amount: number; symbol: string } | null
+  inCart?: boolean
+  onToggle?: (id: string) => void
   detailSummary?: string
   detailPoints?: string[]
   learnMoreUrl?: string
@@ -74,7 +76,7 @@ interface ServiceCardProps {
 
 function ServiceCard({
   id, title, description, icon, status, externalLink, children,
-  price, detailSummary, detailPoints, learnMoreUrl, onHeightChange,
+  price, inCart, onToggle, detailSummary, detailPoints, learnMoreUrl, onHeightChange,
 }: ServiceCardProps) {
   const [expanded, setExpanded] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
@@ -98,8 +100,8 @@ function ServiceCard({
       ref={cardRef}
       style={{
         borderRadius: '14px',
-        border: `1px solid ${isInteractive ? cardBorder : 'rgba(255,255,255,0.05)'}`,
-        background: isInteractive ? cardBg : 'rgba(255,255,255,0.01)',
+        border: `1px solid ${inCart ? 'rgba(226,195,107,0.4)' : isInteractive ? cardBorder : 'rgba(255,255,255,0.05)'}`,
+        background: inCart ? 'rgba(226,195,107,0.05)' : isInteractive ? cardBg : 'rgba(255,255,255,0.01)',
         marginBottom: '10px',
         overflow: 'hidden',
         opacity: isComingSoon ? 0.45 : 1,
@@ -109,35 +111,60 @@ function ServiceCard({
       {/* Card header */}
       <div
         onClick={() => { if (isExpandable) setExpanded(e => !e) }}
-        style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: isExpandable ? 'pointer' : 'default' }}
+        style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px', cursor: isExpandable ? 'pointer' : 'default' }}
       >
-        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: isInteractive ? goldFaint : 'rgba(255,255,255,0.04)', border: `1px solid ${isInteractive ? 'rgba(226,195,107,0.2)' : 'rgba(255,255,255,0.06)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
+        {/* Icon */}
+        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isInteractive ? goldFaint : 'rgba(255,255,255,0.04)', border: `1px solid ${isInteractive ? 'rgba(226,195,107,0.2)' : 'rgba(255,255,255,0.06)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px', flexShrink: 0 }}>
           {icon}
         </div>
+
+        {/* Title + description */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: '13px', fontWeight: 700, color: isInteractive ? textPrimary : textFaint, margin: 0 }}>{title}</p>
+          <p style={{ fontSize: '13px', fontWeight: 700, color: isComingSoon ? textFaint : textPrimary, margin: 0 }}>{title}</p>
           <p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{description}</p>
         </div>
-        <div style={{ flexShrink: 0 }}>
-          {(status === 'always_on' || status === 'active') && isExpandable && (
-            <span style={{ fontSize: '10px', color: goldMuted }}>{expanded ? '▲' : '▼'}</span>
-          )}
+
+        {/* Right — status indicator, price, Add button */}
+        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: '4px' }}>
+          {/* Active with link */}
           {status === 'active' && externalLink && (
-            <Link href={externalLink} style={{ fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '20px', background: goldFaint, border: `1px solid rgba(226,195,107,0.25)`, color: gold, textDecoration: 'none' }}>Open →</Link>
+            <Link href={externalLink} onClick={e => e.stopPropagation()}
+              style={{ fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '20px', background: goldFaint, border: `1px solid rgba(226,195,107,0.25)`, color: gold, textDecoration: 'none' }}>
+              Open →
+            </Link>
           )}
-          {status === 'locked' && isExpandable && (
-            <span style={{ fontSize: '10px', color: textFaint }}>{expanded ? '▲' : '▼'}</span>
+          {/* Active no link */}
+          {status === 'active' && !externalLink && (
+            <div style={{ width: '20px', height: '20px', borderRadius: '6px', background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: '11px', color: 'rgba(134,239,172,0.9)' }}>✓</span>
+            </div>
           )}
-          {status === 'locked' && !isExpandable && (
-            <span style={{ fontSize: '10px', color: textFaint }}>🔒</span>
+          {/* Locked — price + Add button always visible */}
+          {isLocked && price && onToggle && (
+            <>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: inCart ? gold : textSecondary, lineHeight: 1 }}>
+                {price.symbol}{price.amount.toLocaleString()}
+              </span>
+              <button
+                onClick={e => { e.stopPropagation(); onToggle(id) }}
+                style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '8px', border: `1px solid ${inCart ? 'rgba(226,195,107,0.5)' : 'rgba(255,255,255,0.15)'}`, background: inCart ? 'rgba(226,195,107,0.15)' : 'transparent', color: inCart ? gold : textFaint, cursor: 'pointer', fontWeight: 700, whiteSpace: 'nowrap' as const }}
+              >
+                {inCart ? '✓ Added' : '+ Add'}
+              </button>
+            </>
           )}
-          {status === 'coming_soon' && (
-            <span style={{ fontSize: '9px', padding: '3px 10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)', color: textFaint, letterSpacing: '0.1em', background: 'rgba(255,255,255,0.03)' }}>Soon</span>
+          {/* Coming soon */}
+          {isComingSoon && (
+            <span style={{ fontSize: '9px', padding: '3px 10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)', color: textFaint, letterSpacing: '0.1em' }}>Soon</span>
+          )}
+          {/* Expand chevron */}
+          {isExpandable && !externalLink && (
+            <span style={{ fontSize: '9px', color: textFaint, marginTop: '2px' }}>{expanded ? '▲' : '▼'}</span>
           )}
         </div>
       </div>
 
-      {/* Expanded — active */}
+      {/* Expanded — active children (EOH editor etc) */}
       {expanded && children && !isLocked && (
         <div style={{ padding: '0 16px 16px', borderTop: `1px solid rgba(255,255,255,0.04)`, paddingTop: '14px' }}>
           {children}
@@ -163,6 +190,10 @@ function ServiceCard({
               style={{ display: 'inline-block', padding: '8px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: textFaint, fontSize: '12px', fontWeight: 600, textDecoration: 'none' }}>
               Find out more
             </Link>
+          )}
+          {/* Children shown in expanded locked state too (EOH editor) */}
+          {children && (
+            <div style={{ marginTop: '12px' }}>{children}</div>
           )}
         </div>
       )}
@@ -462,9 +493,12 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
     }
   }
 
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+
   const handleCartCheckout = async () => {
     if (cart.length === 0) return
     setUnlocking('cart')
+    setCheckoutError(null)
     try {
       const res  = await fetch('/api/checkout/bundle', {
         method:  'POST',
@@ -482,9 +516,10 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
       if (!res.ok || !data.checkout_url) throw new Error(data.error ?? 'Checkout failed')
       window.location.href = data.checkout_url
     } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
       console.error('[ServicesTab] Cart checkout failed:', err)
+      setCheckoutError(msg)
       setUnlocking(null)
-      onUpgrade()
     }
   }
 
@@ -626,43 +661,32 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         <ServiceCard id='access_codes' title='Access Code System' description='Personal entry codes · Usher check-in · Live arrivals' icon='🔐'
           status={accessCodesActive ? 'active' : 'locked'}
           externalLink={accessCodesActive ? `/manage/${capsule.slug}/access` : undefined}
-          detailSummary='Give every guest a personal entry code. Ushers check guests in on any phone.'
-          detailPoints={['Unique QR and numeric code per guest', 'Auto-email codes directly to guests', 'Print access passes for physical cards', 'Live arrivals dashboard with VVIP list']}>
-          {!accessCodesActive && featurePrices['access_codes'] && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 800, color: cart.includes('access_codes') ? gold : textSecondary }}>{featurePrices['access_codes'].symbol}{featurePrices['access_codes'].amount.toLocaleString()}</span>
-              <button onClick={() => toggleCart('access_codes')} style={{ padding: '6px 16px', borderRadius: '8px', border: `1px solid ${cart.includes('access_codes') ? 'rgba(226,195,107,0.5)' : 'rgba(255,255,255,0.15)'}`, background: cart.includes('access_codes') ? 'rgba(226,195,107,0.15)' : 'transparent', color: cart.includes('access_codes') ? gold : textFaint, fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>{cart.includes('access_codes') ? '✓ Added' : '+ Add'}</button>
-            </div>
-          )}
-        </ServiceCard>
+          price={featurePrices['access_codes']}
+          inCart={cart.includes('access_codes')}
+          onToggle={toggleCart}
+          detailSummary='Give every guest a personal entry code. Ushers check guests in on any phone — no app needed.'
+          detailPoints={['Unique QR and numeric code per guest', 'Auto-email codes directly to guests', 'Print access passes for physical cards', 'Live arrivals dashboard with VVIP list']} />
 
         {/* Gift of Honour */}
         <ServiceCard id='ways_to_honour' title='Gift of Honour' description='A dignified channel for guests to express financial support — private, tasteful' icon='✦'
           status={eohActive ? 'active' : 'locked'}
+          price={featurePrices['ways_to_honour']}
+          inCart={cart.includes('ways_to_honour')}
+          onToggle={toggleCart}
           detailSummary='A dignified, private channel for guests to send financial support. No transaction fees — LC handles no funds.'
           detailPoints={['Full privacy — amounts never shown publicly', 'Multiple payment channels supported', 'Daily digest email to family representative', 'No transaction fees — LC handles no funds']}>
           {eohEditor}
-          {!eohActive && featurePrices['ways_to_honour'] && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 800, color: cart.includes('ways_to_honour') ? gold : textSecondary }}>{featurePrices['ways_to_honour'].symbol}{featurePrices['ways_to_honour'].amount.toLocaleString()}</span>
-              <button onClick={() => toggleCart('ways_to_honour')} style={{ padding: '6px 16px', borderRadius: '8px', border: `1px solid ${cart.includes('ways_to_honour') ? 'rgba(226,195,107,0.5)' : 'rgba(255,255,255,0.15)'}`, background: cart.includes('ways_to_honour') ? 'rgba(226,195,107,0.15)' : 'transparent', color: cart.includes('ways_to_honour') ? gold : textFaint, fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>{cart.includes('ways_to_honour') ? '✓ Added' : '+ Add'}</button>
-            </div>
-          )}
         </ServiceCard>
 
         {/* Digital Capsule Publication */}
         <ServiceCard id='publication' title='Digital Capsule Publication' description='Curated commemorative PDF — arrange, preview, generate' icon='◎'
           status={publicationActive ? 'active' : 'locked'}
           externalLink={publicationActive ? `/manage/${capsule.slug}/publication` : undefined}
+          price={featurePrices['publication']}
+          inCart={cart.includes('publication')}
+          onToggle={toggleCart}
           detailSummary='Every tribute compiled into a beautifully designed keepsake PDF — arranged by you, distributed to all contributors in one click.'
-          detailPoints={['Drag-and-drop arrangement in Publication Editor', 'Five professional design themes', 'One-click distribution to all contributors', 'Permanent download link for every recipient']}>
-          {!publicationActive && featurePrices['publication'] && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 800, color: cart.includes('publication') ? gold : textSecondary }}>{featurePrices['publication'].symbol}{featurePrices['publication'].amount.toLocaleString()}</span>
-              <button onClick={() => toggleCart('publication')} style={{ padding: '6px 16px', borderRadius: '8px', border: `1px solid ${cart.includes('publication') ? 'rgba(226,195,107,0.5)' : 'rgba(255,255,255,0.15)'}`, background: cart.includes('publication') ? 'rgba(226,195,107,0.15)' : 'transparent', color: cart.includes('publication') ? gold : textFaint, fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>{cart.includes('publication') ? '✓ Added' : '+ Add'}</button>
-            </div>
-          )}
-        </ServiceCard>
+          detailPoints={['Drag-and-drop arrangement in Publication Editor', 'Five professional design themes', 'One-click distribution to all contributors', 'Permanent download link for every recipient']} />
 
         {/* Fabric & Attire — coming_soon */}
         <ServiceCard id='attire' title='Fabric & Attire' description='Showcase, orders, payments, dispatch lifecycle' icon='◐' status='coming_soon' detailSummary='Complete Aso-Ebi and dress code coordination — orders, payments, collection. Coming soon.' />
@@ -670,28 +694,20 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
         {/* Voice Tributes */}
         <ServiceCard id='audio_tributes' title='Voice Tributes' description='Contributors record personal audio messages' icon='🎙'
           status={audioActive ? 'active' : 'locked'}
+          price={featurePrices['audio_tributes']}
+          inCart={cart.includes('audio_tributes')}
+          onToggle={toggleCart}
           detailSummary='Contributors record personal audio messages directly from their phone — no app needed.'
-          detailPoints={['Works on any smartphone with a microphone', 'Up to 60 seconds per recording', 'Plays inline in tribute card', 'Same moderation queue as written tributes']}>
-          {!audioActive && featurePrices['audio_tributes'] && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 800, color: cart.includes('audio_tributes') ? gold : textSecondary }}>{featurePrices['audio_tributes'].symbol}{featurePrices['audio_tributes'].amount.toLocaleString()}</span>
-              <button onClick={() => toggleCart('audio_tributes')} style={{ padding: '6px 16px', borderRadius: '8px', border: `1px solid ${cart.includes('audio_tributes') ? 'rgba(226,195,107,0.5)' : 'rgba(255,255,255,0.15)'}`, background: cart.includes('audio_tributes') ? 'rgba(226,195,107,0.15)' : 'transparent', color: cart.includes('audio_tributes') ? gold : textFaint, fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>{cart.includes('audio_tributes') ? '✓ Added' : '+ Add'}</button>
-            </div>
-          )}
-        </ServiceCard>
+          detailPoints={['Works on any smartphone with a microphone', 'Up to 60 seconds per recording', 'Plays inline in tribute card', 'Same moderation queue as written tributes']} />
 
         {/* Video Tributes */}
         <ServiceCard id='video_tributes' title='Video Tributes' description='Contributors record or upload short video messages' icon='🎬'
           status={videoActive ? 'active' : 'locked'}
+          price={featurePrices['video_tributes']}
+          inCart={cart.includes('video_tributes')}
+          onToggle={toggleCart}
           detailSummary='Contributors record directly in the browser or upload a video file — plays inline in their tribute card.'
-          detailPoints={['Record in browser or upload file', 'Up to 60 seconds per video', 'Plays inline in tribute card', 'Works on any device, no app required']}>
-          {!videoActive && featurePrices['video_tributes'] && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 800, color: cart.includes('video_tributes') ? gold : textSecondary }}>{featurePrices['video_tributes'].symbol}{featurePrices['video_tributes'].amount.toLocaleString()}</span>
-              <button onClick={() => toggleCart('video_tributes')} style={{ padding: '6px 16px', borderRadius: '8px', border: `1px solid ${cart.includes('video_tributes') ? 'rgba(226,195,107,0.5)' : 'rgba(255,255,255,0.15)'}`, background: cart.includes('video_tributes') ? 'rgba(226,195,107,0.15)' : 'transparent', color: cart.includes('video_tributes') ? gold : textFaint, fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>{cart.includes('video_tributes') ? '✓ Added' : '+ Add'}</button>
-            </div>
-          )}
-        </ServiceCard>
+          detailPoints={['Record in browser or upload file', 'Up to 60 seconds per video', 'Plays inline in tribute card', 'Works on any device, no app required']} />
 
       </div>
 
@@ -721,6 +737,11 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
                 {unlocking === 'cart' ? '…' : 'Pay →'}
               </button>
             </div>
+            {checkoutError && (
+              <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.85)', margin: '8px 0 0', textAlign: 'center' as const }}>
+                {checkoutError}
+              </p>
+            )}
           </div>
         </div>
       )}
