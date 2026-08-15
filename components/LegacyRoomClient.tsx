@@ -149,17 +149,36 @@ const TIER_STYLES: Record<string, { label: string; badge: string; glow: string }
 /* =========================================================
    STAT CARD — single metric with label
 ========================================================= */
+const STAT_TOOLTIPS: Record<string, string> = {
+  'Encomiums Gathered': 'Total voices, encomiums and messages submitted to this collection',
+  'Voices Gathered':    'Total voices submitted to this collection',
+  'Countries':          'Number of countries contributors joined from',
+  'Walks of Life':      'Number of distinct relationship types — family, colleagues, friends and more',
+  'Days of Gathering':  'How many days this collection has been actively receiving contributions',
+  'Photos':             'Photos attached to contributions and uploaded directly',
+  'Stories':            'Memories and stories shared in the Community Stories room',
+  'Shared':             'Number of times this capsule link was shared via Copy Link or WhatsApp',
+  'Builders':           'People who helped grow this collection by sharing and bringing others in',
+}
+
 function StatCard({ value, label, accent, t }: {
   value: number; label: string; accent?: boolean; t: ThemeConfig
 }) {
+  const [showTip, setShowTip] = useState(false)
+  const tip = STAT_TOOLTIPS[label]
   return (
-    <div style={{
-      flex: 1, minWidth: '70px', padding: '16px 10px',
-      borderRadius: '14px', textAlign: 'center',
-      background: accent ? 'rgba(226,195,107,0.06)' : 'rgba(255,255,255,0.03)',
-      border: `1px solid ${accent ? 'rgba(226,195,107,0.18)' : 'rgba(255,255,255,0.06)'}`,
-      transition: 'all 0.3s ease',
-    }}>
+    <div
+      onClick={() => tip && setShowTip(s => !s)}
+      style={{
+        flex: 1, minWidth: '70px', padding: '16px 10px',
+        borderRadius: '14px', textAlign: 'center',
+        background: accent ? 'rgba(226,195,107,0.06)' : 'rgba(255,255,255,0.03)',
+        border: `1px solid ${accent ? 'rgba(226,195,107,0.18)' : 'rgba(255,255,255,0.06)'}`,
+        transition: 'all 0.3s ease',
+        position: 'relative' as const,
+        cursor: tip ? 'pointer' : 'default',
+      }}
+    >
       <div style={{
         fontSize: '28px', fontWeight: 800, lineHeight: 1,
         fontFamily: "'Playfair Display', Georgia, serif",
@@ -172,7 +191,35 @@ function StatCard({ value, label, accent, t }: {
         textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 600,
       }}>
         {label}
+        {tip && (
+          <span style={{ marginLeft: '3px', fontSize: '8px', color: 'rgba(226,195,107,0.4)', fontWeight: 700 }}>?</span>
+        )}
       </div>
+      {showTip && tip && (
+        <div style={{
+          position:  'absolute' as const,
+          bottom:    'calc(100% + 8px)',
+          left:      '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(15,10,30,0.97)',
+          border:    '1px solid rgba(226,195,107,0.2)',
+          borderRadius: '8px',
+          padding:   '8px 10px',
+          width:     '180px',
+          zIndex:    50,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+        }}>
+          <p style={{
+            margin:    0,
+            fontSize:  '11px',
+            color:     'rgba(255,255,255,0.75)',
+            lineHeight: 1.55,
+            textAlign: 'left' as const,
+          }}>
+            {tip}
+          </p>
+        </div>
+      )}
     </div>
   )
 }
@@ -236,7 +283,7 @@ function BuilderCard({ builder, t }: { builder: Builder; t: ThemeConfig }) {
           fontSize: '8px', color: t.textFaint, margin: '2px 0 0',
           textTransform: 'uppercase', letterSpacing: '0.1em',
         }}>
-          brought in
+          {builder.ref_count === 1 ? 'contributor' : 'contributors'} brought in
         </p>
       </div>
     </div>
@@ -740,7 +787,7 @@ export default function LegacyRoomClient({
             <div style={{ display: 'flex', gap: '8px' }}>
               <StatCard value={summary.photo_count} label="Photos" t={t} />
               <StatCard value={storiesCount} label="Stories" t={t} />
-              <StatCard value={momentsCount} label="Moments" t={t} />
+              <StatCard value={summary.share_count ?? 0} label="Shared" t={t} />
               <StatCard value={summary.legacy_builder_count} label="Builders" t={t} />
             </div>
           </Section>
@@ -977,26 +1024,8 @@ export default function LegacyRoomClient({
               subtitle="Those who helped bring more voices into this collection"
               t={t}
             >
-              {/* Top builder highlight */}
-              {topBuilder && topBuilder.ref_count > 1 && (
-                <div style={{
-                  padding: '14px 16px', borderRadius: '12px', marginBottom: '12px',
-                  background: 'linear-gradient(135deg, rgba(226,195,107,0.08), rgba(226,195,107,0.03))',
-                  border: `1px solid rgba(226,195,107,0.2)`,
-                }}>
-                  <p style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.16em', color: t.accentMuted, margin: '0 0 4px' }}>
-                    Most Active Builder
-                  </p>
-                  <p style={{ fontSize: '14px', fontWeight: 700, color: t.accentPrimary, margin: '0 0 2px', fontFamily: "'Playfair Display', Georgia, serif" }}>
-                    {topBuilder.display_name || topBuilder.contributor_name}
-                  </p>
-                  <p style={{ fontSize: '12px', color: t.textFaint, margin: 0 }}>
-                    Brought {topBuilder.ref_count} {topBuilder.ref_count === 1 ? lang.singular.toLowerCase() : lang.plural.toLowerCase()} into this collection
-                  </p>
-                </div>
-              )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {builders.map(builder => (
+                {builders.slice(0, 3).map(builder => (
                   <BuilderCard key={builder.id} builder={builder} t={t} />
                 ))}
               </div>
