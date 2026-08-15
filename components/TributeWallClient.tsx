@@ -1496,7 +1496,7 @@ background:
                   {/* Title + First name + Last name — one row */}
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <select
-                      style={{ ...inp, width: '110px', flexShrink: 0, background: 'rgba(15,10,30,0.98)', fontSize: '12px' }}
+                      style={{ ...inp, width: '76px', flexShrink: 0, background: 'rgba(15,10,30,0.98)', fontSize: '12px' }}
                       value={fTitle}
                       onChange={e => { setFTitle(e.target.value); if (e.target.value !== 'Other') setFCustomTitle('') }}
                     >

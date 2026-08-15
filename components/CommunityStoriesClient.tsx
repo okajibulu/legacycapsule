@@ -743,22 +743,16 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess,
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '10px' }}>
-          {/* Title (optional) */}
-          <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+{/* Title + First name + Last name — one row */}
+          <div style={{ display: 'flex', gap: '6px' }}>
             <select
-              style={{ ...inp, width: '120px', flexShrink: 0, background: 'rgba(15,10,30,0.98)', fontSize: '12px' }}
+              style={{ ...inp, width: '76px', flexShrink: 0, background: 'rgba(15,10,30,0.98)', fontSize: '12px' }}
               value={title}
               onChange={e => { setTitle(e.target.value); if (e.target.value !== 'Other') setCustomTitle('') }}
             >
               <option value="">Title</option>
               {TITLE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            {title === 'Other' && (
-              <input style={{ ...inp, flex: 1 }} placeholder="Your title" value={customTitle} onChange={e => setCustomTitle(e.target.value)} maxLength={20} />
-            )}
-          </div>
-          {/* First + Last name */}
-          <div style={{ display: 'flex', gap: '6px' }}>
             <div style={{ flex: 1 }}>
               <input style={inp} placeholder="First name *" value={firstName} onChange={e => setFirstName(e.target.value)} maxLength={40} />
             </div>
@@ -766,12 +760,14 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess,
               <input style={inp} placeholder="Last name *" value={lastName} onChange={e => setLastName(e.target.value)} maxLength={40} />
             </div>
           </div>
+          {title === 'Other' && (
+            <input style={inp} placeholder="Your title" value={customTitle} onChange={e => setCustomTitle(e.target.value)} maxLength={20} />
+          )}
           {(!firstName.trim() || !lastName.trim()) && (
             <p style={{ fontSize: '10px', color: 'rgba(248,113,113,0.6)', marginTop: '4px' }}>
               Both first and last name are required.
             </p>
           )}
-
           <div>
             <input type="email" style={inp} placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} />
             <p style={{ margin: '5px 0 0', fontSize: '10px', color: textFaint, lineHeight: 1.5, paddingLeft: '2px' }}>
