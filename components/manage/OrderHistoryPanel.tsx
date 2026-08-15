@@ -55,11 +55,11 @@ function formatDate(dateStr: string | null): string {
   })
 }
 
-function formatAmount(minor: number): string {
-  const major = minor / 100
-  return major % 1 === 0
-    ? major.toLocaleString()
-    : major.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+function formatAmount(amount: number): string {
+  // Amounts stored in Naira (not kobo) — display as-is
+  return amount % 1 === 0
+    ? amount.toLocaleString()
+    : amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 function isExpired(expiresAt: string | null): boolean {

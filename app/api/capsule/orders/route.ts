@@ -1,138 +1,174 @@
-// FILE: app/api/capsule/orders/route.ts
-// PURPOSE: Returns payment order history for a capsule.
-//          Used by the Order History panel in the manage dashboard Settings tab.
-// UPDATED: AI13 - Claude Opus 4.6 - 22 July 2026
-//   -- Summary now groups by currency (no longer sums across mixed currencies)
-//   -- expires_at added to select query for expiry display in panel
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE PATH: app/api/capsule/orders/route.ts
+// PURPOSE:   Returns payment history for a capsule.
+//            Called by OrderHistoryPanel on the manage dashboard Settings tab.
+//            Returns orders with feature labels, amounts, dates, status.
+//            Reads from payments table — source of truth for all transactions.
+// ARCHITECTURE: LC04 Payment Engine
+// BUILT BY:  AI20 · Claude Sonnet 4.6
+// VERSION:   AI20v2.12.06
+// DATE:      15 August 2026
+//
+// GET /api/capsule/orders?capsule_id=xxx
+//
+// Response:
+// {
+//   orders: [{
+//     id, processor, amount, symbol, currency, status,
+//     paid_at, created_at, expires_at, features, region
+//   }],
+//   summary: { total_orders, total_paid, currency, symbol }
+// }
+// ─────────────────────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@supabase/supabase-js'
+
+// ═══ SECTION 1 — DB client ═══
 
 const db = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// ============================================================
-// SECTION 1 -- Feature labels
-// ============================================================
+// ═══ SECTION 2 — Feature label map ═══
+// Maps pricing keys to human-readable labels for display.
+// These are shown as chips on each order card.
 
 const FEATURE_LABELS: Record<string, string> = {
-  capsule_activation:        'Capsule Activation',
-  audio_tributes:            'Voice Tributes',
-  video_tributes:            'Video Tributes',
-  ways_to_honour:            'Gifting',
-  expression_of_honour:      'Gifting',
-  guest_management:          'Guest Management & Seating',
-  attire:                    'Fabric & Attire Coordination',
-  publication:               'Digital Publication',
-  community_stories:         'Community Memories & Stories',
-  extended_validity:         'Extended Validity',
-  additional_phase:          'Additional Event Phase',
-  access_codes:              'Access Code System',
-  access_code_system:        'Access Code System',
-  family_rep_portal:         'Family Rep Portal',
-  capacity_pack_growth:      'Growth Pack (+250 guests)',
-  capacity_pack_celebration: 'Celebration Pack (+750 guests)',
-  capacity_pack_grand:       'Grand Event Pack (+2,000 guests)',
+  capsule_activation_base:            'Capsule Activation',
+  publication:                        'Digital Capsule Publication',
+  audio_tributes:                     'Voice Tributes',
+  video_tributes:                     'Video Tributes',
+  ways_to_honour:                     'Gift of Honour',
+  access_codes:                       'Access Code System',
+  guest_management:                   'Guest Management',
+  attire:                             'Fabric & Attire',
+  additional_phase:                   'Additional Event Phase',
+  capsule_extend_6mo:                 'Validity Extension — 6 Months',
+  capsule_extend_3mo:                 'Validity Extension — 3 Months',
+  capsule_reactivation_admin:         'Reactivation Admin Fee',
+  extended_validity:                  'Extended Validity',
+  contribution_tier_growing_350v:     'Growing-350V',
+  contribution_tier_flourishing_700v: 'Flourishing-700V',
+  contribution_tier_grand_1500v:      'Grand-1500V',
+  contribution_tier_estate_v:         'Estate-∞V',
+  access_code_extended_400g:          'Extended-400G',
+  access_code_large_800g:             'Large-800G',
+  access_code_grand_2000g:            'Grand-2000G',
+  access_code_estate_g:               'Estate-∞G',
+  essential_preset:                   'Essential Package',
+  signature_preset:                   'Signature Package',
+  capacity_pack_growth:               'Capacity Pack — Growth',
+  capacity_pack_celebration:          'Capacity Pack — Celebration',
+  capacity_pack_grand:                'Capacity Pack — Grand',
+  // Legacy keys
+  full_platform_base:                 'Full Platform',
+  capture_preserve_base:              'Capture & Preserve',
+  save_the_date:                      'Save the Date',
+  table_management:                   'Table Management',
+  white_label:                        'White Label Branding',
+  custom_domain:                      'Custom Domain',
 }
+
+// ═══ SECTION 3 — Currency symbol map ═══
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
-  NGN: '\u20a6',
-  GBP: '\u00a3',
-  USD: '$',
-  EUR: '\u20ac',
+  NGN: '₦', EUR: '€', GBP: '£', USD: '$', GHS: 'GH₵', KES: 'KSh',
 }
 
-// ============================================================
-// SECTION 2 -- GET handler
-// ============================================================
+// ═══ SECTION 4 — Parse features from payment record ═══
+// package_tier is comma-separated keys, e.g. "capsule_activation,publication,audio_tributes"
+// metadata.feature_ids is an array (preferred when present)
+
+function parseFeatureLabels(payment: Record<string, unknown>): string[] {
+  const metadata = payment.metadata as Record<string, unknown> | null
+
+  // Prefer metadata.feature_ids (set by bundle route)
+  if (Array.isArray(metadata?.feature_ids) && metadata.feature_ids.length > 0) {
+    return (metadata.feature_ids as string[])
+      .map(k => FEATURE_LABELS[k] ?? k)
+      .filter(Boolean)
+  }
+
+  // Fall back to package_tier string
+  const tier = (payment.package_tier as string) ?? ''
+  if (!tier) return []
+
+  return tier
+    .split(',')
+    .map(k => k.trim())
+    .filter(Boolean)
+    .map(k => FEATURE_LABELS[k] ?? k)
+}
+
+// ═══ SECTION 5 — GET handler ═══
 
 export async function GET(req: NextRequest) {
-  try {
-    const capsule_id = req.nextUrl.searchParams.get('capsule_id')
-    if (!capsule_id) {
-      return NextResponse.json({ error: 'capsule_id required' }, { status: 400 })
-    }
+  const capsule_id = req.nextUrl.searchParams.get('capsule_id')
 
+  if (!capsule_id) {
+    return NextResponse.json(
+      { error: 'capsule_id is required.' },
+      { status: 400 }
+    )
+  }
+
+  try {
+    // ── Fetch payments for this capsule ───────────────────────────────────────
     const { data: payments, error } = await db
       .from('payments')
-      .select('id, processor, amount, currency, status, paid_at, created_at, package_tier, metadata, region, expires_at')
+      .select('id, processor, amount, currency, status, package_tier, metadata, region, created_at, paid_at, expires_at')
       .eq('capsule_id', capsule_id)
-      .not('paid_at', 'is', null)
-      .order('paid_at', { ascending: false })
+      .order('created_at', { ascending: false })
 
-    if (error) throw error
-
-    const orders = (payments ?? []).map(p => {
-      const tierKeys: string[] = (p.package_tier ?? '').split(',').map((k: string) => k.trim()).filter(Boolean)
-      const metaIds: string[]  = Array.isArray(p.metadata?.feature_ids) ? p.metadata.feature_ids : []
-      const allKeys            = [...new Set([...tierKeys, ...metaIds])]
-      const featureKeys        = allKeys.filter(k => k !== 'capsule_activation')
-      const features           = featureKeys.map(k => FEATURE_LABELS[k] ?? k)
-
-      const currency = p.currency ?? 'EUR'
-      const symbol   = CURRENCY_SYMBOLS[currency] ?? '\u20ac'
-      // Amount is stored in minor units by Stripe -- divide by 100
-      // Exception: amounts already in display units from historical records
-      // will be caught by the panel's formatAmount helper
-      const amount   = Number(p.amount ?? 0)
-
-      return {
-        id:         p.id,
-        processor:  p.processor,
-        amount,
-        symbol,
-        currency,
-        status:     p.status,
-        paid_at:    p.paid_at,
-        created_at: p.created_at,
-        expires_at: p.expires_at ?? null,
-        features,
-        region:     p.region ?? null,
-      }
-    })
-
-    // -- Summary: group by currency -- never mix currencies in one total ------
-    const paidOrders = orders.filter(o => o.status === 'paid' || o.status === 'succeeded')
-
-    const byCurrency: Record<string, { total: number; symbol: string; count: number }> = {}
-    for (const o of paidOrders) {
-      if (!byCurrency[o.currency]) {
-        byCurrency[o.currency] = { total: 0, symbol: o.symbol, count: 0 }
-      }
-      byCurrency[o.currency].total += o.amount
-      byCurrency[o.currency].count += 1
+    if (error) {
+      console.error('[capsule/orders]', error)
+      return NextResponse.json(
+        { error: 'Something went wrong loading your order history. Please try again.' },
+        { status: 500 }
+      )
     }
 
-    // Return the primary currency summary (largest spend) and all others
-    const currencyEntries = Object.entries(byCurrency).sort((a, b) => b[1].total - a[1].total)
-    const primary = currencyEntries[0]
+    if (!payments || payments.length === 0) {
+      return NextResponse.json({ orders: [], summary: null })
+    }
 
-    return NextResponse.json({
-      orders,
-      summary: primary ? {
-        total_orders:      orders.length,
-        total_paid:        primary[1].total,
-        currency:          primary[0],
-        symbol:            primary[1].symbol,
-        all_currencies:    currencyEntries.map(([currency, data]) => ({
-          currency,
-          symbol:      data.symbol,
-          total_paid:  data.total,
-          order_count: data.count,
-        })),
-      } : {
-        total_orders:   0,
-        total_paid:     0,
-        currency:       'EUR',
-        symbol:         '\u20ac',
-        all_currencies: [],
-      },
-    })
+    // ── Format orders ─────────────────────────────────────────────────────────
+    const orders = payments.map(p => ({
+      id:         p.id,
+      processor:  p.processor ?? 'unknown',
+      amount:     p.amount ?? 0,
+      currency:   p.currency ?? 'NGN',
+      symbol:     CURRENCY_SYMBOLS[p.currency ?? 'NGN'] ?? p.currency ?? '',
+      status:     p.status ?? 'pending',
+      paid_at:    p.paid_at   ?? null,
+      created_at: p.created_at,
+      expires_at: p.expires_at ?? null,
+      features:   parseFeatureLabels(p),
+      region:     p.region ?? null,
+    }))
 
-  } catch (e: any) {
-    console.error('[capsule/orders]', e)
-    return NextResponse.json({ error: 'Failed to load orders' }, { status: 500 })
+    // ── Summary — paid orders only ────────────────────────────────────────────
+    const paidOrders   = orders.filter(o => o.status === 'succeeded' || o.status === 'paid')
+    const totalPaid    = paidOrders.reduce((sum, o) => sum + (o.amount ?? 0), 0)
+    const primaryCurr  = orders[0]?.currency ?? 'NGN'
+    const primarySymbol = CURRENCY_SYMBOLS[primaryCurr] ?? primaryCurr
+
+    const summary = {
+      total_orders: orders.length,
+      total_paid:   totalPaid,
+      currency:     primaryCurr,
+      symbol:       primarySymbol,
+    }
+
+    return NextResponse.json({ orders, summary })
+
+  } catch (err) {
+    console.error('[capsule/orders]', err)
+    return NextResponse.json(
+      { error: 'Something went wrong loading your order history. Please try again.' },
+      { status: 500 }
+    )
   }
 }
