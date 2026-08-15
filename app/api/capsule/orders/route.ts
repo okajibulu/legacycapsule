@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
     // ── Fetch payments for this capsule ───────────────────────────────────────
     const { data: payments, error } = await db
       .from('payments')
-      .select('id, processor, amount, currency, status, package_tier, metadata, region, created_at, paid_at, expires_at')
+      .select('id, processor, amount, currency, status, package_tier, metadata, region, created_at, paid_at')
       .eq('capsule_id', capsule_id)
       .order('created_at', { ascending: false })
 
@@ -144,7 +144,7 @@ export async function GET(req: NextRequest) {
       status:     p.status ?? 'pending',
       paid_at:    p.paid_at   ?? null,
       created_at: p.created_at,
-      expires_at: p.expires_at ?? null,
+      expires_at: null,   // column not on payments table — capsule expiry is on capsules.expires_at
       features:   parseFeatureLabels(p),
       region:     p.region ?? null,
     }))
