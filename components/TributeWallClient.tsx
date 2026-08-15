@@ -257,7 +257,7 @@ borderLeft: `3px solid ${isPending ? t.cardAccentPending : t.accentPrimary}`,
 /* =========================================================
    EMOJI REACTIONS
 ========================================================= */
-const EMOJIS = ['❤️', '🙏', '✦', '😢', '👏', '🕊️']
+const EMOJIS = ['❤️', '🙏', '⭐', '😂', '👏', '👍']
 
 function EmojiReactions({ contributionId, capsuleId, t }: {
   contributionId: string; capsuleId: string; t: ThemeConfig
@@ -333,7 +333,7 @@ function EmojiReactions({ contributionId, capsuleId, t }: {
               transition: 'all 0.15s',
             }}
           >
-            <span>{emoji === '✦' ? <span style={{ color: '#E2C36B', fontSize: '11px' }}>✦</span> : emoji}</span>
+            <span>{emoji}</span>
             {count > 0 && <span style={{ fontSize: '10px', color: isMine ? t.accentPrimary : t.textFaint, fontWeight: isMine ? 700 : 400 }}>{count}</span>}
           </button>
         )
@@ -1492,39 +1492,55 @@ background:
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {/* Name + Email + Photo */}
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'start' }}>
+
+                  {/* Title — full width */}
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <select
+                      style={{ ...inp, flex: 1, background: 'rgba(15,10,30,0.98)', fontSize: '12px' }}
+                      value={fTitle}
+                      onChange={e => { setFTitle(e.target.value); if (e.target.value !== 'Other') setFCustomTitle('') }}
+                    >
+                      <option value="">Title (optional)</option>
+                      {TITLE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                    {fTitle === 'Other' && (
+                      <input style={{ ...inp, flex: 1 }} placeholder="Your title" value={fCustomTitle} onChange={e => setFCustomTitle(e.target.value)} maxLength={20} />
+                    )}
+                  </div>
+
+                  {/* First name + Last name — equal 50/50 */}
+                  <div style={{ display: 'flex', gap: '8px' }}>
                     <div style={{ flex: 1 }}>
-  {/* Title row */}
-  <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
-    <select
-      style={{ ...inp, width: '120px', flexShrink: 0, background: 'rgba(15,10,30,0.98)', fontSize: '12px' }}
-      value={fTitle}
-      onChange={e => { setFTitle(e.target.value); if (e.target.value !== 'Other') setFCustomTitle('') }}
-    >
-      <option value="">Title</option>
-      {TITLE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-    </select>
-    {fTitle === 'Other' && (
-      <input style={{ ...inp, flex: 1 }} placeholder="Your title" value={fCustomTitle} onChange={e => setFCustomTitle(e.target.value)} maxLength={20} />
-    )}
-  </div>
-  {/* First + Last name row */}
-  <div style={{ display: 'flex', gap: '6px' }}>
-    <div style={{ flex: 1 }}>
-      <input style={inp} placeholder="First name *" value={fFirstName} onChange={e => setFFirstName(e.target.value)} maxLength={40} />
-      {errors.firstName && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.firstName}</p>}
-    </div>
-    <div style={{ flex: 1 }}>
-      <input style={inp} placeholder="Last name *" value={fLastName} onChange={e => setFLastName(e.target.value)} maxLength={40} />
-      {errors.lastName && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.lastName}</p>}
-    </div>
-  </div>
-</div>
-                    <div style={{ flex: 1 }}><input type="email" style={inp} placeholder="Add Email" value={fEmail} onChange={e => setFEmail(e.target.value)} maxLength={100} />{errors.email && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.email}</p>}</div>
-                    <div onClick={() => photoRef.current?.click()} style={{ width: '42px', height: '42px', borderRadius: '50%', border: `1px dashed ${t.accentFaint}`, background: t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, overflow: 'hidden' }}>
-                      {fPhotoPreview ? <img src={fPhotoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ color: t.accentMuted, fontSize: '18px', lineHeight: 1 }}>+</span>}
+                      <input style={inp} placeholder="First name *" value={fFirstName} onChange={e => setFFirstName(e.target.value)} maxLength={40} />
+                      {errors.firstName && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.firstName}</p>}
                     </div>
+                    <div style={{ flex: 1 }}>
+                      <input style={inp} placeholder="Last name *" value={fLastName} onChange={e => setFLastName(e.target.value)} maxLength={40} />
+                      {errors.lastName && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.lastName}</p>}
+                    </div>
+                  </div>
+
+                  {/* Email + Photo upload button — full width row */}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ flex: 1 }}>
+                      <input type="email" style={inp} placeholder="Email address" value={fEmail} onChange={e => setFEmail(e.target.value)} maxLength={100} />
+                      {errors.email && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.email}</p>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => photoRef.current?.click()}
+                      style={{
+                        flexShrink: 0, padding: '8px 12px', borderRadius: '8px',
+                        border: `1px dashed ${t.accentFaint}`, background: t.inputBg,
+                        color: t.accentMuted, fontSize: '11px', fontWeight: 600,
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                        whiteSpace: 'nowrap' as const,
+                      }}
+                    >
+                      {fPhotoPreview
+                        ? <><img src={fPhotoPreview} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }} /> Change</>
+                        : <>📷 Add Photo</>}
+                    </button>
                     <input ref={photoRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: 'none' }} />
                   </div>
 
