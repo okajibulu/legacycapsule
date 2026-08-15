@@ -1493,23 +1493,16 @@ background:
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
-                  {/* Title — full width */}
+                  {/* Title + First name + Last name — one row */}
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <select
-                      style={{ ...inp, flex: 1, background: 'rgba(15,10,30,0.98)', fontSize: '12px' }}
+                      style={{ ...inp, width: '110px', flexShrink: 0, background: 'rgba(15,10,30,0.98)', fontSize: '12px' }}
                       value={fTitle}
                       onChange={e => { setFTitle(e.target.value); if (e.target.value !== 'Other') setFCustomTitle('') }}
                     >
-                      <option value="">Title (optional)</option>
+                      <option value="">Title</option>
                       {TITLE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                     </select>
-                    {fTitle === 'Other' && (
-                      <input style={{ ...inp, flex: 1 }} placeholder="Your title" value={fCustomTitle} onChange={e => setFCustomTitle(e.target.value)} maxLength={20} />
-                    )}
-                  </div>
-
-                  {/* First name + Last name — equal 50/50 */}
-                  <div style={{ display: 'flex', gap: '8px' }}>
                     <div style={{ flex: 1 }}>
                       <input style={inp} placeholder="First name *" value={fFirstName} onChange={e => setFFirstName(e.target.value)} maxLength={40} />
                       {errors.firstName && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.firstName}</p>}
@@ -1519,6 +1512,9 @@ background:
                       {errors.lastName && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.lastName}</p>}
                     </div>
                   </div>
+                  {fTitle === 'Other' && (
+                    <input style={inp} placeholder="Your title" value={fCustomTitle} onChange={e => setFCustomTitle(e.target.value)} maxLength={20} />
+                  )}
 
                   {/* Email + Photo upload button — full width row */}
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1589,6 +1585,12 @@ background:
  Keep {lang.plural} limited to 2000 characters.
   {' '}<span style={{ color: t.accentMuted }}>You can share longer stories in the Community Memories &amp; Stories room.</span>
 </p>
+
+{!['memorial', 'funeral'].some(k => (capsule.event_type ?? '').toLowerCase().includes(k)) && (
+  <p style={{ fontSize: '11px', color: t.textFaint, lineHeight: 1.65, margin: '0 0 6px', padding: '8px 10px', borderRadius: '8px', background: 'rgba(226,195,107,0.04)', borderLeft: `2px solid rgba(226,195,107,0.2)` }}>
+    💡 <strong style={{ color: t.accentMuted }}>Tip:</strong> Help {capsule.honouree_name.split(' ')[0]} place you — mention how you know each other or how you are connected. Many people who care deeply may not be personally known to {capsule.honouree_name.split(' ')[0]}.
+  </p>
+)}
 
                   {/* Tribute + Submit */}
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
