@@ -59,7 +59,11 @@ const textFaint     = 'rgba(255,255,255,0.28)'
 
 const STORY_CHAR_LIMIT = 3000
 const MAX_PHOTOS       = 3
-
+const TITLE_OPTIONS = [
+  'Dr', 'Prof', 'Chief', 'Rev', 'Pastor',
+  'Alhaji', 'Alhaja', 'Engr', 'Barr',
+  'Mr', 'Mrs', 'Ms', 'Sir', 'Lady', 'Other',
+]
 // ═══ SECTION 3 — Category config ═══
 
 const CATEGORY_ORDER = [
@@ -610,6 +614,10 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess,
   onSuccess:       () => void
   defaultTopicId?: string
 }) {
+  const [title,             setTitle]             = useState('')
+  const [firstName,         setFirstName]         = useState('')
+  const [lastName,          setLastName]          = useState('')
+  const [customTitle,       setCustomTitle]       = useState('')
   const [name,              setName]              = useState('')
   const [email,             setEmail]             = useState('')
   const [topicId,           setTopicId]           = useState(defaultTopicId ?? topics[0]?.id ?? '')
@@ -650,7 +658,7 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess,
   }
 
   const handleSubmit = async () => {
-    if (!name.trim() || !text.trim() || !topicId) return
+    if (!firstName.trim() || !lastName.trim() || !text.trim() || !topicId) return
     if (text.length > STORY_CHAR_LIMIT) { setError(`Story must be ${STORY_CHAR_LIMIT} characters or fewer`); return }
     setSubmitting(true); setError('')
     try {
@@ -660,7 +668,11 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess,
           capsule_id:            capsule.id,
           capsule_slug:          capsule.slug,
           story_topic_id:        topicId || null,
-          contributor_name:      name.trim(),
+          contributor_name: [
+            customTitle.trim() || (title !== 'Other' ? title : ''),
+            firstName.trim(),
+            lastName.trim(),
+          ].filter(Boolean).join(' '),
           email:                 email.trim() || undefined,
           tribute_text:          text.trim(),
           relationship:          finalRelationship || undefined,
@@ -731,7 +743,34 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess,
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '10px' }}>
-          <input style={inp} placeholder="Your name *" value={name} onChange={e => setName(e.target.value)} />
+          {/* Title (optional) */}
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+            <select
+              style={{ ...inp, width: '120px', flexShrink: 0, background: 'rgba(15,10,30,0.98)', fontSize: '12px' }}
+              value={title}
+              onChange={e => { setTitle(e.target.value); if (e.target.value !== 'Other') setCustomTitle('') }}
+            >
+              <option value="">Title</option>
+              {TITLE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            {title === 'Other' && (
+              <input style={{ ...inp, flex: 1 }} placeholder="Your title" value={customTitle} onChange={e => setCustomTitle(e.target.value)} maxLength={20} />
+            )}
+          </div>
+          {/* First + Last name */}
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <div style={{ flex: 1 }}>
+              <input style={inp} placeholder="First name *" value={firstName} onChange={e => setFirstName(e.target.value)} maxLength={40} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <input style={inp} placeholder="Last name *" value={lastName} onChange={e => setLastName(e.target.value)} maxLength={40} />
+            </div>
+          </div>
+          {(!firstName.trim() || !lastName.trim()) && (
+            <p style={{ fontSize: '10px', color: 'rgba(248,113,113,0.6)', marginTop: '4px' }}>
+              Both first and last name are required.
+            </p>
+          )}
 
           <div>
             <input type="email" style={inp} placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} />
@@ -855,7 +894,7 @@ function SubmitStoryPanel({ capsule, topics, hasPublication, onClose, onSuccess,
 
           <button
             onClick={handleSubmit}
-            disabled={submitting || !name.trim() || !text.trim() || !topicId}
+            disabled={submitting || !firstName.trim() || !lastName.trim() || !text.trim() || !topicId}
             style={{ width: '100%', padding: '13px', borderRadius: '12px', border: 'none', background: name.trim() && text.trim() && topicId ? `linear-gradient(135deg,${gold},#C8A84A)` : 'rgba(255,255,255,0.06)', color: name.trim() && text.trim() && topicId ? '#1a0845' : textFaint, fontSize: '14px', fontWeight: 700, cursor: 'pointer', opacity: submitting ? 0.7 : 1 }}
           >
             {submitting ? 'Submitting…' : 'Share This Memory'}

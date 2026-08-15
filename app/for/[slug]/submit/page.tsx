@@ -38,7 +38,11 @@ const MIN_CHARS = 20
 const MAX_CHARS = 2000
 const MAX_PHOTO_MB = 1
 const TRIBUTE_PHOTOS_BUCKET = 'tribute-photos'
-
+const TITLE_OPTIONS = [
+  'Dr', 'Prof', 'Chief', 'Rev', 'Pastor',
+  'Alhaji', 'Alhaja', 'Engr', 'Barr',
+  'Mr', 'Mrs', 'Ms', 'Sir', 'Lady', 'Other',
+]
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
 // ─────────────────────────────────────────────────────────────────────────────
@@ -221,7 +225,11 @@ export default function SubmitPage() {
   const [loadError, setLoadError] = useState(false)
 
   // ── Form fields — D35 ─────────────────────────────────────────────────────
-  const [name, setName] = useState('')
+  const [title,     setTitle]     = useState('')
+const [firstName, setFirstName] = useState('')
+const [lastName,  setLastName]  = useState('')
+const [customTitle, setCustomTitle] = useState('')
+const [name,      setName]      = useState('')
   const [city, setCity] = useState('')
   const [country, setCountry] = useState('')
   const [message, setMessage] = useState('')
@@ -279,7 +287,8 @@ export default function SubmitPage() {
   // ── Form validation ────────────────────────────────────────────────────────
   const validate = (): boolean => {
     const errors: Record<string, string> = {}
-    if (!name.trim()) errors.name = 'Name is required'
+    if (!firstName.trim()) errors.firstName = 'First name required'
+    if (!lastName.trim())  errors.lastName  = `Please add your last name — it helps ${capsule?.honouree_name ?? 'the honouree'} know exactly who this is from.`
     if (!city.trim()) errors.city = 'City is required'
     if (!country) errors.country = 'Country is required'
     if (message.trim().length < MIN_CHARS)
@@ -329,7 +338,11 @@ export default function SubmitPage() {
         .from('contributions')
         .insert({
           capsule_id: capsule.id,
-          contributor_name: name.trim(),
+          contributor_name: [
+  customTitle.trim() || (title !== 'Other' ? title : ''),
+  firstName.trim(),
+  lastName.trim(),
+].filter(Boolean).join(' '),
           city: city.trim(),
           country: country,
           relationship: relationship.trim() || null,
@@ -649,21 +662,61 @@ export default function SubmitPage() {
         {/* ── FORM FIELDS ────────────────────────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-          {/* Name * */}
-          <div>
+          {/* Title (optional) + First name + Last name */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <label style={labelStyle}>
-              Name<span style={goldAsterisk}>*</span>
+              Your Name<span style={goldAsterisk}>*</span>
             </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your full name"
-              style={inputStyle}
-            />
-            {fieldErrors.name && (
-              <p style={{ color: '#f87171', fontSize: '12px', marginTop: '4px' }}>{fieldErrors.name}</p>
-            )}
+            {/* Title row */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <select
+                value={title}
+                onChange={e => { setTitle(e.target.value); if (e.target.value !== 'Other') setCustomTitle('') }}
+                style={{ ...inputStyle, width: '130px', flexShrink: 0 }}
+              >
+                <option value="">Title (optional)</option>
+                {TITLE_OPTIONS.map(t => <option key={t} value={t} style={{ backgroundColor: '#1A0F3E', color: '#FFFFFF' }}>{t}</option>)}
+              </select>
+              {title === 'Other' && (
+                <input
+                  type="text"
+                  value={customTitle}
+                  onChange={e => setCustomTitle(e.target.value)}
+                  placeholder="Your title"
+                  style={{ ...inputStyle, flex: 1 }}
+                  maxLength={20}
+                />
+              )}
+            </div>
+            {/* First + Last name row */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ flex: 1 }}>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  placeholder="First name *"
+                  style={inputStyle}
+                  maxLength={40}
+                />
+                {fieldErrors.firstName && (
+                  <p style={{ color: '#f87171', fontSize: '12px', marginTop: '4px' }}>{fieldErrors.firstName}</p>
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  placeholder="Last name *"
+                  style={inputStyle}
+                  maxLength={40}
+                />
+                {fieldErrors.lastName && (
+                  <p style={{ color: '#f87171', fontSize: '12px', marginTop: '4px' }}>{fieldErrors.lastName}</p>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* City * */}

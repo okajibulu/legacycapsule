@@ -32,7 +32,11 @@ import GlobalExpressionsStrip from '@/components/capsule/GlobalExpressionsStrip'
 const AudioTribute = dynamic(() => import('@/components/AudioTribute'), { ssr: false })
 const VideoTribute = dynamic(() => import('@/components/VideoTribute'), { ssr: false })
 const HeroPositionPicker = dynamic(() => import('@/components/HeroPositionPicker'), { ssr: false })
-
+const TITLE_OPTIONS = [
+  'Dr', 'Prof', 'Chief', 'Rev', 'Pastor',
+  'Alhaji', 'Alhaja', 'Engr', 'Barr',
+  'Mr', 'Mrs', 'Ms', 'Sir', 'Lady', 'Other',
+]
 /* ── LOCAL TYPES ── */
 interface Capsule {
   id: string; slug: string; honouree_name: string; honouree_title: string | null
@@ -580,7 +584,11 @@ const [showPositionPicker, setShowPositionPicker] = useState(false)
   const [repAccessDone, setRepAccessDone] = useState(false)
   const [repAccessError, setRepAccessError] = useState('')
   const heroPhotoRef = useRef<HTMLInputElement>(null)
-  const [fName, setFName] = useState(''); const [fEmail, setFEmail] = useState('')
+  const [fTitle, setFTitle] = useState('')
+const [fFirstName, setFFirstName] = useState('')
+const [fLastName, setFLastName] = useState('')
+const [fCustomTitle, setFCustomTitle] = useState('')
+const [fName, setFName] = useState(''); const [fEmail, setFEmail] = useState('')
   const [fCity, setFCity] = useState(''); const [fCountry, setFCountry] = useState('')
   const [fMsg, setFMsg] = useState(''); const [fRel, setFRel] = useState<string[]>([])
   const [fPhoto, setFPhoto] = useState<File | null>(null); const [fPhotoPreview, setFPhotoPreview] = useState<string | null>(null)
@@ -635,7 +643,11 @@ const [fConsent, setFConsent] = useState(false)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           capsule_id:       capsule.id,
-          contributor_name: fName.trim()  || null,
+        contributor_name: [
+  fCustomTitle.trim() || (fTitle !== 'Other' ? fTitle : ''),
+  fFirstName.trim(),
+  fLastName.trim(),
+].filter(Boolean).join(' ') || null,
           contributor_email: (fEmail.trim() || wallEmailCapture.trim()) || null,
           city:             fCity.trim()  || null,
           country:          fCountry      || null,
@@ -789,7 +801,11 @@ const handleCopy = async () => {
     } catch { setRepAccessError('Something went wrong. Please try again.') }
     setRepAccessSending(false)
   }
-  const validate = () => { const e: Record<string, string> = {}; if (!fName.trim()) e.name = 'Name required'; if (!fEmail.trim() || !fEmail.includes('@')) e.email = 'Valid email required'; if (!fCity.trim()) e.city = 'City required'; if (!fCountry) e.country = 'Country required'; if (fMsg.trim().length < MIN_CHARS) e.msg = `${MIN_CHARS}+ characters`; if (fMsg.trim().length > MAX_CHARS) e.msg = `Over ${MAX_CHARS} limit`; setErrors(e); return !Object.keys(e).length }
+  const validate = () => { const e: Record<string, string> = {}; if (!fFirstName.trim()) e.firstName = 'First name required'
+if (!fLastName.trim()) e.lastName = `Please add your last name — it helps ${honourName} know exactly who this is from.` 
+if (!fEmail.trim() || !fEmail.includes('@')) e.email = 'Valid email required'; if (!fCity.trim()) e.city = 'City required'; 
+if (!fCountry) e.country = 'Country required'; if (fMsg.trim().length < MIN_CHARS) e.msg = `${MIN_CHARS}+ characters`; 
+if (fMsg.trim().length > MAX_CHARS) e.msg = `Over ${MAX_CHARS} limit`; setErrors(e); return !Object.keys(e).length }
   const handleSubmit = async () => {
     if (!validate()) return; setSubmitting(true); setSubmitErr('')
     try {
@@ -850,7 +866,8 @@ const handleCopy = async () => {
       }
      
       localStorage.setItem(LS_EMAIL, fEmail); setVisitorEmail(fEmail)
-      setFName(''); setFCity(''); setFCountry(''); setFMsg(''); setFRel([]); setFPhoto(null); setFPhotoPreview(null); setCountryQuery(''); setErrors({})
+      setFTitle(''); setFFirstName(''); setFLastName(''); setFCustomTitle('')
+setFName(''); setFCity(''); setFCountry(''); setFMsg(''); setFRel([]); setFPhoto(null); setFPhotoPreview(null); setCountryQuery(''); setErrors({})
 setFAudioUrl(null); setFVideoUrl(null); setFVideoThumb(null); setFConsent(false)
       setShowAudioRecorder(false); setShowVideoUploader(false)
       setSubmitSuccess(true); setComposerOpen(false); setTimeout(() => setSubmitSuccess(false), 3500); poll()
@@ -1477,7 +1494,33 @@ background:
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {/* Name + Email + Photo */}
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'start' }}>
-                    <div style={{ flex: 1 }}><input style={inp} placeholder="Your name *" value={fName} onChange={e => setFName(e.target.value)} maxLength={50} />{errors.name && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.name}</p>}</div>
+                    <div style={{ flex: 1 }}>
+  {/* Title row */}
+  <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+    <select
+      style={{ ...inp, width: '120px', flexShrink: 0, background: 'rgba(15,10,30,0.98)', fontSize: '12px' }}
+      value={fTitle}
+      onChange={e => { setFTitle(e.target.value); if (e.target.value !== 'Other') setFCustomTitle('') }}
+    >
+      <option value="">Title</option>
+      {TITLE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+    </select>
+    {fTitle === 'Other' && (
+      <input style={{ ...inp, flex: 1 }} placeholder="Your title" value={fCustomTitle} onChange={e => setFCustomTitle(e.target.value)} maxLength={20} />
+    )}
+  </div>
+  {/* First + Last name row */}
+  <div style={{ display: 'flex', gap: '6px' }}>
+    <div style={{ flex: 1 }}>
+      <input style={inp} placeholder="First name *" value={fFirstName} onChange={e => setFFirstName(e.target.value)} maxLength={40} />
+      {errors.firstName && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.firstName}</p>}
+    </div>
+    <div style={{ flex: 1 }}>
+      <input style={inp} placeholder="Last name *" value={fLastName} onChange={e => setFLastName(e.target.value)} maxLength={40} />
+      {errors.lastName && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.lastName}</p>}
+    </div>
+  </div>
+</div>
                     <div style={{ flex: 1 }}><input type="email" style={inp} placeholder="Add Email" value={fEmail} onChange={e => setFEmail(e.target.value)} maxLength={100} />{errors.email && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.email}</p>}</div>
                     <div onClick={() => photoRef.current?.click()} style={{ width: '42px', height: '42px', borderRadius: '50%', border: `1px dashed ${t.accentFaint}`, background: t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, overflow: 'hidden' }}>
                       {fPhotoPreview ? <img src={fPhotoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ color: t.accentMuted, fontSize: '18px', lineHeight: 1 }}>+</span>}
