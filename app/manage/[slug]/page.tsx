@@ -15,6 +15,13 @@
 //            — FreeTierBar: plain English expiry copy, amber colour when ≤14 days
 //            — FreeTierBar: expiry shown only when ≤30 days remain (not always visible)
 //            — FreeTierBar: no-tribute state copy improved
+// UPDATED:   AI21 · Claude Opus 4.6 · 16 August 2026 (v2.12.08)
+//            — TierUpgradePanel wired into overview tab (Task 3)
+//            — community_stories table reference fixed → contributions with story_topic_id IS NOT NULL
+//            — UX: pending review copy made warmer and more context-aware
+//            — UX: Share section copy — ECS-compliant, honouree name included
+//            — UX: Capsule Services subtitle updated (no longer says "contact us")
+//            — storiesRes mapping: tribute_text → story_text field alias corrected
 // ============================================================
 // SECTIONS:
 //   See sub-section headers (// === SECTION N) within file
@@ -32,6 +39,7 @@ import HonoureeRevealPanel from '@/components/HonoureeRevealPanel'
 import OrderHistoryPanel   from '@/components/manage/OrderHistoryPanel'
 import ServicesTab from '@/components/manage/ServicesTab'
 import EventMomentsManager from '@/components/manage/EventMomentsManager'
+import TierUpgradePanel   from '@/components/manage/TierUpgradePanel'
 import HeroPositionPicker from '@/components/HeroPositionPicker'
 
 interface Capsule {
@@ -1782,7 +1790,13 @@ const [contribRes, sectionsRes, galleryRes, topicsRes, phasesRes, storiesRes] = 
       supabase.from('capsule_gallery').select('id, image_url, description, sort_order, section_index').eq('capsule_id', cap.id).order('section_index').order('sort_order'),
       supabase.from('community_story_topics').select('id, topic_name, topic_source, status, display_order, category').eq('capsule_id', cap.id).order('display_order', { ascending: true }),
       supabase.from('capsule_phases').select('id, name, event_date, sort_order').eq('capsule_id', cap.id).is('deleted_at', null).order('sort_order', { ascending: true }),
-      supabase.from('community_stories').select('id, contributor_name, relationship, story_text, status, created_at, topic_id, community_story_topics(topic_name)').eq('capsule_id', cap.id).is('deleted_at', null).order('created_at', { ascending: false }),
+      supabase
+        .from('contributions')
+        .select('id, contributor_name, relationship, tribute_text, status, created_at, story_topic_id, community_story_topics(topic_name)')
+        .eq('capsule_id', cap.id)
+        .not('story_topic_id', 'is', null)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false }),
     ])
 
     if (contribRes.data) setContributions(contribRes.data as Contribution[])
@@ -1791,8 +1805,14 @@ const [contribRes, sectionsRes, galleryRes, topicsRes, phasesRes, storiesRes] = 
     if (topicsRes.data) setCommunityTopics(topicsRes.data)
     if (phasesRes.data) setPhases(phasesRes.data)
 if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
-      ...s,
-      topic_name: s.community_story_topics?.topic_name ?? null,
+      id:               s.id,
+      contributor_name: s.contributor_name,
+      relationship:     s.relationship,
+      story_text:       s.tribute_text,       // contributions table uses tribute_text
+      status:           s.status,
+      created_at:       s.created_at,
+      topic_id:         s.story_topic_id,
+      topic_name:       s.community_story_topics?.topic_name ?? null,
     })))
     setLoading(false)
   }, [slug])
@@ -1978,6 +1998,13 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
           {/* -- OVERVIEW TAB -- */}
           {activeTab === 'overview' && (
             <div>
+              {/* ── Tier upgrade panel — shown when wall is warning or full ── */}
+              <TierUpgradePanel
+                capsuleId={capsule.id}
+                capsuleSlug={capsule.slug}
+                honoureeName={capsule.honouree_name}
+              />
+
               <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
                 {contributions.length > 0 && <StatPill label="Total" value={contributions.length} />}
                 {capsule.approved_contrib_count > 0 && <StatPill label="Approved" value={capsule.approved_contrib_count} accent />}
@@ -1989,12 +2016,12 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
                 <div style={{ marginBottom: '14px' }}>
                   <div style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(226,195,107,0.06)', border: `1px solid rgba(226,195,107,0.22)`, marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <p style={{ fontSize: '13px', fontWeight: 700, color: gold, margin: 0 }}>{pending.length} voice{pending.length !== 1 ? 's' : ''} awaiting review</p>
-                      <p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0' }}>Review and publish below</p>
+                      <p style={{ fontSize: '13px', fontWeight: 700, color: gold, margin: 0 }}>{pending.length} {pending.length !== 1 ? 'voices' : 'voice'} waiting to join the record</p>
+                      <p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0' }}>Review each one and publish below — they're not visible to anyone yet</p>
                     </div>
                     <span style={{ fontSize: '16px', color: goldMuted }}>{pending.length}</span>
                   </div>
-                  <SectionCard title="Voices — Awaiting Review" subtitle={`${pending.length} to review`}>
+                  <SectionCard title="Awaiting Your Review" subtitle={`${pending.length} ${pending.length !== 1 ? 'voices' : 'voice'} — publish to add ${pending.length !== 1 ? 'them' : 'it'} to the record`}>
                     {pending.map(c => <TributeReviewCard key={c.id} c={c} onApprove={handleApprove} onDecline={handleDecline} />)}
                   </SectionCard>
                 </div>
@@ -2029,8 +2056,8 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
                 ) : null
               })()}
 
-              <SectionCard title="Your Capsule Is Live">
-                <p style={{ fontSize: '12px', color: textFaint, marginBottom: '12px' }}>Share this link with contributors.</p>
+              <SectionCard title="Share with Your Community" subtitle="Every person who visits can add their voice">
+                <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.7, marginBottom: '12px' }}>This is the link to {capsule.honouree_name}'s tribute wall. Share it with family, friends, colleagues — everyone whose voice belongs in this record.</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: goldFaint, border: `1px solid rgba(226,195,107,0.15)`, marginBottom: '10px' }}>
                   <span style={{ flex: 1, fontSize: '12px', color: goldMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{capsuleUrl}</span>
                   <button onClick={handleCopy} style={{ flexShrink: 0, fontSize: '11px', fontWeight: 700, padding: '5px 12px', borderRadius: '6px', background: copied ? 'rgba(74,222,128,0.1)' : goldFaint, border: `1px solid ${copied ? 'rgba(74,222,128,0.28)' : 'rgba(226,195,107,0.22)'}`, color: copied ? 'rgba(134,239,172,0.9)' : gold, cursor: 'pointer' }}>{copied ? '✓ Copied' : 'Copy'}</button>
@@ -2049,7 +2076,7 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
                 
 
               {/* -- ADD-ONS / SERVICES TABLE -- */}
-              <SectionCard title="Capsule Services" subtitle="Tap any service to learn more -- contact us to activate">
+              <SectionCard title="Capsule Services" subtitle="Tap any service to see what it does — activate directly from the Services tab">
                 <AddOnsTable capsuleComponents={capsule.components ?? []} onServicesTab={() => {
                   setActiveTab('services')
                   setTimeout(() => {

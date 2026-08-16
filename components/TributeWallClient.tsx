@@ -13,6 +13,17 @@
    - Left accent on tribute cards
    - Hero identity-first — composer no longer dominates xxxxx
 ========================================================= */
+// UPDATED:   AI21 · Claude Opus 4.6 · 16 August 2026 (v2.12.08)
+//            — Bug fix: capsule_slug added to handleWallAutosave POST body (return URL was using capsule_id)
+//            — ?restore= useEffect added (pre-fills form from queued_submissions on return)
+//            — Restore banner added (Option B: persistent top banner with CTA)
+//            — Composer id="lc-tribute-composer" anchor added for scroll targeting
+//            — ECS: form placeholders rewritten (invite not instruct)
+//            — ECS: submit button "Submit" → "Add my voice" (lang.submitLabel)
+//            — ECS: success message → "is now part of this record"
+//            — ECS: validation errors → warm, non-blaming language
+//            — ECS: character hint reframed as invitation not restriction
+
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
@@ -611,6 +622,12 @@ const [fConsent, setFConsent] = useState(false)
   const [queueSaving,      setQueueSaving]    = useState(false)
   const [wallEmailCapture, setWallEmailCapture] = useState('')
 
+  // ── Restore state — pre-fill from ?restore= session token ────────────────
+  const [restoreToken,   setRestoreToken]   = useState<string | null>(null)
+  const [restoreBanner,  setRestoreBanner]  = useState(false)   // show top banner
+  const [restoreLoading, setRestoreLoading] = useState(false)   // fetching saved data
+  const [restoreError,   setRestoreError]   = useState<string | null>(null)
+
   // ── Fetch wall status on mount ────────────────────────────────────────────
   // Reads /api/capsule/limits for current tier ceiling and usage.
   // Runs once on mount — refreshed after successful submission.
@@ -631,6 +648,66 @@ const [fConsent, setFConsent] = useState(false)
       .catch(() => {})
   }, [capsule.id])
 
+  // ── ?restore= handler — pre-fill tribute form from queued_submissions ─────
+  // Fires on mount when ?restore=[session_token] is present in URL.
+  // Fetches saved submission, pre-fills all form fields, shows top banner.
+  // Opens composer automatically so contributor sees their saved work.
+  // Sets restoreToken so it is cleared from URL after mount without page reload.
+  useEffect(() => {
+    const token = searchParams.get('restore')
+    if (!token) return
+
+    setRestoreToken(token)
+    setRestoreLoading(true)
+
+    fetch(`/api/capsule/restore-submission?token=${encodeURIComponent(token)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.ok || !data.submission) {
+          setRestoreError(data.error ?? 'We could not retrieve your saved tribute. It may have expired.')
+          setRestoreBanner(true)
+          return
+        }
+
+        const s = data.submission
+
+        // ── Pre-fill form fields ──────────────────────────────────────────
+        if (s.contributor_name) setFName(s.contributor_name)
+        if (s.contributor_email) {
+          setFEmail(s.contributor_email)
+          setVisitorEmail(s.contributor_email)
+        }
+        if (s.city)         setFCity(s.city)
+        if (s.country)      setFCountry(s.country)
+        if (s.tribute_text) setFMsg(s.tribute_text)
+        if (s.relationship) {
+          // relationship stored as comma-separated string — restore as array
+          setFRel(s.relationship.split(',').map((r: string) => r.trim()).filter(Boolean))
+        }
+        // Audio/video URLs: restore as playback refs (upload already done)
+        if (s.audio_url) setFAudioUrl(s.audio_url)
+        if (s.video_url) setFVideoUrl(s.video_url)
+
+        // ── Open composer and show restore banner ─────────────────────────
+        setComposerOpen(true)
+        setRestoreBanner(true)
+
+        // ── Clean ?restore= from URL (no page reload) ─────────────────────
+        try {
+          const clean = new URL(window.location.href)
+          clean.searchParams.delete('restore')
+          window.history.replaceState({}, '', clean.toString())
+        } catch {}
+      })
+      .catch(() => {
+        setRestoreError('Something went wrong retrieving your saved tribute. Please try again.')
+        setRestoreBanner(true)
+      })
+      .finally(() => {
+        setRestoreLoading(false)
+      })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps — intentionally runs once on mount
+
   // ── Autosave to queued_submissions when wall is hit ───────────────────────
   // Called immediately when handleSubmit detects ceiling reached.
   // Uploads photo/audio/video first so content is truly preserved.
@@ -641,8 +718,9 @@ const [fConsent, setFConsent] = useState(false)
       const res = await fetch('/api/capsule/queue-submission', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          capsule_id:       capsule.id,
+body: JSON.stringify({
+        capsule_id:        capsule.id,
+        capsule_slug:      capsule.slug,
         contributor_name: [
   fCustomTitle.trim() || (fTitle !== 'Other' ? fTitle : ''),
   fFirstName.trim(),
@@ -801,11 +879,18 @@ const handleCopy = async () => {
     } catch { setRepAccessError('Something went wrong. Please try again.') }
     setRepAccessSending(false)
   }
-  const validate = () => { const e: Record<string, string> = {}; if (!fFirstName.trim()) e.firstName = 'First name required'
-if (!fLastName.trim()) e.lastName = `Please add your last name — it helps ${honourName} know exactly who this is from.` 
-if (!fEmail.trim() || !fEmail.includes('@')) e.email = 'Valid email required'; if (!fCity.trim()) e.city = 'City required'; 
-if (!fCountry) e.country = 'Country required'; if (fMsg.trim().length < MIN_CHARS) e.msg = `${MIN_CHARS}+ characters`; 
-if (fMsg.trim().length > MAX_CHARS) e.msg = `Over ${MAX_CHARS} limit`; setErrors(e); return !Object.keys(e).length }
+  const validate = () => {
+    const e: Record<string, string> = {}
+    if (!fFirstName.trim()) e.firstName = 'Please add your first name'
+    if (!fLastName.trim()) e.lastName = `Please add your last name — it helps ${honourName} know who this is from`
+    if (!fEmail.trim() || !fEmail.includes('@')) e.email = 'Please add a valid email address'
+    if (!fCity.trim()) e.city = 'Please add your city'
+    if (!fCountry) e.country = 'Please select your country'
+    if (fMsg.trim().length < MIN_CHARS) e.msg = `Please write a little more — at least ${MIN_CHARS} characters`
+    if (fMsg.trim().length > MAX_CHARS) e.msg = `Please shorten this to ${MAX_CHARS} characters or fewer`
+    setErrors(e)
+    return !Object.keys(e).length
+  }
   const handleSubmit = async () => {
     if (!validate()) return; setSubmitting(true); setSubmitErr('')
     try {
@@ -1419,7 +1504,7 @@ background:
           </div>
 
           {/* ── COLLAPSIBLE COMPOSER ── */}
-          <div style={{ flexShrink: 0, margin: '10px 12px 0' }}>
+          <div id="lc-tribute-composer" style={{ flexShrink: 0, margin: '10px 12px 0' }}>
 {!composerOpen ? (
 /* Collapsed — three-part action row */
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
@@ -1504,11 +1589,11 @@ background:
                       {TITLE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                     </select>
                     <div style={{ flex: 1 }}>
-                      <input style={inp} placeholder="First name *" value={fFirstName} onChange={e => setFFirstName(e.target.value)} maxLength={40} />
+                      <input style={inp} placeholder="Your first name" value={fFirstName} onChange={e => setFFirstName(e.target.value)} maxLength={40} />
                       {errors.firstName && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.firstName}</p>}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <input style={inp} placeholder="Last name *" value={fLastName} onChange={e => setFLastName(e.target.value)} maxLength={40} />
+                      <input style={inp} placeholder="Your last name" value={fLastName} onChange={e => setFLastName(e.target.value)} maxLength={40} />
                       {errors.lastName && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.lastName}</p>}
                     </div>
                   </div>
@@ -1519,7 +1604,7 @@ background:
                   {/* Email + Photo upload button — full width row */}
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <div style={{ flex: 1 }}>
-                      <input type="email" style={inp} placeholder="Email address" value={fEmail} onChange={e => setFEmail(e.target.value)} maxLength={100} />
+                      <input type="email" style={inp} placeholder="Your email — so we can send your keepsake" value={fEmail} onChange={e => setFEmail(e.target.value)} maxLength={100} />
                       {errors.email && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.email}</p>}
                     </div>
                     <button
@@ -1542,7 +1627,7 @@ background:
 
                   {/* City + Country — same row */}
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <div style={{ flex: 1 }}><input style={inp} placeholder="City *" value={fCity} onChange={e => setFCity(e.target.value)} maxLength={50} />{errors.city && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.city}</p>}</div>
+                    <div style={{ flex: 1 }}><input style={inp} placeholder="Your city" value={fCity} onChange={e => setFCity(e.target.value)} maxLength={50} />{errors.city && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.city}</p>}</div>
                     <div style={{ flex: 1, position: 'relative' }} ref={countryRef}>
                       <input
   style={inp}
@@ -1581,9 +1666,9 @@ background:
                     honoureeName={capsule.honouree_name}
                   />
 
-<p style={{ fontSize: '11px', color: t.textFaint, lineHeight: 1.65, margin: '0 0 6px', fontStyle: 'italic' }}>
- Keep {lang.plural} limited to 2000 characters.
-  {' '}<span style={{ color: t.accentMuted }}>You can share longer stories in the Community Memories &amp; Stories room.</span>
+<p style={{ fontSize: '11px', color: t.textFaint, lineHeight: 1.65, margin: '0 0 6px' }}>
+  Write as much as feels right — up to 2,000 characters.{' '}
+  <span style={{ color: t.accentMuted }}>For longer memories and stories, the Community Stories room is the right place.</span>
 </p>
 
 {!['memorial', 'funeral'].some(k => (capsule.event_type ?? '').toLowerCase().includes(k)) && (
@@ -1595,7 +1680,7 @@ background:
                   {/* Tribute + Submit */}
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
                     <div style={{ flex: 1, position: 'relative' }}>
-                      <textarea style={{ ...inp, minHeight: '60px', maxHeight: '90px', resize: 'none', lineHeight: 1.7 }} placeholder={`${lang.cta}…`} value={fMsg} onChange={e => setFMsg(e.target.value)} maxLength={MAX_CHARS} rows={3} />
+                      <textarea style={{ ...inp, minHeight: '60px', maxHeight: '90px', resize: 'none', lineHeight: 1.7 }} placeholder={`What would you like ${capsule.honouree_name.split(' ')[0]} to know?`} value={fMsg} onChange={e => setFMsg(e.target.value)} maxLength={MAX_CHARS} rows={3} />
                       <span style={{ position: 'absolute', bottom: '8px', right: '10px', fontSize: '9px', color: fMsg.length > 1750 ? t.accentPrimary : t.textFaint, pointerEvents: 'none' }}>{fMsg.length}/{MAX_CHARS}</span>
                       {errors.msg && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.msg}</p>}
                     </div>
@@ -1619,7 +1704,7 @@ background:
     marginTop: '2px',
   }}
 >
-  {submitting ? '…' : 'Submit'}
+  {submitting ? 'Adding…' : lang.submitLabel ?? 'Add my voice'}
 </button>
                   </div>
 
@@ -1669,7 +1754,7 @@ background:
                     />
                   )}
 
-                  {submitSuccess && <div style={{ borderRadius: '12px', padding: '12px 16px', fontSize: '12px', textAlign: 'center', letterSpacing: '0.04em', border: `1px solid ${t.accentFaint}`, background: t.cardBg, color: t.accentPrimary }}>✦ Your {lang.singular.toLowerCase()} has been received — thank you.</div>}
+                  {submitSuccess && <div style={{ borderRadius: '12px', padding: '12px 16px', fontSize: '12px', textAlign: 'center', letterSpacing: '0.04em', border: `1px solid ${t.accentFaint}`, background: t.cardBg, color: t.accentPrimary }}>✦ Your {lang.singular.toLowerCase()} is now part of this record.</div>}
                   {submitErr && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.85)', textAlign: 'center' }}>{submitErr}</p>}
                 </div>
               </div>

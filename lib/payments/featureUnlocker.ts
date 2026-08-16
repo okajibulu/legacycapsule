@@ -45,6 +45,16 @@
 
 import { createClient } from '@supabase/supabase-js'
 
+// ── Batch notify import (wall re-open trigger) ────────────────────────────────
+// Dynamically resolved at runtime to avoid circular import risks.
+// Called after contribution tier upgrades — never blocks payment unlock.
+const TIER_UPGRADE_KEYS = new Set([
+  'contribution_tier_growing_350v',
+  'contribution_tier_flourishing_700v',
+  'contribution_tier_grand_1500v',
+  'contribution_tier_estate_v',
+])
+
 // ═══ SECTION 1 — DB client (server-only) ═══
 
 const db = createClient(
@@ -458,4 +468,40 @@ export async function unlockCapsuleFeatures(payment_id: string): Promise<void> {
       events:     lifecycleEvents.map(e => e.event),
     })
   )
+
+  // ── Batch notify — invite queued contributors back after tier upgrade ─────
+  // Fires when any contribution tier upgrade key is in the payment.
+  // Non-blocking — a notify failure never fails the payment unlock.
+  // Requires capsule slug — fetched here so batch-notify route can build return URLs.
+  const hasTierUpgrade = priceKeys.some(k => TIER_UPGRADE_KEYS.has(k))
+  if (hasTierUpgrade) {
+    try {
+      const { data: slugRow } = await db
+        .from('capsules')
+        .select('slug')
+        .eq('id', payment.capsule_id)
+        .single()
+
+      if (slugRow?.slug) {
+        const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
+
+        // Fire and forget — do not await response, never throw
+        fetch(`${appUrl}/api/capsule/batch-notify`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            capsule_id:   payment.capsule_id,
+            capsule_slug: slugRow.slug,
+          }),
+        }).catch(err => {
+          console.warn('[featureUnlocker] batch-notify fire failed (non-fatal):', err)
+        })
+
+        console.log(`[featureUnlocker] batch-notify triggered for capsule ${payment.capsule_id} (tier upgrade: ${priceKeys.filter(k => TIER_UPGRADE_KEYS.has(k)).join(', ')})`)
+      }
+    } catch (notifyErr) {
+      // Truly non-fatal — log and move on
+      console.warn('[featureUnlocker] batch-notify setup failed (non-fatal):', notifyErr)
+    }
+  }
 }
