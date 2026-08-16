@@ -134,8 +134,23 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ orders: [], summary: null })
     }
 
+    // ── Filter to meaningful orders only ──────────────────────────────────────
+    // succeeded / paid = confirmed transactions — always show
+    // pending = show only if created within last 24 hours (may still complete)
+    // Everything else (failed, cancelled, abandoned) = exclude
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const meaningfulPayments = payments.filter(p => {
+      if (p.status === 'succeeded' || p.status === 'paid') return true
+      if (p.status === 'pending' && p.created_at > cutoff) return true
+      return false
+    })
+
+    if (meaningfulPayments.length === 0) {
+      return NextResponse.json({ orders: [], summary: null })
+    }
+
     // ── Format orders ─────────────────────────────────────────────────────────
-    const orders = payments.map(p => ({
+    const orders = meaningfulPayments.map(p => ({
       id:         p.id,
       processor:  p.processor ?? 'unknown',
       amount:     p.amount ?? 0,
@@ -149,14 +164,14 @@ export async function GET(req: NextRequest) {
       region:     p.region ?? null,
     }))
 
-    // ── Summary — paid orders only ────────────────────────────────────────────
-    const paidOrders   = orders.filter(o => o.status === 'succeeded' || o.status === 'paid')
-    const totalPaid    = paidOrders.reduce((sum, o) => sum + (o.amount ?? 0), 0)
-    const primaryCurr  = orders[0]?.currency ?? 'NGN'
+    // ── Summary — succeeded/paid orders only ──────────────────────────────────
+    const paidOrders    = orders.filter(o => o.status === 'succeeded' || o.status === 'paid')
+    const totalPaid     = paidOrders.reduce((sum, o) => sum + (o.amount ?? 0), 0)
+    const primaryCurr   = orders[0]?.currency ?? 'NGN'
     const primarySymbol = CURRENCY_SYMBOLS[primaryCurr] ?? primaryCurr
 
     const summary = {
-      total_orders: orders.length,
+      total_orders: paidOrders.length,   // only count confirmed paid orders
       total_paid:   totalPaid,
       currency:     primaryCurr,
       symbol:       primarySymbol,
