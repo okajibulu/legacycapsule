@@ -41,6 +41,8 @@ import ServicesTab from '@/components/manage/ServicesTab'
 import EventMomentsManager from '@/components/manage/EventMomentsManager'
 import TierUpgradePanel   from '@/components/manage/TierUpgradePanel'
 import SettingsSubTabs, { type SettingsSubTab } from '@/components/manage/settings/SettingsSubTabs'
+import FamilyRepFullAccessPanel from '@/components/manage/settings/FamilyRepFullAccessPanel'
+import OrganizerUpgradePanel   from '@/components/manage/settings/OrganizerUpgradePanel'
 import FamilyRepElderInvite from '@/components/manage/settings/FamilyRepElderInvite'
 import FamilyRepElderCard, { type FamilyRepElderAccount } from '@/components/manage/settings/FamilyRepElderCard'
 import HeroPositionPicker from '@/components/HeroPositionPicker'
@@ -2408,6 +2410,28 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
                     />
                   </SectionCard>
 
+{/* ── Family Rep Full Access ── */}
+                  <SectionCard title="Family Rep Full Access" subtitle="The most capable family account — full dashboard access plus tribute responses">
+                    <FamilyRepFullAccessPanel
+                      capsuleId={capsule.id}
+                      capsuleSlug={capsule.slug}
+                      honoureeName={capsule.honouree_name}
+                    />
+                  </SectionCard>
+
+                  {/* ── Organiser self-upgrade ── */}
+                  {!(capsule as any).organiser_upgraded_to_full_access && (
+                    <SectionCard title="Upgrade Your Own Account" subtitle="Take on Full Access yourself if you are also the family lead">
+                      <OrganizerUpgradePanel
+                        capsuleId={capsule.id}
+                        capsuleSlug={capsule.slug}
+                        honoureeName={capsule.honouree_name}
+                        organiserEmail={visitorEmail}
+                        onUpgraded={fetchAll}
+                      />
+                    </SectionCard>
+                  )}
+                  
                   {/* ── Co-admin placeholder ── */}
                   <SectionCard title="Co-Admin Accounts" subtitle="Grant scoped access to coordinators and service operators">
                     <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.7, fontStyle: 'italic' }}>
