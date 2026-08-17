@@ -10,7 +10,7 @@
 // BUILT BY:  AI16 · Claude Opus 4.6
 // VERSION:   v2.11.40
 // DATE:      3 August 2026
-// ============================================================
+// ==========================================================
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@supabase/supabase-js'
