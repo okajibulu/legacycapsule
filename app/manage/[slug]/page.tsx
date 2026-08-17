@@ -40,6 +40,7 @@ import OrderHistoryPanel   from '@/components/manage/OrderHistoryPanel'
 import ServicesTab from '@/components/manage/ServicesTab'
 import EventMomentsManager from '@/components/manage/EventMomentsManager'
 import TierUpgradePanel   from '@/components/manage/TierUpgradePanel'
+import SettingsSubTabs, { type SettingsSubTab } from '@/components/manage/settings/SettingsSubTabs'
 import HeroPositionPicker from '@/components/HeroPositionPicker'
 
 interface Capsule {
@@ -1748,6 +1749,7 @@ export default function ManagePage() {
 const [heroUploading, setHeroUploading] = useState(false)
   const [heroImage, setHeroImage] = useState<string | null>(null)
   const [showHeroPicker, setShowHeroPicker] = useState(false)
+  const [settingsTab, setSettingsTab] = useState<SettingsSubTab>('capsule')
   const heroPhotoRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -1838,19 +1840,20 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
   }
   const handleDecline = async (id: string) => { await supabase.from('contributions').delete().eq('id', id); fetchAll() }
  const handleStoryApprove = async (id: string) => {
-    await supabase.from('community_stories').update({ status: 'approved' }).eq('id', id)
+    await supabase.from('contributions').update({ status: 'approved' }).eq('id', id)
     fetchAll()
   }
   const handleStoryDecline = async (id: string) => {
-    await supabase.from('community_stories').delete().eq('id', id)
+    await supabase.from('contributions').delete().eq('id', id)
     fetchAll()
   }
   const handleStoryDelete = async (id: string) => {
-    await supabase.from('community_stories').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+    await supabase.from('contributions').update({ deleted_at: new Date().toISOString() }).eq('id', id)
     fetchAll()
   }
   const handleStoryEdit = async (id: string, text: string) => {
-    await supabase.from('community_stories').update({ story_text: text }).eq('id', id)
+    // tribute_text is the column — contributions table stores text there
+    await supabase.from('contributions').update({ tribute_text: text }).eq('id', id)
     fetchAll()
   }
  const handleToggleFlag = async (id: string, field: string, current: boolean) => {
@@ -2269,66 +2272,107 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
             />
           )}
 
-          {/* -- SETTINGS TAB -- */}
+{/* -- SETTINGS TAB — sub-tabbed ── */}
           {activeTab === 'settings' && (
             <div>
-              <SectionCard title="Capsule Details">
-                <EditField label="Display Name" value={capsule.honouree_name} placeholder="Name as it appears on the tribute wall" onSave={async val => { await updateCapsule({ honouree_name: val }) }} />
-                <EditField label="Honouree Title" value={capsule.honouree_title ?? ''} placeholder="e.g. Dr · Chief · Pastor · Prof (optional)" hint="Displayed beneath the name on the tribute wall." onSave={async val => { await updateCapsule({ honouree_title: val }) }} />
-                <EditField label="Event Tag" value={capsule.event_tag ?? ''} placeholder="e.g. United In Love · 35 Years of Excellence" hint="Subtitle shown beneath the name on the tribute wall." onSave={async val => { await updateCapsule({ event_tag: val }) }} />
-                <EditField label="Event Date" value={capsule.event_date ?? ''} type="date" hint="Used for the days-to-event countdown." onSave={async val => { await updateCapsule({ event_date: val }) }} />
-                <EditField label="Capsule URL" value={capsule.slug} placeholder="your-capsule-slug" hint={`Your link: itslegacycapsule.com/for/${capsule.slug}`} onSave={async val => { const clean = val.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'); await updateCapsule({ slug: clean }) }} />
-              </SectionCard>
+              <SettingsSubTabs
+                active={settingsTab}
+                onChange={setSettingsTab}
+                canSeeActivity={true}
+              />
 
-              <SectionCard title="Tribute Notifications" subtitle="Get notified when new tributes arrive for review">
-                <NotificationSettings
-                  capsuleId={capsule.id}
-                  currentFrequency={(capsule as any).notification_frequency ?? null}
-                  eventDate={capsule.event_date}
-                  onSaved={fetchAll}
-                />
-              </SectionCard>
+              {/* ── SUB-TAB: CAPSULE ── */}
+              {settingsTab === 'capsule' && (
+                <div>
+                  <SectionCard title="Capsule Details">
+                    <EditField label="Display Name" value={capsule.honouree_name} placeholder="Name as it appears on the tribute wall" onSave={async val => { await updateCapsule({ honouree_name: val }) }} />
+                    <EditField label="Honouree Title" value={capsule.honouree_title ?? ''} placeholder="e.g. Dr · Chief · Pastor · Prof (optional)" hint="Displayed beneath the name on the tribute wall." onSave={async val => { await updateCapsule({ honouree_title: val }) }} />
+                    <EditField label="Event Tag" value={capsule.event_tag ?? ''} placeholder="e.g. United In Love · 35 Years of Excellence" hint="Subtitle shown beneath the name on the tribute wall." onSave={async val => { await updateCapsule({ event_tag: val }) }} />
+                    <EditField label="Event Date" value={capsule.event_date ?? ''} type="date" hint="Used for the days-to-event countdown." onSave={async val => { await updateCapsule({ event_date: val }) }} />
+                    <EditField label="Capsule URL" value={capsule.slug} placeholder="your-capsule-slug" hint={`Your link: itslegacycapsule.com/for/${capsule.slug}`} onSave={async val => { const clean = val.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'); await updateCapsule({ slug: clean }) }} />
+                  </SectionCard>
 
-              <SectionCard title="Visual Style" subtitle="Choose the mood for your capsule">
-                <StylePicker currentTheme={capsule.theme} eventType={capsule.event_type} onSave={async (key) => { await updateCapsule({ theme: key }) }} />
-              </SectionCard>
+                  <SectionCard title="Visual Style" subtitle="Choose the mood for your capsule">
+                    <StylePicker currentTheme={capsule.theme} eventType={capsule.event_type} onSave={async (key) => { await updateCapsule({ theme: key }) }} />
+                  </SectionCard>
 
-              <SectionCard title="Family Representative" subtitle="Private portal access for the honouree or trusted family member">
-                <FamilyRepSection
-                  capsuleId={capsule.id}
-                  slug={capsule.slug}
-                  initialName={(capsule as any).family_rep_name ?? ''}
-                  initialEmail={(capsule as any).family_rep_email ?? ''}
-                  sentAt={(capsule as any).rep_portal_sent_at ?? null}
-                  onSaved={fetchAll}
-                />
-              </SectionCard>
-
-{/* Capsule Reveal decommissioned -- Family Rep Portal covers this use case with multi-access support */}
-
-              
-
-              <div id="upgrade-form" style={{ borderRadius: '16px', overflow: 'hidden', border: `1px solid rgba(226,195,107,0.18)`, background: 'linear-gradient(145deg, rgba(226,195,107,0.05), rgba(255,255,255,0.02))', marginBottom: '14px' }}>
-                <div style={{ height: '2px', background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.55), transparent)' }} />
-                <div style={{ padding: '20px 18px' }}>
-                  <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '17px', fontWeight: 700, color: gold, marginBottom: '8px' }}>Add Services to Your Capsule</h3>
-                  <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.7, marginBottom: '16px' }}>
-                    Voice tributes, video messages, guest management, digital publication, attire coordination -- add what your event needs, directly from your Services tab. No need to contact us.
-                  </p>
-                  <button
-                    onClick={() => setActiveTab('services')}
-                    style={{ padding: '10px 20px', borderRadius: '10px', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '13px', fontWeight: 700, border: 'none', cursor: 'pointer' }}
-                  >
-                    Go to Services →
-                  </button>
+                  {/* ── Danger Zone ── */}
+                  <DeleteAccountSection email={visitorEmail} slug={slug} capsuleId={capsule?.id ?? ''} />
                 </div>
-              </div>
+              )}
 
-              <SectionCard title="Order History" subtitle="Services purchased for this capsule">
-                <OrderHistoryPanel capsuleId={capsule.id} />
-              </SectionCard>
+              {/* ── SUB-TAB: NOTIFICATIONS ── */}
+              {settingsTab === 'notifications' && (
+                <div>
+                  <SectionCard title="Tribute Notifications" subtitle="Get notified when new voices arrive for review">
+                    <NotificationSettings
+                      capsuleId={capsule.id}
+                      currentFrequency={(capsule as any).notification_frequency ?? null}
+                      eventDate={capsule.event_date}
+                      onSaved={fetchAll}
+                    />
+                  </SectionCard>
+                </div>
+              )}
 
-              <DeleteAccountSection email={visitorEmail} slug={slug} capsuleId={capsule?.id ?? ''} />
+              {/* ── SUB-TAB: TEAM ── */}
+              {settingsTab === 'team' && (
+                <div>
+                  <SectionCard title="Family Representative" subtitle="Private portal access for the honouree or trusted family member">
+                    <FamilyRepSection
+                      capsuleId={capsule.id}
+                      slug={capsule.slug}
+                      initialName={(capsule as any).family_rep_name ?? ''}
+                      initialEmail={(capsule as any).family_rep_email ?? ''}
+                      sentAt={(capsule as any).rep_portal_sent_at ?? null}
+                      onSaved={fetchAll}
+                    />
+                  </SectionCard>
+                  {/* ── Co-admin accounts — placeholder until TeamTab component is built (CA-SPEC-001 Step 5+) ── */}
+                  <SectionCard title="Co-Admin Accounts" subtitle="Grant scoped access to coordinators and service operators">
+                    <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.7, fontStyle: 'italic' }}>
+                      Co-admin accounts are coming in the next update. You will be able to invite coordinators and grant them access to specific parts of your capsule — gift collection, guest management, display control, and more.
+                    </p>
+                  </SectionCard>
+                </div>
+              )}
+
+              {/* ── SUB-TAB: ORDERS ── */}
+              {settingsTab === 'orders' && (
+                <div>
+                  <div id="upgrade-form" style={{ borderRadius: '16px', overflow: 'hidden', border: `1px solid rgba(226,195,107,0.18)`, background: 'linear-gradient(145deg, rgba(226,195,107,0.05), rgba(255,255,255,0.02))', marginBottom: '14px' }}>
+                    <div style={{ height: '2px', background: 'linear-gradient(to right, transparent, rgba(226,195,107,0.55), transparent)' }} />
+                    <div style={{ padding: '20px 18px' }}>
+                      <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '17px', fontWeight: 700, color: gold, marginBottom: '8px' }}>Add Services to Your Capsule</h3>
+                      <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.7, marginBottom: '16px' }}>
+                        Voice tributes, video messages, guest management, digital publication, attire coordination — add what your event needs, directly from your Services tab.
+                      </p>
+                      <button
+                        onClick={() => setActiveTab('services')}
+                        style={{ padding: '10px 20px', borderRadius: '10px', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '13px', fontWeight: 700, border: 'none', cursor: 'pointer' }}
+                      >
+                        Go to Services →
+                      </button>
+                    </div>
+                  </div>
+                  <SectionCard title="Order History" subtitle="Services purchased for this capsule">
+                    <OrderHistoryPanel capsuleId={capsule.id} />
+                  </SectionCard>
+                </div>
+              )}
+
+              {/* ── SUB-TAB: ACTIVITY LOG ── */}
+              {/* Placeholder until ActivityLogTab is built (CA-SPEC-001 Step 13) */}
+              {settingsTab === 'activity' && (
+                <div>
+                  <SectionCard title="Activity Log" subtitle="A record of every action taken in this capsule dashboard">
+                    <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.7, fontStyle: 'italic' }}>
+                      The activity log is coming in the next update. Every action taken by you or any co-admin will be recorded here with a full audit trail.
+                    </p>
+                  </SectionCard>
+                </div>
+              )}
+
             </div>
           )}
         </div>
