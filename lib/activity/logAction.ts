@@ -1,4 +1,4 @@
-// ─────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────
 // FILE PATH: lib/activity/logAction.ts
 // PURPOSE:   Shared utility for writing to capsule_activity_log.
 //            Called by every API route that performs a logged action.
@@ -12,7 +12,7 @@
 // BUILT BY:  AI21 · Claude Opus 4.6
 // VERSION:   AI21v2.12.09
 // DATE:      16 August 2026
-// ─────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────
 
 import { createClient } from '@supabase/supabase-js'
 
