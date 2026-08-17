@@ -2396,22 +2396,7 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
                   </SectionCard>
                 </div>
               )}
-                      capsuleId={capsule.id}
-                      slug={capsule.slug}
-                      initialName={(capsule as any).family_rep_name ?? ''}
-                      initialEmail={(capsule as any).family_rep_email ?? ''}
-                      sentAt={(capsule as any).rep_portal_sent_at ?? null}
-                      onSaved={fetchAll}
-                    />
-                  </SectionCard>
-                  {/* ── Co-admin accounts — placeholder until TeamTab component is built (CA-SPEC-001 Step 5+) ── */}
-                  <SectionCard title="Co-Admin Accounts" subtitle="Grant scoped access to coordinators and service operators">
-                    <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.7, fontStyle: 'italic' }}>
-                      Co-admin accounts are coming in the next update. You will be able to invite coordinators and grant them access to specific parts of your capsule — gift collection, guest management, display control, and more.
-                    </p>
-                  </SectionCard>
-                </div>
-              )}
+                       
 
               {/* ── SUB-TAB: ORDERS ── */}
               {settingsTab === 'orders' && (
