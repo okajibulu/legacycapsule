@@ -1882,12 +1882,32 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
   const expiryDate = firstTributeAt ? new Date(new Date(firstTributeAt).getTime() + 90 * 86400000) : null
   const days = expiryDate && hasFirstTribute ? Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / 86400000)) : null
 
-  const handleApprove = async (id: string) => {
-    await supabase.from('contributions').update({ status: 'approved' }).eq('id', id)
-    fetch('/api/email/approval', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contributionId: id }) }).catch(() => {})
+   const handleApprove = async (id: string) => {
+    await fetch('/api/contributions/approve', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        contribution_id: id,
+        capsule_id:      capsule?.id,
+        actor_name:      'Organiser',
+        actor_email:     visitorEmail,
+      }),
+    })
     fetchAll()
   }
-  const handleDecline = async (id: string) => { await supabase.from('contributions').delete().eq('id', id); fetchAll() }
+  const handleDecline = async (id: string) => {
+    await fetch('/api/contributions/reject', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        contribution_id: id,
+        capsule_id:      capsule?.id,
+        actor_name:      'Organiser',
+        actor_email:     visitorEmail,
+      }),
+    })
+    fetchAll()
+  }
  const handleStoryApprove = async (id: string) => {
     await supabase.from('contributions').update({ status: 'approved' }).eq('id', id)
     fetchAll()
