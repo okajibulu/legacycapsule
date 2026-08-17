@@ -29,6 +29,12 @@
 //            — Step 14: updateCapsule → /api/capsule/update (with logAction)
 //            — All three now server-side with full activity log coverage
 // 
+// UPDATED:   AI21 · Claude Opus 4.6 · 16 August 2026 (v2.12.15)
+//            — AccountDetailsSection added to Capsule settings sub-tab
+//            — AdminLoginPanel added — password login slides over magic link
+//            — /api/team/verify route — email + password → session cookie
+//            — showPasswordLogin state added
+// 
 // ============================================================
 // SECTIONS:
 //   See sub-section headers (// === SECTION N) within file
@@ -53,6 +59,8 @@ import OrganizerUpgradePanel   from '@/components/manage/settings/OrganizerUpgra
 import CoadminInvite   from '@/components/manage/settings/CoadminInvite'
 import CoadminCard, { type CoadminAccount } from '@/components/manage/settings/CoadminCard'
 import ActivityLogTab  from '@/components/manage/settings/ActivityLogTab'
+import AdminLoginPanel       from '@/components/manage/AdminLoginPanel'
+import AccountDetailsSection from '@/components/manage/settings/AccountDetailsSection'
 import FamilyRepElderInvite from '@/components/manage/settings/FamilyRepElderInvite'
 import FamilyRepElderCard, { type FamilyRepElderAccount } from '@/components/manage/settings/FamilyRepElderCard'
 import HeroPositionPicker from '@/components/HeroPositionPicker'
@@ -1861,6 +1869,7 @@ const [heroUploading, setHeroUploading] = useState(false)
   const [heroImage, setHeroImage] = useState<string | null>(null)
   const [showHeroPicker, setShowHeroPicker] = useState(false)
   const [settingsTab, setSettingsTab] = useState<SettingsSubTab>('capsule')
+ const [showPasswordLogin, setShowPasswordLogin] = useState(false)
   const heroPhotoRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -2052,13 +2061,34 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
 
   if (!visitorEmail) return (
     <div style={{ minHeight: '100vh', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', flexDirection: 'column', gap: '20px', textAlign: 'center', fontFamily: "'DM Sans', sans-serif" }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } } * { box-sizing: border-box; } body { margin: 0; }`}</style>
+
       <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: goldFaint, border: `1px solid rgba(226,195,107,0.22)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>◈</div>
-      <div>
-        <p style={{ fontSize: '18px', fontWeight: 700, color: textPrimary, marginBottom: '8px', fontFamily: "'Playfair Display', serif" }}>Welcome back</p>
-        <p style={{ fontSize: '14px', color: textFaint, maxWidth: '280px', lineHeight: 1.65 }}>Sign in to access your capsule dashboard for <strong style={{ color: goldMuted }}>{capsule.honouree_name}</strong>.</p>
-      </div>
-      <Link href="/signin" style={{ padding: '12px 28px', borderRadius: '12px', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '14px', fontWeight: 700, textDecoration: 'none', letterSpacing: '0.04em' }}>Sign In →</Link>
-      <Link href={`/for/${slug}`} style={{ fontSize: '13px', color: goldMuted, textDecoration: 'none' }}>View the tribute wall instead</Link>
+
+      {showPasswordLogin ? (
+        /* ── Password login panel — slides over magic link ── */
+        <AdminLoginPanel
+          capsuleSlug={slug}
+          honoureeName={capsule.honouree_name}
+          onBack={() => setShowPasswordLogin(false)}
+        />
+      ) : (
+        /* ── Magic link panel ── */
+        <>
+          <div>
+            <p style={{ fontSize: '18px', fontWeight: 700, color: textPrimary, marginBottom: '8px', fontFamily: "'Playfair Display', serif" }}>Welcome back</p>
+            <p style={{ fontSize: '14px', color: textFaint, maxWidth: '280px', lineHeight: 1.65 }}>Sign in to access your capsule dashboard for <strong style={{ color: goldMuted }}>{capsule.honouree_name}</strong>.</p>
+          </div>
+          <Link href="/signin" style={{ padding: '12px 28px', borderRadius: '12px', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '14px', fontWeight: 700, textDecoration: 'none', letterSpacing: '0.04em' }}>Sign In with Magic Link →</Link>
+          <button
+            onClick={() => setShowPasswordLogin(true)}
+            style={{ fontSize: '13px', color: goldMuted, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+          >
+            Sign in with password instead
+          </button>
+          <Link href={`/for/${slug}`} style={{ fontSize: '13px', color: textFaint, textDecoration: 'none' }}>View the tribute wall instead</Link>
+        </>
+      )}
     </div>
   )
 
@@ -2454,7 +2484,16 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
                   </SectionCard>
 
                   {/* ── Danger Zone ── */}
-                  <DeleteAccountSection email={visitorEmail} slug={slug} capsuleId={capsule?.id ?? ''} />
+                {/* ── My Account section ── */}
+                  <AccountDetailsSection
+                    capsuleId={capsule.id}
+                    accountType="organiser"
+                    accountName={visitorEmail}
+                    accountEmail={visitorEmail}
+                    permissions={[]}
+                  />
+                  
+                    <DeleteAccountSection email={visitorEmail} slug={slug} capsuleId={capsule?.id ?? ''} />
                 </div>
               )}
 
