@@ -1925,12 +1925,12 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
             <p style={{ fontSize: '18px', fontWeight: 700, color: textPrimary, marginBottom: '8px', fontFamily: "'Playfair Display', serif" }}>Welcome back</p>
             <p style={{ fontSize: '14px', color: textFaint, maxWidth: '280px', lineHeight: 1.65 }}>Sign in to access your capsule dashboard for <strong style={{ color: goldMuted }}>{capsule.honouree_name}</strong>.</p>
           </div>
-          <Link href="/signin" style={{ padding: '12px 28px', borderRadius: '12px', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '14px', fontWeight: 700, textDecoration: 'none', letterSpacing: '0.04em' }}>Sign In with Magic Link →</Link>
+          <Link href="/signin" style={{ padding: '12px 28px', borderRadius: '12px', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '14px', fontWeight: 700, textDecoration: 'none', letterSpacing: '0.04em' }}>Email me a sign-in link →</Link>
           <button
             onClick={() => setShowPasswordLogin(true)}
-            style={{ fontSize: '13px', color: goldMuted, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+            style={{ fontSize: '11px', color: textFaint, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', letterSpacing: '0.04em' }}
           >
-            Sign in with password instead
+            Admin Login
           </button>
           <Link href={`/for/${slug}`} style={{ fontSize: '13px', color: textFaint, textDecoration: 'none' }}>View the tribute wall instead</Link>
         </>
