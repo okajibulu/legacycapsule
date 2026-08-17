@@ -41,6 +41,8 @@ import ServicesTab from '@/components/manage/ServicesTab'
 import EventMomentsManager from '@/components/manage/EventMomentsManager'
 import TierUpgradePanel   from '@/components/manage/TierUpgradePanel'
 import SettingsSubTabs, { type SettingsSubTab } from '@/components/manage/settings/SettingsSubTabs'
+import FamilyRepElderInvite from '@/components/manage/settings/FamilyRepElderInvite'
+import FamilyRepElderCard, { type FamilyRepElderAccount } from '@/components/manage/settings/FamilyRepElderCard'
 import HeroPositionPicker from '@/components/HeroPositionPicker'
 
 interface Capsule {
@@ -774,6 +776,53 @@ function UpgradeCard({ capsuleName }: { capsuleName: string }) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+/* -- FAMILY REP ELDER SECTION -------------------------------- */
+function FamilyRepElderSection({ capsuleId, capsuleSlug, honoureeName }: {
+  capsuleId: string; capsuleSlug: string; honoureeName: string
+}) {
+  const [elders, setElders] = useState<FamilyRepElderAccount[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchElders = async () => {
+    try {
+      const { data } = await supabase
+        .from('capsule_accounts')
+        .select('id, name, email, invite_sent_at, invite_used_at, last_active_at, is_active')
+        .eq('capsule_id', capsuleId)
+        .eq('account_type', 'family_rep_elder')
+        .eq('is_active', true)
+        .order('created_at', { ascending: true })
+      setElders(data ?? [])
+    } catch {}
+    setLoading(false)
+  }
+
+  useEffect(() => { fetchElders() }, [capsuleId])
+
+  if (loading) return <p style={{ fontSize: '12px', color: textFaint }}>Loading…</p>
+
+  return (
+    <div>
+      <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.7, marginBottom: '14px' }}>
+        Family Rep Elders receive a private link to view and respond to all voices, acknowledgements, and set the Family Appreciation message on behalf of the family.
+      </p>
+      {elders.map(elder => (
+        <FamilyRepElderCard
+          key={elder.id}
+          account={elder}
+          onRevoke={() => fetchElders()}
+          onResend={() => fetchElders()}
+        />
+      ))}
+      <FamilyRepElderInvite
+        capsuleId={capsuleId}
+        capsuleSlug={capsuleSlug}
+        honoureeName={honoureeName}
+        onInvited={fetchElders}
+      />
     </div>
   )
 }
@@ -2318,8 +2367,35 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
               {/* ── SUB-TAB: TEAM ── */}
               {settingsTab === 'team' && (
                 <div>
-                  <SectionCard title="Family Representative" subtitle="Private portal access for the honouree or trusted family member">
+                  {/* ── Legacy Family Rep (existing honouree portal) ── */}
+                  <SectionCard title="Family Representative" subtitle="Original private portal — existing link-based access">
                     <FamilyRepSection
+                      capsuleId={capsule.id}
+                      slug={capsule.slug}
+                      initialName={(capsule as any).family_rep_name ?? ''}
+                      initialEmail={(capsule as any).family_rep_email ?? ''}
+                      sentAt={(capsule as any).rep_portal_sent_at ?? null}
+                      onSaved={fetchAll}
+                    />
+                  </SectionCard>
+
+                  {/* ── Family Rep Elder accounts (new system) ── */}
+                  <SectionCard title="Family Rep Elders" subtitle="Private portal access — can respond to voices and acknowledgements">
+                    <FamilyRepElderSection
+                      capsuleId={capsule.id}
+                      capsuleSlug={capsule.slug}
+                      honoureeName={capsule.honouree_name}
+                    />
+                  </SectionCard>
+
+                  {/* ── Co-admin placeholder ── */}
+                  <SectionCard title="Co-Admin Accounts" subtitle="Grant scoped access to coordinators and service operators">
+                    <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.7, fontStyle: 'italic' }}>
+                      Co-admin accounts are coming in the next update. You will be able to invite coordinators and grant them access to specific parts of your capsule — gift collection, guest management, display control, and more.
+                    </p>
+                  </SectionCard>
+                </div>
+              )}
                       capsuleId={capsule.id}
                       slug={capsule.slug}
                       initialName={(capsule as any).family_rep_name ?? ''}
