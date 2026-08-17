@@ -43,6 +43,9 @@ import TierUpgradePanel   from '@/components/manage/TierUpgradePanel'
 import SettingsSubTabs, { type SettingsSubTab } from '@/components/manage/settings/SettingsSubTabs'
 import FamilyRepFullAccessPanel from '@/components/manage/settings/FamilyRepFullAccessPanel'
 import OrganizerUpgradePanel   from '@/components/manage/settings/OrganizerUpgradePanel'
+import CoadminInvite   from '@/components/manage/settings/CoadminInvite'
+import CoadminCard, { type CoadminAccount } from '@/components/manage/settings/CoadminCard'
+import ActivityLogTab  from '@/components/manage/settings/ActivityLogTab'
 import FamilyRepElderInvite from '@/components/manage/settings/FamilyRepElderInvite'
 import FamilyRepElderCard, { type FamilyRepElderAccount } from '@/components/manage/settings/FamilyRepElderCard'
 import HeroPositionPicker from '@/components/HeroPositionPicker'
@@ -824,6 +827,56 @@ function FamilyRepElderSection({ capsuleId, capsuleSlug, honoureeName }: {
         capsuleSlug={capsuleSlug}
         honoureeName={honoureeName}
         onInvited={fetchElders}
+      />
+    </div>
+  )
+}
+
+/* -- COADMIN SECTION ------------------------------------ */
+function CoadminSection({ capsuleId, capsuleSlug, honoureeName }: {
+  capsuleId: string; capsuleSlug: string; honoureeName: string
+}) {
+  const [accounts, setAccounts] = useState<CoadminAccount[]>([])
+  const [loading,  setLoading]  = useState(true)
+
+  const fetchAccounts = async () => {
+    try {
+      const res  = await fetch(`/api/team/accounts?capsule_id=${capsuleId}&type=coadmin`)
+      const data = await res.json()
+      // Enrich with permissions
+      const enriched = await Promise.all((data.accounts ?? []).map(async (acc: any) => {
+        const permRes  = await fetch(`/api/team/permissions?account_id=${acc.id}`)
+        const permData = await permRes.json()
+        return { ...acc, permissions: permData.permissions ?? [] }
+      }))
+      setAccounts(enriched)
+    } catch {}
+    setLoading(false)
+  }
+
+  useEffect(() => { fetchAccounts() }, [capsuleId])
+
+  if (loading) return <p style={{ fontSize: '12px', color: textFaint }}>Loading…</p>
+
+  return (
+    <div>
+      <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.7, marginBottom: '14px' }}>
+        Coordinators get access only to the specific areas you choose — they never see your full dashboard. Each one receives a personal login link by email.
+      </p>
+      {accounts.map(acc => (
+        <CoadminCard
+          key={acc.id}
+          account={acc}
+          onRevoke={() => fetchAccounts()}
+          onResend={() => fetchAccounts()}
+          onUpdated={() => fetchAccounts()}
+        />
+      ))}
+      <CoadminInvite
+        capsuleId={capsuleId}
+        capsuleSlug={capsuleSlug}
+        honoureeName={honoureeName}
+        onInvited={fetchAccounts}
       />
     </div>
   )
@@ -2431,12 +2484,13 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
                       />
                     </SectionCard>
                   )}
-                  
-                  {/* ── Co-admin placeholder ── */}
-                  <SectionCard title="Co-Admin Accounts" subtitle="Grant scoped access to coordinators and service operators">
-                    <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.7, fontStyle: 'italic' }}>
-                      Co-admin accounts are coming in the next update. You will be able to invite coordinators and grant them access to specific parts of your capsule — gift collection, guest management, display control, and more.
-                    </p>
+
+                  <SectionCard title="Coordinators" subtitle="Grant specific access to coordinators and service operators">
+                    <CoadminSection
+                      capsuleId={capsule.id}
+                      capsuleSlug={capsule.slug}
+                      honoureeName={capsule.honouree_name}
+                    />
                   </SectionCard>
                 </div>
               )}
@@ -2470,11 +2524,7 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
               {/* Placeholder until ActivityLogTab is built (CA-SPEC-001 Step 13) */}
               {settingsTab === 'activity' && (
                 <div>
-                  <SectionCard title="Activity Log" subtitle="A record of every action taken in this capsule dashboard">
-                    <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.7, fontStyle: 'italic' }}>
-                      The activity log is coming in the next update. Every action taken by you or any co-admin will be recorded here with a full audit trail.
-                    </p>
-                  </SectionCard>
+                  <ActivityLogTab capsuleId={capsule.id} />
                 </div>
               )}
 
