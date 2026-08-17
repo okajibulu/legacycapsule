@@ -22,6 +22,13 @@
 //            — UX: Share section copy — ECS-compliant, honouree name included
 //            — UX: Capsule Services subtitle updated (no longer says "contact us")
 //            — storiesRes mapping: tribute_text → story_text field alias corrected
+
+// UPDATED:   AI21 · Claude Opus 4.6 · 16 August 2026 (v2.12.14)
+//            — Step 14: handleStoryApprove/Decline/Delete/Edit → /api/stories/action
+//            — Step 14: handleToggleFlag → /api/contributions/toggle-flag
+//            — Step 14: updateCapsule → /api/capsule/update (with logAction)
+//            — All three now server-side with full activity log coverage
+// 
 // ============================================================
 // SECTIONS:
 //   See sub-section headers (// === SECTION N) within file
@@ -1963,30 +1970,56 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
     })
     fetchAll()
   }
- const handleStoryApprove = async (id: string) => {
-    await supabase.from('contributions').update({ status: 'approved' }).eq('id', id)
+ const storyAction = async (action: string, id: string, text?: string) => {
+    await fetch('/api/stories/action', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        action,
+        story_id:    id,
+        capsule_id:  capsule?.id,
+        text,
+        actor_name:  'Organiser',
+        actor_email: visitorEmail,
+      }),
+    })
     fetchAll()
   }
-  const handleStoryDecline = async (id: string) => {
-    await supabase.from('contributions').delete().eq('id', id)
-    fetchAll()
-  }
-  const handleStoryDelete = async (id: string) => {
-    await supabase.from('contributions').update({ deleted_at: new Date().toISOString() }).eq('id', id)
-    fetchAll()
-  }
-  const handleStoryEdit = async (id: string, text: string) => {
-    // tribute_text is the column — contributions table stores text there
-    await supabase.from('contributions').update({ tribute_text: text }).eq('id', id)
-    fetchAll()
-  }
+  const handleStoryApprove = (id: string) => storyAction('approve', id)
+  const handleStoryDecline = (id: string) => storyAction('decline', id)
+  const handleStoryDelete  = (id: string) => storyAction('delete',  id)
+  const handleStoryEdit    = (id: string, text: string) => storyAction('edit', id, text)
  const handleToggleFlag = async (id: string, field: string, current: boolean) => {
-    await supabase.from('contributions').update({ [field]: !current }).eq('id', id)
+    await fetch('/api/contributions/toggle-flag', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        contribution_id: id,
+        capsule_id:      capsule?.id,
+        field,
+        current_value:   current,
+        actor_name:      'Organiser',
+        actor_email:     visitorEmail,
+      }),
+    })
     fetchAll()
   }
 
   const handleCopy = async () => { await navigator.clipboard.writeText(capsuleUrl); setCopied(true); setTimeout(() => setCopied(false), 2000) }
-  const updateCapsule = async (fields: Partial<Capsule>) => { if (!capsule) return; await supabase.from('capsules').update(fields).eq('id', capsule.id); fetchAll() }
+  const updateCapsule = async (fields: Partial<Capsule>) => {
+    if (!capsule) return
+    await fetch('/api/capsule/update', {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        capsule_id:  capsule.id,
+        fields,
+        actor_name:  'Organiser',
+        actor_email: visitorEmail,
+      }),
+    })
+    fetchAll()
+  }
 
   const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]; if (!f || !capsule) return; setHeroUploading(true)
