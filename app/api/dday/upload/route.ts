@@ -44,7 +44,6 @@ interface CompressResult {
   buffer:       Buffer
   width_px:     number
   height_px:    number
-  aspect_ratio: number
 }
 
 async function compressImage(buffer: Buffer, mimeType: string): Promise<CompressResult> {
@@ -65,9 +64,7 @@ const pipeline = sharp(buffer).rotate().resize({
   const meta         = await sharp(outBuffer).metadata()
   const width_px     = meta.width  ?? 0
   const height_px    = meta.height ?? 0
-  const aspect_ratio = height_px > 0 ? Math.round((width_px / height_px) * 1000) / 1000 : 1
-
-  return { buffer: outBuffer, width_px, height_px, aspect_ratio }
+ return { buffer: outBuffer, width_px, height_px }
 }
 
 // ═══ SECTION 4 — Device fingerprint ═══
@@ -270,7 +267,7 @@ capsule_id: resolvedCapsuleId,
         storage_path:            storagePath,
         width_px:                compressed.width_px,
         height_px:               compressed.height_px,
-        aspect_ratio:            compressed.aspect_ratio,
+     
       })
       .select('id')
       .single()
