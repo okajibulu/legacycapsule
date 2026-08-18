@@ -142,28 +142,43 @@ export async function POST(req: NextRequest) {
       )
     }
 
-      // ── Fetch capsule — try by ID first, fall back to slug ────────────────
-    let { data: capsule } = await db
+      // ── Resolve capsule authoritatively from the D-Day slug ───────────────
+    // The URL slug is the canonical public identifier for this D-Day portal.
+    // Do not rely on a client-supplied capsule_id for capsule resolution.
+
+    if (!capsule_slug?.trim()) {
+      console.error('[dday/upload] Missing capsule slug')
+      return NextResponse.json(
+        { error: 'Capsule identifier missing' },
+        { status: 400 }
+      )
+    }
+
+    const { data: capsule, error: capsuleError } = await db
       .from('capsules')
-      .select('id, auto_approve_tributes, page_state')
-      .eq('id', capsule_id)
+      .select('id, page_state')
+      .eq('slug', capsule_slug.trim())
       .is('deleted_at', null)
       .maybeSingle()
 
-    if (!capsule && capsule_slug) {
-      const { data: capsuleBySlug } = await db
-        .from('capsules')
-        .select('id, auto_approve_tributes, page_state')
-        .eq('slug', capsule_slug)
-        .is('deleted_at', null)
-        .maybeSingle()
-      capsule = capsuleBySlug
+    if (capsuleError) {
+      console.error('[dday/upload] Capsule lookup error:', capsuleError)
+      return NextResponse.json(
+        { error: 'Unable to verify this event. Please try again.' },
+        { status: 500 }
+      )
     }
 
     if (!capsule) {
-      console.error('[dday/upload] Capsule not found — id:', capsule_id, 'slug:', capsule_slug)
-      return NextResponse.json({ error: 'Capsule not found' }, { status: 404 })
+      console.error('[dday/upload] Capsule not found — slug:', capsule_slug)
+      return NextResponse.json(
+        { error: 'Capsule not found' },
+        { status: 404 }
+      )
     }
+
+    // From this point onward, always use the server-resolved capsule ID.
+    const resolvedCapsuleId = capsule.id
     
 
 
@@ -182,7 +197,7 @@ export async function POST(req: NextRequest) {
     const { count: existingCount } = await db
       .from('gallery_items')
       .select('id', { count: 'exact', head: true })
-      .eq('capsule_id', capsule_id)
+      .eq('capsule_id', resolvedCapsuleId)
       .eq('source', 'dday')
       .eq('device_token', deviceToken)
       .eq('phase_id', phase_id ?? '')   // empty string if no phase — consistent match
@@ -210,7 +225,7 @@ export async function POST(req: NextRequest) {
 
     // ── Upload to Supabase Storage ────────────────────────────────────────
     const timestamp   = Date.now()
-    const storagePath = `${capsule_id}/dday/${timestamp}-${crypto.randomBytes(6).toString('hex')}.${outputExt}`
+    const storagePath = `${resolvedCapsuleId}/dday/${timestamp}-${crypto.randomBytes(6).toString('hex')}.${outputExt}`
 
     const supabaseUrl    = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -239,12 +254,12 @@ export async function POST(req: NextRequest) {
 
     // ── Insert gallery_items record ───────────────────────────────────────
     // device_token stored for 6-photo limit enforcement — not displayed publicly
-    const autoApprove = capsule.auto_approve_tributes ?? false
+    const autoApprove = false
 
     const { data: galleryItem, error: galleryError } = await db
       .from('gallery_items')
       .insert({
-capsule_id,
+capsule_id: resolvedCapsuleId,
         phase_id:                phase_id || null,
         image_url,
         caption:                 contributor_name.trim(),
