@@ -980,8 +980,19 @@ setFAudioUrl(null); setFVideoUrl(null); setFVideoThumb(null); setFConsent(false)
       <style>{`
         @keyframes goldPulse { 0%,100%{opacity:0;transform:scale(0.95)} 50%{opacity:0.4;transform:scale(1.05)} }
         .map-pulse{animation:goldPulse 3.5s ease-in-out infinite}
-        @keyframes composerSlide { from{max-height:0;opacity:0} to{max-height:600px;opacity:1} }
-        .composer-enter{animation:composerSlide 0.35s ease-out forwards}
+        @keyframes composerSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+        .composer-enter {
+  animation: composerSlide 0.35s ease-out forwards;
+}
       `}</style>
 
       {/* Premium unlock notice */}
@@ -1572,7 +1583,7 @@ background:
 
 ) : (
               /* Expanded — full form */
-              <div className="composer-enter" style={{ borderRadius: '18px', padding: '18px 16px', background: t.cardBg, border: `1px solid ${t.accentFaint}`, overflow: 'visible' }}>
+              <div className="composer-enter" style={{ borderRadius: '18px', padding: '18px 16px', background: t.cardBg, border: `1px solid ${t.accentFaint}`, overflow: 'hidden' }}>
                 {/* Close composer */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                   <span style={{ fontSize: '11px', color: t.accentMuted, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>{lang.cta}</span>
