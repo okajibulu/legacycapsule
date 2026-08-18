@@ -48,7 +48,7 @@ export default async function PhaseQRPrintPage({
   // ── Fetch phase ───────────────────────────────────────────────────────
   const { data: phase } = await db
     .from('capsule_phases')
-    .select('id, name, event_date, location, programme_summary')
+    .select('id, name, event_date')
     .eq('id', phaseId)
     .eq('capsule_id', capsule.id)
     .is('deleted_at', null)
@@ -64,9 +64,9 @@ export default async function PhaseQRPrintPage({
   return (
     <PhaseQRPrintClient
       phaseName={phase.name}
-      eventDate={phase.event_date}
-      location={phase.location ?? null}
-      programmeSummary={phase.programme_summary ?? null}
+      eventDate={phase.event_date ?? null}
+      location={null}
+      programmeSummary={null}
       honoureeName={capsule.honouree_name}
       eventTag={capsule.event_tag ?? null}
       capsuleSlug={slug}
