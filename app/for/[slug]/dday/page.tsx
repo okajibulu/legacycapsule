@@ -28,14 +28,16 @@
    ARCHITECTURE: LC02 Event Services Engine · D-Day Collection (LC-owned)
    BUILT BY: AI12 · Claude Opus 4.6 · 20 July 2026
    UPDATED: AI21 · Claude Opus 4.6 · 17 August 2026 (v2.12.16)
-             — Placeholders removed (name + email fields now empty)
-             — Email made mandatory (required for publication delivery)
-             — Note under email: "A copy of the event publication will be emailed to you."
-             — Top gold note shortened: "These memories will all be compiled into a publication at end of event!"
-             — Email mention removed from top note (handled under email field instead)
-             — Autocomplete fix applied to name + email fields (onBlur + autoComplete attr)
-             — Continue button gated on both name AND email valid
-             — Upload button disabled + visual feedback while uploading
+             — Placeholders removed, email mandatory, gold note shortened
+             — Autocomplete fix for name + email, upload button visual feedback
+   UPDATED: AI21 · Claude Opus 4.6 · 17 August 2026 (v2.12.17)
+             — Three window states: before / open / closed
+             — Pre-event screen: countdown to 6am WAT on event_date, phase info,
+               links to tribute wall / stories / profile
+             — Post-event screen: window closed message + capsule links
+             — Phase pre-selection from ?phase=[phaseId] URL param
+             — Countdown ticker updates every second
+             — Window open = 6am WAT (05:00 UTC) to +24hrs on event_date
 ========================================================= */
 
 import { useState, useEffect, useRef } from 'react'
@@ -60,10 +62,9 @@ interface CapsuleInfo {
 }
 
 interface UploadedPhoto {
-  id:              string
-  image_url:       string
-  caption:         string
-  uploaded_by_name: string
+  id:        string
+  image_url: string
+  caption:   string
 }
 
 type Step = 'identity' | 'phase' | 'upload' | 'done'
@@ -156,7 +157,7 @@ function PhotoThumb({
     <div style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', aspectRatio: '1', background: 'rgba(255,255,255,0.04)' }}>
       <img
         src={photo.image_url}
-        alt={photo.uploaded_by_name || 'Your event photo'}
+        alt={photo.caption}
         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
       />
       <button
@@ -176,11 +177,50 @@ function PhotoThumb({
   )
 }
 
-// ═══ SECTION 5 — Main component ═══
+// ═══ SECTION 5 — Window state helpers ═══
+// Upload window: 6am WAT (UTC+1 = 05:00 UTC) on event_date
+// to 6am WAT the following day (24 hours).
+// Returns: 'before' | 'open' | 'closed'
+
+type WindowState = 'before' | 'open' | 'closed'
+
+function getWindowState(eventDate: string | null): WindowState {
+  if (!eventDate) return 'before'
+
+  const now = Date.now()
+
+  // 6am WAT = 05:00 UTC on event_date
+  const dateStr    = eventDate.slice(0, 10) // YYYY-MM-DD
+  const windowOpen = new Date(`${dateStr}T05:00:00Z`).getTime()
+  const windowClose = windowOpen + 24 * 60 * 60 * 1000  // +24 hours
+
+  if (now < windowOpen)  return 'before'
+  if (now < windowClose) return 'open'
+  return 'closed'
+}
+
+// Formats a countdown from now to a future timestamp
+function formatCountdown(targetMs: number): string {
+  const diff = Math.max(0, targetMs - Date.now())
+  const days  = Math.floor(diff / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  const mins  = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+  const secs  = Math.floor((diff % (1000 * 60)) / 1000)
+
+  if (days > 0)  return `${days}d ${hours}h ${mins}m`
+  if (hours > 0) return `${hours}h ${mins}m ${secs}s`
+  return `${mins}m ${secs}s`
+}
+
+// ═══ SECTION 6 — Main component ═══
 
 export default function DDayPage() {
-  const params   = useParams()
-  const slug     = params?.slug as string
+  const params     = useParams()
+  const slug       = params?.slug as string
+  const searchParams = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search)
+    : null
+  const phaseIdFromUrl = searchParams?.get('phase') ?? null
 
   const [capsule,        setCapsule]        = useState<CapsuleInfo | null>(null)
   const [loading,        setLoading]        = useState(true)
@@ -192,6 +232,7 @@ export default function DDayPage() {
   const [photoLimit,     setPhotoLimit]     = useState(6)
   const [uploading,      setUploading]      = useState(false)
   const [uploadError,    setUploadError]    = useState('')
+  const [countdown,      setCountdown]      = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   // ── Fetch capsule info ──────────────────────────────────────────────────
@@ -200,28 +241,38 @@ export default function DDayPage() {
     fetch(`/api/capsule/public-info?slug=${slug}`)
       .then(r => r.json())
       .then(d => {
-        if (d.capsule) setCapsule(d.capsule)
+        if (d.capsule) {
+          setCapsule(d.capsule)
+          // Auto-select phase from URL param
+          if (phaseIdFromUrl && d.capsule.phases?.length) {
+            const match = d.capsule.phases.find((p: Phase) => p.id === phaseIdFromUrl)
+            if (match) setSelectedPhase(match)
+          }
+        }
         if (d.photo_limit) setPhotoLimit(d.photo_limit)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [slug])
 
-    // ── Restore this guest's existing D-Day photos ──────────────────────────
+  // ── Countdown ticker ────────────────────────────────────────────────────
   useEffect(() => {
-    if (!slug || !selectedPhase?.id || !capsule) return
+    if (!selectedPhase?.event_date) return
+    const dateStr    = selectedPhase.event_date.slice(0, 10)
+    const windowOpen = new Date(`${dateStr}T05:00:00Z`).getTime()
+    if (Date.now() >= windowOpen) return  // window already open — no ticker needed
 
-    fetch(
-      `/api/dday/upload?slug=${encodeURIComponent(slug)}&phase_id=${encodeURIComponent(selectedPhase.id)}`
-    )
-      .then(r => r.json())
-      .then(d => {
-        if (Array.isArray(d.photos)) {
-          setUploadedPhotos(d.photos)
-        }
-      })
-      .catch(() => {})
-  }, [slug, selectedPhase?.id, capsule])
+    const interval = setInterval(() => {
+      setCountdown(formatCountdown(windowOpen))
+    }, 1000)
+    setCountdown(formatCountdown(windowOpen))
+    return () => clearInterval(interval)
+  }, [selectedPhase])
+
+  // ── Determine active phase for window check ─────────────────────────────
+  // If phase pre-selected from URL, use it. Otherwise use first phase.
+  const activePhase = selectedPhase ?? capsule?.phases?.[0] ?? null
+  const windowState: WindowState = getWindowState(activePhase?.event_date ?? null)
 
   const remaining = photoLimit - uploadedPhotos.length
 
@@ -266,12 +317,11 @@ export default function DDayPage() {
         }
 
         // Add to local state immediately for instant feedback
-setUploadedPhotos(prev => [...prev, {
-  id: data.gallery_item_id,
-  image_url: URL.createObjectURL(file),
-  caption: '',
-  uploaded_by_name: name.trim(),
-}])
+        setUploadedPhotos(prev => [...prev, {
+          id:        data.gallery_item_id,
+          image_url: URL.createObjectURL(file),
+          caption:   name.trim(),
+        }])
 
       } catch {
         setUploadError('Upload failed. Please check your connection and try again.')
@@ -307,6 +357,99 @@ setUploadedPhotos(prev => [...prev, {
           <p style={{ fontSize: '32px', marginBottom: '16px' }}>◈</p>
           <p style={{ fontSize: '16px', fontWeight: 600, color: textPrimary, marginBottom: '8px' }}>This capsule is not currently active</p>
           <p style={{ fontSize: '13px', color: textFaint, lineHeight: 1.65 }}>The D-Day capture portal is only available while the capsule is active.</p>
+        </div>
+      </Shell>
+    )
+  }
+
+  // ── Pre-event: window not yet open ──────────────────────────────────────
+  if (windowState === 'before') {
+    const dateStr    = activePhase?.event_date?.slice(0, 10) ?? ''
+    const windowOpen = dateStr ? new Date(`${dateStr}T05:00:00Z`).getTime() : 0
+    const openLabel  = activePhase?.event_date
+      ? new Date(activePhase.event_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+      : 'event day'
+
+    return (
+      <Shell>
+        <Header honoureeName={capsule.honouree_name} eventTag={capsule.event_tag} />
+        <GoldRule />
+
+        {/* ── Phase name ── */}
+        {activePhase && (
+          <p style={{ textAlign: 'center', fontSize: '13px', fontWeight: 700, color: goldMuted, textTransform: 'uppercase' as const, letterSpacing: '0.12em', marginBottom: '20px' }}>
+            {activePhase.name}
+          </p>
+        )}
+
+        {/* ── Countdown card ── */}
+        <div style={{ padding: '24px 20px', borderRadius: '16px', background: cardBg, border: `1px solid ${cardBorder}`, textAlign: 'center', marginBottom: '16px' }}>
+          <p style={{ fontSize: '13px', color: textFaint, marginBottom: '12px', lineHeight: 1.6 }}>
+            Photo uploads open in
+          </p>
+          <p style={{ fontSize: '36px', fontWeight: 800, color: gold, fontFamily: "'Playfair Display', serif", letterSpacing: '0.04em', marginBottom: '8px' }}>
+            {countdown || '…'}
+          </p>
+          <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.65, margin: 0 }}>
+            Uploads open at 6am on <strong style={{ color: goldMuted }}>{openLabel}</strong> and close 24 hours later.
+            Come back then to share your photos from the event.
+          </p>
+        </div>
+
+        {/* ── What to expect ── */}
+        <div style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(226,195,107,0.05)', border: '1px solid rgba(226,195,107,0.12)', marginBottom: '20px' }}>
+          <p style={{ fontSize: '12px', color: goldMuted, lineHeight: 1.75, margin: 0 }}>
+            ✦ On event day, scan the QR code again or return to this page to upload your photos.
+            Every photo becomes part of {capsule.honouree_name}'s permanent event record and publication.
+          </p>
+        </div>
+
+        {/* ── Links to other capsule pages ── */}
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+          <p style={{ fontSize: '11px', color: textFaint, textAlign: 'center', marginBottom: '4px', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
+            Explore the capsule now
+          </p>
+          <Link href={`/for/${slug}`} style={{ display: 'block', padding: '12px', borderRadius: '10px', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '13px', fontWeight: 700, textDecoration: 'none', textAlign: 'center' as const }}>
+            Leave a voice or tribute →
+          </Link>
+          <Link href={`/for/${slug}/stories`} style={{ display: 'block', padding: '11px', borderRadius: '10px', border: `1px solid ${cardBorder}`, background: cardBg, color: goldMuted, fontSize: '13px', fontWeight: 600, textDecoration: 'none', textAlign: 'center' as const }}>
+            Share a memory or story
+          </Link>
+          <Link href={`/for/${slug}/profile`} style={{ display: 'block', padding: '11px', borderRadius: '10px', border: `1px solid ${cardBorder}`, background: cardBg, color: goldMuted, fontSize: '13px', fontWeight: 600, textDecoration: 'none', textAlign: 'center' as const }}>
+            View the profile
+          </Link>
+        </div>
+
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </Shell>
+    )
+  }
+
+  // ── Post-event: window closed ───────────────────────────────────────────
+  if (windowState === 'closed') {
+    return (
+      <Shell>
+        <Header honoureeName={capsule.honouree_name} eventTag={capsule.event_tag} />
+        <GoldRule />
+
+        <div style={{ textAlign: 'center', paddingTop: '20px', marginBottom: '24px' }}>
+          <p style={{ fontSize: '32px', marginBottom: '14px' }}>📷</p>
+          <p style={{ fontSize: '17px', fontWeight: 700, color: textPrimary, marginBottom: '8px', fontFamily: "'Playfair Display', serif" }}>
+            Photo uploads have closed
+          </p>
+          <p style={{ fontSize: '13px', color: textFaint, lineHeight: 1.7, maxWidth: '300px', margin: '0 auto' }}>
+            The 24-hour photo window for {activePhase?.name ?? 'this event'} has ended.
+            The photos shared are now part of {capsule.honouree_name}'s permanent record.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+          <Link href={`/for/${slug}`} style={{ display: 'block', padding: '12px', borderRadius: '10px', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '13px', fontWeight: 700, textDecoration: 'none', textAlign: 'center' as const }}>
+            Visit the tribute wall →
+          </Link>
+          <Link href={`/for/${slug}/stories`} style={{ display: 'block', padding: '11px', borderRadius: '10px', border: `1px solid ${cardBorder}`, background: cardBg, color: goldMuted, fontSize: '13px', fontWeight: 600, textDecoration: 'none', textAlign: 'center' as const }}>
+            Share a memory or story
+          </Link>
         </div>
       </Shell>
     )
