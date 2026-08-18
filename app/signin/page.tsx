@@ -9,6 +9,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import AdminSigninPanel from '@/components/auth/AdminSigninPanel'
 
 const pageBg = 'linear-gradient(160deg, #0f0a1e 0%, #1a0845 45%, #120630 100%)'
 const gold = '#E2C36B'
@@ -37,6 +38,7 @@ const codeInp: React.CSSProperties = {
 
 export default function SignInPage() {
   const [step, setStep] = useState<'email' | 'code'>('email')
+  const [showAdminLogin, setShowAdminLogin] = useState(false)
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
   const [sending, setSending] = useState(false)
@@ -156,31 +158,55 @@ export default function SignInPage() {
             <p style={{ fontSize: '14px', color: textSecondary, lineHeight: 1.65, marginBottom: '28px' }}>
               Enter your email. We'll send a 4-character code to sign you in — no link to click, no device switching.
             </p>
-            <input
-              type="email" placeholder="you@example.com"
-              value={email} onChange={e => { setEmail(e.target.value); setError('') }}
-              onKeyDown={e => e.key === 'Enter' && email.includes('@') && handleSendCode()}
-              style={inp} autoFocus autoComplete="email"
-            />
-            {error && <p style={{ fontSize: '12px', color: 'rgba(248,113,113,0.85)', marginTop: '10px' }}>{error}</p>}
-            <button
-              onClick={handleSendCode}
-              disabled={!email.includes('@') || sending}
-              style={{
-                width: '100%', marginTop: '14px', padding: '14px', borderRadius: '12px',
-                fontSize: '14px', fontWeight: 700, letterSpacing: '0.04em', border: 'none',
-                cursor: !email.includes('@') || sending ? 'not-allowed' : 'pointer',
-                background: !email.includes('@') || sending ? 'rgba(226,195,107,0.12)' : `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`,
-                color: !email.includes('@') || sending ? 'rgba(226,195,107,0.4)' : '#1a0845',
-                boxShadow: !email.includes('@') || sending ? 'none' : '0 4px 24px rgba(226,195,107,0.25)',
-                transition: 'all 0.2s',
-              }}
-            >{sending ? 'Sending…' : 'Send Sign-In Code'}</button>
-            <div style={{ height: '1px', margin: '24px 0', background: `linear-gradient(to right, transparent, ${goldFaint}, transparent)` }} />
-            <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.65 }}>
-              No account yet?{' '}
-              <Link href="/book" style={{ color: goldMuted, textDecoration: 'none' }}>Create a capsule free →</Link>
-            </p>
+            {!showAdminLogin && (
+              <>
+                <input
+                  type="email" placeholder="you@example.com"
+                  value={email} onChange={e => { setEmail(e.target.value); setError('') }}
+                  onKeyDown={e => e.key === 'Enter' && email.includes('@') && handleSendCode()}
+                  style={inp} autoFocus autoComplete="email"
+                />
+                {error && <p style={{ fontSize: '12px', color: 'rgba(248,113,113,0.85)', marginTop: '10px' }}>{error}</p>}
+                <button
+                  onClick={handleSendCode}
+                  disabled={!email.includes('@') || sending}
+                  style={{
+                    width: '100%', marginTop: '14px', padding: '14px', borderRadius: '12px',
+                    fontSize: '14px', fontWeight: 700, letterSpacing: '0.04em', border: 'none',
+                    cursor: !email.includes('@') || sending ? 'not-allowed' : 'pointer',
+                    background: !email.includes('@') || sending ? 'rgba(226,195,107,0.12)' : `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`,
+                    color: !email.includes('@') || sending ? 'rgba(226,195,107,0.4)' : '#1a0845',
+                    boxShadow: !email.includes('@') || sending ? 'none' : '0 4px 24px rgba(226,195,107,0.25)',
+                    transition: 'all 0.2s',
+                  }}
+                >{sending ? 'Sending…' : 'Send Sign-In Code'}</button>
+                <div style={{ height: '1px', margin: '24px 0', background: `linear-gradient(to right, transparent, ${goldFaint}, transparent)` }} />
+              </>
+            )}
+             {/* ── Admin Login toggle ── */}
+{showAdminLogin ? (
+  <AdminSigninPanel onBack={() => setShowAdminLogin(false)} />
+) : (
+  <button
+    onClick={() => setShowAdminLogin(true)}
+    style={{
+      background: 'none', border: 'none',
+      color: 'rgba(255,255,255,0.25)',
+      fontSize: '11px', cursor: 'pointer',
+      padding: '8px 0', display: 'block',
+      width: '100%', textAlign: 'center',
+      letterSpacing: '0.04em',
+    }}
+  >
+    Admin Login
+  </button>
+)}
+{!showAdminLogin && (
+  <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.65 }}>
+    No account yet?{' '}
+    <Link href="/book" style={{ color: goldMuted, textDecoration: 'none' }}>Create a capsule free →</Link>
+  </p>
+)}
           </>
         ) : (
           <>
