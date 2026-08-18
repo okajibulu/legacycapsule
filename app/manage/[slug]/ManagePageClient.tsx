@@ -49,6 +49,7 @@ import { createClient } from '@supabase/supabase-js'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { getAllThemes, resolveTheme } from '@/lib/themeConfig'
+import { getParticipationLanguage } from '@/lib/utils/getParticipationLanguage'
 import type { ThemeKey } from '@/lib/themeConfig'
   import GalleryEditor from '@/components/GalleryEditor'
 import HonoureeRevealPanel from '@/components/HonoureeRevealPanel'
@@ -1747,7 +1748,13 @@ const capRes = await supabase.from('capsules')
     setCapsule(cap); setHeroImage(cap.hero_image_url)
 
 const [contribRes, sectionsRes, galleryRes, topicsRes, phasesRes, storiesRes] = await Promise.all([
-      supabase.from('contributions').select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, email, status, created_at, include_in_publication, include_in_programme_export').eq('capsule_id', cap.id).is('deleted_at', null).order('created_at', { ascending: false }),
+      supabase
+  .from('contributions')
+  .select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, email, status, created_at, include_in_publication, include_in_programme_export')
+  .eq('capsule_id', cap.id)
+  .is('story_topic_id', null)
+  .is('deleted_at', null)
+  .order('created_at', { ascending: false }),
       supabase.from('capsule_profile_sections').select('id, section_type, custom_title, content, sort_order, is_active').eq('capsule_id', cap.id).order('sort_order'),
       supabase.from('capsule_gallery').select('id, image_url, description, sort_order, section_index').eq('capsule_id', cap.id).order('section_index').order('sort_order'),
       supabase.from('community_story_topics').select('id, topic_name, topic_source, status, display_order, category').eq('capsule_id', cap.id).order('display_order', { ascending: true }),
@@ -1790,6 +1797,9 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
   const isCoadmin = accountType === 'coadmin'
   const pending = contributions.filter(c => c.status === 'pending_review' || c.status === 'pending')
   const approved = contributions.filter(c => c.status === 'approved')
+  const participationLanguage = capsule
+  ? getParticipationLanguage(capsule.event_type)
+  : null
   const isFree = !capsule?.tier || capsule.tier === 'free'
   const capsuleUrl = typeof window !== 'undefined' ? `${window.location.origin}/for/${slug}` : `https://itslegacycapsule.com/for/${slug}`
   const pins = approved.filter(c => (c as any).lat && (c as any).lng).map(c => ({ lat: (c as any).lat, lng: (c as any).lng, name: c.contributor_name, country: c.country }))
@@ -2070,12 +2080,18 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
                 <div style={{ marginBottom: '14px' }}>
                   <div style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(226,195,107,0.06)', border: `1px solid rgba(226,195,107,0.22)`, marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <p style={{ fontSize: '13px', fontWeight: 700, color: gold, margin: 0 }}>{pending.length} {pending.length !== 1 ? 'voices' : 'voice'} waiting to join the record</p>
+                      <p style={{ fontSize: '13px', fontWeight: 700, color: gold, margin: 0 }}>{pending.length} {pending.length !== 1
+  ? (participationLanguage?.plural ?? 'voices')
+  : (participationLanguage?.singular ?? 'voice')
+} waiting to join the record</p>
                       <p style={{ fontSize: '11px', color: textFaint, margin: '2px 0 0' }}>Review each one and publish below — they're not visible to anyone yet</p>
                     </div>
                     <span style={{ fontSize: '16px', color: goldMuted }}>{pending.length}</span>
                   </div>
-                  <SectionCard title="Awaiting Your Review" subtitle={`${pending.length} ${pending.length !== 1 ? 'voices' : 'voice'} — publish to add ${pending.length !== 1 ? 'them' : 'it'} to the record`}>
+                  <SectionCard
+  title={`${participationLanguage?.plural ?? 'Voices'} Awaiting Your Review`}
+  subtitle={`${pending.length} ${pending.length !== 1 ? 'voices' : 'voice'} — publish to add ${pending.length !== 1 ? 'them' : 'it'} to the record`}
+>
                     {pending.map(c => <TributeReviewCard key={c.id} c={c} onApprove={handleApprove} onDecline={handleDecline} />)}
                   </SectionCard>
                 </div>
