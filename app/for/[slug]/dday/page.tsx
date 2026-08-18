@@ -27,8 +27,15 @@
 
    ARCHITECTURE: LC02 Event Services Engine · D-Day Collection (LC-owned)
    BUILT BY: AI12 · Claude Opus 4.6 · 20 July 2026
-   REPLACES: Previous version — removes tribute text, adds photo limit UI,
-             adds email publication incentive, adds pre-announcement copy
+   UPDATED: AI21 · Claude Opus 4.6 · 17 August 2026 (v2.12.16)
+             — Placeholders removed (name + email fields now empty)
+             — Email made mandatory (required for publication delivery)
+             — Note under email: "A copy of the event publication will be emailed to you."
+             — Top gold note shortened: "These memories will all be compiled into a publication at end of event!"
+             — Email mention removed from top note (handled under email field instead)
+             — Autocomplete fix applied to name + email fields (onBlur + autoComplete attr)
+             — Continue button gated on both name AND email valid
+             — Upload button disabled + visual feedback while uploading
 ========================================================= */
 
 import { useState, useEffect, useRef } from 'react'
@@ -174,16 +181,16 @@ export default function DDayPage() {
   const params   = useParams()
   const slug     = params?.slug as string
 
-  const [capsule,       setCapsule]       = useState<CapsuleInfo | null>(null)
-  const [loading,       setLoading]       = useState(true)
-  const [step,          setStep]          = useState<Step>('identity')
-  const [name,          setName]          = useState('')
-  const [email,         setEmail]         = useState('')
-  const [selectedPhase, setSelectedPhase] = useState<Phase | null>(null)
+  const [capsule,        setCapsule]        = useState<CapsuleInfo | null>(null)
+  const [loading,        setLoading]        = useState(true)
+  const [step,           setStep]           = useState<Step>('identity')
+  const [name,           setName]           = useState('')
+  const [email,          setEmail]          = useState('')
+  const [selectedPhase,  setSelectedPhase]  = useState<Phase | null>(null)
   const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>([])
-  const [photoLimit,    setPhotoLimit]    = useState(6)
-  const [uploading,     setUploading]     = useState(false)
-  const [uploadError,   setUploadError]   = useState('')
+  const [photoLimit,     setPhotoLimit]     = useState(6)
+  const [uploading,      setUploading]      = useState(false)
+  const [uploadError,    setUploadError]    = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   // ── Fetch capsule info ──────────────────────────────────────────────────
@@ -200,6 +207,9 @@ export default function DDayPage() {
   }, [slug])
 
   const remaining = photoLimit - uploadedPhotos.length
+
+  // ── Validate identity step ──────────────────────────────────────────────
+  const identityValid = name.trim().length > 0 && email.trim().includes('@')
 
   // ── Handle file upload ──────────────────────────────────────────────────
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -241,7 +251,7 @@ export default function DDayPage() {
         // Add to local state immediately for instant feedback
         setUploadedPhotos(prev => [...prev, {
           id:        data.gallery_item_id,
-          image_url: URL.createObjectURL(file), // local preview while CDN processes
+          image_url: URL.createObjectURL(file),
           caption:   name.trim(),
         }])
 
@@ -305,49 +315,57 @@ export default function DDayPage() {
           </p>
         </div>
 
-        {/* ── Publication incentive — pre-announcement ── */}
+        {/* ── Publication note — shortened, no email mention ── */}
         <div style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(226,195,107,0.05)', border: '1px solid rgba(226,195,107,0.12)', marginBottom: '24px' }}>
           <p style={{ fontSize: '12px', color: goldMuted, lineHeight: 1.7, margin: 0 }}>
-            ✦ After the event, the organiser will compile every tribute, story, and photo into a beautifully assembled publication. Leave your email below and we'll send you a copy when it's ready.
+            ✦ These memories will all be compiled into a publication at end of event!
           </p>
         </div>
 
         {/* ── Form ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+
+          {/* ── Name — empty placeholder, autocomplete fix ── */}
           <div>
             <label style={{ fontSize: '10px', color: goldMuted, textTransform: 'uppercase' as const, letterSpacing: '0.12em', display: 'block', marginBottom: '6px' }}>
               Your name *
             </label>
             <input
               style={inp}
-              placeholder="How should we credit your photos?"
+              placeholder=""
               value={name}
               onChange={e => setName(e.target.value)}
+              onBlur={e => { if (e.target.value !== name) setName(e.target.value) }}
               maxLength={80}
               autoFocus
+              autoComplete="name"
             />
           </div>
+
+          {/* ── Email — mandatory, empty placeholder, autocomplete fix ── */}
           <div>
             <label style={{ fontSize: '10px', color: goldMuted, textTransform: 'uppercase' as const, letterSpacing: '0.12em', display: 'block', marginBottom: '6px' }}>
-              Email address
+              Email address *
             </label>
             <input
               type="email"
               style={inp}
-              placeholder="Add your email and you will be sent the event publication with all captured stories and photos after the event"
+              placeholder=""
               value={email}
               onChange={e => setEmail(e.target.value)}
+              onBlur={e => { if (e.target.value !== email) setEmail(e.target.value) }}
               maxLength={120}
+              autoComplete="email"
             />
             <p style={{ fontSize: '11px', color: textFaint, marginTop: '5px', lineHeight: 1.5 }}>
-              Optional — but worth it. Your photos will be part of something special.
+              A copy of the event publication will be emailed to you.
             </p>
           </div>
         </div>
 
         <button
           onClick={() => {
-            if (!name.trim()) return
+            if (!identityValid) return
             // Skip phase selection if only one phase
             if (capsule.phases.length <= 1) {
               setSelectedPhase(capsule.phases[0] ?? null)
@@ -356,12 +374,13 @@ export default function DDayPage() {
               setStep('phase')
             }
           }}
-          disabled={!name.trim()}
+          disabled={!identityValid}
           style={{
             width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
-            background: name.trim() ? 'linear-gradient(135deg, #E2C36B, #C9A84E)' : 'rgba(255,255,255,0.06)',
-            color: name.trim() ? '#1a0845' : textFaint,
-            fontSize: '14px', fontWeight: 700, cursor: name.trim() ? 'pointer' : 'not-allowed',
+            background: identityValid ? 'linear-gradient(135deg, #E2C36B, #C9A84E)' : 'rgba(255,255,255,0.06)',
+            color: identityValid ? '#1a0845' : textFaint,
+            fontSize: '14px', fontWeight: 700,
+            cursor: identityValid ? 'pointer' : 'not-allowed',
             letterSpacing: '0.04em',
           }}
         >
@@ -486,20 +505,25 @@ export default function DDayPage() {
           </div>
         )}
 
-        {/* Upload button */}
+        {/* Upload button — with clear visual feedback while uploading */}
         {!atLimit ? (
-          <label style={{ display: 'block', marginBottom: '12px' }}>
+          <label style={{ display: 'block', marginBottom: '12px', cursor: uploading ? 'not-allowed' : 'pointer' }}>
             <div style={{
               width: '100%', padding: '16px', borderRadius: '12px', textAlign: 'center' as const,
-              border: `2px dashed rgba(226,195,107,0.25)`, background: 'rgba(226,195,107,0.04)',
-              cursor: 'pointer',
+              border: `2px dashed ${uploading ? 'rgba(226,195,107,0.5)' : 'rgba(226,195,107,0.25)'}`,
+              background: uploading ? 'rgba(226,195,107,0.08)' : 'rgba(226,195,107,0.04)',
+              opacity: uploading ? 0.75 : 1,
+              transition: 'all 0.2s',
+              pointerEvents: uploading ? 'none' : 'auto',
             }}>
-              <p style={{ fontSize: '28px', margin: '0 0 8px' }}>📷</p>
-              <p style={{ fontSize: '14px', fontWeight: 700, color: textPrimary, margin: '0 0 4px' }}>
-                {uploading ? 'Uploading…' : `Add photos`}
+              <p style={{ fontSize: '28px', margin: '0 0 8px' }}>
+                {uploading ? '⏳' : '📷'}
+              </p>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: uploading ? goldMuted : textPrimary, margin: '0 0 4px' }}>
+                {uploading ? 'Uploading your photo…' : 'Add photos'}
               </p>
               <p style={{ fontSize: '11px', color: textFaint, margin: 0 }}>
-                {remaining} slot{remaining !== 1 ? 's' : ''} left · Tap to choose from your phone
+                {uploading ? 'Please wait' : `${remaining} slot${remaining !== 1 ? 's' : ''} left · Tap to choose from your phone`}
               </p>
             </div>
             <input
@@ -579,14 +603,6 @@ export default function DDayPage() {
           <div style={{ padding: '12px 16px', borderRadius: '12px', background: goldFaint, border: `1px solid rgba(226,195,107,0.15)`, margin: '16px auto', maxWidth: '320px' }}>
             <p style={{ fontSize: '12px', color: goldMuted, margin: 0, lineHeight: 1.65 }}>
               ✦ We'll send the full event publication to <strong style={{ color: gold }}>{email}</strong> when it's ready.
-            </p>
-          </div>
-        )}
-
-        {!email && (
-          <div style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: `1px solid rgba(255,255,255,0.06)`, margin: '16px auto', maxWidth: '320px' }}>
-            <p style={{ fontSize: '12px', color: textFaint, margin: 0, lineHeight: 1.65 }}>
-              Want to receive the keepsake publication? Ask {capsule?.honouree_name}'s organiser to add you to the distribution list.
             </p>
           </div>
         )}

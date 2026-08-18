@@ -17,8 +17,11 @@
 //            — LimitsBar component added (free tier live counters)
 //            — priceRows updated: coming_soon services excluded from price column
 //            — Standard file header added
-// VERSION:   AI20v2.11.99
-// DATE:      11 August 2026
+// VERSION:   AI21v2.12.16
+// DATE:      17 August 2026
+// UPDATED:   AI21 · Claude Opus 4.6 · 17 August 2026
+//            — QR code removed from D-Day Live Wall section
+//            — Live Wall description updated (no QR, clear URL-only instruction)
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ═══ SECTION 1 — Types + imports ═══
@@ -280,32 +283,23 @@ function LiveWallSection({ capsuleSlug }: { capsuleSlug: string }) {
   const [copied, setCopied] = useState(false)
   const APP_URL    = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
   const displayUrl = `${APP_URL}/for/${capsuleSlug}/display`
-  const qrUrl      = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(displayUrl)}&bgcolor=0f0a1e&color=E2C36B&margin=8`
 
   return (
     <div>
       <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.65, marginBottom: '16px' }}>
-        Open the Live Wall on your venue screen or projector. Approved tributes appear in real time as guests submit them.
+        Open the Live Wall on your venue screen or projector. Approved voices appear in real time as guests submit them. Open this URL on any browser connected to your venue screen.
       </p>
-      <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-        <div style={{ flexShrink: 0, textAlign: 'center' as const }}>
-          <img src={qrUrl} alt="Live Wall QR" width={80} height={80} style={{ borderRadius: '8px', display: 'block' }} />
-          <p style={{ fontSize: '8px', color: textFaint, margin: '4px 0 0', letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>Scan to open</p>
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: '9px', color: goldMuted, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em', margin: '0 0 6px' }}>Display URL</p>
-          <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontFamily: 'monospace', wordBreak: 'break-all' as const, margin: '0 0 10px', lineHeight: 1.5 }}>{displayUrl}</p>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button onClick={async () => { await navigator.clipboard.writeText(displayUrl); setCopied(true); setTimeout(() => setCopied(false), 2500) }}
-              style={{ flex: 1, padding: '7px', borderRadius: '8px', border: `1px solid rgba(226,195,107,0.2)`, background: copied ? 'rgba(74,222,128,0.08)' : 'rgba(226,195,107,0.06)', color: copied ? 'rgba(134,239,172,0.9)' : goldMuted, fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>
-              {copied ? '✓ Copied' : '🔗 Copy URL'}
-            </button>
-            <a href={displayUrl} target="_blank" rel="noopener noreferrer"
-              style={{ flex: 1, padding: '7px', borderRadius: '8px', border: `1px solid rgba(226,195,107,0.2)`, background: 'transparent', color: goldMuted, fontSize: '11px', fontWeight: 600, textDecoration: 'none', textAlign: 'center' as const, display: 'block' }}>
-              Preview ↗
-            </a>
-          </div>
-        </div>
+      <p style={{ fontSize: '9px', color: goldMuted, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em', margin: '0 0 6px' }}>Display URL</p>
+      <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontFamily: 'monospace', wordBreak: 'break-all' as const, margin: '0 0 10px', lineHeight: 1.5 }}>{displayUrl}</p>
+      <div style={{ display: 'flex', gap: '6px' }}>
+        <button onClick={async () => { await navigator.clipboard.writeText(displayUrl); setCopied(true); setTimeout(() => setCopied(false), 2500) }}
+          style={{ flex: 1, padding: '7px', borderRadius: '8px', border: `1px solid rgba(226,195,107,0.2)`, background: copied ? 'rgba(74,222,128,0.08)' : 'rgba(226,195,107,0.06)', color: copied ? 'rgba(134,239,172,0.9)' : goldMuted, fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>
+          {copied ? '✓ Copied' : '🔗 Copy URL'}
+        </button>
+        <a href={displayUrl} target="_blank" rel="noopener noreferrer"
+          style={{ flex: 1, padding: '7px', borderRadius: '8px', border: `1px solid rgba(226,195,107,0.2)`, background: 'transparent', color: goldMuted, fontSize: '11px', fontWeight: 600, textDecoration: 'none', textAlign: 'center' as const, display: 'block' }}>
+          Preview ↗
+        </a>
       </div>
     </div>
   )

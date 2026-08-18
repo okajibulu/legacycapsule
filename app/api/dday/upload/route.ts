@@ -96,7 +96,7 @@ async function getPhotoLimit(): Promise<number> {
     const { data } = await db
       .from('platform_config')
       .select('value')
-      .eq('key', 'lc.dday.photos_per_device_per_phase')
+      .eq('config_key', 'lc.dday.photos_per_device_per_phase')
       .maybeSingle()
     const parsed = parseInt(data?.value ?? '', 10)
     return isNaN(parsed) ? 6 : parsed
@@ -142,16 +142,30 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // ── Fetch capsule ─────────────────────────────────────────────────────
-    const { data: capsule } = await db
+      // ── Fetch capsule — try by ID first, fall back to slug ────────────────
+    let { data: capsule } = await db
       .from('capsules')
       .select('id, auto_approve_tributes, page_state')
       .eq('id', capsule_id)
+      .is('deleted_at', null)
       .maybeSingle()
 
+    if (!capsule && capsule_slug) {
+      const { data: capsuleBySlug } = await db
+        .from('capsules')
+        .select('id, auto_approve_tributes, page_state')
+        .eq('slug', capsule_slug)
+        .is('deleted_at', null)
+        .maybeSingle()
+      capsule = capsuleBySlug
+    }
+
     if (!capsule) {
+      console.error('[dday/upload] Capsule not found — id:', capsule_id, 'slug:', capsule_slug)
       return NextResponse.json({ error: 'Capsule not found' }, { status: 404 })
     }
+    
+
 
     if (capsule.page_state !== 'active') {
       return NextResponse.json(
@@ -249,7 +263,7 @@ capsule_id,
     if (galleryError) {
       console.error('[dday/upload] Gallery insert error:', galleryError)
       // Clean up orphaned storage file
-      await db.storage.from('gallery').remove([storagePath])
+      await db.storage.from('tribute-photos').remove([storagePath])
       return NextResponse.json(
         { error: 'Failed to save your photo. Please try again.' },
         { status: 500 }
