@@ -60,9 +60,10 @@ interface CapsuleInfo {
 }
 
 interface UploadedPhoto {
-  id:        string
-  image_url: string
-  caption:   string
+  id:              string
+  image_url:       string
+  caption:         string
+  uploaded_by_name: string
 }
 
 type Step = 'identity' | 'phase' | 'upload' | 'done'
@@ -155,7 +156,7 @@ function PhotoThumb({
     <div style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', aspectRatio: '1', background: 'rgba(255,255,255,0.04)' }}>
       <img
         src={photo.image_url}
-        alt={photo.caption}
+        alt={photo.uploaded_by_name || 'Your event photo'}
         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
       />
       <button
@@ -206,6 +207,22 @@ export default function DDayPage() {
       .finally(() => setLoading(false))
   }, [slug])
 
+    // ── Restore this guest's existing D-Day photos ──────────────────────────
+  useEffect(() => {
+    if (!slug || !selectedPhase?.id || !capsule) return
+
+    fetch(
+      `/api/dday/upload?slug=${encodeURIComponent(slug)}&phase_id=${encodeURIComponent(selectedPhase.id)}`
+    )
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d.photos)) {
+          setUploadedPhotos(d.photos)
+        }
+      })
+      .catch(() => {})
+  }, [slug, selectedPhase?.id, capsule])
+
   const remaining = photoLimit - uploadedPhotos.length
 
   // ── Validate identity step ──────────────────────────────────────────────
@@ -249,11 +266,12 @@ export default function DDayPage() {
         }
 
         // Add to local state immediately for instant feedback
-        setUploadedPhotos(prev => [...prev, {
-          id:        data.gallery_item_id,
-          image_url: URL.createObjectURL(file),
-          caption:   name.trim(),
-        }])
+setUploadedPhotos(prev => [...prev, {
+  id: data.gallery_item_id,
+  image_url: URL.createObjectURL(file),
+  caption: '',
+  uploaded_by_name: name.trim(),
+}])
 
       } catch {
         setUploadError('Upload failed. Please check your connection and try again.')

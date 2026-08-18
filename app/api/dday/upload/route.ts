@@ -102,6 +102,75 @@ async function getPhotoLimit(): Promise<number> {
   }
 }
 
+// ═══ SECTION 5 — GET: Guest's existing D-Day photos ═══
+
+export async function GET(req: NextRequest) {
+  try {
+    const slug = req.nextUrl.searchParams.get('slug')
+    const phaseId = req.nextUrl.searchParams.get('phase_id')
+
+    if (!slug) {
+      return NextResponse.json({ error: 'slug required' }, { status: 400 })
+    }
+
+    const { data: capsule, error: capsuleError } = await db
+      .from('capsules')
+      .select('id, page_state')
+      .eq('slug', slug)
+      .is('deleted_at', null)
+      .maybeSingle()
+
+    if (capsuleError || !capsule) {
+      return NextResponse.json({ error: 'Capsule not found' }, { status: 404 })
+    }
+
+    if (capsule.page_state !== 'active') {
+      return NextResponse.json({ photos: [] })
+    }
+
+    const deviceToken = generateDeviceToken(req)
+
+    let query = db
+      .from('gallery_items')
+      .select('id, image_url, uploaded_by_name, caption, created_at')
+      .eq('capsule_id', capsule.id)
+      .eq('source', 'dday')
+      .eq('device_token', deviceToken)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true })
+
+    if (phaseId) {
+      query = query.eq('phase_id', phaseId)
+    }
+
+    const { data: photos, error: photosError } = await query
+
+    if (photosError) {
+      console.error('[dday/upload GET] Gallery lookup failed:', photosError)
+      return NextResponse.json(
+        { error: 'Unable to load your photos' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      photos: (photos ?? []).map(photo => ({
+        id: photo.id,
+        image_url: photo.image_url,
+        caption: photo.caption ?? '',
+        uploaded_by_name: photo.uploaded_by_name ?? '',
+      })),
+    })
+
+  } catch (e: any) {
+    console.error('[dday/upload GET]', e)
+    return NextResponse.json(
+      { error: 'Unable to load your photos' },
+      { status: 500 }
+    )
+  }
+}
+
 // ═══ SECTION 6 — POST handler ═══
 
 export async function POST(req: NextRequest) {
@@ -251,7 +320,7 @@ export async function POST(req: NextRequest) {
 
     // ── Insert gallery_items record ───────────────────────────────────────
     // device_token stored for 6-photo limit enforcement — not displayed publicly
-    const autoApprove = false
+
 
     const { data: galleryItem, error: galleryError } = await db
       .from('gallery_items')
@@ -259,14 +328,15 @@ export async function POST(req: NextRequest) {
 capsule_id: resolvedCapsuleId,
         phase_id:                phase_id || null,
         image_url,
-        caption:                 contributor_name.trim(),
-        source:                  'dday',
-        approved:                autoApprove,
-        is_official_photography: false,
-        device_token:            deviceToken,
-        storage_path:            storagePath,
-        width_px:                compressed.width_px,
-        height_px:               compressed.height_px,
+uploaded_by_name:        contributor_name.trim(),
+caption:                 null,
+source:                  'dday',
+approved:                true,
+is_official_photography: false,
+device_token:            deviceToken,
+storage_path:            storagePath,
+width_px:                compressed.width_px,
+height_px:               compressed.height_px,
      
       })
       .select('id')
@@ -288,7 +358,7 @@ capsule_id: resolvedCapsuleId,
     return NextResponse.json({
       ok:              true,
       gallery_item_id: galleryItem.id,
-      auto_approved:   autoApprove,
+      auto_approved:   true,
       photos_used:     newCount,
       photos_remaining: remaining,
       photos_limit:    photoLimit,
