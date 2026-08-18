@@ -721,11 +721,7 @@ const [fConsent, setFConsent] = useState(false)
 body: JSON.stringify({
         capsule_id:        capsule.id,
         capsule_slug:      capsule.slug,
-        contributor_name: [
-  fCustomTitle.trim() || (fTitle !== 'Other' ? fTitle : ''),
-  fFirstName.trim(),
-  fLastName.trim(),
-].filter(Boolean).join(' ') || null,
+        contributor_name: composedContributorName,
           contributor_email: (fEmail.trim() || wallEmailCapture.trim()) || null,
           city:             fCity.trim()  || null,
           country:          fCountry      || null,
@@ -891,6 +887,13 @@ const handleCopy = async () => {
     setErrors(e)
     return !Object.keys(e).length
   }
+
+  const composedContributorName = [
+  fCustomTitle.trim() || (fTitle !== 'Other' ? fTitle : ''),
+  fFirstName.trim(),
+  fLastName.trim(),
+].filter(Boolean).join(' ') || null
+
   const handleSubmit = async () => {
     if (!validate()) return; setSubmitting(true); setSubmitErr('')
     try {
@@ -927,9 +930,9 @@ const handleCopy = async () => {
         }
       }
       const coords = await getIPCoords()
-      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, phase_id: phaseId || null, contributor_name: fName.trim(), city: fCity.trim(), country: fCountry, relationship: fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review', legacy_builder_consent: fConsent, story_topic_id: null }).select('id').single()
+      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, phase_id: phaseId || null, contributor_name: composedContributorName, city: fCity.trim(), country: fCountry, relationship: fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review', legacy_builder_consent: fConsent, story_topic_id: null }).select('id').single()
       if (ie) { setSubmitErr(ie.message); setSubmitting(false); return }
-      if (nc) { fetch('/api/email/submission-confirmation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contributionId: nc.id, capsuleSlug: capsule.slug, contributorName: fName.trim(), contributorEmail: fEmail.trim(), subjectName: honourName, eventType: capsule.event_type, tributeText: fMsg.trim() }) }).catch(() => {}) }
+      if (nc) { fetch('/api/email/submission-confirmation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contributionId: nc.id, capsuleSlug: capsule.slug, contributorName: composedContributorName, contributorEmail: fEmail.trim(), subjectName: honourName, eventType: capsule.event_type, tributeText: fMsg.trim() }) }).catch(() => {}) }
      
      // LC-PARTICIPATION-001: Record attribution if visitor arrived via ?ref= link
       const refFromSession = arrivalRef || sessionStorage.getItem('lc_arrival_ref_' + capsule.slug)
@@ -1589,11 +1592,11 @@ background:
                       {TITLE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                     </select>
                     <div style={{ flex: 1 }}>
-                      <input style={inp} placeholder="Your first name" value={fFirstName} onChange={e => setFFirstName(e.target.value)} maxLength={40} />
+                      <input style={inp} placeholder="First name" value={fFirstName} onChange={e => setFFirstName(e.target.value)} maxLength={40} />
                       {errors.firstName && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.firstName}</p>}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <input style={inp} placeholder="Your last name" value={fLastName} onChange={e => setFLastName(e.target.value)} maxLength={40} />
+                      <input style={inp} placeholder="Last name" value={fLastName} onChange={e => setFLastName(e.target.value)} maxLength={40} />
                       {errors.lastName && <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', marginTop: '2px', paddingLeft: '4px' }}>{errors.lastName}</p>}
                     </div>
                   </div>
