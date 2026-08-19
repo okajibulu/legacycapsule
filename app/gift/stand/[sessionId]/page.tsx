@@ -12,21 +12,7 @@
 
 import { notFound }  from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
-import dynamic          from 'next/dynamic'
-
-// ssr: false — QR camera requires browser (AMD-002 Phase 5 Step 21 build rule)
-const GiftStandScanner = dynamic(
-  () => import('@/components/gift/GiftStandScanner'),
-  { ssr: false, loading: () => <ScannerLoader /> }
-)
-
-function ScannerLoader() {
-  return (
-    <div className="min-h-screen bg-[#0a061a] flex items-center justify-center">
-      <div className="w-10 h-10 border-2 border-[#E2C36B]/20 border-t-[#E2C36B] rounded-full animate-spin" />
-    </div>
-  )
-}
+import GiftStandScanner from '@/components/gift/GiftStandScannerWrapper'
 
 function getDb() {
   return createClient(
