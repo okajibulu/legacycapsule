@@ -136,7 +136,7 @@ export async function GET(req: NextRequest) {
 
       // 6. Alert flags — unable + partial + blocked
       db.from('gift_credentials')
-        .select('id, guest_name, guest_category, numeric_code, collection_status, unable_reason, block_reason, coordinator_id, block_id')
+        .select('id, guest_name, guest_category, numeric_code, collection_status, unable_to_collect, unable_reason, is_blocked, block_reason, coordinator_id, block_id')
         .eq('capsule_id', capsuleId)
         .or('unable_to_collect.eq.true,collection_status.eq.partial,is_blocked.eq.true')
         .is('deleted_at', null)
@@ -196,7 +196,7 @@ export async function GET(req: NextRequest) {
         is_buffer:       block.is_buffer,
         is_locked:       block.is_locked,
         coordinator_id:  block.coordinator_id,
-        coordinator_name: (block.capsule_accounts as { display_name: string } | null)?.display_name ?? null,
+        coordinator_name: ((block.capsule_accounts as unknown) as { display_name: string } | null)?.display_name ?? null,
         codes_issued:    blockCreds.length,
         codes_collected: blockCreds.filter(c => c.collection_status === 'collected').length,
         codes_outstanding: blockCreds.filter(c => c.collection_status === 'uncollected').length,

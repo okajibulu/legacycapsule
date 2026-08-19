@@ -200,7 +200,7 @@ async function handleReconcile(req: NextRequest, capsuleId: string) {
       return {
         block_name:       b.block_name,
         range:            `${b.range_start}–${b.range_end}`,
-        coordinator_name: (b.capsule_accounts as { display_name: string } | null)?.display_name ?? 'Unassigned',
+        coordinator_name: ((b.capsule_accounts as unknown) as { display_name: string } | null)?.display_name ?? 'Unassigned',
         codes_total:      blockCreds.length,
         codes_collected:  blockCreds.filter(c => c.collection_status === 'collected').length,
         codes_unable:     blockCreds.filter(c => c.unable_to_collect).length,
