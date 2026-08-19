@@ -11,6 +11,10 @@
  *   — QR size increased to 140×140
  *   — Description updated for Event Moments terminology
  *   — Photographer token generation per phase
+// UPDATED:   AI23 · Claude Sonnet 4.6 · 18 August 2026
+//   — Capture closes field removed (duration fixed at 24hrs from 6am WAT)
+//   — Add button text updated: Event Moment count display
+// 
  *
  * Sub-sections:
  *   1. Types & style tokens
@@ -402,7 +406,7 @@ function EditPhaseForm({ phase, capsuleId, onSaved, onCancel }: {
   const [date,           setDate]          = useState(phase.event_date ?? '')
   const [location,       setLocation]      = useState(phase.location ?? '')
   const [summary,        setSummary]       = useState(prog?.summary ?? '')
-  const [captureCloses,  setCaptureCloses] = useState(phase.capture_window_closes_at ?? '')
+
   const [saving,         setSaving]        = useState(false)
   const [error,          setError]         = useState('')
 
@@ -419,7 +423,7 @@ function EditPhaseForm({ phase, capsuleId, onSaved, onCancel }: {
           event_date:              date || null,
           location:                location.trim() || null,
           programme:               summary.trim() ? { summary: summary.trim(), items: prog?.items ?? [] } : prog,
-          capture_window_closes_at: captureCloses || null,
+
         }),
       })
       if (!res.ok) {
@@ -444,10 +448,6 @@ function EditPhaseForm({ phase, capsuleId, onSaved, onCancel }: {
           <div style={{ flex: 1 }}>
             <label style={{ fontSize: '10px', color: textFaint, display: 'block', marginBottom: '4px' }}>Event date</label>
             <input type="date" style={inp} value={date} onChange={e => setDate(e.target.value)} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={{ fontSize: '10px', color: textFaint, display: 'block', marginBottom: '4px' }}>Capture closes</label>
-            <input type="datetime-local" style={{ ...inp, fontSize: '12px' }} value={captureCloses} onChange={e => setCaptureCloses(e.target.value)} />
           </div>
         </div>
         <input style={inp} placeholder="Venue / Location" value={location} onChange={e => setLocation(e.target.value)} />
@@ -490,7 +490,7 @@ function AddPhaseForm({ capsuleId, onAdded, onCancel }: {
   const [date,          setDate]          = useState('')
   const [location,      setLocation]      = useState('')
   const [summary,       setSummary]       = useState('')
-  const [captureCloses, setCaptureCloses] = useState('')
+
   const [saving,        setSaving]        = useState(false)
   const [error,         setError]         = useState('')
 
@@ -507,7 +507,7 @@ function AddPhaseForm({ capsuleId, onAdded, onCancel }: {
           event_date:              date || undefined,
           location:                location.trim() || undefined,
           programme:               summary.trim() ? { summary: summary.trim() } : undefined,
-          capture_window_closes_at: captureCloses || undefined,
+
         }),
       })
       const data = await res.json()
@@ -534,10 +534,6 @@ function AddPhaseForm({ capsuleId, onAdded, onCancel }: {
           <div style={{ flex: 1 }}>
             <label style={{ fontSize: '10px', color: textFaint, display: 'block', marginBottom: '4px' }}>Event date</label>
             <input type="date" style={inp} value={date} onChange={e => setDate(e.target.value)} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={{ fontSize: '10px', color: textFaint, display: 'block', marginBottom: '4px' }}>Capture closes</label>
-            <input type="datetime-local" style={{ ...inp, fontSize: '12px' }} value={captureCloses} onChange={e => setCaptureCloses(e.target.value)} />
           </div>
         </div>
         <input style={inp} placeholder="Venue / Location" value={location} onChange={e => setLocation(e.target.value)} />
@@ -655,7 +651,13 @@ export default function EventPhasesSection({ capsuleId, capsuleSlug }: Props) {
                   fontWeight:   600,
                   cursor:       'pointer',
                 }}>
-                {`+ Add Event Phase (${phases.length} of ${phaseLimit} used)`}
+                {`+ Add Event Phase`}
+                <span style={{ display: 'block', fontSize: '10px', fontWeight: 400, color: goldMuted, marginTop: '2px' }}>
+                  {phases.length} of {phaseLimit} Event {phaseLimit === 1 ? 'Phase' : 'Phases'} used
+                </span>
+                <span style={{ display: 'block', fontSize: '10px', fontWeight: 400, color: goldMuted, marginTop: '2px' }}>
+                  {phases.length} of {phaseLimit} Event {phaseLimit === 1 ? 'Moment' : 'Moments'} used
+                </span>
               </button>
             )
           )}

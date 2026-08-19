@@ -23,6 +23,9 @@
 //            — ECS: success message → "is now part of this record"
 //            — ECS: validation errors → warm, non-blaming language
 //            — ECS: character hint reframed as invitation not restriction
+// UPDATED:   AI23 · Claude Sonnet 4.6 · 18 August 2026
+//   — Capture closes field removed (duration fixed at 24hrs from 6am WAT)
+//   — Add button text updated: Event Moment count display
 
 
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -1841,7 +1844,7 @@ background:
 
          
 
-          {/* ── EVENT PHASES STRIP — pre-announcement ── */}
+          {/* ── Event Moments STRIP — pre-announcement ── */}
           {phases.length > 0 && (
             <div style={{ margin: '0 12px 16px', padding: '14px 16px', borderRadius: '14px', background: 'rgba(226,195,107,0.05)', border: `1px solid ${t.accentFaint}` }}>
               <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: t.accentMuted, marginBottom: '10px' }}>
@@ -1849,7 +1852,7 @@ background:
               </p>
               <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
                 {phases.map(phase => (
-                  <div key={phase.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Link key={phase.id} href={`/for/${capsule.slug}/story/${phase.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textDecoration: 'none', cursor: 'pointer' }}>
                     <div>
                       <p style={{ fontSize: '12px', fontWeight: 700, color: t.textHeading, margin: '0 0 1px' }}>{phase.name}</p>
                       {phase.event_date && (
@@ -1863,9 +1866,9 @@ background:
                         📸 {phase.photo_count}
                       </span>
                     ) : (
-                      <span style={{ fontSize: '10px', color: t.textFaint, flexShrink: 0 }}>Photos on day</span>
+                      <span style={{ fontSize: '10px', color: t.textFaint, flexShrink: 0 }}>View →</span>
                     )}
-                  </div>
+                  </Link>
                 ))}
               </div>
               <p style={{ fontSize: '10px', color: t.textFaint, marginTop: '10px', lineHeight: 1.65 }}>

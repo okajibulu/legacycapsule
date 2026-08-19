@@ -16,6 +16,10 @@
 // BUILT BY: AI12 · Claude Opus 4.6 · 20 July 2026
 // REPLACES: Previous version by Claude Sonnet 4.6 · July 2026
 // UPDATED:  AI20 · Claude Sonnet 4.6 · 11 August 2026
+//           AI23 · Claude Sonnet 4.6 · 18 August 2026
+//           — additional_phase: title, tagline, summary, FAQs aligned to
+//             approved commercial vocabulary (Event Moments = service,
+//             Event Phase = unit, 1 phase included by default)
 //           — extended_validity summary + FAQ: removed hardcoded 3/6 months
 //             → "90 days from first tribute" for all paths
 //           — additional_phase FAQ: removed "pre-booked includes two phases"
@@ -290,12 +294,12 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
   // ── Additional Event Phase ──────────────────────────────────────────────────
   additional_phase: {
     id:      'additional_phase',
-    title:   'Additional Event Phase',
+    title:   'Event Moments — Additional Phase',
     icon:    '📅',
-    tagline: 'Another chapter in your event story.',
-    summary: 'Add another chapter to your event story. Each additional phase opens a separate tribute (voice) collection window — perfect for occasions that unfold across multiple days or settings. A memorial might span a wake keep, a funeral service, and a thanksgiving. A wedding might include a traditional ceremony, a church service, and a reception.',
+    tagline: 'Add another Event Phase to your Event Moments.',
+    summary: 'Event Moments captures what happens throughout your event — the people, the photos, the presence. Your capsule includes one Event Phase. Add additional phases for occasions that unfold across multiple days or settings. A memorial might span a wake keep, a funeral service, and a thanksgiving. A wedding might include a traditional ceremony, a church service, and a reception.',
     whatYouGet: [
-      'One additional event phase with its own name, date, and location',
+      'One additional Event Phase with its own name, date, and location',
       'A separate tribute (voice) collection window for that phase',
       'Its own QR code — directing guests to the right experience at the right time',
       'Included as a distinct chapter in the Digital Publication if you generate one',
@@ -309,11 +313,11 @@ export const SERVICE_DETAILS: Record<string, ServiceDetail> = {
     bestFor: ['Wedding', 'Memorial & Funeral', 'Chieftaincy', 'Retirement', 'Conference'],
     exampleUseCase: 'A family organising a three-day memorial weekend uses their two included phases for the Wake Keep and Funeral Service, then adds one Additional Event Phase for the Thanksgiving Service on the third day. Each phase has its own QR code printed on the order of service for that day. Guests scan and contribute to the right chapter. The final publication tells the story of all three days — each with its own tributes, photos, and guest captures.',
     faqs: [
-      { q: 'How many phases are included in my capsule?', a: 'Every capsule — free or pre-booked — includes one event phase. You can add more from your dashboard at any time, one at a time.' },
+      { q: 'How many Event Phases are included in my capsule?', a: 'Every capsule — free or pre-booked — includes one Event Phase as part of Event Moments. You can add more from your dashboard at any time, one at a time.' },
       { q: 'Can I add more than one additional phase?', a: 'Yes. Each purchase adds one phase. Add as many as your occasion needs.' },
-      { q: 'What does each phase include?', a: 'A name, an event date, a location, its own QR code, and a 24-hour D-Day capture window on the event date. The QR code directs guests to the tribute (voice) wall before the event and to the D-Day upload portal on the day itself.' },
+      { q: 'What does each Event Phase include?', a: 'A name, an event date, a location, its own QR code, and a 24-hour guest capture window on the event date. The QR code directs guests to the tribute wall before the event and to the capture portal on the day itself.' },
     ],
-    refundNote: 'Additional Event Phase is activated immediately on payment and is non-refundable.',
+    refundNote: 'Event Moments — Additional Phase is activated immediately on payment and is non-refundable.',
   },
 
   // ═══ SECTION 5 — ServicesTab Only (not shown at booking) ═══

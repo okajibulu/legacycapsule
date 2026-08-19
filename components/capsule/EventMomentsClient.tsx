@@ -11,7 +11,9 @@
 // BUILT BY:  AI16 · Claude Opus 4.6
 // VERSION:   v2.11.8
 // DATE:      1 August 2026
-// ============================================================
+// UPDATED:   AI23 · Claude Sonnet 4.6 · 18 August 2026
+//   — I Was There button: navigating state, opacity feedback, Opening… text
+// // ============================================================
 
 'use client'
 
@@ -203,6 +205,7 @@ export default function EventMomentsClient({
   const [hasMore, setHasMore]           = useState(initialGuestPhotos.length === 20)
   const [page, setPage]                 = useState(1)
   const [lightboxPhoto, setLightboxPhoto] = useState<GalleryPhoto | null>(null)
+  const [navigating, setNavigating]       = useState(false)
   const loaderRef = useRef<HTMLDivElement>(null)
 
   const today        = isToday(phase.event_date)
@@ -474,6 +477,7 @@ export default function EventMomentsClient({
             </p>
             <Link
               href={ddayUrl}
+              onClick={() => setNavigating(true)}
               style={{
                 display:        'inline-block',
                 padding:        '13px 32px',
@@ -484,8 +488,11 @@ export default function EventMomentsClient({
                 fontWeight:     700,
                 textDecoration: 'none',
                 letterSpacing:  '0.04em',
+                opacity:        navigating ? 0.6 : 1,
+                pointerEvents:  navigating ? 'none' : 'auto',
+                transition:     'opacity 0.2s ease',
               }}>
-              ✦ I Was There — Add My Photo
+              {navigating ? 'Opening…' : '✦ I Was There — Add My Photo'}
             </Link>
           </div>
         ) : (

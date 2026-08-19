@@ -47,6 +47,8 @@
    — SUGGESTED_BY_EVENT: guest_management + attire removed (both coming_soon)
    — Always Included: hardcoded durations removed (was 6mo/3mo/2 phases)
      Now: 90 days from first tribute, 1 Event Phase — correct free tier limits
+   — AI23 · 18 August 2026: Event Moments vocabulary aligned —
+     label updated to 'Event Moments — 1 Phase Included'
    — Essential + Signature preset buttons added to Screen 3 services selector
    — Gift delivery date picker added (immediate vs specific future date)
    — gift_deliver_at passed to bundle checkout route
@@ -754,8 +756,8 @@ function BookPage() {
       },
       {
         icon: '📅',
-        label: '1 Event Phase',
-        desc: 'One chapter in your event story, with its own tribute collection window and D-Day guest capture portal.',
+        label: 'Event Moments — 1 Phase Included',
+        desc: 'Capture the moments that happen throughout your event. Your capsule includes one Event Phase — add more for multi-part occasions.',
         helpKey: 'additional_phase',
       },
       {
