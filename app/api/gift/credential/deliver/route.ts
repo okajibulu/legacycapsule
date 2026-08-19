@@ -138,10 +138,10 @@ async function sendCredential({
     guestName:      credential.guest_name,
     numericCode:    credential.numeric_code,
     credentialUrl,
-    entitlements:   (credential.gift_entitlements ?? []) as {
-      quantity_entitled: number
-      gift_manifest_items: { item_name: string; donor_name: string | null; donor_name_visible: boolean }
-    }[],
+      entitlements:   ((credential.gift_entitlements ?? []) as unknown) as {
+        quantity_entitled: number
+        gift_manifest_items: { item_name: string; donor_name: string | null; donor_name_visible: boolean }
+      }[],
     eventName:      capsuleData.event_name as string,
     eventDate:      capsuleData.event_date as string | null,
     eventLocation:  capsuleData.event_location as string | null,

@@ -116,26 +116,27 @@ export async function GET(req: NextRequest) {
       .eq('credential_id', credential.id)
       .eq('capsule_id', credential.capsule_id)
 
-    // ── Log visit — server-side, fire and forget (AMD-001 Rule 32) ────────────
-    ;(async () => {
-      try {
-        await db.from('gift_credential_visits').insert({
-          credential_id: credential.id,
-          capsule_id:    credential.capsule_id,
-        })
-
+  // ── Log visit — server-side, fire and forget (AMD-001 Rule 32) ────────────
+  void (async () => {
+    try {
+      const { error: visitErr } = await db.from('gift_credential_visits').insert({
+        credential_id: credential.id,
+        capsule_id:    credential.capsule_id,
+      })
+      if (!visitErr) {
         writeLedgerEvent({
           capsule_id:    credential.capsule_id,
           event_type:    'CODE_VIEWED',
           actor_type:    'recipient',
-          actor_id:      null,
+          actor_id:      undefined,
           credential_id: credential.id,
           payload:       { visit_logged: true },
         })
-      } catch {
-        // Visit logging failure never surfaces to guest
       }
-    })()
+    } catch {
+      // Visit logging failure never surfaces to guest
+    }
+  })()
 
     // ── Build response ────────────────────────────────────────────────────────
     return NextResponse.json({

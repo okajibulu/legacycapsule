@@ -101,10 +101,8 @@ export default async function GiftCollectPage({ params }: PageProps) {
 
   // ── Log visit — server-side, no cookies (AMD-001 Rule 32) ─────────────────
   // Fire and forget — never block render on visit log
-  db.from('gift_credential_visits')
+  void db.from('gift_credential_visits')
     .insert({ credential_id: credential.id, capsule_id: credential.capsule_id })
-    .then(() => {})
-    .catch(() => {})
 
   // ── Build initial QR payload (time-windowed) ────────────────────────────────
   // Client will rebuild this every 5 minutes automatically.
@@ -154,14 +152,21 @@ export default async function GiftCollectPage({ params }: PageProps) {
         event_date:    capsule?.event_date    ?? null,
         event_location: capsule?.event_location ?? null,
       }}
-      entitlements={(entitlements ?? []).map(e => ({
-        id:                 e.id,
-        quantity_entitled:  e.quantity_entitled,
-        quantity_collected: e.quantity_collected,
-        item_name:          (e.gift_manifest_items as { item_name: string }).item_name,
-        donor_name:         (e.gift_manifest_items as { donor_name: string | null }).donor_name,
-        donor_name_visible: (e.gift_manifest_items as { donor_name_visible: boolean }).donor_name_visible,
-      }))}
+      entitlements={(entitlements ?? []).map(e => {
+        const mItem = e.gift_manifest_items as unknown as {
+          item_name: string
+          donor_name: string | null
+          donor_name_visible: boolean
+        }
+        return {
+          id:                 e.id,
+          quantity_entitled:  e.quantity_entitled,
+          quantity_collected: e.quantity_collected,
+          item_name:          mItem.item_name,
+          donor_name:         mItem.donor_name,
+          donor_name_visible: mItem.donor_name_visible,
+        }
+      })}
       initialQrPayload={initialQrPayload}
       credentialId={credential.id}
     />
