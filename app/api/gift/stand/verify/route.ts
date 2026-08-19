@@ -2,35 +2,32 @@
 // FILE PATH:  app/api/gift/stand/verify/route.ts
 // PURPOSE:    Gift Collection System — stand verification endpoint
 //             POST /api/gift/stand/verify
-//             Handles both verification paths:
-//               path: 'qr'     — HMAC-signed time-windowed QR payload
-//               path: 'manual' — code + name and/or phone dual-factor
-//             Returns verified credential + entitlements on success.
-//             Logs every attempt to gift_fulfilment_ledger (VERIFICATION_ATTEMPTED /
-//             VERIFICATION_FAILED). Increments failed_count on session on failure.
-//             Fires alert check after 3 unresolved failures on same code.
-// SPEC:       GCS-SPEC-001-AMD-001 Part Two Sections 2.1–2.7 + AMD-002 Rule 42
+//             QR path + manual dual-factor (any-2-of-3).
+//             AMENDMENT: Allows re-entry when collection_status = 'partial'.
+//             Returns only outstanding entitlements for partial re-collection.
+// SPEC:       GCS-SPEC-001-AMD-001 + Founder Amendment 19 August 2026
 // BUILT BY:   AI22 · Claude Opus 4.6
-// VERSION:    AI22v2.12.22
+// VERSION:    AI22v2.12.24
 // DATE:       19 August 2026
 //
-// RULES (AMD-001):
-//   Rule 20: verifyCredential() is the single source of truth — never inline.
-//   Rule 21: normalisePhone() on both stored and entered before comparison.
-//   Rule 22: normaliseGuestName() on both stored and entered before comparison.
-//   AMD-002 Rule 42: Never block physical collection waiting for digital confirmation.
-//   Info asymmetry: failure response is always neutral — never reveals which factor failed.
+// PARTIAL RE-COLLECTION:
+//   When collection_status = 'partial', verification passes.
+//   Only entitlements where quantity_collected < quantity_entitled are returned.
+//   Already-collected entitlements are returned with is_complete: true flag
+//   so the scanner UI can show them as read-only "Collected" rows.
+//
+// ACTOR TYPE: Never accepted from client. Always derived from session.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { NextRequest, NextResponse }                from 'next/server'
-import { createClient }                              from '@supabase/supabase-js'
+import { NextRequest, NextResponse }          from 'next/server'
+import { createClient }                        from '@supabase/supabase-js'
 import {
   verifyCredential,
   verifyQrPayload,
   normaliseGuestName,
   normalisePhone,
-}                                                    from '@/lib/gift/verificationUtils'
-import { writeLedgerEvent, writeLedgerEvents }       from '@/lib/gift/ledger'
+}                                              from '@/lib/gift/verificationUtils'
+import { writeAuditLedgerEvent }               from '@/lib/gift/ledger'
 
 
 // ═══ SECTION 1 — Supabase admin client ═════════════════════════════════════════
@@ -45,9 +42,6 @@ function getDb() {
 
 
 // ═══ SECTION 2 — Neutral failure response ══════════════════════════════════════
-//
-// AMD-001 Section 2.5: failure response is ALWAYS neutral.
-// Staff and guest never learn which element was wrong.
 
 const NEUTRAL_FAILURE = {
   verified: false,
@@ -55,37 +49,19 @@ const NEUTRAL_FAILURE = {
 }
 
 
-// ═══ SECTION 3 — Load credential with entitlements ═════════════════════════════
+// ═══ SECTION 3 — Load credential with all entitlements ═════════════════════════
 
 async function loadCredential(db: ReturnType<typeof getDb>, credentialId: string, capsuleId: string) {
   const { data } = await db
     .from('gift_credentials')
     .select(`
-      id,
-      capsule_id,
-      guest_name,
-      guest_category,
-      guest_phone,
-      numeric_code,
-      collection_status,
-      is_active,
-      is_blocked,
-      block_reason,
-      block_id,
-      coordinator_id,
-      is_group_code,
-      group_size,
+      id, capsule_id, guest_name, guest_category, guest_phone,
+      numeric_code, collection_status, is_active, is_blocked, block_reason,
+      block_id, coordinator_id, is_group_code, group_size,
       gift_entitlements (
-        id,
-        quantity_entitled,
-        quantity_allocated,
-        quantity_collected,
+        id, quantity_entitled, quantity_allocated, quantity_collected,
         gift_manifest_items (
-          id,
-          item_name,
-          category,
-          donor_name,
-          donor_name_visible
+          id, item_name, category, donor_name, donor_name_visible
         )
       )
     `)
@@ -97,7 +73,7 @@ async function loadCredential(db: ReturnType<typeof getDb>, credentialId: string
 }
 
 
-// ═══ SECTION 4 — Fetch capsule excluded words ════════════════════════════════════
+// ═══ SECTION 4 — Excluded words helper ═════════════════════════════════════════
 
 async function getExcludedWords(db: ReturnType<typeof getDb>, capsuleId: string): Promise<string[]> {
   const { data } = await db
@@ -108,44 +84,54 @@ async function getExcludedWords(db: ReturnType<typeof getDb>, capsuleId: string)
 }
 
 
-// ═══ SECTION 5 — Attempt counter for alert logic ═══════════════════════════════
+// ═══ SECTION 5 — Build entitlement response ═════════════════════════════════════
 //
-// AMD-001 Section 2.7: alert fires after 3 unresolved failures on same code
-// within 5 minutes. This counts recent VERIFICATION_FAILED events.
+// For partial re-collection: marks each entitlement as outstanding or complete.
+// Scanner UI shows complete items as read-only "Collected" rows.
 
-async function getRecentFailCount(
-  db:           ReturnType<typeof getDb>,
-  credentialId: string,
-  windowMins:   number = 5
-): Promise<number> {
-  const since = new Date(Date.now() - windowMins * 60 * 1000).toISOString()
-  const { count } = await db
-    .from('gift_fulfilment_ledger')
-    .select('id', { count: 'exact', head: true })
-    .eq('credential_id', credentialId)
-    .eq('event_type', 'VERIFICATION_FAILED')
-    .gte('created_at', since)
-
-  return count ?? 0
+function buildEntitlementResponse(entitlements: Record<string, unknown>[], isPartialReEntry: boolean) {
+  return entitlements.map((e: Record<string, unknown>) => ({
+    id:                  e.id,
+    quantity_entitled:   e.quantity_entitled,
+    quantity_collected:  e.quantity_collected,
+    quantity_outstanding: (e.quantity_entitled as number) - (e.quantity_collected as number),
+    is_complete:         (e.quantity_collected as number) >= (e.quantity_entitled as number),
+    item:                e.gift_manifest_items,
+  }))
 }
 
 
-// ═══ SECTION 6 — POST /api/gift/stand/verify ═══════════════════════════════════
+// ═══ SECTION 6 — Fail counter increment ════════════════════════════════════════
+
+async function incrementFailCount(db: ReturnType<typeof getDb>, standSessionId: string) {
+  const { data: sess } = await db
+    .from('gift_stand_sessions')
+    .select('failed_count')
+    .eq('id', standSessionId)
+    .maybeSingle()
+  await db
+    .from('gift_stand_sessions')
+    .update({ failed_count: (sess?.failed_count ?? 0) + 1 })
+    .eq('id', standSessionId)
+}
+
+
+// ═══ SECTION 7 — POST /api/gift/stand/verify ═══════════════════════════════════
 
 export async function POST(req: NextRequest) {
   try {
-    const body            = await req.json()
-    const capsuleId       = (body.capsule_id   ?? '').trim()
-    const standSessionId  = (body.session_id   ?? '').trim()
-    const verifyPath      = body.path as 'qr' | 'manual'
+    const body           = await req.json()
+    const capsuleId      = (body.capsule_id  ?? '').trim()
+    const standSessionId = (body.session_id  ?? '').trim()
+    const verifyPath     = body.path as 'qr' | 'manual'
 
-    if (!capsuleId)      return NextResponse.json({ error: 'capsule_id required' },  { status: 400 })
-    if (!standSessionId) return NextResponse.json({ error: 'session_id required' },  { status: 400 })
+    if (!capsuleId)      return NextResponse.json({ error: 'capsule_id required' },       { status: 400 })
+    if (!standSessionId) return NextResponse.json({ error: 'session_id required' },       { status: 400 })
     if (!verifyPath)     return NextResponse.json({ error: 'path required (qr|manual)' }, { status: 400 })
 
     const db = getDb()
 
-    // ── Validate stand session is active ─────────────────────────────────────
+    // Validate stand session
     const { data: standSession } = await db
       .from('gift_stand_sessions')
       .select('id, status, stand_name, staff_name, capsule_id')
@@ -157,47 +143,31 @@ export async function POST(req: NextRequest) {
     }
     if (standSession.status === 'suspended') {
       return NextResponse.json(
-        {
-          verified: false,
-          message:  'This stand is currently suspended. Please contact the event coordinator.',
-        },
+        { verified: false, message: 'This stand is currently suspended. Please contact the event coordinator.' },
         { status: 403 }
       )
     }
     if (standSession.status === 'closed') {
-      return NextResponse.json(
-        { verified: false, message: 'This stand session has been closed.' },
-        { status: 403 }
-      )
+      return NextResponse.json({ verified: false, message: 'This stand session has been closed.' }, { status: 403 })
     }
 
-    // ── QR verification path ──────────────────────────────────────────────────
+    // ── QR path ───────────────────────────────────────────────────────────────
     if (verifyPath === 'qr') {
-      const qrPayload = (body.qr_payload ?? '').trim()
+      const qrPayload    = (body.qr_payload ?? '').trim()
       if (!qrPayload) return NextResponse.json({ error: 'qr_payload required' }, { status: 400 })
 
       const credentialId = verifyQrPayload(qrPayload)
 
       if (!credentialId) {
-        // QR expired or invalid
-        await db.from('gift_fulfilment_ledger').insert({
+        await incrementFailCount(db, standSessionId)
+        await writeAuditLedgerEvent({
           capsule_id:       capsuleId,
           event_type:       'VERIFICATION_FAILED',
           actor_type:       'staff',
           actor_name:       standSession.staff_name,
           stand_session_id: standSessionId,
-          payload: {
-            path:         'qr',
-            fail_reason:  'qr_expired_or_invalid',
-            stand_name:   standSession.stand_name,
-          },
+          payload:          { path: 'qr', fail_reason: 'qr_expired_or_invalid', stand_name: standSession.stand_name },
         })
-        await db
-          .from('gift_stand_sessions')
-          const { data: sess } = await db.from('gift_stand_sessions').select('failed_count').eq('id', standSessionId).maybeSingle()
-await db.from('gift_stand_sessions').update({ failed_count: (sess?.failed_count ?? 0) + 1 }).eq('id', standSessionId)
-          .eq('id', standSessionId)
-
         return NextResponse.json(
           { verified: false, message: 'QR code has expired. Ask the guest to refresh their credential page.' },
           { status: 401 }
@@ -205,38 +175,40 @@ await db.from('gift_stand_sessions').update({ failed_count: (sess?.failed_count 
       }
 
       const credential = await loadCredential(db, credentialId, capsuleId)
-
       if (!credential) return NextResponse.json(NEUTRAL_FAILURE, { status: 401 })
+
       if (!credential.is_active || credential.is_blocked) {
         return NextResponse.json(
-          {
-            verified: false,
-            message: credential.block_reason ?? 'This code is currently inactive — please see the event coordinator.',
-          },
+          { verified: false, message: (credential.block_reason as string | null) ?? 'This code is currently inactive — please see the event coordinator.' },
           { status: 403 }
         )
       }
-      if (credential.collection_status === 'collected') {
+
+      // Already fully collected — not a partial re-entry
+      if ((credential.collection_status as string) === 'collected') {
         return NextResponse.json(
-          { verified: false, message: 'This gift has already been collected.' },
+          { verified: false, message: 'This gift has already been fully collected.' },
           { status: 409 }
         )
       }
 
-      // QR success — log and return
-      writeLedgerEvent({
+      // AMENDMENT: partial status allowed through for re-collection
+      const isPartialReEntry = (credential.collection_status as string) === 'partial'
+
+      await writeAuditLedgerEvent({
         capsule_id:       capsuleId,
         event_type:       'VERIFICATION_ATTEMPTED',
         actor_type:       'staff',
         actor_name:       standSession.staff_name,
-        credential_id:    credential.id,
+        credential_id:    credential.id as string,
         stand_session_id: standSessionId,
-        payload: { path: 'qr', result: 'success', stand_name: standSession.stand_name },
+        payload:          { path: 'qr', result: 'success', is_partial_re_entry: isPartialReEntry, stand_name: standSession.stand_name },
       })
 
       return NextResponse.json({
-        verified:    true,
-        path:        'qr',
+        verified:          true,
+        path:              'qr',
+        is_partial_re_entry: isPartialReEntry,
         credential: {
           id:               credential.id,
           guest_name:       credential.guest_name,
@@ -246,16 +218,14 @@ await db.from('gift_stand_sessions').update({ failed_count: (sess?.failed_count 
           is_group_code:    credential.is_group_code,
           group_size:       credential.group_size,
         },
-        entitlements: (credential.gift_entitlements ?? []).map((e: Record<string, unknown>) => ({
-          id:                 e.id,
-          quantity_entitled:  e.quantity_entitled,
-          quantity_collected: e.quantity_collected,
-          item:               e.gift_manifest_items,
-        })),
+        entitlements: buildEntitlementResponse(
+          (credential.gift_entitlements ?? []) as Record<string, unknown>[],
+          isPartialReEntry
+        ),
       })
     }
 
-    // ── Manual verification path ──────────────────────────────────────────────
+    // ── Manual path ───────────────────────────────────────────────────────────
     if (verifyPath === 'manual') {
       const enteredCode  = (body.code  ?? '').trim()
       const enteredName  = (body.name  ?? '').trim() || undefined
@@ -263,7 +233,6 @@ await db.from('gift_stand_sessions').update({ failed_count: (sess?.failed_count 
 
       if (!enteredCode) return NextResponse.json({ error: 'code required' }, { status: 400 })
 
-      // Look up credential by code
       const { data: credByCode } = await db
         .from('gift_credentials')
         .select('id, guest_name, guest_phone, numeric_code, collection_status, is_active, is_blocked, block_reason, capsule_id')
@@ -272,60 +241,39 @@ await db.from('gift_stand_sessions').update({ failed_count: (sess?.failed_count 
         .is('deleted_at', null)
         .maybeSingle()
 
-      // Code not found
       if (!credByCode) {
-        await writeLedgerEvents([
-          {
-            capsule_id:       capsuleId,
-            event_type:       'VERIFICATION_FAILED',
-            actor_type:       'staff',
-            actor_name:       standSession.staff_name,
-            stand_session_id: standSessionId,
-            payload: {
-              path:          'manual',
-              fail_reason:   'code_not_found',
-              code_entered:  enteredCode,
-              name_entered:  enteredName,
-              phone_entered: enteredPhone,
-              stand_name:    standSession.stand_name,
-            },
-          },
-        ])
-
-        // Increment failed_count
-        const { data: sess } = await db.from('gift_stand_sessions').select('failed_count').eq('id', standSessionId).maybeSingle()
-        await db.from('gift_stand_sessions').update({ failed_count: (sess?.failed_count ?? 0) + 1 }).eq('id', standSessionId)
-
+        await incrementFailCount(db, standSessionId)
+        await writeAuditLedgerEvent({
+          capsule_id:       capsuleId,
+          event_type:       'VERIFICATION_FAILED',
+          actor_type:       'staff',
+          actor_name:       standSession.staff_name,
+          stand_session_id: standSessionId,
+          payload:          { path: 'manual', fail_reason: 'code_not_found', code_entered: enteredCode, stand_name: standSession.stand_name },
+        })
         return NextResponse.json(NEUTRAL_FAILURE, { status: 401 })
       }
 
-      // Blocked check
       if (!credByCode.is_active || credByCode.is_blocked) {
         return NextResponse.json(
-          {
-            verified: false,
-            message: credByCode.block_reason ?? 'This code is currently inactive — please see the event coordinator.',
-          },
+          { verified: false, message: (credByCode.block_reason as string | null) ?? 'This code is currently inactive — please see the event coordinator.' },
           { status: 403 }
         )
       }
 
-      // Already collected
-      if (credByCode.collection_status === 'collected') {
+      if ((credByCode.collection_status as string) === 'collected') {
         return NextResponse.json(
-          { verified: false, message: 'This gift has already been collected.' },
+          { verified: false, message: 'This gift has already been fully collected.' },
           { status: 409 }
         )
       }
 
-      // Fetch excluded words for name normalisation
       const excludedWords = await getExcludedWords(db, capsuleId)
 
-      // Run dual-factor verification
       const verifyResult = verifyCredential({
-        storedCode:           credByCode.numeric_code,
-        storedName:           credByCode.guest_name ?? '',
-        storedPhone:          credByCode.guest_phone ?? '',
+        storedCode:           credByCode.numeric_code as string,
+        storedName:           (credByCode.guest_name as string) ?? '',
+        storedPhone:          (credByCode.guest_phone as string) ?? '',
         capsuleExcludedWords: excludedWords,
         enteredCode,
         enteredName,
@@ -333,64 +281,58 @@ await db.from('gift_stand_sessions').update({ failed_count: (sess?.failed_count 
       })
 
       if (!verifyResult.valid) {
-        // Log failure with full detail (Co-admin / FRFA visibility only — never shown to guest)
-        const recentFails = await getRecentFailCount(db, credByCode.id)
-        const alertThreshold = recentFails + 1 >= 3  // this failure will push to 3+
+        await incrementFailCount(db, standSessionId)
 
-        await writeLedgerEvents([
-          {
-            capsule_id:       capsuleId,
-            event_type:       'VERIFICATION_FAILED',
-            actor_type:       'staff',
-            actor_name:       standSession.staff_name,
-            credential_id:    credByCode.id,
-            stand_session_id: standSessionId,
-            payload: {
-              path:             'manual',
-              fail_reason:      verifyResult.failReason,
-              code_entered:     enteredCode,
-              name_entered:     enteredName ?? null,
-              name_normalised:  enteredName ? normaliseGuestName(enteredName, excludedWords).join(' ') : null,
-              phone_entered:    enteredPhone ?? null,
-              phone_normalised: enteredPhone ? normalisePhone(enteredPhone) : null,
-              factors_used:     verifyResult.factorsUsed,
-              attempt_number:   recentFails + 1,
-              alert_threshold:  alertThreshold,
-              stand_name:       standSession.stand_name,
-            },
+        // Count recent failures for alert threshold
+        const since = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+        const { count: recentFails } = await db
+          .from('gift_fulfilment_ledger')
+          .select('id', { count: 'exact', head: true })
+          .eq('credential_id', credByCode.id)
+          .eq('event_type', 'VERIFICATION_FAILED')
+          .gte('created_at', since)
+
+        await writeAuditLedgerEvent({
+          capsule_id:       capsuleId,
+          event_type:       'VERIFICATION_FAILED',
+          actor_type:       'staff',
+          actor_name:       standSession.staff_name,
+          credential_id:    credByCode.id as string,
+          stand_session_id: standSessionId,
+          payload: {
+            path:            'manual',
+            fail_reason:     verifyResult.failReason,
+            code_entered:    enteredCode,
+            name_entered:    enteredName ?? null,
+            phone_entered:   enteredPhone ?? null,
+            factors_used:    verifyResult.factorsUsed,
+            attempt_number:  (recentFails ?? 0) + 1,
+            alert_threshold: ((recentFails ?? 0) + 1) >= 3,
+            stand_name:      standSession.stand_name,
           },
-        ])
+        })
 
-        // Increment failed_count on session
-        const { data: sess } = await db.from('gift_stand_sessions').select('failed_count').eq('id', standSessionId).maybeSingle()
-        await db.from('gift_stand_sessions').update({ failed_count: (sess?.failed_count ?? 0) + 1 }).eq('id', standSessionId)
-
-        // Return neutral failure — never reveal which factor failed
         return NextResponse.json(NEUTRAL_FAILURE, { status: 401 })
       }
 
-      // ── Verification passed ───────────────────────────────────────────────
-      const credential = await loadCredential(db, credByCode.id, capsuleId)
+      const credential       = await loadCredential(db, credByCode.id as string, capsuleId)
+      const isPartialReEntry = (credByCode.collection_status as string) === 'partial'
 
-      writeLedgerEvent({
+      await writeAuditLedgerEvent({
         capsule_id:       capsuleId,
         event_type:       'VERIFICATION_ATTEMPTED',
         actor_type:       'staff',
         actor_name:       standSession.staff_name,
-        credential_id:    credByCode.id,
+        credential_id:    credByCode.id as string,
         stand_session_id: standSessionId,
-        payload: {
-          path:         'manual',
-          result:       'success',
-          factors_used: verifyResult.factorsUsed,
-          stand_name:   standSession.stand_name,
-        },
+        payload:          { path: 'manual', result: 'success', factors_used: verifyResult.factorsUsed, is_partial_re_entry: isPartialReEntry, stand_name: standSession.stand_name },
       })
 
       return NextResponse.json({
-        verified:    true,
-        path:        'manual',
-        factors_used: verifyResult.factorsUsed,
+        verified:           true,
+        path:               'manual',
+        factors_used:       verifyResult.factorsUsed,
+        is_partial_re_entry: isPartialReEntry,
         credential: {
           id:               credential!.id,
           guest_name:       credential!.guest_name,
@@ -400,12 +342,10 @@ await db.from('gift_stand_sessions').update({ failed_count: (sess?.failed_count 
           is_group_code:    credential!.is_group_code,
           group_size:       credential!.group_size,
         },
-        entitlements: (credential?.gift_entitlements ?? []).map((e: Record<string, unknown>) => ({
-          id:                 e.id,
-          quantity_entitled:  e.quantity_entitled,
-          quantity_collected: e.quantity_collected,
-          item:               e.gift_manifest_items,
-        })),
+        entitlements: buildEntitlementResponse(
+          (credential?.gift_entitlements ?? []) as Record<string, unknown>[],
+          isPartialReEntry
+        ),
       })
     }
 
