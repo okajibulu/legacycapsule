@@ -34,10 +34,7 @@ const ROTATING_LINES = [
   'Turn Memories Into A Lasting Publication',
   'Live Tribute Wall On Event Day',
   'Celebrate Life\'s Most Meaningful Moments',
-  'Full Guest List & RSVP Management',
-  'Regular & VIP Guest Tiers',
-  'Access Codes & Table Seating Plans',
-  'Fabric & Attire Coordination',
+  'Event Tools for Attire & Guest Management',
   'Publication Shared With Every Guest',
   'Permanent Digital Memory Archive',
 ]
@@ -266,25 +263,32 @@ function RoutingCard({ card, index }: { card: typeof ROUTING_CARDS[0]; index: nu
    ============================================================ */
 const PILLARS = [
   {
-    label:    "PLAN",
-    headline: "Plan & coordinate every event detail",
-    body:     "Guest invitations, RSVP management, VIP coordination, Access codes, seating plans, attire/fabric coordination & event communications - all in one place.",
-    color:    "#8B9FD4",
-    number:   "01",
-  },
-  {
     label:    "CAPTURE",
-    headline: "Capture every memory from friends & family",
-    body:     "Collect worldwide tributes, stories, photos, videos & live event moments from event d-day guests and family members.",
+    headline: "Every voice. Every story. Every moment.",
+    body:     "Collect worldwide tributes, stories, photos, videos and live event moments — from guests near and far, before, during and after the day.",
     color:    "var(--lc-gold)",
-    number:   "02",
+    number:   "01",
   },
   {
     label:    "PRESERVE",
     headline: "A permanent record, beautifully made",
-    body:     "The Event Premium Digital Publication — a curated commemorative documentation of all moments & memories, generated & sent to every contributor.",
+    body:     "Everything collected becomes the LegacyCapsule Event Digital Publication — a curated commemorative document yours to keep, forever.",
     color:    "#7EC8A4",
+    number:   "02",
+  },
+  {
+    label:    "SHARE",
+    headline: "Send it to everyone who was there",
+    body:     "The publication is generated and delivered to every contributor — so the legacy of your event lives on in the hands of the people who made it.",
+    color:    "#8B9FD4",
     number:   "03",
+  },
+  {
+    label:    "LC EVENT TOOLS",
+    headline: "Everything you need to run the day",
+    body:     "Guest invitations, RSVP management, VIP tiers, access codes, seating plans, attire coordination and event communications — operational support built into your Capsule.",
+    color:    "rgba(184,150,12,0.55)",
+    number:   "04",
   },
 ]
 
@@ -312,7 +316,7 @@ const STEPS = [
   {
     number: "02",
     title:  "Coordinate and Capture",
-    body:   "Manage guests, seating, fabric and attire orders, and access control from one dashboard. On the day, share your QR code — guests upload photos, videos, messages, and tributes instantly. Everything in one structured space.",
+    body:   "On the day, share your QR code — guests upload photos, videos, messages and tributes instantly from anywhere in the world. Your LC Event Tools handle the rest: guests, seating, attire and access control, all from one dashboard.",
     cta:    null,
   },
   {
@@ -398,11 +402,11 @@ export default function HomePage() {
         gap: '0.45em',
       }}>
         <span style={{ color: '#B8960C', fontSize: '14px' }}>•</span>
-        PLAN
-     <span style={{ color: '#B8960C', fontSize: '14px' }}>•</span>
-         CAPTURE
+        CAPTURE
         <span style={{ color: '#B8960C', fontSize: '14px' }}>•</span>
-          PRESERVE
+        PRESERVE
+        <span style={{ color: '#B8960C', fontSize: '14px' }}>•</span>
+        SHARE
         <span style={{ color: '#B8960C', fontSize: '14px' }}>•</span>
       </p>
 
@@ -444,8 +448,8 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
   margin: '18px auto 0',
   textAlign: 'center',
 }}>
-  From planning of events to preserving the memories they create, 
-  LegacyCapsule gives the edge your premium event deserves.
+  Capture every voice, every story and every meaningful moment.
+  Preserve them beautifully. Share them long after the day is over.
 </p>{/* Rotating capability / outcome line */}
 
 <div style={{
@@ -519,7 +523,7 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
           margin: '0 0.6em',
         }}>·</span>
         <span style={{ color: '#D4AE2A' }}>
-          YOUR TRIBUTE WALL LIVE IN MINUTES FOR FREE
+          YOUR EVENT CAPSULE LIVE IN MINUTES
         </span>
       </p>
 
@@ -574,8 +578,8 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
             lineHeight:   1.55,
             letterSpacing: "-0.01em",
           }}>
-            LegacyCapsule serves as a one-stop centre to help event organisers deliver a premium event. By providing various coordinative services, in addition to 
-            capturing every voice, every story and every meaningful moment of friends and family members - transforming the event into a lasting legacy through a beautiful digital publication sent to everyone at the end of the event.
+            Every meaningful event deserves to be remembered exactly as it felt.
+            LegacyCapsule captures every voice, every story and every moment — from the people who were there — and transforms them into a lasting legacy. A beautiful digital publication, curated and shared with everyone who mattered on the day.
           </p>
           <div className="gold-rule" style={{ marginTop: "var(--space-8)" }}>
             <div className="gold-rule-diamond" />
@@ -593,7 +597,7 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
               The Three Pillars
             </div>
             <h2 className="type-heading-xl" style={{ color: "var(--lc-purple)", maxWidth: "600px", margin: "0 auto" }}>
-              One platform. Every dimension of your event.
+              Capture it. Preserve it. Share it. Run it.
             </h2>
           </div>
 
