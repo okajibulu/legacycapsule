@@ -359,7 +359,7 @@ export default function VideoReelPlayer({
             </p>
           )}
           <p style={{ color: '#F5F3EE', fontFamily: 'Georgia, serif', fontSize: 'clamp(1rem,1.8vw,1.4rem)', margin: 0, opacity: 0.6 }}>
-            {videoCount} tribute video{videoCount !== 1 ? 's' : ''}
+            {videoCount} video{videoCount !== 1 ? 's' : ''}
             {photos.length > 0 ? ' · ' + photos.length + ' photos' : ''}
           </p>
           <button onClick={handleStart} style={startBtnStyle}>▶ Start Reel</button>
@@ -533,22 +533,23 @@ export default function VideoReelPlayer({
         </div>
       )}
 
-      {/* Persistent mini-QR — bottom right */}
+      {/* Persistent QR — right side, vertically centred, clear of all bars */}
       {['playing', 'photo', 'transition', 'opening', 'closing'].includes(playbackState) && qrDataUrl && (
         <div style={{
           position: 'fixed',
-          bottom: '52px',
-          right: '1rem',
+          top: '50%',
+          right: '1.5rem',
+          transform: 'translateY(-50%)',
           zIndex: 55,
-          background: 'rgba(13,8,32,0.75)',
-          border: '1px solid rgba(212,174,42,0.35)',
-          borderRadius: '6px',
-          padding: '0.4rem',
+          background: 'rgba(13,8,32,0.88)',
+          border: '2px solid rgba(212,174,42,0.5)',
+          borderRadius: '10px',
+          padding: '0.6rem',
           backdropFilter: 'blur(4px)',
         }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={qrDataUrl} alt="Scan to participate" style={{ display: 'block', width: '80px', height: '80px' }} />
-          <p style={{ color: '#D4AE2A', fontFamily: 'sans-serif', fontSize: '0.55rem', textAlign: 'center', margin: '0.2rem 0 0', opacity: 0.7, letterSpacing: '0.05em' }}>
+          <img src={qrDataUrl} alt="Scan to participate" style={{ display: 'block', width: '180px', height: '180px' }} />
+          <p style={{ color: '#D4AE2A', fontFamily: 'sans-serif', fontSize: '0.65rem', textAlign: 'center', margin: '0.35rem 0 0', opacity: 0.85, letterSpacing: '0.1em', fontWeight: 700 }}>
             SCAN TO JOIN
           </p>
         </div>

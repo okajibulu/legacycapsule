@@ -298,14 +298,12 @@ function getCSS(bg: string, accent: string): string {
 
     // Welcome screen
     '#welcome{position:fixed;inset:0;display:flex;flex-direction:column;',
-    'align-items:center;justify-content:center;gap:1.5rem;z-index:100;',
-    'background:' + bg + '}',
+    'align-items:center;justify-content:center;gap:1.5rem;z-index:100;background:' + bg + '}',
 
-    // Scroll viewport
-    '#scroll-viewport{position:fixed;inset:0;overflow:hidden;z-index:10;',
-    'padding:0 8vw 100px}',
+    // Scroll viewport — bottom padding = footer + control bar height
+    '#scroll-viewport{position:fixed;inset:0;overflow:hidden;z-index:10;padding:0 8vw 100px}',
 
-    // Scroll document — the entire tribute thread
+    // Scroll document
     '#scroll-doc{width:100%;padding-top:60px}',
 
     // Scroll animation
@@ -313,32 +311,40 @@ function getCSS(bg: string, accent: string): string {
     '#scroll-doc.scrolling{animation:scrollUp var(--scroll-dur) linear forwards;',
     'animation-play-state:var(--scroll-play,running)}',
 
-    // Intro card
-    '#intro-card{text-align:center;padding:4rem 2rem 5rem;',
-    'border-bottom:4px solid ' + accent + ';margin-bottom:3rem}',
-
-    // Closing card
+    // Intro + closing cards
+    '#intro-card{text-align:center;padding:4rem 2rem 5rem;border-bottom:4px solid ' + accent + ';margin-bottom:3rem}',
     '#closing-card{text-align:center;padding:5rem 2rem;margin-top:3rem}',
 
-    // Photo break overlay
-    '#photo-overlay{position:fixed;inset:0;z-index:80;',
-    'background:' + bg + ';display:none;flex-direction:column;',
-    'align-items:center;justify-content:center}',
-    '#photo-overlay.visible{display:flex}',
+    // ── Photo overlay — lower 55%, scroll pauses ──
+    // Covers bottom 55% of screen. Scroll pauses while visible.
+    '#photo-overlay{position:fixed;bottom:98px;left:0;right:0;',
+    'height:55vh;z-index:80;',
+    'background:linear-gradient(to bottom,' + bg + 'ee,' + bg + 'ff);',
+    'backdrop-filter:blur(2px);',
+    'display:flex;flex-direction:column;align-items:center;justify-content:center;',
+    'opacity:0;pointer-events:none;transition:opacity 1s ease}',
+    '#photo-overlay.visible{opacity:1;pointer-events:auto}',
 
-    // QR overlay
-    '#qr-overlay{position:fixed;inset:0;z-index:80;',
-    'background:' + bg + ';display:none;flex-direction:column;',
-    'align-items:center;justify-content:center;gap:1.5rem}',
-    '#qr-overlay.visible{display:flex}',
+    // ── QR overlay — lower 38%, scroll continues ──
+    // Floats over scroll without interrupting it. Semi-transparent.
+    '#qr-overlay{position:fixed;bottom:98px;left:0;right:0;',
+    'height:38vh;z-index:75;',
+    'background:linear-gradient(to bottom,transparent,' + bg + 'dd,' + bg + 'ee);',
+    'display:flex;flex-direction:row;align-items:flex-end;justify-content:center;',
+    'gap:1.5rem;padding:1.5rem 2rem;',
+    'opacity:0;pointer-events:none;transition:opacity 1s ease}',
+    '#qr-overlay.visible{opacity:1;pointer-events:auto}',
 
-    // LC brand overlay
-    '#brand-overlay{position:fixed;inset:0;z-index:80;',
-    'background:' + bg + ';display:none;flex-direction:column;',
-    'align-items:center;justify-content:center;gap:1.2rem}',
-    '#brand-overlay.visible{display:flex}',
+    // ── Brand overlay — lower 28%, scroll continues ──
+    '#brand-overlay{position:fixed;bottom:98px;left:0;right:0;',
+    'height:28vh;z-index:75;',
+    'background:linear-gradient(to bottom,transparent,' + bg + 'cc,' + bg + 'ee);',
+    'display:flex;flex-direction:row;align-items:flex-end;justify-content:center;',
+    'gap:1rem;padding:1.25rem 2rem;',
+    'opacity:0;pointer-events:none;transition:opacity 1s ease}',
+    '#brand-overlay.visible{opacity:1;pointer-events:auto}',
 
-    // Operator overlay
+    // Operator overlay — full screen, pauses scroll
     '#operator-overlay{position:fixed;inset:0;z-index:200;',
     'background:rgba(0,0,0,0.94);display:none;flex-direction:column;',
     'align-items:center;justify-content:center;gap:1.25rem}',
@@ -350,30 +356,30 @@ function getCSS(bg: string, accent: string): string {
     'border-top:1px solid ' + accent + '22;',
     'display:none;align-items:center;justify-content:space-between;padding:0 1.5rem}',
 
-    // Control bar
+    // Control bar — taller to fit speed slider
     '#control-bar{position:fixed;bottom:42px;left:0;right:0;height:56px;z-index:150;',
     'background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);',
     'border-top:1px solid ' + accent + '22;',
-    'display:none;align-items:center;justify-content:center;gap:1rem;',
-    'transition:opacity 0.4s ease}',
+    'display:none;align-items:center;justify-content:center;gap:0.75rem;',
+    'transition:opacity 0.4s ease;padding:0 1rem}',
     '#control-bar.hidden{opacity:0;pointer-events:none}',
 
     // Buttons
     '.ctrl-btn{background:' + accent + '1a;color:' + accent + ';',
-    'border:1px solid ' + accent + '55;padding:0.4rem 1rem;',
-    'font-size:0.85rem;cursor:pointer;border-radius:4px;font-family:inherit}',
+    'border:1px solid ' + accent + '55;padding:0.4rem 0.875rem;',
+    'font-size:0.82rem;cursor:pointer;border-radius:4px;font-family:inherit;white-space:nowrap}',
     '.ov-btn{background:' + accent + '25;color:' + accent + ';',
     'border:1px solid ' + accent + '66;padding:0.6rem 1.5rem;',
     'font-size:1rem;cursor:pointer;border-radius:6px;font-family:inherit}',
     '.start-btn{background:' + accent + ';color:' + bg + ';border:none;',
     'padding:1rem 3rem;font-size:1.2rem;cursor:pointer;border-radius:4px;',
     'font-family:Georgia,serif;letter-spacing:0.05em;font-weight:bold}',
-    'input[type=range]{width:160px;accent-color:' + accent + '}',
+    'input[type=range]{accent-color:' + accent + '}',
+    '#speed-slider{width:100px}',
 
-    // Persistent mini QR
-    '#persistent-qr{position:fixed;bottom:110px;right:1.25rem;z-index:55;',
-    'background:rgba(0,0,0,0.88);border:2px solid ' + accent + '80;',
-    'border-radius:8px;padding:0.5rem;display:none}',
+    // Speed value label
+    '#speed-val{font-size:0.75rem;color:' + accent + ';opacity:0.8;',
+    'font-family:sans-serif;white-space:nowrap;min-width:40px}',
   ].join('')
 }
 
@@ -384,7 +390,6 @@ function getJS(
   photoBreaks: Array<{ afterIndex: number; photo: PhotoItem }>,
   totalTributes: number,
   lcEveryN: number,
-  qrEveryN: number,
   qrImg: string,
   honoureeName: string,
   accent: string,
@@ -438,21 +443,24 @@ function getJS(
     'var PHOTO_BREAKS=' + photoBreaksJson + ';',
     'var TOTAL_TRIBUTES=' + totalTributes + ';',
     'var LC_EVERY_N=' + lcEveryN + ';',
-    'var QR_EVERY_N=' + qrEveryN + ';',
     'var HONOUREE=' + JSON.stringify(honoureeName) + ';',
     'var ACCENT=' + JSON.stringify(accent) + ';',
     'var QR_IMG=' + JSON.stringify(qrImg) + ';',
     'var BASE_CONFIG=' + JSON.stringify(config) + ';',
+    // QR every 150 seconds, 10s hold
+    'var QR_INTERVAL_MS=150000;',
+    'var QR_HOLD_MS=10000;',
     '',
-    'var TEMPO={gentle:0.6,standard:1.0,energetic:1.6};',
+    'var TEMPO={gentle:0.5,standard:1.0,energetic:1.8};',
     'var currentTempo=BASE_CONFIG.tempo_preset||"standard";',
+    'var currentSpeedPx=30;',
     'var scrollPaused=false,controlsTimer=null,displayStarted=false;',
-    'var interruptQueue=[];',
+    'var qrTimer=null;',
     '',
     // ── Keyboard shortcuts ──
     'document.addEventListener("keydown",function(e){',
     '  if(e.ctrlKey&&e.shiftKey&&e.key==="O"){e.preventDefault();toggleOperator();return;}',
-    '  if(e.key==="Escape"){closeAllOverlays();return;}',
+    '  if(e.key==="Escape"){closeAllOverlays();if(!scrollPaused)resumeScroll();return;}',
     '  if(e.key===" "){e.preventDefault();togglePause();}',
     '  resetControlsTimer();',
     '});',
@@ -473,14 +481,14 @@ function getJS(
     '  document.getElementById("scroll-viewport").style.display="block";',
     '  var cb=document.getElementById("control-bar");if(cb)cb.style.display="flex";',
     '  var lf=document.getElementById("lc-footer");if(lf)lf.style.display="flex";',
-    '  var pq=document.getElementById("persistent-qr");if(pq)pq.style.display="block";',
     '  playAudio();',
     '  displayStarted=true;',
     '  buildScrollAndStart();',
+    '  scheduleQR();',
     '  resetControlsTimer();',
     '}',
     '',
-    // ── Build scroll document and calculate duration ──
+    // ── Build scroll and start ──
     'function buildScrollAndStart(){',
     '  var doc=document.getElementById("scroll-doc");',
     '  if(!doc)return;',
@@ -488,23 +496,24 @@ function getJS(
     '  var docH=doc.scrollHeight;',
     '  var totalDist=docH+viewH;',
     '  var mult=TEMPO[currentTempo]||1.0;',
-    '  // Base speed: 60px/sec standard — adjusted by tempo',
-    '  var pxPerSec=30*mult;',
-    '  var durSecs=totalDist/pxPerSec;',
+    '  currentSpeedPx=30*mult;',
+    '  var sl=document.getElementById("speed-slider");',
+    '  if(sl)sl.value=String(Math.round(currentSpeedPx));',
+    '  var sv=document.getElementById("speed-val");',
+    '  if(sv)sv.textContent=Math.round(currentSpeedPx)+"px/s";',
+    '  var durSecs=totalDist/currentSpeedPx;',
     '  doc.style.setProperty("--scroll-dist","-"+totalDist+"px");',
     '  doc.style.setProperty("--scroll-dur",durSecs+"s");',
     '  doc.style.setProperty("--scroll-play","running");',
     '  doc.classList.add("scrolling");',
-    '  scheduleInterrupts(durSecs,totalDist);',
+    '  schedulePhotoBreaks(durSecs,totalDist);',
+    '  scheduleBrandSlides(durSecs);',
     '}',
     '',
-    // ── Schedule photo/QR/brand interrupts ──
-    'function scheduleInterrupts(totalDurSecs,totalDist){',
-    '  interruptQueue=[];',
+    // ── Schedule photo breaks by document position ──
+    'function schedulePhotoBreaks(totalDurSecs,totalDist){',
     '  var doc=document.getElementById("scroll-doc");',
     '  if(!doc)return;',
-    '',
-    '  // Photo breaks — scheduled by position in document',
     '  PHOTO_BREAKS.forEach(function(pb){',
     '    var tributeEls=doc.querySelectorAll(".tribute-block");',
     '    if(pb.afterIndex<tributeEls.length){',
@@ -513,58 +522,77 @@ function getJS(
     '      var viewH=window.innerHeight-100;',
     '      var travelDist=elBottom+viewH;',
     '      var t=(travelDist/totalDist)*totalDurSecs*1000;',
-    '      interruptQueue.push({time:t,type:"photo",data:pb});',
+    '      setTimeout(function(data){return function(){',
+    '        if(!displayStarted||scrollPaused)return;',
+    '        showPhotoBreak(data);',
+    '      };}(pb),t);',
     '    }',
-    '  });',
-    '',
-    '  // QR interstitials — evenly spaced',
-    '  var qrCount=Math.floor(TOTAL_TRIBUTES/QR_EVERY_N);',
-    '  for(var qi=1;qi<=qrCount;qi++){',
-    '    var t2=(qi/qrCount)*totalDurSecs*0.8*1000;',
-    '    interruptQueue.push({time:t2,type:"qr"});',
-    '  }',
-    '',
-    '  // LC brand slides — evenly spaced, offset from QR',
-    '  var lcCount=Math.floor(TOTAL_TRIBUTES/LC_EVERY_N);',
-    '  for(var li=1;li<=lcCount;li++){',
-    '    var t3=((li-0.5)/lcCount)*totalDurSecs*0.8*1000;',
-    '    interruptQueue.push({time:t3,type:"brand"});',
-    '  }',
-    '',
-    '  // Sort by time',
-    '  interruptQueue.sort(function(a,b){return a.time-b.time;});',
-    '',
-    '  // Schedule each interrupt',
-    '  interruptQueue.forEach(function(interrupt){',
-    '    setTimeout(function(){',
-    '      if(!displayStarted||scrollPaused)return;',
-    '      showInterrupt(interrupt);',
-    '    },interrupt.time);',
     '  });',
     '}',
     '',
-    // ── Show interrupt (photo/QR/brand) ──
-    'function showInterrupt(interrupt){',
-    '  pauseScroll();',
-    '  var dur=5000;',
-    '  if(interrupt.type==="photo"){',
-    '    var ov=document.getElementById("photo-overlay");',
-    '    var img=document.getElementById("photo-overlay-img");',
-    '    var cap=document.getElementById("photo-overlay-caption");',
-    '    if(interrupt.data.hasImage&&img)img.src=interrupt.data.imageSrc;',
-    '    if(cap)cap.textContent=interrupt.data.caption||"";',
-    '    if(ov)ov.classList.add("visible");',
-    '    dur=BASE_CONFIG.qr_screen_duration_secs*1000||5000;',
-    '  } else if(interrupt.type==="qr"){',
-    '    var qov=document.getElementById("qr-overlay");',
-    '    if(qov)qov.classList.add("visible");',
-    '    dur=BASE_CONFIG.qr_screen_duration_secs*1000||15000;',
-    '  } else if(interrupt.type==="brand"){',
-    '    var bov=document.getElementById("brand-overlay");',
-    '    if(bov)bov.classList.add("visible");',
-    '    dur=BASE_CONFIG.lc_brand_duration_secs*1000||6000;',
+    // ── Schedule LC brand slides ──
+    'function scheduleBrandSlides(totalDurSecs){',
+    '  var lcCount=Math.max(1,Math.floor(TOTAL_TRIBUTES/LC_EVERY_N));',
+    '  for(var li=1;li<=lcCount;li++){',
+    '    var t=((li-0.5)/lcCount)*totalDurSecs*0.85*1000;',
+    '    (function(delay){setTimeout(function(){',
+    '      if(!displayStarted||scrollPaused)return;',
+    '      showBrandSlide();',
+    '    },delay);})(t);',
     '  }',
-    '  setTimeout(function(){closeAllOverlays();resumeScroll();},dur);',
+    '}',
+    '',
+    // ── QR on fixed 150s interval ──
+    'function scheduleQR(){',
+    '  qrTimer=setInterval(function(){',
+    '    if(!displayStarted)return;',
+    '    showQR();',
+    '  },QR_INTERVAL_MS);',
+    '}',
+    '',
+    // ── Show photo break — lower 55%, pauses scroll ──
+    'function showPhotoBreak(pb){',
+    '  var ov=document.getElementById("photo-overlay");',
+    '  var img=document.getElementById("photo-overlay-img");',
+    '  var cap=document.getElementById("photo-overlay-caption");',
+    '  if(pb.hasImage&&img)img.src=pb.imageSrc;',
+    '  if(cap)cap.textContent=pb.caption||"";',
+    '  pauseScroll();',
+    '  if(ov)ov.classList.add("visible");',
+    '  var dur=(BASE_CONFIG.photo_duration_secs||5)*1000;',
+    '  setTimeout(function(){',
+    '    fadeOutOverlay("photo-overlay",function(){resumeScroll();});',
+    '  },dur);',
+    '}',
+    '',
+    // ── Show QR — lower 38%, scroll continues ──
+    'function showQR(){',
+    '  var qov=document.getElementById("qr-overlay");',
+    '  if(qov)qov.classList.add("visible");',
+    '  setTimeout(function(){fadeOutOverlay("qr-overlay",null);},QR_HOLD_MS);',
+    '}',
+    '',
+    // ── Show brand slide — lower 28%, scroll continues ──
+    'function showBrandSlide(){',
+    '  var bov=document.getElementById("brand-overlay");',
+    '  if(bov)bov.classList.add("visible");',
+    '  var dur=(BASE_CONFIG.lc_brand_duration_secs||6)*1000;',
+    '  setTimeout(function(){fadeOutOverlay("brand-overlay",null);},dur);',
+    '}',
+    '',
+    // ── Fade out overlay gracefully (uses CSS transition) ──
+    'function fadeOutOverlay(id,callback){',
+    '  var el=document.getElementById(id);',
+    '  if(!el)return;',
+    '  el.classList.remove("visible");',
+    '  // CSS transition is 1s — wait for it before callback',
+    '  setTimeout(function(){if(callback)callback();},1100);',
+    '}',
+    '',
+    'function closeAllOverlays(){',
+    '  ["photo-overlay","qr-overlay","brand-overlay"].forEach(function(id){',
+    '    var el=document.getElementById(id);if(el)el.classList.remove("visible");',
+    '  });',
     '}',
     '',
     // ── Pause / resume ──
@@ -584,12 +612,11 @@ function getJS(
     '  if(btn)btn.innerHTML="&#9646;&#9646; Pause";',
     '}',
     '',
-    'function togglePause(){',
-    '  scrollPaused?resumeScroll():pauseScroll();',
-    '}',
+    'function togglePause(){scrollPaused?resumeScroll():pauseScroll();}',
     '',
     'function restartDisplay(){',
     '  closeAllOverlays();',
+    '  clearInterval(qrTimer);',
     '  var doc=document.getElementById("scroll-doc");',
     '  if(doc){',
     '    doc.classList.remove("scrolling");',
@@ -597,14 +624,33 @@ function getJS(
     '    void doc.offsetWidth;',
     '    scrollPaused=false;',
     '    buildScrollAndStart();',
+    '    scheduleQR();',
     '  }',
     '  if(!isMuted)playAudio();',
     '}',
     '',
-    'function closeAllOverlays(){',
-    '  ["photo-overlay","qr-overlay","brand-overlay"].forEach(function(id){',
-    '    var el=document.getElementById(id);if(el)el.classList.remove("visible");',
-    '  });',
+    // ── Speed slider (control bar) ──
+    'function setScrollSpeed(val){',
+    '  val=parseInt(val);',
+    '  currentSpeedPx=val;',
+    '  var sv=document.getElementById("speed-val");if(sv)sv.textContent=val+"px/s";',
+    '  if(!displayStarted)return;',
+    '  var doc=document.getElementById("scroll-doc");',
+    '  if(!doc)return;',
+    '  var style=window.getComputedStyle(doc);',
+    '  var matrix=new DOMMatrix(style.transform);',
+    '  var currentY=matrix.m42;',
+    '  var dist=Math.abs(parseFloat(doc.style.getPropertyValue("--scroll-dist"))||0);',
+    '  var remaining=dist-Math.abs(currentY);',
+    '  if(remaining<=0)return;',
+    '  var newDur=remaining/val;',
+    '  doc.classList.remove("scrolling");',
+    '  void doc.offsetWidth;',
+    '  doc.style.setProperty("--scroll-dist","-"+dist+"px");',
+    '  doc.style.setProperty("--scroll-dur",newDur+"s");',
+    '  doc.style.setProperty("--scroll-play","running");',
+    '  doc.classList.add("scrolling");',
+    '  scrollPaused=false;',
     '}',
     '',
     // ── Operator overlay ──
@@ -630,53 +676,20 @@ function getJS(
     '',
     'function setTempo(p){',
     '  currentTempo=p;highlightTempo(p);',
-    '  // Rebuild scroll at new speed if already started',
     '  if(displayStarted){',
+    '    clearInterval(qrTimer);',
     '    closeAllOverlays();',
     '    var doc=document.getElementById("scroll-doc");',
     '    if(doc){',
-    '      // Get current progress',
-    '      var style=window.getComputedStyle(doc);',
-    '      var matrix=style.transform;',
-    '      var currentY=0;',
-    '      if(matrix&&matrix!=="none"){',
-    '        var vals=matrix.match(/matrix.*\\((.+)\\)/);',
-    '        if(vals){var parts=vals[1].split(",");currentY=parseFloat(parts[5])||0;}',
-    '      }',
     '      doc.classList.remove("scrolling");',
     '      void doc.offsetWidth;',
     '      scrollPaused=false;',
     '      buildScrollAndStart();',
+    '      scheduleQR();',
     '    }',
     '  }',
     '}',
     '',
-
-    'function setScrollSpeed(val){',
-    '  val=parseInt(val);',
-    '  var sv=document.getElementById("speed-val");if(sv)sv.textContent=val+"px/s";',
-    '  if(!displayStarted)return;',
-    '  var doc=document.getElementById("scroll-doc");',
-    '  if(!doc)return;',
-    '  var style=window.getComputedStyle(doc);',
-    '  var matrix=new DOMMatrix(style.transform);',
-    '  var currentY=matrix.m42;',
-    '  var dist=parseFloat(doc.style.getPropertyValue("--scroll-dist"))||0;',
-    '  var remaining=Math.abs(dist)-Math.abs(currentY);',
-    '  if(remaining<=0)return;',
-    '  var newDur=remaining/val;',
-    '  doc.classList.remove("scrolling");',
-    '  void doc.offsetWidth;',
-    '  doc.style.transform="translateY("+currentY+"px)";',
-    '  doc.style.setProperty("--scroll-dist","-"+(Math.abs(dist))+"px");',
-    '  doc.style.setProperty("--scroll-dur",newDur+"s");',
-    '  doc.style.setProperty("--scroll-play","running");',
-    '  doc.classList.add("scrolling");',
-    '  scrollPaused=false;',
-    '}',
-    '',
-
-
     'function updateSlider(key,val){',
     '  var map={"photo":"photo_duration_secs","qr":"qr_screen_duration_secs","brand":"lc_brand_duration_secs"};',
     '  var dk=map[key];if(dk)BASE_CONFIG[dk]=parseInt(val);',
@@ -791,10 +804,16 @@ export function generateDisplayHTML(params: GenerateHTMLParams): string {
     + '</div>'
   )
 
-  // ── Control bar ──
+  // ── Control bar — with inline speed slider ──
   parts.push('<div id="control-bar">')
   parts.push('<button class="ctrl-btn" onclick="togglePause()" id="pause-btn">&#9646;&#9646; Pause</button>')
   parts.push('<button class="ctrl-btn" onclick="restartDisplay()">&#8635; Restart</button>')
+  // Speed slider inline in control bar
+  parts.push('<input type="range" id="speed-slider" min="8" max="80" step="2" value="30"'
+    + ' oninput="setScrollSpeed(this.value)"'
+    + ' style="width:90px;accent-color:' + accent + ';cursor:pointer" title="Scroll speed">')
+  parts.push('<span id="speed-val" style="font-size:0.75rem;color:' + accent + ';'
+    + 'opacity:0.8;font-family:sans-serif;min-width:42px">30px/s</span>')
   if (audioTracks.length > 0) {
     parts.push('<button class="ctrl-btn" onclick="toggleMute()" id="mute-btn">&#9834; Music</button>')
   }
@@ -803,15 +822,10 @@ export function generateDisplayHTML(params: GenerateHTMLParams): string {
   // ── Operator overlay ──
   parts.push('<div id="operator-overlay">')
   parts.push('<h2 style="font-size:1.3rem;font-weight:normal;color:' + accent + ';letter-spacing:0.1em">&#10022; Operator Controls</h2>')
-  parts.push('<div style="display:flex;gap:0.75rem;margin-bottom:0.5rem">')
+  parts.push('<div style="display:flex;gap:0.75rem">')
   parts.push('<button class="ov-btn" onclick="setTempo(\'gentle\')" id="tempo-gentle">&#127807; Gentle</button>')
   parts.push('<button class="ov-btn" onclick="setTempo(\'standard\')" id="tempo-standard">&#9654; Standard</button>')
   parts.push('<button class="ov-btn" onclick="setTempo(\'energetic\')" id="tempo-energetic">&#9889; Energetic</button>')
-  parts.push('</div>')
-  parts.push('<div style="display:flex;align-items:center;gap:0.75rem;font-size:0.85rem;color:#F5F3EE;font-family:sans-serif">')
-  parts.push('<span style="width:130px;text-align:right;opacity:0.75">Scroll speed</span>')
-  parts.push('<input type="range" id="speed-slider" min="10" max="80" step="5" value="30" oninput="setScrollSpeed(this.value)" style="width:160px;accent-color:' + accent + '">')
-  parts.push('<span id="speed-val" style="width:50px;text-align:left;color:' + accent + '">30px/s</span>')
   parts.push('</div>')
   parts.push('<details style="text-align:center"><summary style="cursor:pointer;font-size:0.85rem;color:' + accent + ';opacity:0.7;font-family:sans-serif;margin-bottom:1rem">Interrupt durations</summary>')
   parts.push('<div style="display:flex;flex-direction:column;gap:0.75rem;margin-top:0.75rem">')
@@ -830,38 +844,44 @@ export function generateDisplayHTML(params: GenerateHTMLParams): string {
   parts.push('<p style="font-size:0.75rem;opacity:0.35;font-family:sans-serif;color:#F5F3EE">Ctrl+Shift+O to open/close &middot; Space to pause</p>')
   parts.push('</div>')
 
-  // ── Photo break overlay ──
+  // ── Photo overlay — lower 55%, pauses scroll, slow fade ──
   parts.push('<div id="photo-overlay">')
-  parts.push('<div style="position:absolute;top:0;left:0;right:0;height:42px;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;border-bottom:1px solid ' + accent + '33">')
-  parts.push('<span style="color:' + accent + ';font-size:0.75rem;letter-spacing:0.2em;font-family:Georgia,serif;opacity:0.8">&#10022; &nbsp; Photo &nbsp; &#10022;</span>')
+  // Photo label strip at top of overlay
+  parts.push('<div style="position:absolute;top:0;left:0;right:0;height:36px;'
+    + 'background:rgba(0,0,0,0.6);display:flex;align-items:center;'
+    + 'justify-content:center;border-top:1px solid ' + accent + '33">')
+  parts.push('<span style="color:' + accent + ';font-size:0.7rem;letter-spacing:0.2em;'
+    + 'font-family:Georgia,serif;opacity:0.75">&#10022; &nbsp; Photo &nbsp; &#10022;</span>')
   parts.push('</div>')
-  parts.push('<img id="photo-overlay-img" src="" alt="" style="max-width:90%;max-height:75vh;object-fit:contain;border-radius:4px;margin-top:3rem">')
-  parts.push('<p id="photo-overlay-caption" style="font-size:clamp(0.9rem,1.5vw,1.2rem);color:#F5F3EE;font-style:italic;text-align:center;margin-top:1rem;max-width:600px;opacity:0.85"></p>')
+  parts.push('<img id="photo-overlay-img" src="" alt="" style="max-width:85%;max-height:70%;'
+    + 'object-fit:contain;border-radius:6px;margin-top:2.5rem">')
+  parts.push('<p id="photo-overlay-caption" style="font-size:clamp(0.85rem,1.4vw,1.1rem);'
+    + 'color:#F5F3EE;font-style:italic;text-align:center;margin-top:0.75rem;'
+    + 'max-width:500px;opacity:0.8;font-family:Georgia,serif"></p>')
   parts.push('</div>')
 
-  // ── QR overlay ──
+  // ── QR overlay — lower 38%, scroll continues, slow fade ──
   parts.push('<div id="qr-overlay">')
-  parts.push('<p style="font-size:clamp(1.1rem,2.2vw,1.7rem);text-align:center;max-width:600px;line-height:1.5;color:#F5F3EE">SCAN TO SHARE YOUR WISHES FOR ' + honoureeName.toUpperCase() + '</p>')
-  parts.push('<div style="background:#F5F3EE;padding:1.25rem;border-radius:8px;border:3px solid ' + accent + '">' + qrImg + '</div>')
-  parts.push('<p style="color:' + accent + ';font-size:0.9rem;opacity:0.8;font-family:sans-serif">' + capsuleUrl + '</p>')
-  parts.push('<p style="color:#F5F3EE;font-size:0.8rem;opacity:0.5;font-style:italic;font-family:sans-serif">Your voice will appear on this screen</p>')
+  // Left: invite text
+  parts.push('<div style="text-align:right;max-width:320px">')
+  parts.push('<p style="font-size:clamp(1rem,1.8vw,1.4rem);color:#F5F3EE;line-height:1.6;margin-bottom:0.5rem">Scan to share your wishes for<br><strong style="color:' + accent + '">' + honoureeName + '</strong></p>')
+  parts.push('<p style="font-size:0.75rem;color:#F5F3EE;opacity:0.5;font-family:sans-serif">' + capsuleUrl + '</p>')
+  parts.push('</div>')
+  // Right: QR with white background (required for scanning)
+  parts.push('<div style="background:#fff;padding:1rem;border-radius:8px;border:3px solid ' + accent + ';flex-shrink:0">' + qrImg + '</div>')
   parts.push('</div>')
 
-  // ── LC brand overlay ──
+  // ── Brand overlay — lower 28%, scroll continues, slow fade ──
   parts.push('<div id="brand-overlay">')
-  parts.push('<div style="color:' + accent + ';font-size:1.2rem;letter-spacing:0.5rem">&#10022; &#8213;&#8213;&#8213; &#10022;</div>')
-  parts.push('<h1 style="font-size:clamp(2rem,4vw,3.5rem);font-weight:normal;letter-spacing:0.15em;color:#F5F3EE">LegacyCapsule</h1>')
-  parts.push('<p style="font-size:clamp(0.9rem,1.6vw,1.2rem);color:' + accent + ';font-style:italic">Preserving the voices that matter most</p>')
-  parts.push('<p style="font-size:0.8rem;opacity:0.35;font-family:sans-serif;color:#F5F3EE">itslegacycapsule.com</p>')
+  parts.push('<div style="color:' + accent + ';font-size:1rem;letter-spacing:0.4rem;opacity:0.7">&#10022; &#8213;&#8213; &#10022;</div>')
+  parts.push('<div style="display:flex;flex-direction:column;align-items:flex-start">')
+  parts.push('<h2 style="font-size:clamp(1.2rem,2.2vw,1.8rem);font-weight:normal;letter-spacing:0.12em;color:#F5F3EE;margin:0">LegacyCapsule</h2>')
+  parts.push('<p style="font-size:clamp(0.75rem,1.2vw,0.95rem);color:' + accent + ';font-style:italic;margin:0.2rem 0 0;opacity:0.85">Preserving the voices that matter most</p>')
+  parts.push('<p style="font-size:0.65rem;opacity:0.35;font-family:sans-serif;color:#F5F3EE;margin:0.2rem 0 0">itslegacycapsule.com</p>')
+  parts.push('</div>')
   parts.push('</div>')
 
-  // ── Persistent mini QR ──
-  if (capsuleUrlQrB64) {
-    parts.push('<div id="persistent-qr">')
-    parts.push('<img src="' + capsuleUrlQrB64 + '" style="display:block;width:140px;height:140px" alt="Scan to participate">')
-    parts.push('<p style="color:' + accent + ';font-family:sans-serif;font-size:0.6rem;text-align:center;margin:0.3rem 0 0;opacity:0.8;font-weight:600;letter-spacing:0.08em">SCAN TO JOIN</p>')
-    parts.push('</div>')
-  }
+  // Persistent QR removed — QR now appears as lower-half timed overlay every 2.5 minutes
 
   // ── JavaScript ──
   parts.push('<script>')
@@ -871,7 +891,6 @@ export function generateDisplayHTML(params: GenerateHTMLParams): string {
     photoBreaks,
     tributeBlocks.length,
     config.lc_interstitial_every_n,
-    config.qr_interstitial_every_n,
     qrImg,
     honoureeName,
     accent,
