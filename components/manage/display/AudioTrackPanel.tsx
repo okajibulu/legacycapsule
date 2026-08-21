@@ -18,6 +18,8 @@ import { useRef, useState, useEffect, useCallback } from 'react'
 
 // ═══ SECTION 2 — Types ═══
 
+type FileResult = { filename: string; status: 'uploaded' | 'skipped' | 'error'; reason?: string }
+
 interface AudioTrack {
   id: string
   original_filename: string
@@ -66,8 +68,11 @@ export default function AudioTrackPanel({
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [uploadResults, setUploadResults] = useState<{ filename: string; status: 'uploaded' | 'skipped' | 'error'; reason?: string }[]>([])
+  const [discardConfirm, setDiscardConfirm] = useState(false)
+  const [discarding, setDiscarding] = useState(false)
 
   // ── 4a. Load tracks ──
   const loadTracks = useCallback(async () => {
@@ -82,44 +87,76 @@ export default function AudioTrackPanel({
 
   useEffect(() => { loadTracks() }, [loadTracks])
 
-  // ── 4b. Upload handler ──
-  async function handleFile(file: File) {
-    setError(null)
+  // ── 4b. Upload handler — multiple files, per-file reporting ──
 
-    if (!ACCEPTED_TYPES.includes(file.type)) {
-      setError('Unsupported format. Please upload MP3, M4A, AAC, WAV, or OGG files.')
-      return
-    }
-    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      setError('File is too large. Maximum ' + MAX_SIZE_MB + 'MB per track.')
-      return
-    }
-    if (tracks.length >= MAX_TRACKS) {
-      setError('Maximum ' + MAX_TRACKS + ' tracks allowed. Remove one before adding another.')
+
+  async function handleFiles(files: FileList) {
+    setUploadResults([])
+    const fileArray = Array.from(files)
+    const results: FileResult[] = []
+    let successCount = 0
+
+    const available = MAX_TRACKS - tracks.length
+    if (available <= 0) {
+      setUploadResults([{ filename: 'All files', status: 'skipped', reason: 'Maximum ' + MAX_TRACKS + ' tracks already reached. Remove one first.' }])
       return
     }
 
     setUploading(true)
-    setUploadProgress('Uploading ' + file.name + '…')
 
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('capsule_id', capsuleId)
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i]
 
-    const res = await fetch(`/api/display/audio/import?slug=${capsuleSlug}`, {
-      method: 'POST',
-      body: formData,
-    })
+      // Skip if would exceed max
+      if (successCount >= available) {
+        results.push({ filename: file.name, status: 'skipped', reason: 'Would exceed ' + MAX_TRACKS + '-track limit' })
+        continue
+      }
+
+      // Size check — client side first for immediate feedback
+      if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+        const mb = (file.size / 1024 / 1024).toFixed(0)
+        results.push({ filename: file.name, status: 'skipped', reason: mb + 'MB — exceeds ' + MAX_SIZE_MB + 'MB limit' })
+        continue
+      }
+
+      setUploadProgress('Uploading ' + (i + 1) + ' of ' + fileArray.length + ': ' + file.name)
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('capsule_id', capsuleId)
+
+      const res = await fetch(`/api/display/audio/import?slug=${capsuleSlug}`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        results.push({ filename: file.name, status: 'error', reason: data.error || 'Upload failed' })
+      } else {
+        results.push({ filename: file.name, status: 'uploaded' })
+        successCount++
+      }
+    }
 
     setUploading(false)
     setUploadProgress(null)
+    setUploadResults(results)
+    if (successCount > 0) await loadTracks()
+  }
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      setError(data.error || 'Upload failed. Please try again.')
-      return
-    }
-
+  // ── 4e. Discard all tracks ──
+  async function handleDiscardAll() {
+    setDiscarding(true)
+    await Promise.all(
+      tracks.map(t =>
+        fetch(`/api/display/audio/${t.id}?slug=${capsuleSlug}`, { method: 'DELETE' })
+      )
+    )
+    setDiscarding(false)
+    setDiscardConfirm(false)
+    setUploadResults([])
     await loadTracks()
   }
 
@@ -131,7 +168,7 @@ export default function AudioTrackPanel({
     })
     setDeletingId(null)
     if (res.ok) await loadTracks()
-    else setError('Failed to remove track.')
+    else setUploadResults([{ filename: 'track', status: 'error', reason: 'Failed to remove track.' }])
   }
 
   // ── 4d. Reorder — move up ──
@@ -253,9 +290,10 @@ export default function AudioTrackPanel({
         ref={inputRef}
         type="file"
         accept={ACCEPTED_EXT}
+        multiple
         style={{ display: 'none' }}
         onChange={(e) => {
-          if (e.target.files?.[0]) handleFile(e.target.files[0])
+          if (e.target.files?.length) handleFiles(e.target.files)
           e.target.value = ''
         }}
       />
@@ -279,16 +317,69 @@ export default function AudioTrackPanel({
         </button>
       )}
 
+      {/* Discard all button */}
+      {tracks.length > 0 && !uploading && (
+        <button
+          onClick={() => setDiscardConfirm(true)}
+          style={{ marginLeft: '0.5rem', background: 'transparent', color: '#dc2626', border: '1px solid #fca5a5', padding: '0.6rem 1rem', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '6px' }}
+        >
+          × Reset All Tracks
+        </button>
+      )}
+
+      {/* Discard confirmation */}
+      {discardConfirm && (
+        <div style={{ marginTop: '0.75rem', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '6px', padding: '0.875rem' }}>
+          <p style={{ fontSize: '0.85rem', color: '#991b1b', margin: '0 0 0.6rem' }}>
+            Remove all {tracks.length} track{tracks.length > 1 ? 's' : ''}? This cannot be undone.
+          </p>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button onClick={handleDiscardAll} disabled={discarding}
+              style={{ background: '#dc2626', color: '#fff', border: 'none', padding: '0.35rem 0.875rem', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '4px' }}>
+              {discarding ? 'Removing…' : 'Yes, remove all'}
+            </button>
+            <button onClick={() => setDiscardConfirm(false)}
+              style={{ background: 'transparent', color: '#6b7280', border: '1px solid #d1d5db', padding: '0.35rem 0.875rem', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '4px' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {uploadProgress && (
-        <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0.5rem 0 0', fontStyle: 'italic' }}>
+        <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0.75rem 0 0', fontStyle: 'italic' }}>
           {uploadProgress}
         </p>
       )}
 
-      {error && (
-        <p style={{ fontSize: '0.8rem', color: '#dc2626', margin: '0.5rem 0 0' }}>
-          {error}
-        </p>
+      {/* Per-file upload report with dismiss filter */}
+      {uploadResults.length > 0 && (
+        <div style={{ marginTop: '0.75rem', border: '1px solid #e5e7eb', borderRadius: '6px', overflow: 'hidden' }}>
+          <div style={{ background: '#f9fafb', padding: '0.4rem 0.75rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {uploadResults.filter(r => r.status === 'uploaded').length} of {uploadResults.length} uploaded
+            </span>
+            <button onClick={() => setUploadResults([])}
+              style={{ background: 'none', border: 'none', fontSize: '0.75rem', color: '#9ca3af', cursor: 'pointer' }}>
+              Dismiss ×
+            </button>
+          </div>
+          {uploadResults.map((r, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.75rem', borderBottom: i < uploadResults.length - 1 ? '1px solid #f3f4f6' : 'none', background: '#fff' }}>
+              <span style={{ flexShrink: 0, fontSize: '0.85rem' }}>
+                {r.status === 'uploaded' ? '✓' : r.status === 'error' ? '✕' : '–'}
+              </span>
+              <span style={{ flex: 1, fontSize: '0.8rem', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {r.filename}
+              </span>
+              {r.reason && (
+                <span style={{ fontSize: '0.75rem', flexShrink: 0, color: r.status === 'uploaded' ? '#16a34a' : r.status === 'error' ? '#dc2626' : '#92400e' }}>
+                  {r.reason}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )

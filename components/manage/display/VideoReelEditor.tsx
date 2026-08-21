@@ -222,6 +222,7 @@ export default function VideoReelEditor({
           capsuleId={capsuleId}
           currentCount={selectedItems.length}
           onUploaded={() => setUploadTrigger((t) => t + 1)}
+          onDiscarded={() => { setSelectedItems([]); setUploadTrigger((t) => t + 1) }}
         />
       </div>
 
