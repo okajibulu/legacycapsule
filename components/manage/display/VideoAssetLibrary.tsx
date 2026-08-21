@@ -57,11 +57,15 @@ function SortableAssetCard({
   capsuleSlug,
   selected,
   onToggle,
+  onDeleted,
+  onUpdated,
 }: {
   asset: VideoAsset
   capsuleSlug: string
   selected: boolean
   onToggle: (id: string) => void
+  onDeleted: (id: string) => void
+  onUpdated: (id: string, updates: Partial<VideoAsset>) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: asset.id, disabled: !selected })
@@ -79,6 +83,8 @@ function SortableAssetCard({
         capsuleSlug={capsuleSlug}
         selected={selected}
         onToggle={onToggle}
+        onDeleted={onDeleted}
+        onUpdated={onUpdated}
         dragHandleProps={selected ? { ...attributes, ...listeners } : undefined}
       />
     </div>
@@ -198,6 +204,8 @@ export default function VideoAssetLibrary({
                     capsuleSlug={capsuleSlug}
                     selected
                     onToggle={handleToggle}
+                    onDeleted={(id) => setAssets(prev => prev.filter(a => a.id !== id))}
+                    onUpdated={(id, updates) => setAssets(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a))}
                   />
                 ))}
               </div>
@@ -222,6 +230,8 @@ export default function VideoAssetLibrary({
                 capsuleSlug={capsuleSlug}
                 selected={false}
                 onToggle={handleToggle}
+                onDeleted={(id) => setAssets(prev => prev.filter(a => a.id !== id))}
+                onUpdated={(id, updates) => setAssets(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a))}
               />
             ))}
           </div>

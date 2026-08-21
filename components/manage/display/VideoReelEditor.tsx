@@ -51,6 +51,15 @@ export default function VideoReelEditor({
   const [uploadTrigger, setUploadTrigger] = useState(0)
   const [playerMode, setPlayerMode] = useState<'hidden' | 'preview' | 'fullscreen'>('hidden')
   const [reelItems, setReelItems] = useState<import('@/components/display/VideoReelPlayer').ReelItem[]>([])
+  const [photos, setPhotos] = useState<import('@/components/display/VideoReelPlayer').ReelPhotoItem[]>([])
+
+  // ── 3g. Load selected display photos ──
+  async function loadPhotos() {
+    const res = await fetch(`/api/display/photos?slug=${capsuleSlug}`)
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data.photos || []).filter((p: { included: boolean }) => p.included)
+  }
 
   // ── 3a. Load existing reel on mount ──
   useEffect(() => {
@@ -148,7 +157,9 @@ export default function VideoReelEditor({
       alert('No videos in reel. Please add and save videos first.')
       return
     }
+    const displayPhotos = await loadPhotos()
     setReelItems(items)
+    setPhotos(displayPhotos)
     setPlayerMode('fullscreen')
 
     // Request fullscreen
@@ -209,6 +220,7 @@ export default function VideoReelEditor({
         <ExternalVideoImport
           capsuleSlug={capsuleSlug}
           capsuleId={capsuleId}
+          currentCount={selectedItems.length}
           onUploaded={() => setUploadTrigger((t) => t + 1)}
         />
       </div>
@@ -318,7 +330,9 @@ export default function VideoReelEditor({
       {playerMode !== 'hidden' && reelItems.length > 0 && (
         <VideoReelPlayer
           reelItems={reelItems}
+          photos={photos}
           capsuleSlug={capsuleSlug}
+          capsuleUrl={(process.env.NEXT_PUBLIC_APP_URL || '') + '/for/' + capsuleSlug}
           honoureeName={honoureeName}
           eventType={eventType}
           theme="default"
