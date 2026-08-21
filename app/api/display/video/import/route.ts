@@ -1,12 +1,14 @@
 // ============================================================
 // FILE PATH: app/api/display/video/import/route.ts
-// PURPOSE:   Accept organiser-uploaded tribute videos, validate,
-//            store in eds-video-assets private bucket via REST
-//            fetch, and create eds_video_assets record.
+// PURPOSE:   Accept organiser-uploaded tribute videos, validate
+//            by extension (not MIME — WhatsApp exports use
+//            inconsistent MIME types), check for duplicate
+//            filenames in the capsule, store in private bucket
+//            via REST fetch, insert eds_video_assets record.
 // ARCHITECTURE: EDS / EDSVR P0 — Phase 1
 // BUILT BY:  AI24 · Claude Sonnet 4.6
-// VERSION:   v2.12.25
-// DATE:      20 August 2026
+// VERSION:   v2.12.30
+// DATE:      21 August 2026
 // ============================================================
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -22,10 +24,14 @@ const db = createClient(
 
 // ═══ SECTION 2 — Constants ═══
 
-const ALLOWED_MIME_TYPES = ['video/mp4', 'video/quicktime']
-const ALLOWED_EXTENSIONS = ['.mp4', '.mov', '.MOV', '.MP4']
-const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024 // 500MB — adjust when FD-4 confirmed
+// Extension-based validation — MIME is unreliable for WhatsApp/phone exports
+const ALLOWED_EXTENSIONS = ['mp4', 'mov', 'MP4', 'MOV', 'm4v', 'M4V', 'mpeg', 'mpg', 'avi', 'webm']
+const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024 // 500MB
 const BUCKET = 'eds-video-assets'
+
+function getExtension(filename: string): string {
+  return filename.split('.').pop() || ''
+}
 
 // ═══ SECTION 3 — Orientation Detection ═══
 
@@ -51,49 +57,29 @@ function sanitiseFilename(name: string): string {
 
 // ═══ SECTION 5 — Route Handler ═══
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<Record<string, string>> }
-) {
+export async function POST(req: NextRequest) {
   try {
-    // ── 5a. Extract slug from header or query ──
+    // ── 5a. Auth ──
     const slug =
       req.headers.get('x-capsule-slug') ||
       req.nextUrl.searchParams.get('slug')
 
     if (!slug) {
-      return NextResponse.json(
-        { error: 'Missing capsule slug' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Missing capsule slug' }, { status: 400 })
     }
 
-    // ── 5b. Auth check ──
-    // checkManageAuth always returns — falls back to 'organiser' if no cookie
     const auth = await checkManageAuth(slug)
-
-    // Co-admin must have event_display permission
-    if (
-      auth.accountType === 'coadmin' &&
-      !auth.permissions.includes('event_display')
-    ) {
+    if (auth.accountType === 'coadmin' && !auth.permissions.includes('event_display')) {
       return NextResponse.json({ error: 'Unauthorised' }, { status: 403 })
     }
 
-    // capsuleId comes from auth result for FRFA/Co-admin.
-    // For organiser path, auth.capsuleId is null — look up by slug.
+    // ── 5b. Resolve capsuleId ──
     let capsuleId = auth.capsuleId
     if (!capsuleId) {
       const { data: capsuleRow } = await db
-        .from('capsules')
-        .select('id')
-        .eq('slug', slug)
-        .maybeSingle()
+        .from('capsules').select('id').eq('slug', slug).maybeSingle()
       if (!capsuleRow) {
-        return NextResponse.json(
-          { error: 'Capsule not found' },
-          { status: 404 }
-        )
+        return NextResponse.json({ error: 'Capsule not found' }, { status: 404 })
       }
       capsuleId = capsuleRow.id
     }
@@ -108,76 +94,60 @@ export async function POST(
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // ── 5d. MIME type validation ──
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        {
-          error: `Unsupported file type: ${file.type}. Please upload MP4 or MOV files.`,
-        },
-        { status: 422 }
-      )
-    }
-
-    // ── 5e. Extension validation ──
-    const ext = '.' + file.name.split('.').pop()
+    // ── 5d. Extension validation (not MIME) ──
+    const ext = getExtension(file.name)
     if (!ALLOWED_EXTENSIONS.includes(ext)) {
       return NextResponse.json(
-        {
-          error: `Unsupported file extension: ${ext}. Please upload .mp4 or .mov files.`,
-        },
+        { error: 'Unsupported file type: ' + file.name + '. Please upload MP4, MOV, or M4V files.' },
         { status: 422 }
       )
     }
 
-    // ── 5f. File size validation ──
+    // ── 5e. File size validation ──
     if (file.size > MAX_FILE_SIZE_BYTES) {
       const sizeMB = Math.round(file.size / 1024 / 1024)
       return NextResponse.json(
-        {
-          error: `File is too large (${sizeMB}MB). Maximum allowed size is 500MB.`,
-        },
+        { error: 'File is too large (' + sizeMB + 'MB). Maximum allowed size is 500MB.' },
         { status: 422 }
       )
     }
 
-    // ── 5g. Idempotency check ──
-    // Prevent duplicate uploads of same filename within 10 minutes
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+    // ── 5f. Duplicate detection — same filename already uploaded for this capsule ──
     const { data: existing } = await db
       .from('eds_video_assets')
       .select('id, status')
       .eq('capsule_id', capsuleId)
       .eq('original_filename', file.name)
-      .eq('status', 'uploading')
-      .gte('created_at', tenMinutesAgo)
+      .neq('status', 'deleted')
       .maybeSingle()
 
     if (existing) {
       return NextResponse.json(
-        {
-          error:
-            'This file is already being uploaded. Please wait a moment and try again.',
-        },
+        { error: 'DUPLICATE:' + file.name },
         { status: 409 }
       )
     }
 
-    // ── 5h. Build storage path ──
+    // ── 5g. Build storage path ──
     const assetId = crypto.randomUUID()
     const sanitised = sanitiseFilename(file.name)
-    const storagePath = `${capsuleId}/${assetId}-${sanitised}`
+    const storagePath = capsuleId + '/' + assetId + '-' + sanitised
 
-    // ── 5i. Upload to Supabase Storage via REST fetch ──
-    // Must use direct REST — Supabase JS client cannot upload on Vercel
-    // due to SharedArrayBuffer restrictions
+    // ── 5h. Upload to Supabase Storage via REST fetch ──
     const arrayBuffer = await file.arrayBuffer()
-    const uploadUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/${BUCKET}/${storagePath}`
+    const uploadUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      + '/storage/v1/object/' + BUCKET + '/' + storagePath
+
+    // Force video/mp4 content-type for WhatsApp and other inconsistent exports
+    const contentType = file.type && file.type.startsWith('video/')
+      ? file.type
+      : 'video/mp4'
 
     const uploadResponse = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-        'Content-Type': file.type,
+        Authorization: 'Bearer ' + process.env.SUPABASE_SERVICE_ROLE_KEY,
+        'Content-Type': contentType,
         'x-upsert': 'false',
       },
       body: arrayBuffer,
@@ -192,7 +162,7 @@ export async function POST(
       )
     }
 
-    // ── 5j. Insert eds_video_assets record ──
+    // ── 5i. Insert eds_video_assets record ──
     const { data: asset, error: insertError } = await db
       .from('eds_video_assets')
       .insert({
@@ -201,7 +171,7 @@ export async function POST(
         source_type: 'organiser_import',
         original_filename: file.name,
         storage_path: storagePath,
-        mime_type: file.type,
+        mime_type: contentType,
         file_size_bytes: file.size,
         title: title || null,
         attribution: attribution || null,
@@ -214,12 +184,9 @@ export async function POST(
 
     if (insertError) {
       console.error('[EDS video import] DB insert failed:', insertError)
-      // Attempt storage cleanup — fire and forget
       fetch(uploadUrl, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-        },
+        headers: { Authorization: 'Bearer ' + process.env.SUPABASE_SERVICE_ROLE_KEY },
       }).catch(() => {})
       return NextResponse.json(
         { error: 'Failed to save video record. Please try again.' },
@@ -227,26 +194,19 @@ export async function POST(
       )
     }
 
-    // ── 5k. Audit log — fire and forget, never throws ──
+    // ── 5j. Audit log — fire and forget ──
     void (async () => {
       try {
         await db.from('eds_video_reel_audit').insert({
           capsule_id: capsuleId,
           asset_id: assetId,
           action: 'asset_imported',
-          detail: {
-            filename: file.name,
-            size_bytes: file.size,
-            mime_type: file.type,
-          },
+          detail: { filename: file.name, size_bytes: file.size, mime_type: contentType },
           performed_by: auth.accountType || 'organiser',
         })
-      } catch {
-        // non-blocking — audit failure never fails the request
-      }
+      } catch { /* non-blocking */ }
     })()
 
-    // ── 5l. Return asset record ──
     return NextResponse.json({ asset }, { status: 201 })
   } catch (err) {
     console.error('[EDS video import] Unexpected error:', err)
