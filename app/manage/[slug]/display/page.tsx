@@ -20,6 +20,7 @@ import { createClient } from '@supabase/supabase-js'
 import { checkManageAuth } from '@/lib/manageAuth'
 import VideoReelEditor from '@/components/manage/display/VideoReelEditor'
 import DisplayExportPanel from '@/components/manage/display/DisplayExportPanel'
+import DisplayPhotoSelector from '@/components/manage/display/DisplayPhotoSelector'
 
 // ═══ SECTION 2 — Supabase Client ═══
 
@@ -170,6 +171,45 @@ export default async function ManageDisplayPage({ params }: PageProps) {
           capsuleId={capsuleId}
           honoureeName={capsule.honouree_name}
           eventType={capsule.event_type}
+        />
+      </section>
+
+      {/* ── Divider ── */}
+      <div style={{
+        height: '1px',
+        background: '#e5e7eb',
+        margin: '0 0 3rem',
+      }} />
+
+      {/* ── Display Photos — shared by Video Reel and Offline Display ── */}
+      <section style={{ marginBottom: '3rem' }}>
+        <div style={{ marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
+            <span style={{
+              background: '#0D0820',
+              color: '#D4AE2A',
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              padding: '0.25rem 0.6rem',
+              borderRadius: '4px',
+            }}>
+              Photos
+            </span>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#111827', margin: 0 }}>
+              Display Photos
+            </h2>
+          </div>
+          <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: 0, lineHeight: 1.6 }}>
+            Select which event photos appear as visual breaks during the display.
+            Photos are spaced automatically between tributes.
+            Used in both the Video Reel and Offline Display.
+          </p>
+        </div>
+        <DisplayPhotoSelector
+          capsuleSlug={slug}
+          capsuleId={capsuleId}
         />
       </section>
 
