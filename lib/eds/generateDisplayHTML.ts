@@ -489,7 +489,7 @@ function getJS(
     '  var totalDist=docH+viewH;',
     '  var mult=TEMPO[currentTempo]||1.0;',
     '  // Base speed: 60px/sec standard — adjusted by tempo',
-    '  var pxPerSec=60*mult;',
+    '  var pxPerSec=30*mult;',
     '  var durSecs=totalDist/pxPerSec;',
     '  doc.style.setProperty("--scroll-dist","-"+totalDist+"px");',
     '  doc.style.setProperty("--scroll-dur",durSecs+"s");',
@@ -651,6 +651,32 @@ function getJS(
     '  }',
     '}',
     '',
+
+    'function setScrollSpeed(val){',
+    '  val=parseInt(val);',
+    '  var sv=document.getElementById("speed-val");if(sv)sv.textContent=val+"px/s";',
+    '  if(!displayStarted)return;',
+    '  var doc=document.getElementById("scroll-doc");',
+    '  if(!doc)return;',
+    '  var style=window.getComputedStyle(doc);',
+    '  var matrix=new DOMMatrix(style.transform);',
+    '  var currentY=matrix.m42;',
+    '  var dist=parseFloat(doc.style.getPropertyValue("--scroll-dist"))||0;',
+    '  var remaining=Math.abs(dist)-Math.abs(currentY);',
+    '  if(remaining<=0)return;',
+    '  var newDur=remaining/val;',
+    '  doc.classList.remove("scrolling");',
+    '  void doc.offsetWidth;',
+    '  doc.style.transform="translateY("+currentY+"px)";',
+    '  doc.style.setProperty("--scroll-dist","-"+(Math.abs(dist))+"px");',
+    '  doc.style.setProperty("--scroll-dur",newDur+"s");',
+    '  doc.style.setProperty("--scroll-play","running");',
+    '  doc.classList.add("scrolling");',
+    '  scrollPaused=false;',
+    '}',
+    '',
+
+
     'function updateSlider(key,val){',
     '  var map={"photo":"photo_duration_secs","qr":"qr_screen_duration_secs","brand":"lc_brand_duration_secs"};',
     '  var dk=map[key];if(dk)BASE_CONFIG[dk]=parseInt(val);',
@@ -777,10 +803,15 @@ export function generateDisplayHTML(params: GenerateHTMLParams): string {
   // ── Operator overlay ──
   parts.push('<div id="operator-overlay">')
   parts.push('<h2 style="font-size:1.3rem;font-weight:normal;color:' + accent + ';letter-spacing:0.1em">&#10022; Operator Controls</h2>')
-  parts.push('<div style="display:flex;gap:0.75rem">')
+  parts.push('<div style="display:flex;gap:0.75rem;margin-bottom:0.5rem">')
   parts.push('<button class="ov-btn" onclick="setTempo(\'gentle\')" id="tempo-gentle">&#127807; Gentle</button>')
   parts.push('<button class="ov-btn" onclick="setTempo(\'standard\')" id="tempo-standard">&#9654; Standard</button>')
   parts.push('<button class="ov-btn" onclick="setTempo(\'energetic\')" id="tempo-energetic">&#9889; Energetic</button>')
+  parts.push('</div>')
+  parts.push('<div style="display:flex;align-items:center;gap:0.75rem;font-size:0.85rem;color:#F5F3EE;font-family:sans-serif">')
+  parts.push('<span style="width:130px;text-align:right;opacity:0.75">Scroll speed</span>')
+  parts.push('<input type="range" id="speed-slider" min="10" max="80" step="5" value="30" oninput="setScrollSpeed(this.value)" style="width:160px;accent-color:' + accent + '">')
+  parts.push('<span id="speed-val" style="width:50px;text-align:left;color:' + accent + '">30px/s</span>')
   parts.push('</div>')
   parts.push('<details style="text-align:center"><summary style="cursor:pointer;font-size:0.85rem;color:' + accent + ';opacity:0.7;font-family:sans-serif;margin-bottom:1rem">Interrupt durations</summary>')
   parts.push('<div style="display:flex;flex-direction:column;gap:0.75rem;margin-top:0.75rem">')
