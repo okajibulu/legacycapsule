@@ -11,6 +11,11 @@
 // DATE:      21 August 2026
 // ============================================================
 
+export const maxDuration = 60
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const runtime = 'nodejs'
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { checkManageAuth } from '@/lib/manageAuth'
