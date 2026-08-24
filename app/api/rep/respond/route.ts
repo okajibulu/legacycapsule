@@ -16,24 +16,45 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: NextRequest) {
   try {
-    const { contributionId, capsuleId, responseText, respondedBy, token } = await request.json()
+    const { contributionId, capsuleId, responseText, respondedBy, token, authMode } = await request.json()
 
-    if (!contributionId || !capsuleId || !responseText?.trim() || !token) {
+    if (!contributionId || !capsuleId || !responseText?.trim()) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
     }
 
-    // Validate token
-    const { data: tokenRow } = await supabase
-      .from('honouree_portal_tokens')
-      .select('capsule_id, expires_at')
-      .eq('token', token)
-      .single()
+    // ── Auth path 1: Portal token (Family Representative) ──
+    // ── Auth path 2: Manage session (FRFA via dashboard) ──
+    if (authMode === 'manage') {
+      // FRFA auth — verify capsule_accounts record exists and is family_rep_full_access
+      const { data: frfaAccount } = await supabase
+        .from('capsule_accounts')
+        .select('id, account_type')
+        .eq('capsule_id', capsuleId)
+        .eq('account_type', 'family_rep_full_access')
+        .eq('is_active', true)
+        .maybeSingle()
 
-    if (!tokenRow || tokenRow.capsule_id !== capsuleId) {
-      return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-    }
-    if (tokenRow.expires_at && new Date(tokenRow.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Token expired' }, { status: 401 })
+      if (!frfaAccount) {
+        return NextResponse.json({ error: 'Unauthorised — no active Full Access account found.' }, { status: 401 })
+      }
+    } else {
+      // Portal token auth (original path)
+      if (!token) {
+        return NextResponse.json({ error: 'Missing authentication.' }, { status: 400 })
+      }
+
+      const { data: tokenRow } = await supabase
+        .from('honouree_portal_tokens')
+        .select('capsule_id, expires_at')
+        .eq('token', token)
+        .single()
+
+      if (!tokenRow || tokenRow.capsule_id !== capsuleId) {
+        return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+      }
+      if (tokenRow.expires_at && new Date(tokenRow.expires_at) < new Date()) {
+        return NextResponse.json({ error: 'Token expired' }, { status: 401 })
+      }
     }
 
     // Save response

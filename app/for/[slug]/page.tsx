@@ -6,6 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { resolveTheme } from '@/lib/themeConfig'
 import TributeWallClient from '@/components/TributeWallClient'
 import CapsuleBottomNav from '@/components/CapsuleBottomNav'
@@ -186,8 +187,37 @@ supabase
 
   // Resolve theme — auto from event type, or manual override
   const themeKey = resolveTheme(capsule.theme, capsule.event_type)
+  // ── Admin preview banner — shows "Return to Dashboard" if manage session cookie exists ──
+  const cookieStore = await cookies()
+  const hasManageSession = cookieStore.has(`lc_mgr_${slug}`)
+
   return (
     <>
+      {hasManageSession && (
+        <div style={{
+          position: 'sticky', top: 0, zIndex: 9999,
+          background: 'rgba(15,10,30,0.95)', backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(226,195,107,0.2)',
+          padding: '8px 16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <span style={{
+            fontSize: '11px', color: 'rgba(226,195,107,0.6)',
+            letterSpacing: '0.06em',
+          }}>
+            You are viewing as a visitor
+          </span>
+          <a href={`/manage/${slug}`} style={{
+            fontSize: '11px', fontWeight: 700,
+            padding: '5px 14px', borderRadius: '8px',
+            background: 'rgba(226,195,107,0.1)', border: '1px solid rgba(226,195,107,0.3)',
+            color: '#E2C36B', textDecoration: 'none',
+            letterSpacing: '0.04em',
+          }}>
+            ← Return to Dashboard
+          </a>
+        </div>
+      )}
       <TributeWallClient
         capsule={capsule}
         initialContributions={contribRes.data ?? []}

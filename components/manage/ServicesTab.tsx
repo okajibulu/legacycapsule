@@ -560,6 +560,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
     { id: 'attire',           label: 'Fabric & Attire',  status: 'coming_soon', price: null },
     { id: 'audio_tributes',   label: 'Voice Tributes',   status: audioActive ? 'active' : 'locked',       price: featurePrices['audio_tributes'] },
     { id: 'video_tributes',   label: 'Video Tributes',   status: videoActive ? 'active' : 'locked',       price: featurePrices['video_tributes'] },
+    { id: 'additional_phase', label: 'Additional Phase',  status: components.includes('additional_phase') ? 'active' : 'locked', price: featurePrices['additional_phase'] },
   ]
 
   // Presets are available when publication is not yet active
@@ -702,6 +703,28 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
           onToggle={toggleCart}
           detailSummary='Contributors record directly in the browser or upload a video file — plays inline in their tribute card.'
           detailPoints={['Record in browser or upload file', 'Up to 60 seconds per video', 'Plays inline in tribute card', 'Works on any device, no app required']} />
+
+
+        {/* Additional Event Phase */}
+        <ServiceCard id='additional_phase' title='Additional Event Phase' description='Add extra programme phases to capture more moments on the day' icon='📋'
+          status={components.includes('additional_phase') ? 'active' : 'locked'}
+          price={featurePrices['additional_phase']}
+          inCart={cart.includes('additional_phase')}
+          onToggle={toggleCart}
+          detailSummary='Each capsule starts with one phase. Add more to capture every part of your programme — reception, ceremony, after-party, and beyond.'
+          detailPoints={['Separate QR code and photo collection per phase', 'Guest uploads organised by programme item', 'Each phase appears independently in the publication', 'No limit on the number of phases you can add']} />
+
+        {/* Gift Collection System — coming_soon */}
+        <ServiceCard id='gift_collection' title='Gift Collection System' description='Controlled gift pools · Operator confirmation · Fulfilment ledger' icon='🎁' status='coming_soon'
+          detailSummary='A structured gift collection and tracking system with controlled pools, operator confirmation, and a full fulfilment ledger. Currently in testing.' />
+
+        {/* EDS Live — coming_soon */}
+        <ServiceCard id='eds_live' title='Event Display — Live' description='Real-time curated photo display for venue screens during the event' icon='📺' status='coming_soon'
+          detailSummary='A live, operator-controlled photo display for venue screens — curate and approve photos in real time as guests upload them. Currently in testing.' />
+
+        {/* EDS Offline — coming_soon */}
+        <ServiceCard id='eds_offline' title='Event Display — Keepsake' description='Downloadable commemorative photo reel and self-contained offline display' icon='🖼' status='coming_soon'
+          detailSummary='A beautifully designed offline photo display — downloadable as a self-contained HTML file or video reel, perfect for sharing after the event. Currently in testing.' />
 
       </div>
 

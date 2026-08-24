@@ -243,6 +243,109 @@ function SectionCard({ title, subtitle, children }: { title: string; subtitle?: 
   )
 }
 
+/* -- VOICE RESPONSE CARD — FRFA respond to approved voices */
+function VoiceResponseCard({ c, capsuleId, accountName }: {
+  c: Contribution; capsuleId: string; accountName: string
+}) {
+  const [showRespond,  setShowRespond]  = useState(false)
+  const [responseText, setResponseText] = useState('')
+  const [respondedBy,  setRespondedBy]  = useState('')
+  const [sending,      setSending]      = useState(false)
+  const [sent,         setSent]         = useState(false)
+  const [expanded,     setExpanded]     = useState(false)
+  const [existingResponse, setExistingResponse] = useState<string | null>((c as any).tribute_responses?.[0]?.response_text ?? null)
+  const [existingBy,       setExistingBy]       = useState<string | null>((c as any).tribute_responses?.[0]?.responded_by ?? null)
+
+  const displayName = c.relationship ? `${c.contributor_name} (${c.relationship})` : c.contributor_name
+
+  const handleRespond = async () => {
+    if (!responseText.trim()) return
+    setSending(true)
+    try {
+      const res = await fetch('/api/rep/respond', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          contributionId: c.id,
+          capsuleId,
+          responseText:   responseText.trim(),
+          respondedBy:    respondedBy.trim() || 'The Family',
+          authMode:       'manage',
+        }),
+      })
+      if (res.ok) {
+        setSent(true)
+        setExistingResponse(responseText.trim())
+        setExistingBy(respondedBy.trim() || 'The Family')
+        setShowRespond(false)
+      }
+    } catch {}
+    setSending(false)
+  }
+
+  return (
+    <div style={{ borderRadius: '12px', border: `1px solid ${cardBorder}`, borderLeft: '3px solid rgba(226,195,107,0.4)', background: cardBg, padding: '14px 16px', marginBottom: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '4px' }}>
+        <span style={{ fontSize: '13px', fontWeight: 600, color: gold }}>{displayName}</span>
+        <span style={{ fontSize: '10px', color: textFaint }}>{[c.city, c.country].filter(Boolean).join(' · ')}</span>
+        <span style={{ fontSize: '10px', color: textFaint, marginLeft: 'auto', whiteSpace: 'nowrap' }}>{new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+      </div>
+
+      <p style={{
+        fontSize: '13px', color: textPrimary, lineHeight: 1.75, fontStyle: 'italic', margin: '0 0 8px',
+        display: expanded ? 'block' : '-webkit-box',
+        WebkitLineClamp: expanded ? undefined : 3,
+        WebkitBoxOrient: 'vertical' as any,
+        overflow: expanded ? 'visible' : 'hidden',
+      }}>
+        "{c.tribute_text}"
+      </p>
+      {c.tribute_text.length > 160 && (
+        <button onClick={() => setExpanded(!expanded)} style={{ fontSize: '11px', color: goldMuted, background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 8px', display: 'block' }}>
+          {expanded ? 'show less' : 'read more'}
+        </button>
+      )}
+
+      {/* Existing response */}
+      {existingResponse && (
+        <div style={{ padding: '10px 12px', borderRadius: '10px', background: 'rgba(226,195,107,0.06)', borderLeft: '3px solid rgba(226,195,107,0.35)', marginBottom: '6px' }}>
+          <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: goldMuted, marginBottom: '5px' }}>
+            Response · {existingBy || 'The Family'}
+          </p>
+          <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.7, fontStyle: 'italic', margin: 0 }}>"{existingResponse}"</p>
+        </div>
+      )}
+
+      {/* Respond button — only if no existing response and not yet sent */}
+      {!sent && !existingResponse && !showRespond && (
+        <button onClick={() => setShowRespond(true)} style={{ marginTop: '4px', fontSize: '11px', padding: '5px 14px', borderRadius: '8px', border: '1px solid rgba(226,195,107,0.22)', background: 'rgba(226,195,107,0.05)', color: goldMuted, cursor: 'pointer', fontWeight: 600 }}>
+          ✦ Respond on behalf of the family
+        </button>
+      )}
+
+      {/* Response form */}
+      {showRespond && !sent && (
+        <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <input placeholder="Your name / role (e.g. The Adeyemi Family)" value={respondedBy} onChange={e => setRespondedBy(e.target.value)} style={inp} />
+          <textarea placeholder="Write your response…" value={responseText} onChange={e => setResponseText(e.target.value)} rows={3} style={{ ...inp, resize: 'vertical' as const }} />
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={handleRespond} disabled={sending || !responseText.trim()} style={{ flex: 1, padding: '8px', borderRadius: '8px', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845', fontSize: '12px', fontWeight: 700, border: 'none', cursor: 'pointer', opacity: sending || !responseText.trim() ? 0.6 : 1 }}>
+              {sending ? 'Sending…' : 'Send Response'}
+            </button>
+            <button onClick={() => setShowRespond(false)} style={{ padding: '8px 14px', borderRadius: '8px', background: 'transparent', border: `1px solid ${cardBorder}`, color: textFaint, fontSize: '12px', cursor: 'pointer' }}>Cancel</button>
+          </div>
+          {c.email
+            ? <p style={{ fontSize: '10px', color: textFaint, fontStyle: 'italic' }}>✓ {c.contributor_name} will receive an email notification.</p>
+            : <p style={{ fontSize: '10px', color: textFaint, fontStyle: 'italic' }}>This contributor did not provide an email — no notification will be sent.</p>
+          }
+        </div>
+      )}
+
+      {sent && <p style={{ marginTop: '8px', fontSize: '11px', color: 'rgba(134,239,172,0.8)' }}>✓ Response sent — it will appear on the wall.</p>}
+    </div>
+  )
+}
+
 /* -- TRIBUTE REVIEW CARD -------------------------------- */
 function TributeReviewCard({ c, onApprove, onDecline }: { c: Contribution; onApprove: (id: string) => void; onDecline: (id: string) => void }) {
   const [declining, setDeclining] = useState(false)
@@ -905,6 +1008,36 @@ function CoadminSection({ capsuleId, capsuleSlug, honoureeName }: {
         honoureeName={honoureeName}
         onInvited={fetchAccounts}
       />
+    </div>
+  )
+}
+
+/* -- FAMILY TEAM CARD — unified selector ─────────────── */
+function FamilyTeamCard({ capsuleId, capsuleSlug, honoureeName }: {
+  capsuleId: string; capsuleSlug: string; honoureeName: string
+}) {
+  const [selected, setSelected] = useState<'rep' | 'frfa' | null>(null)
+
+  return (
+    <div>
+      <p style={{ fontSize: '12px', color: textFaint, lineHeight: 1.7, marginBottom: '14px' }}>
+        Choose the level of access this person needs. Family Representatives get a private portal to view and respond to voices. Family Rep Full Access gets everything the organiser has, plus the ability to respond on behalf of the family.
+      </p>
+
+      {/* Existing accounts render first */}
+      <FamilyRepElderSection
+        capsuleId={capsuleId}
+        capsuleSlug={capsuleSlug}
+        honoureeName={honoureeName}
+      />
+
+      <div style={{ marginTop: '8px' }}>
+        <FamilyRepFullAccessPanel
+          capsuleId={capsuleId}
+          capsuleSlug={capsuleSlug}
+          honoureeName={honoureeName}
+        />
+      </div>
     </div>
   )
 }
@@ -1703,6 +1836,7 @@ export default function ManagePageClient({
   const [copied, setCopied] = useState(false)
   const [communityTopics, setCommunityTopics] = useState<any[]>([])
   const [phases, setPhases] = useState<any[]>([])
+  const [acknowledgements, setAcknowledgements] = useState<any[]>([])
   const [addingTopic, setAddingTopic] = useState(false)
   const [newTopicText, setNewTopicText] = useState('')
   const [topicSaving, setTopicSaving] = useState(false)
@@ -1750,7 +1884,7 @@ const capRes = await supabase.from('capsules')
 const [contribRes, sectionsRes, galleryRes, topicsRes, phasesRes, storiesRes] = await Promise.all([
       supabase
   .from('contributions')
-  .select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, email, status, created_at, include_in_publication, include_in_programme_export')
+  .select('id, contributor_name, city, country, relationship, tribute_text, thumbnail_url, email, status, created_at, include_in_publication, include_in_programme_export, tribute_responses(response_text, responded_by)')
   .eq('capsule_id', cap.id)
   .is('story_topic_id', null)
   .is('deleted_at', null)
@@ -1767,6 +1901,16 @@ const [contribRes, sectionsRes, galleryRes, topicsRes, phasesRes, storiesRes] = 
         .is('deleted_at', null)
         .order('created_at', { ascending: false }),
     ])
+
+    // ── Fetch acknowledgements separately (FRFA only) ──
+    if (serverAccountType === 'family_rep_full_access') {
+      const { data: ackData } = await supabase
+        .from('support_acknowledgements')
+        .select('id, supporter_name, supporter_email, created_at, support_account_id')
+        .eq('capsule_id', cap.id)
+        .order('created_at', { ascending: false })
+      setAcknowledgements(ackData ?? [])
+    }
 
     if (contribRes.data) setContributions(contribRes.data as Contribution[])
     if (sectionsRes.data) setProfileSections(sectionsRes.data as ProfileSection[])
@@ -2126,6 +2270,66 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
                 ) : null
               })()}
 
+              {/* ── FRFA: Respond to approved voices ── */}
+              {accountType === 'family_rep_full_access' && approved.length > 0 && (
+                <div style={{ marginBottom: '14px' }}>
+                  <SectionCard
+                    title="Respond to Voices"
+                    subtitle="Write a personal response on behalf of the family — it will appear on the wall beneath their tribute"
+                  >
+                    <p style={{ fontSize: '11px', color: textFaint, fontStyle: 'italic', marginBottom: '14px', lineHeight: 1.6 }}>
+                      Contributors who provided an email will be notified when you respond. Your response is visible to everyone on the wall.
+                    </p>
+                    {approved.slice(0, 20).map(c => (
+                      <VoiceResponseCard
+                        key={c.id}
+                        c={c}
+                        capsuleId={capsule.id}
+                        accountName={accountName}
+                      />
+                    ))}
+                    {approved.length > 20 && (
+                      <p style={{ fontSize: '11px', color: textFaint, textAlign: 'center', fontStyle: 'italic', padding: '8px 0' }}>
+                        Showing the 20 most recent voices. Older voices are available in the full tribute record.
+                      </p>
+                    )}
+                  </SectionCard>
+                </div>
+              )}
+
+              {/* ── FRFA: EOH Acknowledgements ── */}
+              {accountType === 'family_rep_full_access' && (capsule.components ?? []).includes('ways_to_honour') && (
+                <SectionCard
+                  title="Gift of Honour — Acknowledgements"
+                  subtitle="Private — only visible to you and the organiser"
+                >
+                  <p style={{ fontSize: '11px', color: textFaint, lineHeight: 1.65, marginBottom: '14px' }}>
+                    When a guest views Ways to Honour and submits an acknowledgement, it appears here. Amounts are never shown — only names and dates.
+                  </p>
+                  {acknowledgements.length === 0 ? (
+                    <p style={{ fontSize: '12px', color: textFaint, textAlign: 'center', fontStyle: 'italic', padding: '16px 0' }}>
+                      No acknowledgements yet. They will appear here as guests submit them.
+                    </p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {acknowledgements.map((ack: any) => (
+                        <div key={ack.id} style={{ padding: '12px 14px', borderRadius: '10px', background: cardBg, border: `1px solid ${cardBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                          <div>
+                            <p style={{ fontSize: '13px', fontWeight: 600, color: textPrimary, margin: '0 0 2px' }}>{ack.supporter_name}</p>
+                            {ack.supporter_email && (
+                              <p style={{ fontSize: '11px', color: goldMuted, margin: 0 }}>{ack.supporter_email}</p>
+                            )}
+                          </div>
+                          <span style={{ fontSize: '10px', color: textFaint, flexShrink: 0 }}>
+                            {new Date(ack.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </SectionCard>
+              )}
+
               <SectionCard title="Share with Your Community" subtitle="Every person who visits can add their voice">
                 <p style={{ fontSize: '12px', color: textSecondary, lineHeight: 1.7, marginBottom: '12px' }}>This is the link to {capsule.honouree_name}'s tribute wall. Share it with family, friends, colleagues — everyone whose voice belongs in this record.</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: goldFaint, border: `1px solid rgba(226,195,107,0.15)`, marginBottom: '10px' }}>
@@ -2396,18 +2600,9 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
                 <div>
                   
 
-                  {/* ── Family Rep Elder accounts (new system) ── */}
-                  <SectionCard title="Family Representatives" subtitle="Private portal access — can respond to voices and set the Family Appreciation">
-                    <FamilyRepElderSection
-                      capsuleId={capsule.id}
-                      capsuleSlug={capsule.slug}
-                      honoureeName={capsule.honouree_name}
-                    />
-                  </SectionCard>
-
-{/* ── Family Rep Full Access ── */}
-                  <SectionCard title="Family Rep Full Access" subtitle="The most capable family account — full dashboard access plus tribute responses">
-                    <FamilyRepFullAccessPanel
+                  {/* ── Unified Family Team Member card ── */}
+                  <SectionCard title="Family Team Members" subtitle="Add family representatives to help manage this capsule">
+                    <FamilyTeamCard
                       capsuleId={capsule.id}
                       capsuleSlug={capsule.slug}
                       honoureeName={capsule.honouree_name}
