@@ -169,8 +169,19 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // ── Fetch current max sort_order for this capsule ───────────────────
+    const { data: maxRow } = await db
+      .from('contributor_gallery_photos')
+      .select('sort_order')
+      .eq('capsule_id', capsuleId)
+      .eq('status', 'visible')
+      .order('sort_order', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const nextSortBase = (maxRow?.sort_order ?? 0) + 1
+
     // ── Insert DB records ───────────────────────────────────────────────
-    const rows = uploaded.map(u => ({
+    const rows = uploaded.map((u, i) => ({
       capsule_id:        capsuleId,
       contributor_name:  contributorName.trim(),
       contributor_email: contributorEmail.toLowerCase().trim(),
@@ -178,6 +189,7 @@ export async function POST(req: NextRequest) {
       caption:           u.caption,
       file_size_bytes:   u.file_size_bytes,
       status:            'visible',
+      sort_order:        nextSortBase + i,
     }))
 
     const { error: insertError } = await db

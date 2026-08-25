@@ -354,7 +354,7 @@ export default function ContributorGallery({ capsuleId, honoureeName, themeKey }
         .select('id, contributor_name, contributor_email, storage_path, caption, created_at')
         .eq('capsule_id', capsuleId)
         .eq('status', 'visible')
-        .order('created_at', { ascending: false })
+        .order('sort_order', { ascending: true })
       setPhotos(data ?? [])
     } catch {}
     setLoading(false)

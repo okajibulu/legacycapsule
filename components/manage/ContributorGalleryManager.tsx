@@ -4,20 +4,37 @@
 // FILE PATH: components/manage/ContributorGalleryManager.tsx
 // PURPOSE:   Admin moderation UI for the Contributor Gallery.
 //            Shows all photos in grid. Admin can:
+//            - Drag and drop to reorder (persists via /api/gallery/reorder)
 //            - Remove inappropriate photos (soft delete)
 //            - Tick photos for publication inclusion (hard cap 30)
 //            - Select multiple photos and batch move to an Event Phase
 // ARCHITECTURE: CG-SPEC-001 — Contributor Gallery
 // BUILT BY:  AI25 · Claude Opus 4.6
-// VERSION:   AI25v2.12.41
+// VERSION:   AI25v2.12.43
 // DATE:      25 August 2026
 // UPDATED:   AI25 · Claude Sonnet 4.6 · 25 August 2026
-//            — Batch move to phase: select mode + floating action bar
-//            — Per-photo move replaced with multi-select + single batch action
-//            — Progress indicator during batch move
+//            — Drag-and-drop reorder via @dnd-kit (same pattern as EventMomentsManager)
+//            — sort_order persisted to DB via /api/gallery/reorder
+//            — Batch move to phase with select mode
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 // ═══ SECTION 1 — Types ═══
 
@@ -28,6 +45,7 @@ interface GalleryPhoto {
   storage_path:           string
   caption:                string | null
   created_at:             string
+  sort_order:             number
   include_in_publication: boolean
 }
 
@@ -60,7 +78,151 @@ function getPublicUrl(storagePath: string): string {
   return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${storagePath}`
 }
 
-// ═══ SECTION 3 — Batch move floating bar ═══
+// ═══ SECTION 3 — Sortable photo card ═══
+
+function SortablePhotoCard({
+  photo, isSelected, isDisabled, isTogglingThis, isRemovingThis,
+  selectMode, onTogglePublication, onRemove, onToggleSelect,
+}: {
+  photo:            GalleryPhoto
+  isSelected:       boolean
+  isDisabled:       boolean
+  isTogglingThis:   boolean
+  isRemovingThis:   boolean
+  selectMode:       boolean
+  onTogglePublication: (id: string, current: boolean) => void
+  onRemove:         (id: string) => void
+  onToggleSelect:   (id: string) => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: photo.id })
+
+  const isBatchSelected = isSelected
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform:    CSS.Transform.toString(transform),
+        transition,
+        opacity:      isDragging ? 0.45 : isRemovingThis ? 0.4 : 1,
+        borderRadius: '10px', overflow: 'hidden',
+        border: `1px solid ${
+          isBatchSelected && selectMode
+            ? 'rgba(226,195,107,0.6)'
+            : isSelected && !selectMode
+              ? 'rgba(74,222,128,0.3)'
+              : cardBorder
+        }`,
+        background: isBatchSelected && selectMode
+          ? 'rgba(226,195,107,0.08)'
+          : isSelected && !selectMode
+            ? 'rgba(74,222,128,0.04)'
+            : cardBg,
+        cursor:     selectMode ? 'pointer' : 'default',
+        position:   'relative',
+        transition: 'all 0.15s',
+      }}
+      onClick={() => selectMode && onToggleSelect(photo.id)}
+    >
+      {/* Batch select indicator */}
+      {selectMode && (
+        <div style={{
+          position: 'absolute', top: '6px', left: '6px', zIndex: 10,
+          width: '20px', height: '20px', borderRadius: '50%',
+          background: isBatchSelected ? gold : 'rgba(0,0,0,0.6)',
+          border: `2px solid ${isBatchSelected ? gold : 'rgba(255,255,255,0.4)'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '11px', fontWeight: 700, color: '#1a0845',
+          pointerEvents: 'none',
+        }}>
+          {isBatchSelected && '✓'}
+        </div>
+      )}
+
+      {/* Photo */}
+      <div style={{ aspectRatio: '1', overflow: 'hidden', background: '#0a0218', position: 'relative' }}>
+        <img
+          src={getPublicUrl(photo.storage_path)}
+          alt={photo.caption || photo.contributor_name}
+          loading="lazy"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+
+        {/* Drag handle — top right, hidden in select mode */}
+        {!selectMode && (
+          <div
+            {...attributes}
+            {...listeners}
+            style={{
+              position: 'absolute', top: '6px', right: '6px', zIndex: 10,
+              width: '22px', height: '22px', borderRadius: '5px',
+              background: 'rgba(0,0,0,0.55)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'grab', fontSize: '13px', color: 'rgba(255,255,255,0.7)',
+              userSelect: 'none', touchAction: 'none',
+            }}
+            title="Drag to reorder"
+          >
+            ⠿
+          </div>
+        )}
+
+        {/* Publication checkbox — bottom right, hidden in select mode */}
+        {!selectMode && (
+          <button
+            onClick={e => { e.stopPropagation(); onTogglePublication(photo.id, photo.include_in_publication) }}
+            disabled={isDisabled || isTogglingThis}
+            title={isDisabled
+              ? `Publication limit reached (${PUB_LIMIT}). Untick one to select another.`
+              : photo.include_in_publication ? 'Remove from publication' : 'Add to publication'}
+            style={{
+              position: 'absolute', bottom: '6px', right: '6px',
+              width: '24px', height: '24px', borderRadius: '6px',
+              background: photo.include_in_publication ? 'rgba(74,222,128,0.85)' : 'rgba(0,0,0,0.6)',
+              border: `1px solid ${photo.include_in_publication ? 'rgba(74,222,128,0.9)' : 'rgba(255,255,255,0.2)'}`,
+              color: photo.include_in_publication ? '#0a0218' : 'rgba(255,255,255,0.5)',
+              fontSize: '13px', fontWeight: 700,
+              cursor: isDisabled ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              opacity: isDisabled ? 0.35 : 1,
+            }}
+          >
+            {isTogglingThis ? '…' : photo.include_in_publication ? '✓' : ''}
+          </button>
+        )}
+      </div>
+
+      {/* Info + remove — hidden in select mode */}
+      {!selectMode && (
+        <div style={{ padding: '6px 8px' }}>
+          <p style={{ fontSize: '10px', fontWeight: 600, color: textPrimary, margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {photo.contributor_name}
+          </p>
+          <button
+            onClick={e => { e.stopPropagation(); onRemove(photo.id) }}
+            disabled={isRemovingThis}
+            style={{
+              width: '100%', fontSize: '9px', padding: '2px 6px', borderRadius: '4px',
+              border: '1px solid rgba(248,113,113,0.2)', background: 'transparent',
+              color: 'rgba(248,113,113,0.6)', cursor: 'pointer',
+            }}
+          >
+            {isRemovingThis ? '…' : 'Remove'}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ═══ SECTION 4 — Batch move floating bar ═══
 
 function BatchMoveBar({ selectedIds, phases, capsuleId, actorEmail, onDone, onCancel }: {
   selectedIds: string[]
@@ -110,18 +272,16 @@ function BatchMoveBar({ selectedIds, phases, capsuleId, actorEmail, onDone, onCa
 
   return (
     <div style={{
-      position:      'fixed', bottom: '72px', left: 0, right: 0, zIndex: 60,
-      padding:       '0 16px',
-      pointerEvents: moving ? 'none' : 'auto',
+      position: 'fixed', bottom: '72px', left: 0, right: 0, zIndex: 60,
+      padding: '0 16px', pointerEvents: moving ? 'none' : 'auto',
     }}>
-    <div style={{
-      maxWidth:   '600px', margin: '0 auto',
-      borderRadius: '14px', overflow: 'visible',
-      border:     '1px solid rgba(226,195,107,0.35)',
-      background: 'linear-gradient(135deg, #1a0845, #120630)',
-      boxShadow:  '0 -4px 32px rgba(0,0,0,0.5)',
-    }}>
-        {/* Progress state */}
+      <div style={{
+        maxWidth: '600px', margin: '0 auto',
+        borderRadius: '14px', overflow: 'visible',
+        border: '1px solid rgba(226,195,107,0.35)',
+        background: 'linear-gradient(135deg, #1a0845, #120630)',
+        boxShadow: '0 -4px 32px rgba(0,0,0,0.5)',
+      }}>
         {moving ? (
           <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid rgba(226,195,107,0.2)', borderTopColor: gold, animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
@@ -130,20 +290,11 @@ function BatchMoveBar({ selectedIds, phases, capsuleId, actorEmail, onDone, onCa
         ) : (
           <div style={{ padding: '12px 14px' }}>
             {error && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.85)', margin: '0 0 8px' }}>{error}</p>}
-
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {/* Count badge */}
               <div style={{ padding: '4px 12px', borderRadius: '20px', background: 'rgba(226,195,107,0.12)', border: '1px solid rgba(226,195,107,0.25)', flexShrink: 0 }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: gold }}>
-                  {selectedIds.length} selected
-                </span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: gold }}>{selectedIds.length} selected</span>
               </div>
-
-              <p style={{ fontSize: '11px', color: textFaint, margin: 0, flex: 1 }}>
-                Move all to a phase at once
-              </p>
-
-              {/* Phase selector */}
+              <p style={{ fontSize: '11px', color: textFaint, margin: 0, flex: 1 }}>Move all to a phase at once</p>
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 <button
                   onClick={() => setPhaseOpen(o => !o)}
@@ -156,18 +307,15 @@ function BatchMoveBar({ selectedIds, phases, capsuleId, actorEmail, onDone, onCa
                 >
                   Move to Phase ▾
                 </button>
-
                 {phaseOpen && (
                   <div style={{
-                    position:  'absolute', bottom: 'calc(100% + 6px)', right: 0,
-                    minWidth:  '180px', zIndex: 70,
+                    position: 'absolute', bottom: 'calc(100% + 6px)', right: 0,
+                    minWidth: '180px', zIndex: 70,
                     borderRadius: '10px', overflow: 'hidden',
                     background: '#1a0845', border: '1px solid rgba(226,195,107,0.3)',
                     boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
                   }}>
-                    <p style={{ fontSize: '9px', color: goldMuted, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '8px 12px 4px', margin: 0 }}>
-                      Select phase
-                    </p>
+                    <p style={{ fontSize: '9px', color: goldMuted, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '8px 12px 4px', margin: 0 }}>Select phase</p>
                     {phases.map(phase => (
                       <button
                         key={phase.id}
@@ -200,8 +348,6 @@ function BatchMoveBar({ selectedIds, phases, capsuleId, actorEmail, onDone, onCa
                   </div>
                 )}
               </div>
-
-              {/* Exit selection mode */}
               <button
                 onClick={onCancel}
                 style={{
@@ -220,7 +366,7 @@ function BatchMoveBar({ selectedIds, phases, capsuleId, actorEmail, onDone, onCa
   )
 }
 
-// ═══ SECTION 4 — Main component ═══
+// ═══ SECTION 5 — Main component ═══
 
 export default function ContributorGalleryManager({ capsuleId, actorEmail, phases = [] }: Props) {
   const [photos,        setPhotos]        = useState<GalleryPhoto[]>([])
@@ -229,13 +375,21 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
   const [removing,      setRemoving]      = useState<string | null>(null)
   const [toggling,      setToggling]      = useState<string | null>(null)
   const [error,         setError]         = useState('')
+  const [reorderMsg,    setReorderMsg]    = useState('')
+  const [reordering,    setReordering]    = useState(false)
 
-  // ── Batch move state ──────────────────────────────────────────────────────
-  const [selectMode,    setSelectMode]    = useState(false)
-  const [selectedIds,   setSelectedIds]   = useState<Set<string>>(new Set())
+  // ── Batch move state ──────────────────────────────────────────────
+  const [selectMode,  setSelectMode]  = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
-  // ── Fetch photos ──────────────────────────────────────────────────────────
-  const fetchPhotos = async () => {
+  // ── DnD sensors — same pattern as EventMomentsManager ────────────
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor,   { activationConstraint: { delay: 200, tolerance: 8 } })
+  )
+
+  // ── Fetch photos — ordered by sort_order ─────────────────────────
+  const fetchPhotos = useCallback(async () => {
     try {
       const { createClient } = await import('@supabase/supabase-js')
       const supabase = createClient(
@@ -244,26 +398,62 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
       )
       const { data } = await supabase
         .from('contributor_gallery_photos')
-        .select('id, contributor_name, contributor_email, storage_path, caption, created_at, include_in_publication')
+        .select('id, contributor_name, contributor_email, storage_path, caption, created_at, sort_order, include_in_publication')
         .eq('capsule_id', capsuleId)
         .eq('status', 'visible')
-        .order('created_at', { ascending: false })
+        .order('sort_order', { ascending: true })
       const list = data ?? []
       setPhotos(list)
       setSelectedCount(list.filter(p => p.include_in_publication).length)
     } catch {}
     setLoading(false)
+  }, [capsuleId])
+
+  useEffect(() => { fetchPhotos() }, [fetchPhotos])
+
+  // ── Drag end — reorder locally then persist ───────────────────────
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = photos.findIndex(p => p.id === active.id)
+    const newIndex = photos.findIndex(p => p.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reordered = arrayMove(photos, oldIndex, newIndex)
+    setPhotos(reordered)
+
+    setReordering(true)
+    setReorderMsg('')
+    try {
+      const order = reordered.map((p, i) => ({ id: p.id, sort_order: i + 1 }))
+      const res = await fetch('/api/gallery/reorder', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ capsule_id: capsuleId, order }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setReorderMsg('Order saved')
+        setTimeout(() => setReorderMsg(''), 2500)
+      } else {
+        setReorderMsg('Could not save order — please try again')
+        await fetchPhotos()
+      }
+    } catch {
+      setReorderMsg('Could not save order — please try again')
+      await fetchPhotos()
+    }
+    setReordering(false)
   }
 
-  useEffect(() => { fetchPhotos() }, [capsuleId])
-
-  // ── Exit select mode ──────────────────────────────────────────────────────
+  // ── Exit select mode ──────────────────────────────────────────────
   const exitSelectMode = () => {
     setSelectMode(false)
     setSelectedIds(new Set())
   }
 
-  // ── Toggle photo selection ────────────────────────────────────────────────
+  // ── Toggle batch selection ────────────────────────────────────────
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev)
@@ -272,7 +462,6 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
     })
   }
 
-  // ── Select all / none ─────────────────────────────────────────────────────
   const toggleSelectAll = () => {
     if (selectedIds.size === photos.length) {
       setSelectedIds(new Set())
@@ -281,7 +470,7 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
     }
   }
 
-  // ── Remove photo ──────────────────────────────────────────────────────────
+  // ── Remove photo ──────────────────────────────────────────────────
   const handleRemove = async (photoId: string) => {
     setRemoving(photoId)
     setError('')
@@ -305,7 +494,7 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
     setRemoving(null)
   }
 
-  // ── Toggle publication ────────────────────────────────────────────────────
+  // ── Toggle publication ────────────────────────────────────────────
   const handleTogglePublication = async (photoId: string, currentValue: boolean) => {
     setToggling(photoId)
     setError('')
@@ -326,7 +515,7 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
     setToggling(null)
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────
 
   if (loading) {
     return <p style={{ fontSize: '12px', color: textFaint }}>Loading gallery…</p>
@@ -339,9 +528,18 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-        <p style={{ fontSize: '12px', color: textFaint, margin: 0 }}>
-          {photos.length} photo{photos.length !== 1 ? 's' : ''} uploaded by contributors
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <p style={{ fontSize: '12px', color: textFaint, margin: 0 }}>
+            {photos.length} photo{photos.length !== 1 ? 's' : ''}
+          </p>
+          {/* Reorder status */}
+          {reordering && <p style={{ fontSize: '10px', color: textFaint, fontStyle: 'italic', margin: 0 }}>Saving order…</p>}
+          {!reordering && reorderMsg && (
+            <p style={{ fontSize: '10px', color: reorderMsg.includes('Could not') ? 'rgba(248,113,113,0.8)' : 'rgba(134,239,172,0.8)', fontStyle: 'italic', margin: 0 }}>
+              {reorderMsg.includes('Could not') ? reorderMsg : `✓ ${reorderMsg}`}
+            </p>
+          )}
+        </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {/* Publication counter */}
@@ -356,7 +554,7 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
             <span style={{ fontSize: '10px', color: textFaint, marginLeft: '6px' }}>for pub</span>
           </div>
 
-          {/* Select mode toggle — only shown when phases exist */}
+          {/* Select mode toggle */}
           {phases.length > 0 && photos.length > 0 && (
             <button
               onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
@@ -373,7 +571,14 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
         </div>
       </div>
 
-      {/* Select all toggle — shown in select mode */}
+      {/* Drag hint — shown in normal mode when photos exist */}
+      {!selectMode && photos.length > 1 && (
+        <p style={{ fontSize: '10px', color: textFaint, marginBottom: '10px', fontStyle: 'italic' }}>
+          ⠿ Drag photos to reorder — order is saved automatically and reflects on the public gallery.
+        </p>
+      )}
+
+      {/* Select all toggle */}
       {selectMode && photos.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
           <p style={{ fontSize: '11px', color: goldMuted, margin: 0 }}>
@@ -388,7 +593,6 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
         </div>
       )}
 
-      {/* Phase move hint — first time in select mode */}
       {selectMode && selectedIds.size === 0 && (
         <p style={{ fontSize: '11px', color: textFaint, lineHeight: 1.65, marginBottom: '10px', padding: '8px 10px', borderRadius: '8px', background: 'rgba(226,195,107,0.04)', borderLeft: '2px solid rgba(226,195,107,0.2)' }}>
           Tap photos to select them, then choose which phase to move them to.
@@ -404,113 +608,36 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px' }}>
-          {photos.map(photo => {
-            const isSelected     = photo.include_in_publication
-            const isDisabled     = !isSelected && atLimit
-            const isTogglingThis = toggling === photo.id
-            const isRemovingThis = removing === photo.id
-            const isBatchSelected = selectedIds.has(photo.id)
-
-            return (
-              <div
-                key={photo.id}
-                onClick={() => selectMode ? toggleSelect(photo.id) : undefined}
-                style={{
-                  borderRadius: '10px', overflow: 'hidden',
-                  border: `1px solid ${
-                    isBatchSelected
-                      ? 'rgba(226,195,107,0.6)'
-                      : isSelected
-                        ? 'rgba(74,222,128,0.3)'
-                        : cardBorder
-                  }`,
-                  background: isBatchSelected
-                    ? 'rgba(226,195,107,0.08)'
-                    : isSelected
-                      ? 'rgba(74,222,128,0.04)'
-                      : cardBg,
-                  opacity: isRemovingThis ? 0.4 : 1,
-                  transition: 'all 0.2s',
-                  cursor: selectMode ? 'pointer' : 'default',
-                  position: 'relative',
-                }}
-              >
-                {/* Batch selection indicator */}
-                {selectMode && (
-                  <div style={{
-                    position: 'absolute', top: '6px', left: '6px', zIndex: 10,
-                    width: '20px', height: '20px', borderRadius: '50%',
-                    background: isBatchSelected ? gold : 'rgba(0,0,0,0.6)',
-                    border: `2px solid ${isBatchSelected ? gold : 'rgba(255,255,255,0.4)'}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '11px', fontWeight: 700, color: '#1a0845',
-                    pointerEvents: 'none',
-                  }}>
-                    {isBatchSelected && '✓'}
-                  </div>
-                )}
-
-                {/* Photo */}
-                <div style={{ aspectRatio: '1', overflow: 'hidden', background: '#0a0218', position: 'relative' }}>
-                  <img
-                    src={getPublicUrl(photo.storage_path)}
-                    alt={photo.caption || photo.contributor_name}
-                    loading="lazy"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  />
-
-                  {/* Publication checkbox — hidden in select mode */}
-                  {!selectMode && (
-                    <button
-                      onClick={() => handleTogglePublication(photo.id, isSelected)}
-                      disabled={isDisabled || isTogglingThis}
-                      title={isDisabled
-                        ? `Publication limit reached (${PUB_LIMIT}). Untick one to select another.`
-                        : isSelected ? 'Remove from publication' : 'Add to publication'}
-                      style={{
-                        position: 'absolute', top: '6px', right: '6px',
-                        width: '24px', height: '24px', borderRadius: '6px',
-                        background: isSelected ? 'rgba(74,222,128,0.85)' : 'rgba(0,0,0,0.6)',
-                        border: `1px solid ${isSelected ? 'rgba(74,222,128,0.9)' : 'rgba(255,255,255,0.2)'}`,
-                        color: isSelected ? '#0a0218' : 'rgba(255,255,255,0.5)',
-                        fontSize: '13px', fontWeight: 700,
-                        cursor: isDisabled ? 'not-allowed' : 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        opacity: isDisabled ? 0.35 : 1,
-                      }}
-                    >
-                      {isTogglingThis ? '…' : isSelected ? '✓' : ''}
-                    </button>
-                  )}
-                </div>
-
-                {/* Info + remove — hidden in select mode */}
-                {!selectMode && (
-                  <div style={{ padding: '6px 8px' }}>
-                    <p style={{ fontSize: '10px', fontWeight: 600, color: textPrimary, margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {photo.contributor_name}
-                    </p>
-                    <button
-                      onClick={() => handleRemove(photo.id)}
-                      disabled={isRemovingThis}
-                      style={{
-                        width: '100%', fontSize: '9px', padding: '2px 6px', borderRadius: '4px',
-                        border: '1px solid rgba(248,113,113,0.2)', background: 'transparent',
-                        color: 'rgba(248,113,113,0.6)', cursor: 'pointer',
-                      }}
-                    >
-                      {isRemovingThis ? '…' : 'Remove'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={photos.map(p => p.id)}
+            strategy={rectSortingStrategy}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px' }}>
+              {photos.map(photo => (
+                <SortablePhotoCard
+                  key={photo.id}
+                  photo={photo}
+                  isSelected={selectMode ? selectedIds.has(photo.id) : photo.include_in_publication}
+                  isDisabled={!photo.include_in_publication && atLimit}
+                  isTogglingThis={toggling === photo.id}
+                  isRemovingThis={removing === photo.id}
+                  selectMode={selectMode}
+                  onTogglePublication={handleTogglePublication}
+                  onRemove={handleRemove}
+                  onToggleSelect={toggleSelect}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
 
-      {/* Batch move floating bar — appears when photos selected in select mode */}
+      {/* Batch move floating bar */}
       {selectMode && selectedIds.size > 0 && phases.length > 0 && (
         <BatchMoveBar
           selectedIds={Array.from(selectedIds)}
