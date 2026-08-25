@@ -66,7 +66,48 @@ const inp: React.CSSProperties = {
 // ═══ SECTION 4 — Lightbox ═══
 // Shows full image, contributor name and caption on tap
 
-function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void }) {
+function Lightbox({ photo, photos, onClose, onNav }: {
+  photo:   GalleryPhoto
+  photos:  GalleryPhoto[]
+  onClose: () => void
+  onNav:   (photo: GalleryPhoto) => void
+}) {
+  const currentIndex = photos.findIndex(p => p.id === photo.id)
+  const hasPrev      = currentIndex > 0
+  const hasNext      = currentIndex < photos.length - 1
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft'  && hasPrev) onNav(photos[currentIndex - 1])
+      if (e.key === 'ArrowRight' && hasNext) onNav(photos[currentIndex + 1])
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [currentIndex, hasPrev, hasNext])
+
+  const navBtnStyle = (side: 'left' | 'right'): React.CSSProperties => ({
+    position: 'absolute',
+    top: '50%',
+    [side]: '16px',
+    transform: 'translateY(-50%)',
+    background: 'rgba(255,255,255,0.12)',
+    border: 'none',
+    borderRadius: '50%',
+    width: '44px',
+    height: '44px',
+    color: textPrimary,
+    fontSize: '20px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backdropFilter: 'blur(4px)',
+    zIndex: 10,
+    transition: 'background 0.15s',
+  })
+
   return (
     <div
       onClick={onClose}
@@ -77,12 +118,35 @@ function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void
         padding: '24px', cursor: 'pointer',
       }}
     >
+      {/* Prev */}
+      {hasPrev && (
+        <button
+          onClick={e => { e.stopPropagation(); onNav(photos[currentIndex - 1]) }}
+          style={navBtnStyle('left')}
+        >
+          ‹
+        </button>
+      )}
+
+      {/* Photo */}
       <img
         src={getPublicUrl(photo.storage_path)}
         alt={photo.caption || `Photo by ${photo.contributor_name}`}
-        style={{ maxWidth: '100%', maxHeight: '75vh', borderRadius: '12px', objectFit: 'contain' }}
+        style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '12px', objectFit: 'contain' }}
         onClick={e => e.stopPropagation()}
       />
+
+      {/* Next */}
+      {hasNext && (
+        <button
+          onClick={e => { e.stopPropagation(); onNav(photos[currentIndex + 1]) }}
+          style={navBtnStyle('right')}
+        >
+          ›
+        </button>
+      )}
+
+      {/* Caption + name */}
       <div style={{ marginTop: '16px', textAlign: 'center', maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
         <p style={{ fontSize: '13px', fontWeight: 600, color: textPrimary, margin: '0 0 4px' }}>
           {photo.contributor_name}
@@ -92,7 +156,13 @@ function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void
             {photo.caption}
           </p>
         )}
+        {/* Counter */}
+        <p style={{ fontSize: '10px', color: textFaint, margin: '6px 0 0', letterSpacing: '0.06em' }}>
+          {currentIndex + 1} / {photos.length}
+        </p>
       </div>
+
+      {/* Close */}
       <button onClick={onClose} style={{
         position: 'absolute', top: '20px', right: '20px',
         background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%',
@@ -438,7 +508,14 @@ export default function ContributorGallery({ capsuleId, honoureeName, themeKey }
       )}
 
       {/* Lightbox */}
-      {lightbox && <Lightbox photo={lightbox} onClose={() => setLightbox(null)} />}
+      {lightbox && (
+        <Lightbox
+          photo={lightbox}
+          photos={photos}
+          onClose={() => setLightbox(null)}
+          onNav={photo => setLightbox(photo)}
+        />
+      )}
     </div>
   )
 }
