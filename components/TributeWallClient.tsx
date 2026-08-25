@@ -42,6 +42,7 @@ import PublicationSubscribePanel from '@/components/capsule/PublicationSubscribe
 import { getParticipationLanguage, formatParticipationCount } from '@/lib/utils/getParticipationLanguage'
 import { getRelationshipQuestion, getRelationshipOptions, getFamiliarName } from '@/lib/utils/getRelationshipQuestion'
 import GlobalExpressionsStrip from '@/components/capsule/GlobalExpressionsStrip'
+import ContributorGallery from '@/components/ContributorGallery'
 
 const AudioTribute = dynamic(() => import('@/components/AudioTribute'), { ssr: false })
 const VideoTribute = dynamic(() => import('@/components/VideoTribute'), { ssr: false })
@@ -1788,6 +1789,9 @@ background:
                     ? `You are part of ${honourName}'s story. The keepsake publication will be sent to you when it is ready.`
                     : `Leave your email below to receive the keepsake publication — a permanent record of everything gathered for this occasion.`}
                 </p>
+                <p style={{ fontSize: '11px', color: t.textFaint, margin: '8px 0 0', lineHeight: 1.65 }}>
+                  📷 Have photos from this event? <a href="#lc-contributor-gallery" style={{ color: t.accentPrimary, textDecoration: 'none', fontWeight: 600 }}>Add them to the Contributor Gallery</a> — they may be included in the final publication.
+                </p>
               </div>
               <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                 <p style={{ margin: 0, fontSize: '11px', color: t.textFaint, lineHeight: 1.6 }}>
@@ -1901,6 +1905,14 @@ background:
           {/* No photo/name repeat. No placeholder notices. Only active sections. */}
             <div style={{ padding: '0 16px 8px' }}>
               {profileSections.map(section => <ProfileSummarySection key={section.id} section={section} t={t} slug={capsule.slug} />)}
+
+              {/* ── CONTRIBUTOR GALLERY — CG-SPEC-001 ── */}
+              <ContributorGallery
+                capsuleId={capsule.id}
+                honoureeName={capsule.honouree_name}
+                themeKey={themeKey}
+              />
+
               <div style={{ textAlign: 'center', marginTop: '4px' }}>
                 <Link href={`/for/${capsule.slug}/profile`} style={{ fontSize: '12px', color: t.accentMuted, textDecoration: 'none', letterSpacing: '0.06em' }}>
                     

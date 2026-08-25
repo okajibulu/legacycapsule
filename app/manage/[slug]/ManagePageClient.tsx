@@ -68,6 +68,7 @@ import AccountDetailsSection from '@/components/manage/settings/AccountDetailsSe
 import FamilyRepElderInvite from '@/components/manage/settings/FamilyRepElderInvite'
 import FamilyRepElderCard, { type FamilyRepElderAccount } from '@/components/manage/settings/FamilyRepElderCard'
 import HeroPositionPicker from '@/components/HeroPositionPicker'
+import ContributorGalleryManager from '@/components/manage/ContributorGalleryManager'
 
 interface Capsule {
   id: string; slug: string; honouree_name: string; honouree_title: string | null
@@ -2478,6 +2479,10 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
                 <GalleryEditor capsuleId={capsule.id} initialPhotos={galleryPhotos} supabase={supabase} t={galleryTheme} onSaved={fetchAll} />
               </SectionCard>
 
+              <SectionCard title="Contributor Gallery" subtitle="Photos uploaded by visitors — select up to 30 for the publication">
+                <ContributorGalleryManager capsuleId={capsule.id} actorEmail={visitorEmail} />
+              </SectionCard>
+              
               <SectionCard title="Profile Sections" subtitle="No character limit -- write as much as your event deserves">
                 {!profileSections.some((s: ProfileSection) => s.section_type === 'appreciation') && (
                   <div style={{ padding: '16px 18px', borderRadius: '12px', border: '1px solid rgba(212,174,42,0.3)', background: 'linear-gradient(135deg, rgba(212,174,42,0.06) 0%, rgba(212,174,42,0.02) 100%)', marginBottom: '16px' }}>
