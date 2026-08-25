@@ -114,13 +114,13 @@ function BatchMoveBar({ selectedIds, phases, capsuleId, actorEmail, onDone, onCa
       padding:       '0 16px',
       pointerEvents: moving ? 'none' : 'auto',
     }}>
-      <div style={{
-        maxWidth:   '600px', margin: '0 auto',
-        borderRadius: '14px', overflow: 'hidden',
-        border:     '1px solid rgba(226,195,107,0.35)',
-        background: 'linear-gradient(135deg, #1a0845, #120630)',
-        boxShadow:  '0 -4px 32px rgba(0,0,0,0.5)',
-      }}>
+    <div style={{
+      maxWidth:   '600px', margin: '0 auto',
+      borderRadius: '14px', overflow: 'visible',
+      border:     '1px solid rgba(226,195,107,0.35)',
+      background: 'linear-gradient(135deg, #1a0845, #120630)',
+      boxShadow:  '0 -4px 32px rgba(0,0,0,0.5)',
+    }}>
         {/* Progress state */}
         {moving ? (
           <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
