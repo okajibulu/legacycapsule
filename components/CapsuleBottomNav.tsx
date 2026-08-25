@@ -111,11 +111,11 @@ function buildNavTabs(props: CapsuleBottomNavProps): NavTab[] {
     active: true,
   })
 
-  // Tab 3 -- Profile (always)
+  // Tab 3 -- About (always)
   tabs.push({
     id:     'profile',
-    label:  'Profile',
-    icon:   '👤',
+    label:  'About',
+    icon:   '📖',
     href:   `/for/${slug}/profile`,
     active: true,
   })

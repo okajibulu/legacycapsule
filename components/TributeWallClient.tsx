@@ -42,7 +42,7 @@ import PublicationSubscribePanel from '@/components/capsule/PublicationSubscribe
 import { getParticipationLanguage, formatParticipationCount } from '@/lib/utils/getParticipationLanguage'
 import { getRelationshipQuestion, getRelationshipOptions, getFamiliarName } from '@/lib/utils/getRelationshipQuestion'
 import GlobalExpressionsStrip from '@/components/capsule/GlobalExpressionsStrip'
-import ContributorGallery from '@/components/ContributorGallery'
+
 
 const AudioTribute = dynamic(() => import('@/components/AudioTribute'), { ssr: false })
 const VideoTribute = dynamic(() => import('@/components/VideoTribute'), { ssr: false })
@@ -1252,7 +1252,7 @@ setFAudioUrl(null); setFVideoUrl(null); setFVideoThumb(null); setFConsent(false)
         whiteSpace: 'nowrap'
       }}
     >
-      View Profile →
+      About →
     </Link>
 
     {isAdmin && (
@@ -1790,7 +1790,7 @@ background:
                     : `Leave your email below to receive the keepsake publication — a permanent record of everything gathered for this occasion.`}
                 </p>
                 <p style={{ fontSize: '11px', color: t.textFaint, margin: '8px 0 0', lineHeight: 1.65 }}>
-                  📷 Have photos from this event? <a href="#lc-contributor-gallery" style={{ color: t.accentPrimary, textDecoration: 'none', fontWeight: 600 }}>Add them to the Contributor Gallery</a> — they may be included in the final publication.
+                  📷 Have photos from this event? <a href={`/for/${capsule.slug}/profile#lc-contributor-gallery`} style={{ color: t.accentPrimary, textDecoration: 'none', fontWeight: 600 }}>Add them to the About page</a> — they may be included in the final publication.
                 </p>
               </div>
               <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
@@ -1906,12 +1906,7 @@ background:
             <div style={{ padding: '0 16px 8px' }}>
               {profileSections.map(section => <ProfileSummarySection key={section.id} section={section} t={t} slug={capsule.slug} />)}
 
-              {/* ── CONTRIBUTOR GALLERY — CG-SPEC-001 ── */}
-              <ContributorGallery
-                capsuleId={capsule.id}
-                honoureeName={capsule.honouree_name}
-                themeKey={themeKey}
-              />
+
 
               <div style={{ textAlign: 'center', marginTop: '4px' }}>
                 <Link href={`/for/${capsule.slug}/profile`} style={{ fontSize: '12px', color: t.accentMuted, textDecoration: 'none', letterSpacing: '0.06em' }}>
@@ -1934,53 +1929,79 @@ background:
     padding: '8px 16px 20px',
   }}
 >
-  {/* ── SHARE STRIP ── */}
+  {/* ── PHOTO UPLOAD + RETURN VISIT STRIP ── */}
   <div style={{
-    background: 'rgba(226,195,107,0.05)',
-    border: `1px solid rgba(226,195,107,0.15)`,
     borderRadius: '14px',
-    padding: '14px 16px',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '8px',
+    overflow: 'hidden',
+    border: `1px solid rgba(226,195,107,0.15)`,
   }}>
-    <p style={{ margin: 0, fontSize: '11px', color: t.accentMuted, fontWeight: 700, letterSpacing: '0.08em' }}>
-      {myRefCode ? 'Your personal share link' : `Share this ${lang.wallTitle.toLowerCase()}`}
-    </p>
-    <p style={{ margin: 0, fontSize: '10px', color: t.textFaint, lineHeight: 1.5 }}>
-      {myRefCode
-        ? 'When others visit via your link, you\'ll be recognised as a Legacy Builder.'
-        : 'Help grow this community — share with family and friends.'}
-    </p>
-    <div style={{ display: 'flex', gap: '8px' }}>
-      <button
-        onClick={handleCopy}
+    {/* Top section — photo CTA */}
+    <div style={{
+      background: 'rgba(226,195,107,0.05)',
+      padding: '16px 16px 14px',
+      borderBottom: `1px solid rgba(226,195,107,0.08)`,
+    }}>
+      <p style={{ margin: '0 0 4px', fontSize: '12px', fontWeight: 700, color: t.accentPrimary }}>
+        📷 Do you have photos from this event?
+      </p>
+      <p style={{ margin: '0 0 12px', fontSize: '11px', color: t.textFaint, lineHeight: 1.65 }}>
+        Upload them to the Contributor Gallery on the Profile page — your photos help complete the story of this occasion and may be included in the final publication.
+      </p>
+      
+      <a  href={`/for/${capsule.slug}/profile#lc-contributor-gallery`}
         style={{
-          flex: 1, padding: '9px 12px', borderRadius: '10px',
-          border: `1px solid rgba(226,195,107,0.25)`,
-          background: 'rgba(226,195,107,0.08)',
-          color: t.accentPrimary, fontSize: '12px', fontWeight: 600,
-          cursor: 'pointer', transition: 'all 0.2s',
+          display: 'inline-flex', alignItems: 'center', gap: '6px',
+          padding: '9px 18px', borderRadius: '10px',
+          background: `linear-gradient(135deg, ${t.accentPrimary}, rgba(226,195,107,0.7))`,
+          color: '#1a0845', fontSize: '12px', fontWeight: 700,
+          textDecoration: 'none', letterSpacing: '0.04em',
         }}
       >
-        {copied ? '✓ Copied' : '🔗 Copy Link'}
-      </button>
-      <button
-        onClick={() => {
-          const shareUrl = myRefCode ? capsuleUrl + '?ref=' + myRefCode : capsuleUrl
-          const text = encodeURIComponent(`${capsule.honouree_name}'s story is being preserved — your voice belongs in this record: ${shareUrl}`)
-          window.open(`https://wa.me/?text=${text}`, '_blank')
-        }}
-        style={{
-          flex: 1, padding: '9px 12px', borderRadius: '10px',
-          border: `1px solid rgba(255,255,255,0.08)`,
-          background: 'rgba(255,255,255,0.03)',
-          color: t.textFaint, fontSize: '12px', fontWeight: 600,
-          cursor: 'pointer', transition: 'all 0.2s',
-        }}
-      >
-        💬 WhatsApp
-      </button>
+        Add Your Photos →
+      </a>
+    </div>
+
+    {/* Bottom section — return visit hook */}
+    <div style={{
+      background: 'rgba(255,255,255,0.02)',
+      padding: '12px 16px',
+    }}>
+      <p style={{ margin: '0 0 4px', fontSize: '11px', fontWeight: 600, color: t.textFaint }}>
+        ✦ Keep coming back
+      </p>
+      <p style={{ margin: '0 0 10px', fontSize: '11px', color: t.textFaint, lineHeight: 1.65 }}>
+        This capsule grows over time — new voices, new photos, new memories. Bookmark this page and check back to see what others have shared.
+      </p>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <button
+          onClick={handleCopy}
+          style={{
+            flex: 1, padding: '8px 10px', borderRadius: '10px',
+            border: `1px solid rgba(226,195,107,0.2)`,
+            background: 'transparent',
+            color: t.accentMuted, fontSize: '11px', fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          {copied ? '✓ Copied' : '🔗 Copy Link'}
+        </button>
+        <button
+          onClick={() => {
+            const shareUrl = myRefCode ? capsuleUrl + '?ref=' + myRefCode : capsuleUrl
+            const text = encodeURIComponent(`${capsule.honouree_name}'s story is being preserved — new memories, photos and voices are still being added. Check it out: ${shareUrl}`)
+            window.open(`https://wa.me/?text=${text}`, '_blank')
+          }}
+          style={{
+            flex: 1, padding: '8px 10px', borderRadius: '10px',
+            border: `1px solid rgba(255,255,255,0.06)`,
+            background: 'transparent',
+            color: t.textFaint, fontSize: '11px', fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          💬 Share
+        </button>
+      </div>
     </div>
   </div>
    </div>

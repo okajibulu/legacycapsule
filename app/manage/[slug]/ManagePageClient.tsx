@@ -2479,7 +2479,7 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
                 <GalleryEditor capsuleId={capsule.id} initialPhotos={galleryPhotos} supabase={supabase} t={galleryTheme} onSaved={fetchAll} />
               </SectionCard>
 
-              <SectionCard title="Contributor Gallery" subtitle="Photos uploaded by visitors — select up to 30 for the publication">
+              <SectionCard title="Contributor Gallery" subtitle="Photos uploaded by visitors — visible on the About page · select up to 30 for the publication">
                 <ContributorGalleryManager capsuleId={capsule.id} actorEmail={visitorEmail} phases={phases} />
               </SectionCard>
 

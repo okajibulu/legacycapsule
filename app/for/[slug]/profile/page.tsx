@@ -22,6 +22,7 @@ import SectionTextClamp from '@/components/SectionTextClamp'
 import CapsuleBottomNav from '@/components/CapsuleBottomNav'
 import PublicationSubscribePanel  from '@/components/capsule/PublicationSubscribePanel'
 import ActivePremiumsStrip        from '@/components/ActivePremiumsStrip'
+import ContributorGallery         from '@/components/ContributorGallery'
 
 /* ── Client setup ──────────────────────────────────────── */
 const adminClient = createClient(
@@ -53,8 +54,8 @@ export async function generateMetadata({ params }: PageProps) {
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
   const ogImageUrl = `${appUrl}/api/og/${slug}`
   return {
-    title: `${data.honouree_name} — ${data.event_tag ?? getEventTypeLabel(data.event_type)} | LegacyCapsule`,
-    description: `${data.event_tag ?? getEventTypeLabel(data.event_type)} — a LegacyCapsule tribute collection.`,
+    title: `About ${data.honouree_name} — ${data.event_tag ?? getEventTypeLabel(data.event_type)} | LegacyCapsule`,
+    description: `${data.event_tag ?? getEventTypeLabel(data.event_type)} — photos, biography and memories on LegacyCapsule.`,
     openGraph: {
       title: `${data.honouree_name} — ${data.event_tag ?? getEventTypeLabel(data.event_type)}`,
       description: `A LegacyCapsule tribute collection.`,
@@ -410,6 +411,20 @@ const { data: latestSection } = await adminClient
             )
           })
         })()}
+
+        {/* ── Contributor Gallery — CG-SPEC-001 ── */}
+        <div id="lc-contributor-gallery" style={{ marginBottom: '32px' }}>
+          <div style={sectionHeadingStyle}>
+            <div style={ruleStyle} />
+            <h2 style={headingLabelStyle}>Contributor Gallery</h2>
+            <div style={ruleRightStyle} />
+          </div>
+          <ContributorGallery
+            capsuleId={capsule.id}
+            honoureeName={capsule.honouree_name}
+            themeKey={themeKey}
+          />
+        </div>
 
         {/* Empty state */}
         {!hasContent && (
