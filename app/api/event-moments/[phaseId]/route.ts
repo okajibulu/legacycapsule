@@ -74,7 +74,7 @@ export async function GET(
       .from('gallery_items')
       .select('id', { count: 'exact', head: true })
       .eq('phase_id', phaseId)
-      .eq('source', 'dday')
+      .in('source', ['dday', 'contributor_gallery'])
       .eq('is_official_photography', false)
       .eq('approved', true)
 
@@ -82,7 +82,7 @@ export async function GET(
       .from('gallery_items')
       .select('id', { count: 'exact', head: true })
       .eq('phase_id', phaseId)
-      .eq('source', 'dday')
+      .in('source', ['dday', 'contributor_gallery'])
       .eq('is_official_photography', true)
 
     // ── Fetch paginated photos ─────────────────────────────────────────
@@ -93,7 +93,7 @@ export async function GET(
       .from('gallery_items')
       .select('id, image_url, uploaded_by_name, created_at, display_order, approved, featured_in_publication')
       .eq('phase_id', phaseId)
-      .eq('source', 'dday')
+      .in('source', ['dday', 'contributor_gallery'])
       .eq('is_official_photography', false)
       .eq('approved', true)
       .order('created_at', { ascending: false })
@@ -103,7 +103,7 @@ export async function GET(
       .from('gallery_items')
       .select('id, image_url, uploaded_by_name, created_at, display_order, approved, featured_in_publication')
       .eq('phase_id', phaseId)
-      .eq('source', 'dday')
+      .in('source', ['dday', 'contributor_gallery'])
       .eq('is_official_photography', true)
       .order('display_order', { ascending: true, nullsFirst: false })
       .order('storage_path',  { ascending: true })

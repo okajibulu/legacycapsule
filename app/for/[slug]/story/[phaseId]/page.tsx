@@ -115,7 +115,7 @@ export default async function EventMomentPage({ params }: PageProps) {
     .from('gallery_items')
     .select('id, image_url, uploaded_by_name, created_at, display_order')
     .eq('phase_id', phaseId)
-    .eq('source', 'dday')
+    .in('source', ['dday', 'contributor_gallery'])
     .eq('is_official_photography', false)
     .eq('approved', true)
     .order('created_at', { ascending: false })
@@ -143,7 +143,7 @@ export default async function EventMomentPage({ params }: PageProps) {
     .from('gallery_items')
     .select('id', { count: 'exact', head: true })
     .eq('phase_id', phaseId)
-    .eq('source', 'dday')
+    .in('source', ['dday', 'contributor_gallery'])
     .eq('is_official_photography', false)
     .eq('approved', true)
 
