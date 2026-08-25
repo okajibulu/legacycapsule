@@ -2,9 +2,12 @@
 // Purpose: Submit a community story — extends existing contribution flow
 // Handles: story_topic_id assignment, new topic creation, photo upload
 // AI10 · June 2026
+// UPDATED: AI25 · Claude Sonnet 4.6 · 25 August 2026
+//   — sendContributorThankYou wired in (CG-SPEC-001)
 
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendContributorThankYou } from '@/lib/email/sendContributorThankYou'
 
 // ── SECTION: Helpers ─────────────────────────────────────────
 
@@ -208,6 +211,27 @@ export async function POST(req: NextRequest) {
       } catch {
         // Email failure is non-critical
       }
+
+      // ── CG-SPEC-001: Thank-you email — encourage more contributions ──
+      ;(async () => {
+        try {
+          const { data: cap } = await supabase
+            .from('capsules')
+            .select('honouree_name, slug')
+            .eq('id', capsule_id)
+            .maybeSingle()
+          if (!cap) return
+          await sendContributorThankYou({
+            recipientEmail: email,
+            recipientName:  contributor_name,
+            honoureeName:   cap.honouree_name,
+            capsuleSlug:    cap.slug,
+            contentType:    'story',
+          })
+        } catch (err: unknown) {
+          console.error('[community-topics/submit] Thank-you email error:', err)
+        }
+      })()
     }
 
     return NextResponse.json({

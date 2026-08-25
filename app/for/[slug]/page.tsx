@@ -185,6 +185,14 @@ supabase
     .order('sort_order', { ascending: true })
   const phaseCount = phasesData?.length ?? 0
 
+    // ── CG-SPEC-001: Gallery photo count for highlights total ──
+  const { count: rawGalleryCount } = await supabase
+    .from('contributor_gallery_photos')
+    .select('id', { count: 'exact', head: true })
+    .eq('capsule_id', capsule.id)
+    .eq('status', 'visible')
+  const galleryCount = rawGalleryCount ?? 0
+  
   // Resolve theme — auto from event type, or manual override
   const themeKey = resolveTheme(capsule.theme, capsule.event_type)
   // ── Admin preview banner — shows "Return to Dashboard" if manage session cookie exists ──
@@ -235,7 +243,7 @@ supabase
         slug={slug}
         currentPage="tribute"
         components={capsule.components ?? []}
-        contributorCount={capsule.approved_contrib_count ?? 0}
+        contributorCount={(capsule.approved_contrib_count ?? 0) + galleryCount}
         hasPhases={(phaseCount ?? 0) > 0}
         themeKey={themeKey}
         capsuleId={capsule.id}
