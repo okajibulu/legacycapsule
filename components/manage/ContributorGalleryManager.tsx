@@ -16,7 +16,7 @@
 //            — Drag-and-drop reorder via @dnd-kit (same pattern as EventMomentsManager)
 //            — sort_order persisted to DB via /api/gallery/reorder
 //            — Batch move to phase with select mode
-// ─────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback } from 'react'
 import {
