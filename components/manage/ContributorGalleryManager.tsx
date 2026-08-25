@@ -6,11 +6,17 @@
 //            Shows all photos in grid. Admin can:
 //            - Remove inappropriate photos (soft delete)
 //            - Tick photos for publication inclusion (hard cap 30)
+//            - Move photos to an Event Phase (Option B move — soft deletes
+//              from gallery, inserts into gallery_items for the phase)
 //            Displayed in the S/Profile tab of the manage dashboard.
 // ARCHITECTURE: CG-SPEC-001 — Contributor Gallery
 // BUILT BY:  AI25 · Claude Opus 4.6
-// VERSION:   AI25v2.12.33
-// DATE:      24 August 2026
+// VERSION:   AI25v2.12.38
+// DATE:      25 August 2026
+// UPDATED:   AI25 · Claude Opus 4.6 · 25 August 2026
+//            — Move to Phase capability added
+//            — phases prop added
+//            — MoveToPhasePanel inline selector per photo card
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from 'react'
@@ -27,9 +33,15 @@ interface GalleryPhoto {
   include_in_publication: boolean
 }
 
+interface Phase {
+  id:   string
+  name: string
+}
+
 interface Props {
-  capsuleId:    string
-  actorEmail:   string
+  capsuleId:  string
+  actorEmail: string
+  phases?:    Phase[]
 }
 
 // ═══ SECTION 2 — Theme tokens ═══
@@ -50,9 +62,124 @@ function getPublicUrl(storagePath: string): string {
   return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${storagePath}`
 }
 
-// ═══ SECTION 3 — Main component ═══
+// ═══ SECTION 3 — Move to Phase panel ═══
 
-export default function ContributorGalleryManager({ capsuleId, actorEmail }: Props) {
+function MoveToPhasePanel({ photo, phases, capsuleId, actorEmail, onMoved }: {
+  photo:      GalleryPhoto
+  phases:     Phase[]
+  capsuleId:  string
+  actorEmail: string
+  onMoved:    () => void
+}) {
+  const [open,    setOpen]    = useState(false)
+  const [moving,  setMoving]  = useState(false)
+  const [error,   setError]   = useState('')
+  const [success, setSuccess] = useState('')
+
+  if (phases.length === 0) return null
+
+  const handleMove = async (phaseId: string, phaseName: string) => {
+    setMoving(true)
+    setError('')
+    try {
+      const res = await fetch('/api/gallery/move-to-phase', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          photo_id:    photo.id,
+          capsule_id:  capsuleId,
+          phase_id:    phaseId,
+          actor_email: actorEmail,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? 'Move failed. Please try again.')
+      } else {
+        setSuccess(`Moved to ${phaseName}`)
+        setTimeout(() => onMoved(), 1200)
+      }
+    } catch {
+      setError('Something went wrong.')
+    }
+    setMoving(false)
+  }
+
+  if (success) {
+    return (
+      <p style={{ fontSize: '9px', color: 'rgba(134,239,172,0.8)', margin: '4px 0 0', fontWeight: 600 }}>
+        checkmark {success}
+      </p>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: '4px', position: 'relative' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        disabled={moving}
+        style={{
+          fontSize: '9px', padding: '2px 8px', borderRadius: '4px',
+          border: `1px solid rgba(226,195,107,0.25)`,
+          background: open ? 'rgba(226,195,107,0.1)' : 'transparent',
+          color: goldMuted, cursor: 'pointer', width: '100%',
+          textAlign: 'left' as const,
+        }}
+      >
+        {moving ? 'Moving...' : 'Move to Phase'}
+      </button>
+
+      {open && !moving && (
+        <div style={{
+          position:  'absolute', bottom: 'calc(100% + 4px)', left: 0, right: 0,
+          zIndex:    30, borderRadius: '8px',
+          background: '#1a0845', border: `1px solid rgba(226,195,107,0.25)`,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.6)', overflow: 'hidden',
+        }}>
+          <p style={{ fontSize: '9px', color: goldMuted, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, padding: '6px 10px 4px', margin: 0 }}>
+            Select phase
+          </p>
+          {phases.map(phase => (
+            <button
+              key={phase.id}
+              onClick={() => { setOpen(false); handleMove(phase.id, phase.name) }}
+              style={{
+                display: 'block', width: '100%', textAlign: 'left' as const,
+                padding: '7px 10px', fontSize: '11px', color: textPrimary,
+                background: 'transparent',
+                border: 'none', borderTop: '1px solid rgba(255,255,255,0.04)',
+                cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              {phase.name}
+            </button>
+          ))}
+          <button
+            onClick={() => setOpen(false)}
+            style={{
+              display: 'block', width: '100%', padding: '6px 10px',
+              fontSize: '10px', color: textFaint, background: 'rgba(255,255,255,0.03)',
+              border: 'none', borderTop: '1px solid rgba(255,255,255,0.06)',
+              cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', margin: '3px 0 0' }}>
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ═══ SECTION 4 — Main component ═══
+
+export default function ContributorGalleryManager({ capsuleId, actorEmail, phases = [] }: Props) {
   const [photos,        setPhotos]        = useState<GalleryPhoto[]>([])
   const [loading,       setLoading]       = useState(true)
   const [selectedCount, setSelectedCount] = useState(0)
@@ -89,18 +216,18 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail }: Pro
     setError('')
     try {
       const res = await fetch('/api/gallery/remove', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ photo_id: photoId, capsule_id: capsuleId, actor_email: actorEmail }),
+        body:    JSON.stringify({ photo_id: photoId, capsule_id: capsuleId, actor_email: actorEmail }),
       })
       if (!res.ok) {
         const d = await res.json()
         setError(d.error ?? 'Failed to remove.')
       } else {
-        setPhotos(prev => prev.filter(p => p.id !== photoId))
-        setSelectedCount(prev => {
-          const photo = photos.find(p => p.id === photoId)
-          return photo?.include_in_publication ? prev - 1 : prev
+        setPhotos(prev => {
+          const photo = prev.find(p => p.id === photoId)
+          if (photo?.include_in_publication) setSelectedCount(c => c - 1)
+          return prev.filter(p => p.id !== photoId)
         })
       }
     } catch { setError('Something went wrong.') }
@@ -113,9 +240,9 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail }: Pro
     setError('')
     try {
       const res = await fetch('/api/gallery/publication', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ photo_id: photoId, capsule_id: capsuleId, include: !currentValue }),
+        body:    JSON.stringify({ photo_id: photoId, capsule_id: capsuleId, include: !currentValue }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -131,14 +258,14 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail }: Pro
   // ── Render ────────────────────────────────────────────────────────────
 
   if (loading) {
-    return <p style={{ fontSize: '12px', color: textFaint }}>Loading gallery…</p>
+    return <p style={{ fontSize: '12px', color: textFaint }}>Loading gallery...</p>
   }
 
   const atLimit = selectedCount >= PUB_LIMIT
 
   return (
     <div>
-      {/* Publication counter */}
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
         <p style={{ fontSize: '12px', color: textFaint, margin: 0 }}>
           {photos.length} photo{photos.length !== 1 ? 's' : ''} uploaded by contributors
@@ -155,6 +282,13 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail }: Pro
         </div>
       </div>
 
+      {/* Phase move hint */}
+      {phases.length > 0 && photos.length > 0 && (
+        <p style={{ fontSize: '11px', color: textFaint, lineHeight: 1.65, marginBottom: '12px', padding: '8px 10px', borderRadius: '8px', background: 'rgba(226,195,107,0.04)', borderLeft: '2px solid rgba(226,195,107,0.2)' }}>
+          Use Move to Phase on any photo to send it to the correct Event Phase — removing it from the gallery and placing it where it belongs in the programme.
+        </p>
+      )}
+
       {error && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.85)', marginBottom: '10px' }}>{error}</p>}
 
       {photos.length === 0 ? (
@@ -166,8 +300,8 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail }: Pro
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px' }}>
           {photos.map(photo => {
-            const isSelected = photo.include_in_publication
-            const isDisabled = !isSelected && atLimit
+            const isSelected     = photo.include_in_publication
+            const isDisabled     = !isSelected && atLimit
             const isTogglingThis = toggling === photo.id
             const isRemovingThis = removing === photo.id
 
@@ -187,27 +321,30 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail }: Pro
                     loading="lazy"
                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   />
-                  {/* Publication checkbox overlay */}
+                  {/* Publication checkbox */}
                   <button
                     onClick={() => handleTogglePublication(photo.id, isSelected)}
                     disabled={isDisabled || isTogglingThis}
-                    title={isDisabled ? `Publication limit reached (${PUB_LIMIT}). Untick one to select another.` : isSelected ? 'Remove from publication' : 'Add to publication'}
+                    title={isDisabled
+                      ? `Publication limit reached (${PUB_LIMIT}). Untick one to select another.`
+                      : isSelected ? 'Remove from publication' : 'Add to publication'}
                     style={{
                       position: 'absolute', top: '6px', right: '6px',
                       width: '24px', height: '24px', borderRadius: '6px',
                       background: isSelected ? 'rgba(74,222,128,0.85)' : 'rgba(0,0,0,0.6)',
                       border: `1px solid ${isSelected ? 'rgba(74,222,128,0.9)' : 'rgba(255,255,255,0.2)'}`,
                       color: isSelected ? '#0a0218' : 'rgba(255,255,255,0.5)',
-                      fontSize: '13px', fontWeight: 700, cursor: isDisabled ? 'not-allowed' : 'pointer',
+                      fontSize: '13px', fontWeight: 700,
+                      cursor: isDisabled ? 'not-allowed' : 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       opacity: isDisabled ? 0.35 : 1,
                     }}
                   >
-                    {isTogglingThis ? '…' : isSelected ? '✓' : ''}
+                    {isTogglingThis ? '...' : isSelected ? 'checkmark' : ''}
                   </button>
                 </div>
 
-                {/* Info */}
+                {/* Info + actions */}
                 <div style={{ padding: '6px 8px' }}>
                   <p style={{ fontSize: '10px', fontWeight: 600, color: textPrimary, margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {photo.contributor_name}
@@ -221,13 +358,24 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail }: Pro
                     onClick={() => handleRemove(photo.id)}
                     disabled={isRemovingThis}
                     style={{
-                      fontSize: '9px', padding: '2px 8px', borderRadius: '4px',
+                      width: '100%', fontSize: '9px', padding: '2px 6px', borderRadius: '4px',
                       border: '1px solid rgba(248,113,113,0.2)', background: 'transparent',
                       color: 'rgba(248,113,113,0.6)', cursor: 'pointer',
                     }}
                   >
-                    {isRemovingThis ? '…' : 'Remove'}
+                    {isRemovingThis ? '...' : 'Remove'}
                   </button>
+
+                  {/* Move to Phase */}
+                  {phases.length > 0 && (
+                    <MoveToPhasePanel
+                      photo={photo}
+                      phases={phases}
+                      capsuleId={capsuleId}
+                      actorEmail={actorEmail}
+                      onMoved={fetchPhotos}
+                    />
+                  )}
                 </div>
               </div>
             )

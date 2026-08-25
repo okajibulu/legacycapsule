@@ -231,7 +231,7 @@ function UploadForm({ capsuleId, onUploaded }: { capsuleId: string; onUploaded: 
     <div style={{ padding: '16px', borderRadius: '14px', border: `1px dashed rgba(226,195,107,0.25)`, background: 'rgba(226,195,107,0.03)' }}>
       <p style={{ fontSize: '13px', fontWeight: 700, color: textPrimary, margin: '0 0 4px' }}>Add Your Photos</p>
       <p style={{ fontSize: '11px', color: textFaint, lineHeight: 1.65, margin: '0 0 14px' }}>
-        Share photos from this event or occasion. Up to 20 photos per person — they may be included in the final publication.
+        Do you have any photos of the event to share? Kindly post here! Up to 20 photos per person — selected photos may be included in the final publication.
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
@@ -385,7 +385,7 @@ export default function ContributorGallery({ capsuleId, honoureeName, themeKey }
         <div style={{ textAlign: 'center', padding: '32px 16px', borderRadius: '14px', border: `1px dashed rgba(226,195,107,0.15)` }}>
           <p style={{ fontSize: '24px', marginBottom: '8px' }}>📷</p>
           <p style={{ fontSize: '13px', color: textFaint, lineHeight: 1.65, margin: '0 0 14px' }}>
-            No photos yet. Be the first to share a photo from this occasion.
+            Do you have any photos of the event to share? Kindly post here!
           </p>
           <button
             onClick={() => setShowUpload(true)}
