@@ -6,17 +6,15 @@
 //            Shows all photos in grid. Admin can:
 //            - Remove inappropriate photos (soft delete)
 //            - Tick photos for publication inclusion (hard cap 30)
-//            - Move photos to an Event Phase (Option B move — soft deletes
-//              from gallery, inserts into gallery_items for the phase)
-//            Displayed in the S/Profile tab of the manage dashboard.
+//            - Select multiple photos and batch move to an Event Phase
 // ARCHITECTURE: CG-SPEC-001 — Contributor Gallery
 // BUILT BY:  AI25 · Claude Opus 4.6
-// VERSION:   AI25v2.12.38
+// VERSION:   AI25v2.12.41
 // DATE:      25 August 2026
-// UPDATED:   AI25 · Claude Opus 4.6 · 25 August 2026
-//            — Move to Phase capability added
-//            — phases prop added
-//            — MoveToPhasePanel inline selector per photo card
+// UPDATED:   AI25 · Claude Sonnet 4.6 · 25 August 2026
+//            — Batch move to phase: select mode + floating action bar
+//            — Per-photo move replaced with multi-select + single batch action
+//            — Progress indicator during batch move
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from 'react'
@@ -62,117 +60,162 @@ function getPublicUrl(storagePath: string): string {
   return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${storagePath}`
 }
 
-// ═══ SECTION 3 — Move to Phase panel ═══
+// ═══ SECTION 3 — Batch move floating bar ═══
 
-function MoveToPhasePanel({ photo, phases, capsuleId, actorEmail, onMoved }: {
-  photo:      GalleryPhoto
-  phases:     Phase[]
-  capsuleId:  string
-  actorEmail: string
-  onMoved:    () => void
+function BatchMoveBar({ selectedIds, phases, capsuleId, actorEmail, onDone, onCancel }: {
+  selectedIds: string[]
+  phases:      Phase[]
+  capsuleId:   string
+  actorEmail:  string
+  onDone:      () => void
+  onCancel:    () => void
 }) {
-  const [open,    setOpen]    = useState(false)
-  const [moving,  setMoving]  = useState(false)
-  const [error,   setError]   = useState('')
-  const [success, setSuccess] = useState('')
-
-  if (phases.length === 0) return null
+  const [moving,    setMoving]    = useState(false)
+  const [progress,  setProgress]  = useState('')
+  const [error,     setError]     = useState('')
+  const [phaseOpen, setPhaseOpen] = useState(false)
 
   const handleMove = async (phaseId: string, phaseName: string) => {
+    setPhaseOpen(false)
     setMoving(true)
     setError('')
-    try {
-      const res = await fetch('/api/gallery/move-to-phase', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          photo_id:    photo.id,
-          capsule_id:  capsuleId,
-          phase_id:    phaseId,
-          actor_email: actorEmail,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.error ?? 'Move failed. Please try again.')
-      } else {
-        setSuccess(`Moved to ${phaseName}`)
-        setTimeout(() => onMoved(), 1200)
-      }
-    } catch {
-      setError('Something went wrong.')
-    }
-    setMoving(false)
-  }
 
-  if (success) {
-    return (
-      <p style={{ fontSize: '9px', color: 'rgba(134,239,172,0.8)', margin: '4px 0 0', fontWeight: 600 }}>
-        checkmark {success}
-      </p>
-    )
+    let failed = 0
+    for (let i = 0; i < selectedIds.length; i++) {
+      setProgress(`Moving photo ${i + 1} of ${selectedIds.length} to ${phaseName}…`)
+      try {
+        const res = await fetch('/api/gallery/move-to-phase', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            photo_id:    selectedIds[i],
+            capsule_id:  capsuleId,
+            phase_id:    phaseId,
+            actor_email: actorEmail,
+          }),
+        })
+        if (!res.ok) failed++
+      } catch { failed++ }
+    }
+
+    setMoving(false)
+    setProgress('')
+
+    if (failed > 0) {
+      setError(`${failed} photo${failed > 1 ? 's' : ''} could not be moved. Please try again.`)
+    } else {
+      onDone()
+    }
   }
 
   return (
-    <div style={{ marginTop: '4px', position: 'relative' }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        disabled={moving}
-        style={{
-          fontSize: '9px', padding: '2px 8px', borderRadius: '4px',
-          border: `1px solid rgba(226,195,107,0.25)`,
-          background: open ? 'rgba(226,195,107,0.1)' : 'transparent',
-          color: goldMuted, cursor: 'pointer', width: '100%',
-          textAlign: 'left' as const,
-        }}
-      >
-        {moving ? 'Moving...' : 'Move to Phase'}
-      </button>
+    <div style={{
+      position:      'fixed', bottom: '72px', left: 0, right: 0, zIndex: 60,
+      padding:       '0 16px',
+      pointerEvents: moving ? 'none' : 'auto',
+    }}>
+      <div style={{
+        maxWidth:   '600px', margin: '0 auto',
+        borderRadius: '14px', overflow: 'hidden',
+        border:     '1px solid rgba(226,195,107,0.35)',
+        background: 'linear-gradient(135deg, #1a0845, #120630)',
+        boxShadow:  '0 -4px 32px rgba(0,0,0,0.5)',
+      }}>
+        {/* Progress state */}
+        {moving ? (
+          <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid rgba(226,195,107,0.2)', borderTopColor: gold, animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+            <p style={{ fontSize: '12px', color: goldMuted, margin: 0 }}>{progress}</p>
+          </div>
+        ) : (
+          <div style={{ padding: '12px 14px' }}>
+            {error && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.85)', margin: '0 0 8px' }}>{error}</p>}
 
-      {open && !moving && (
-        <div style={{
-          position:  'absolute', bottom: 'calc(100% + 4px)', left: 0, right: 0,
-          zIndex:    30, borderRadius: '8px',
-          background: '#1a0845', border: `1px solid rgba(226,195,107,0.25)`,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.6)', overflow: 'hidden',
-        }}>
-          <p style={{ fontSize: '9px', color: goldMuted, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' as const, padding: '6px 10px 4px', margin: 0 }}>
-            Select phase
-          </p>
-          {phases.map(phase => (
-            <button
-              key={phase.id}
-              onClick={() => { setOpen(false); handleMove(phase.id, phase.name) }}
-              style={{
-                display: 'block', width: '100%', textAlign: 'left' as const,
-                padding: '7px 10px', fontSize: '11px', color: textPrimary,
-                background: 'transparent',
-                border: 'none', borderTop: '1px solid rgba(255,255,255,0.04)',
-                cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
-              }}
-            >
-              {phase.name}
-            </button>
-          ))}
-          <button
-            onClick={() => setOpen(false)}
-            style={{
-              display: 'block', width: '100%', padding: '6px 10px',
-              fontSize: '10px', color: textFaint, background: 'rgba(255,255,255,0.03)',
-              border: 'none', borderTop: '1px solid rgba(255,255,255,0.06)',
-              cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
-            }}
-          >
-            Cancel
-          </button>
-        </div>
-      )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {/* Count badge */}
+              <div style={{ padding: '4px 12px', borderRadius: '20px', background: 'rgba(226,195,107,0.12)', border: '1px solid rgba(226,195,107,0.25)', flexShrink: 0 }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: gold }}>
+                  {selectedIds.length} selected
+                </span>
+              </div>
 
-      {error && (
-        <p style={{ fontSize: '9px', color: 'rgba(248,113,113,0.8)', margin: '3px 0 0' }}>
-          {error}
-        </p>
-      )}
+              <p style={{ fontSize: '11px', color: textFaint, margin: 0, flex: 1 }}>
+                Move all to a phase at once
+              </p>
+
+              {/* Phase selector */}
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <button
+                  onClick={() => setPhaseOpen(o => !o)}
+                  style={{
+                    padding: '8px 14px', borderRadius: '10px',
+                    background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`,
+                    color: '#1a0845', fontSize: '12px', fontWeight: 700,
+                    border: 'none', cursor: 'pointer',
+                  }}
+                >
+                  Move to Phase ▾
+                </button>
+
+                {phaseOpen && (
+                  <div style={{
+                    position:  'absolute', bottom: 'calc(100% + 6px)', right: 0,
+                    minWidth:  '180px', zIndex: 70,
+                    borderRadius: '10px', overflow: 'hidden',
+                    background: '#1a0845', border: '1px solid rgba(226,195,107,0.3)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+                  }}>
+                    <p style={{ fontSize: '9px', color: goldMuted, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '8px 12px 4px', margin: 0 }}>
+                      Select phase
+                    </p>
+                    {phases.map(phase => (
+                      <button
+                        key={phase.id}
+                        onClick={() => handleMove(phase.id, phase.name)}
+                        style={{
+                          display: 'block', width: '100%', textAlign: 'left',
+                          padding: '9px 12px', fontSize: '12px', color: textPrimary,
+                          background: 'transparent', border: 'none',
+                          borderTop: '1px solid rgba(255,255,255,0.04)',
+                          cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+                        }}
+                        onMouseEnter={e => { (e.target as HTMLElement).style.background = 'rgba(226,195,107,0.08)' }}
+                        onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent' }}
+                      >
+                        {phase.name}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setPhaseOpen(false)}
+                      style={{
+                        display: 'block', width: '100%', padding: '7px 12px',
+                        fontSize: '11px', color: textFaint,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: 'none', borderTop: '1px solid rgba(255,255,255,0.06)',
+                        cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Exit selection mode */}
+              <button
+                onClick={onCancel}
+                style={{
+                  padding: '8px 12px', borderRadius: '10px',
+                  border: '1px solid rgba(255,255,255,0.1)', background: 'transparent',
+                  color: textFaint, fontSize: '11px', cursor: 'pointer', flexShrink: 0,
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -187,7 +230,11 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
   const [toggling,      setToggling]      = useState<string | null>(null)
   const [error,         setError]         = useState('')
 
-  // ── Fetch photos ──────────────────────────────────────────────────────
+  // ── Batch move state ──────────────────────────────────────────────────────
+  const [selectMode,    setSelectMode]    = useState(false)
+  const [selectedIds,   setSelectedIds]   = useState<Set<string>>(new Set())
+
+  // ── Fetch photos ──────────────────────────────────────────────────────────
   const fetchPhotos = async () => {
     try {
       const { createClient } = await import('@supabase/supabase-js')
@@ -210,7 +257,31 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
 
   useEffect(() => { fetchPhotos() }, [capsuleId])
 
-  // ── Remove photo ──────────────────────────────────────────────────────
+  // ── Exit select mode ──────────────────────────────────────────────────────
+  const exitSelectMode = () => {
+    setSelectMode(false)
+    setSelectedIds(new Set())
+  }
+
+  // ── Toggle photo selection ────────────────────────────────────────────────
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  // ── Select all / none ─────────────────────────────────────────────────────
+  const toggleSelectAll = () => {
+    if (selectedIds.size === photos.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(photos.map(p => p.id)))
+    }
+  }
+
+  // ── Remove photo ──────────────────────────────────────────────────────────
   const handleRemove = async (photoId: string) => {
     setRemoving(photoId)
     setError('')
@@ -234,7 +305,7 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
     setRemoving(null)
   }
 
-  // ── Toggle publication ────────────────────────────────────────────────
+  // ── Toggle publication ────────────────────────────────────────────────────
   const handleTogglePublication = async (photoId: string, currentValue: boolean) => {
     setToggling(photoId)
     setError('')
@@ -255,37 +326,72 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
     setToggling(null)
   }
 
-  // ── Render ────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
 
   if (loading) {
-    return <p style={{ fontSize: '12px', color: textFaint }}>Loading gallery...</p>
+    return <p style={{ fontSize: '12px', color: textFaint }}>Loading gallery…</p>
   }
 
   const atLimit = selectedCount >= PUB_LIMIT
 
   return (
-    <div>
+    <div style={{ paddingBottom: selectMode && selectedIds.size > 0 ? '80px' : '0' }}>
+
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
         <p style={{ fontSize: '12px', color: textFaint, margin: 0 }}>
           {photos.length} photo{photos.length !== 1 ? 's' : ''} uploaded by contributors
         </p>
-        <div style={{
-          padding: '4px 12px', borderRadius: '20px',
-          background: atLimit ? 'rgba(248,113,113,0.08)' : 'rgba(226,195,107,0.06)',
-          border: `1px solid ${atLimit ? 'rgba(248,113,113,0.25)' : 'rgba(226,195,107,0.2)'}`,
-        }}>
-          <span style={{ fontSize: '11px', fontWeight: 700, color: atLimit ? 'rgba(248,113,113,0.85)' : gold }}>
-            {selectedCount} / {PUB_LIMIT}
-          </span>
-          <span style={{ fontSize: '10px', color: textFaint, marginLeft: '6px' }}>for publication</span>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Publication counter */}
+          <div style={{
+            padding: '4px 12px', borderRadius: '20px',
+            background: atLimit ? 'rgba(248,113,113,0.08)' : 'rgba(226,195,107,0.06)',
+            border: `1px solid ${atLimit ? 'rgba(248,113,113,0.25)' : 'rgba(226,195,107,0.2)'}`,
+          }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: atLimit ? 'rgba(248,113,113,0.85)' : gold }}>
+              {selectedCount} / {PUB_LIMIT}
+            </span>
+            <span style={{ fontSize: '10px', color: textFaint, marginLeft: '6px' }}>for pub</span>
+          </div>
+
+          {/* Select mode toggle — only shown when phases exist */}
+          {phases.length > 0 && photos.length > 0 && (
+            <button
+              onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+              style={{
+                fontSize: '11px', fontWeight: 600, padding: '5px 12px', borderRadius: '8px',
+                border: `1px solid ${selectMode ? 'rgba(226,195,107,0.4)' : 'rgba(255,255,255,0.12)'}`,
+                background: selectMode ? 'rgba(226,195,107,0.1)' : 'transparent',
+                color: selectMode ? gold : textFaint, cursor: 'pointer',
+              }}
+            >
+              {selectMode ? 'Cancel' : 'Select to Move'}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Phase move hint */}
-      {phases.length > 0 && photos.length > 0 && (
-        <p style={{ fontSize: '11px', color: textFaint, lineHeight: 1.65, marginBottom: '12px', padding: '8px 10px', borderRadius: '8px', background: 'rgba(226,195,107,0.04)', borderLeft: '2px solid rgba(226,195,107,0.2)' }}>
-          Use Move to Phase on any photo to send it to the correct Event Phase — removing it from the gallery and placing it where it belongs in the programme.
+      {/* Select all toggle — shown in select mode */}
+      {selectMode && photos.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <p style={{ fontSize: '11px', color: goldMuted, margin: 0 }}>
+            {selectedIds.size} of {photos.length} selected
+          </p>
+          <button
+            onClick={toggleSelectAll}
+            style={{ fontSize: '11px', color: goldMuted, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600 }}
+          >
+            {selectedIds.size === photos.length ? 'Deselect all' : 'Select all'}
+          </button>
+        </div>
+      )}
+
+      {/* Phase move hint — first time in select mode */}
+      {selectMode && selectedIds.size === 0 && (
+        <p style={{ fontSize: '11px', color: textFaint, lineHeight: 1.65, marginBottom: '10px', padding: '8px 10px', borderRadius: '8px', background: 'rgba(226,195,107,0.04)', borderLeft: '2px solid rgba(226,195,107,0.2)' }}>
+          Tap photos to select them, then choose which phase to move them to.
         </p>
       )}
 
@@ -304,15 +410,47 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
             const isDisabled     = !isSelected && atLimit
             const isTogglingThis = toggling === photo.id
             const isRemovingThis = removing === photo.id
+            const isBatchSelected = selectedIds.has(photo.id)
 
             return (
-              <div key={photo.id} style={{
-                borderRadius: '10px', overflow: 'hidden',
-                border: `1px solid ${isSelected ? 'rgba(74,222,128,0.3)' : cardBorder}`,
-                background: isSelected ? 'rgba(74,222,128,0.04)' : cardBg,
-                opacity: isRemovingThis ? 0.4 : 1,
-                transition: 'all 0.2s',
-              }}>
+              <div
+                key={photo.id}
+                onClick={() => selectMode ? toggleSelect(photo.id) : undefined}
+                style={{
+                  borderRadius: '10px', overflow: 'hidden',
+                  border: `1px solid ${
+                    isBatchSelected
+                      ? 'rgba(226,195,107,0.6)'
+                      : isSelected
+                        ? 'rgba(74,222,128,0.3)'
+                        : cardBorder
+                  }`,
+                  background: isBatchSelected
+                    ? 'rgba(226,195,107,0.08)'
+                    : isSelected
+                      ? 'rgba(74,222,128,0.04)'
+                      : cardBg,
+                  opacity: isRemovingThis ? 0.4 : 1,
+                  transition: 'all 0.2s',
+                  cursor: selectMode ? 'pointer' : 'default',
+                  position: 'relative',
+                }}
+              >
+                {/* Batch selection indicator */}
+                {selectMode && (
+                  <div style={{
+                    position: 'absolute', top: '6px', left: '6px', zIndex: 10,
+                    width: '20px', height: '20px', borderRadius: '50%',
+                    background: isBatchSelected ? gold : 'rgba(0,0,0,0.6)',
+                    border: `2px solid ${isBatchSelected ? gold : 'rgba(255,255,255,0.4)'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '11px', fontWeight: 700, color: '#1a0845',
+                    pointerEvents: 'none',
+                  }}>
+                    {isBatchSelected && '✓'}
+                  </div>
+                )}
+
                 {/* Photo */}
                 <div style={{ aspectRatio: '1', overflow: 'hidden', background: '#0a0218', position: 'relative' }}>
                   <img
@@ -321,66 +459,67 @@ export default function ContributorGalleryManager({ capsuleId, actorEmail, phase
                     loading="lazy"
                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   />
-                  {/* Publication checkbox */}
-                  <button
-                    onClick={() => handleTogglePublication(photo.id, isSelected)}
-                    disabled={isDisabled || isTogglingThis}
-                    title={isDisabled
-                      ? `Publication limit reached (${PUB_LIMIT}). Untick one to select another.`
-                      : isSelected ? 'Remove from publication' : 'Add to publication'}
-                    style={{
-                      position: 'absolute', top: '6px', right: '6px',
-                      width: '24px', height: '24px', borderRadius: '6px',
-                      background: isSelected ? 'rgba(74,222,128,0.85)' : 'rgba(0,0,0,0.6)',
-                      border: `1px solid ${isSelected ? 'rgba(74,222,128,0.9)' : 'rgba(255,255,255,0.2)'}`,
-                      color: isSelected ? '#0a0218' : 'rgba(255,255,255,0.5)',
-                      fontSize: '13px', fontWeight: 700,
-                      cursor: isDisabled ? 'not-allowed' : 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      opacity: isDisabled ? 0.35 : 1,
-                    }}
-                  >
-                    {isTogglingThis ? '...' : isSelected ? 'checkmark' : ''}
-                  </button>
+
+                  {/* Publication checkbox — hidden in select mode */}
+                  {!selectMode && (
+                    <button
+                      onClick={() => handleTogglePublication(photo.id, isSelected)}
+                      disabled={isDisabled || isTogglingThis}
+                      title={isDisabled
+                        ? `Publication limit reached (${PUB_LIMIT}). Untick one to select another.`
+                        : isSelected ? 'Remove from publication' : 'Add to publication'}
+                      style={{
+                        position: 'absolute', top: '6px', right: '6px',
+                        width: '24px', height: '24px', borderRadius: '6px',
+                        background: isSelected ? 'rgba(74,222,128,0.85)' : 'rgba(0,0,0,0.6)',
+                        border: `1px solid ${isSelected ? 'rgba(74,222,128,0.9)' : 'rgba(255,255,255,0.2)'}`,
+                        color: isSelected ? '#0a0218' : 'rgba(255,255,255,0.5)',
+                        fontSize: '13px', fontWeight: 700,
+                        cursor: isDisabled ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        opacity: isDisabled ? 0.35 : 1,
+                      }}
+                    >
+                      {isTogglingThis ? '…' : isSelected ? '✓' : ''}
+                    </button>
+                  )}
                 </div>
 
-                {/* Info + actions */}
-                <div style={{ padding: '6px 8px' }}>
-                  <p style={{ fontSize: '10px', fontWeight: 600, color: textPrimary, margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {photo.contributor_name}
-                  </p>
-                  {photo.caption && (
-                    <p style={{ fontSize: '9px', color: textFaint, margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {photo.caption}
+                {/* Info + remove — hidden in select mode */}
+                {!selectMode && (
+                  <div style={{ padding: '6px 8px' }}>
+                    <p style={{ fontSize: '10px', fontWeight: 600, color: textPrimary, margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {photo.contributor_name}
                     </p>
-                  )}
-                  <button
-                    onClick={() => handleRemove(photo.id)}
-                    disabled={isRemovingThis}
-                    style={{
-                      width: '100%', fontSize: '9px', padding: '2px 6px', borderRadius: '4px',
-                      border: '1px solid rgba(248,113,113,0.2)', background: 'transparent',
-                      color: 'rgba(248,113,113,0.6)', cursor: 'pointer',
-                    }}
-                  >
-                    {isRemovingThis ? '...' : 'Remove'}
-                  </button>
-
-                  {/* Move to Phase */}
-                  {phases.length > 0 && (
-                    <MoveToPhasePanel
-                      photo={photo}
-                      phases={phases}
-                      capsuleId={capsuleId}
-                      actorEmail={actorEmail}
-                      onMoved={fetchPhotos}
-                    />
-                  )}
-                </div>
+                    <button
+                      onClick={() => handleRemove(photo.id)}
+                      disabled={isRemovingThis}
+                      style={{
+                        width: '100%', fontSize: '9px', padding: '2px 6px', borderRadius: '4px',
+                        border: '1px solid rgba(248,113,113,0.2)', background: 'transparent',
+                        color: 'rgba(248,113,113,0.6)', cursor: 'pointer',
+                      }}
+                    >
+                      {isRemovingThis ? '…' : 'Remove'}
+                    </button>
+                  </div>
+                )}
               </div>
             )
           })}
         </div>
+      )}
+
+      {/* Batch move floating bar — appears when photos selected in select mode */}
+      {selectMode && selectedIds.size > 0 && phases.length > 0 && (
+        <BatchMoveBar
+          selectedIds={Array.from(selectedIds)}
+          phases={phases}
+          capsuleId={capsuleId}
+          actorEmail={actorEmail}
+          onDone={() => { exitSelectMode(); fetchPhotos() }}
+          onCancel={exitSelectMode}
+        />
       )}
     </div>
   )

@@ -2,15 +2,19 @@
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FILE PATH: components/ContributorGallery.tsx
-// PURPOSE:   Public-facing Contributor Gallery displayed on the Profile page.
+// PURPOSE:   Public-facing Contributor Gallery displayed on the About page.
 //            Open photo pool — any visitor can upload photos with captions.
-//            Shows photo grid, top 3 contributors, upload form.
+//            Shows photo grid with name overlaid on photo (no footer below).
 //            Compression via browser-image-compression before upload.
 //            Per-person limit: 20 photos (enforced server-side, shown client-side).
 // ARCHITECTURE: CG-SPEC-001 — Contributor Gallery
 // BUILT BY:  AI25 · Claude Opus 4.6
-// VERSION:   AI25v2.12.33
-// DATE:      24 August 2026
+// VERSION:   AI25v2.12.41
+// DATE:      25 August 2026
+// UPDATED:   AI25 · Claude Sonnet 4.6 · 25 August 2026
+//            — TopContributors removed (belongs in Highlights section)
+//            — Contributor name moved from below photo to overlay on photo
+//            — Caption shown in lightbox only (saves card space)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useRef } from 'react'
@@ -59,45 +63,8 @@ const inp: React.CSSProperties = {
   boxSizing: 'border-box',
 }
 
-// ═══ SECTION 4 — Top Contributors strip ═══
-
-function TopContributors({ photos }: { photos: GalleryPhoto[] }) {
-  const counts: Record<string, { name: string; count: number }> = {}
-  photos.forEach(p => {
-    const key = p.contributor_email
-    if (!counts[key]) counts[key] = { name: p.contributor_name, count: 0 }
-    counts[key].count++
-  })
-
-  const sorted = Object.values(counts)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 3)
-
-  if (sorted.length === 0) return null
-
-  const medals = ['🥇', '🥈', '🥉']
-
-  return (
-    <div style={{ marginBottom: '16px', padding: '12px 14px', borderRadius: '12px', background: 'rgba(226,195,107,0.05)', border: `1px solid rgba(226,195,107,0.15)` }}>
-      <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: goldMuted, margin: '0 0 10px' }}>
-        Top Contributors
-      </p>
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-        {sorted.map((c, i) => (
-          <div key={c.name + i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '16px' }}>{medals[i]}</span>
-            <div>
-              <p style={{ fontSize: '12px', fontWeight: 600, color: textPrimary, margin: 0 }}>{c.name}</p>
-              <p style={{ fontSize: '10px', color: textFaint, margin: 0 }}>{c.count} photo{c.count !== 1 ? 's' : ''}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ═══ SECTION 5 — Lightbox ═══
+// ═══ SECTION 4 — Lightbox ═══
+// Shows full image, contributor name and caption on tap
 
 function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void }) {
   return (
@@ -117,8 +84,14 @@ function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void
         onClick={e => e.stopPropagation()}
       />
       <div style={{ marginTop: '16px', textAlign: 'center', maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
-        <p style={{ fontSize: '13px', fontWeight: 600, color: textPrimary, margin: '0 0 4px' }}>{photo.contributor_name}</p>
-        {photo.caption && <p style={{ fontSize: '12px', color: goldMuted, fontStyle: 'italic', margin: 0 }}>{photo.caption}</p>}
+        <p style={{ fontSize: '13px', fontWeight: 600, color: textPrimary, margin: '0 0 4px' }}>
+          {photo.contributor_name}
+        </p>
+        {photo.caption && (
+          <p style={{ fontSize: '12px', color: goldMuted, fontStyle: 'italic', margin: 0 }}>
+            {photo.caption}
+          </p>
+        )}
       </div>
       <button onClick={onClose} style={{
         position: 'absolute', top: '20px', right: '20px',
@@ -129,13 +102,13 @@ function Lightbox({ photo, onClose }: { photo: GalleryPhoto; onClose: () => void
   )
 }
 
-// ═══ SECTION 6 — Upload form ═══
+// ═══ SECTION 5 — Upload form ═══
 
 function UploadForm({ capsuleId, onUploaded }: { capsuleId: string; onUploaded: () => void }) {
-  const [name,     setName]     = useState('')
-  const [email,    setEmail]    = useState('')
-  const [files,    setFiles]    = useState<File[]>([])
-  const [captions, setCaptions] = useState<string[]>([])
+  const [name,      setName]      = useState('')
+  const [email,     setEmail]     = useState('')
+  const [files,     setFiles]     = useState<File[]>([])
+  const [captions,  setCaptions]  = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
   const [progress,  setProgress]  = useState('')
   const [error,     setError]     = useState('')
@@ -261,7 +234,7 @@ function UploadForm({ capsuleId, onUploaded }: { capsuleId: string; onUploaded: 
         </div>
       </div>
 
-      {/* Caption fields for selected files */}
+      {/* Caption fields */}
       {files.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
           {files.map((f, i) => (
@@ -270,11 +243,7 @@ function UploadForm({ capsuleId, onUploaded }: { capsuleId: string; onUploaded: 
                 width: '48px', height: '48px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0,
                 background: '#1a0845', border: `1px solid ${cardBorder}`,
               }}>
-                <img
-                  src={URL.createObjectURL(f)}
-                  alt={f.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+                <img src={URL.createObjectURL(f)} alt={f.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
               <input
                 placeholder="Add a caption (optional)"
@@ -288,7 +257,7 @@ function UploadForm({ capsuleId, onUploaded }: { capsuleId: string; onUploaded: 
         </div>
       )}
 
-      {error && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.85)', marginBottom: '10px' }}>{error}</p>}
+      {error    && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.85)', marginBottom: '10px' }}>{error}</p>}
       {progress && <p style={{ fontSize: '11px', color: goldMuted, marginBottom: '10px' }}>{progress}</p>}
 
       <button
@@ -310,12 +279,67 @@ function UploadForm({ capsuleId, onUploaded }: { capsuleId: string; onUploaded: 
   )
 }
 
+// ═══ SECTION 6 — Photo card with name overlay ═══
+// Name rendered as a gradient overlay at the bottom of the image.
+// No footer below the photo — saves vertical space in the grid.
+// Caption visible only in the lightbox.
+
+function PhotoCard({ photo, onClick }: { photo: GalleryPhoto; onClick: () => void }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        borderRadius: '10px', overflow: 'hidden', cursor: 'pointer',
+        border: `1px solid ${cardBorder}`, background: cardBg,
+        position: 'relative',
+        transition: 'transform 0.15s, border-color 0.15s',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'translateY(-2px)'
+        e.currentTarget.style.borderColor = 'rgba(226,195,107,0.3)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'translateY(0)'
+        e.currentTarget.style.borderColor = cardBorder
+      }}
+    >
+      {/* Photo — square aspect ratio */}
+      <div style={{ aspectRatio: '1', overflow: 'hidden', background: '#0a0218', position: 'relative' }}>
+        <img
+          src={getPublicUrl(photo.storage_path)}
+          alt={photo.caption || `Photo by ${photo.contributor_name}`}
+          loading="lazy"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+
+        {/* Name overlay — gradient from bottom */}
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0,
+          background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.3) 50%, transparent 100%)',
+          padding: '20px 8px 6px',
+          pointerEvents: 'none',
+        }}>
+          <p style={{
+            fontSize: '10px', fontWeight: 600,
+            color: 'rgba(255,255,255,0.92)',
+            margin: 0,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            textShadow: '0 1px 3px rgba(0,0,0,0.6)',
+          }}>
+            {photo.contributor_name}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ═══ SECTION 7 — Main component ═══
 
 export default function ContributorGallery({ capsuleId, honoureeName, themeKey }: ContributorGalleryProps) {
-  const [photos,  setPhotos]  = useState<GalleryPhoto[]>([])
-  const [loading, setLoading] = useState(true)
-  const [lightbox, setLightbox] = useState<GalleryPhoto | null>(null)
+  const [photos,     setPhotos]     = useState<GalleryPhoto[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [lightbox,   setLightbox]   = useState<GalleryPhoto | null>(null)
   const [showUpload, setShowUpload] = useState(false)
 
   const fetchPhotos = async () => {
@@ -348,6 +372,7 @@ export default function ContributorGallery({ capsuleId, honoureeName, themeKey }
 
   return (
     <div style={{ marginTop: '24px' }}>
+
       {/* Section header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
         <div>
@@ -370,9 +395,6 @@ export default function ContributorGallery({ capsuleId, honoureeName, themeKey }
         </button>
       </div>
 
-      {/* Top contributors */}
-      <TopContributors photos={photos} />
-
       {/* Upload form */}
       {showUpload && (
         <div style={{ marginBottom: '16px' }}>
@@ -380,7 +402,7 @@ export default function ContributorGallery({ capsuleId, honoureeName, themeKey }
         </div>
       )}
 
-      {/* Photo grid */}
+      {/* Empty state */}
       {photos.length === 0 && !showUpload ? (
         <div style={{ textAlign: 'center', padding: '32px 16px', borderRadius: '14px', border: `1px dashed rgba(226,195,107,0.15)` }}>
           <p style={{ fontSize: '24px', marginBottom: '8px' }}>📷</p>
@@ -399,42 +421,18 @@ export default function ContributorGallery({ capsuleId, honoureeName, themeKey }
           </button>
         </div>
       ) : (
+        /* Photo grid — name overlaid on each photo, no footer */
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
           gap: '8px',
         }}>
           {photos.map(photo => (
-            <div
+            <PhotoCard
               key={photo.id}
+              photo={photo}
               onClick={() => setLightbox(photo)}
-              style={{
-                borderRadius: '10px', overflow: 'hidden', cursor: 'pointer',
-                border: `1px solid ${cardBorder}`, background: cardBg,
-                transition: 'transform 0.15s, border-color 0.15s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(226,195,107,0.3)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = cardBorder }}
-            >
-              <div style={{ aspectRatio: '1', overflow: 'hidden', background: '#0a0218' }}>
-                <img
-                  src={getPublicUrl(photo.storage_path)}
-                  alt={photo.caption || `Photo by ${photo.contributor_name}`}
-                  loading="lazy"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-              </div>
-              <div style={{ padding: '8px 10px' }}>
-                <p style={{ fontSize: '11px', fontWeight: 600, color: textPrimary, margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {photo.contributor_name}
-                </p>
-                {photo.caption && (
-                  <p style={{ fontSize: '10px', color: textFaint, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {photo.caption}
-                  </p>
-                )}
-              </div>
-            </div>
+            />
           ))}
         </div>
       )}
