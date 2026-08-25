@@ -110,7 +110,7 @@ function SortablePhotoCard({
       ref={setNodeRef}
       style={{
         transform:    CSS.Transform.toString(transform),
-        transition,
+        transition:   transition ?? 'all 0.15s',
         opacity:      isDragging ? 0.45 : isRemovingThis ? 0.4 : 1,
         borderRadius: '10px', overflow: 'hidden',
         border: `1px solid ${
@@ -125,9 +125,8 @@ function SortablePhotoCard({
           : isSelected && !selectMode
             ? 'rgba(74,222,128,0.04)'
             : cardBg,
-        cursor:     selectMode ? 'pointer' : 'default',
-        position:   'relative',
-        transition: 'all 0.15s',
+        cursor:   selectMode ? 'pointer' : 'default',
+        position: 'relative',
       }}
       onClick={() => selectMode && onToggleSelect(photo.id)}
     >
