@@ -11,6 +11,9 @@
 // UPDATED:   AI17 · Claude Opus 4.6 · 4 August 2026
 //            AI26 · Claude Sonnet 4.6 · 26 August 2026
 //            — Guest Eye View: Select All added
+//            — Option A bulk selection: card actions hidden when selection active
+//            AI26 · Claude Sonnet 4.6 · 26 August 2026
+//            — Guest Eye View: Select All added
 // VERSION:   v2.11.45
 // DATE:      4 August 2026
 // ============================================================
@@ -115,18 +118,19 @@ function PhaseTab({
 // ═══ SECTION 4 — Managed photo card sub-component ═══
 
 function ManagedPhotoCard({
-  photo, onAction, onDelete, selected, onSelect,
+  photo, onAction, onDelete, selected, selectionActive, onSelect,
   gold, textFaint, accentFaint, isMobile,
 }: {
   photo:      GalleryPhoto
   onAction:   (photoId: string, action: string) => void
   onDelete:   (photoId: string) => void
-  selected:   boolean
-  onSelect:   (photoId: string) => void
-  gold:       string
-  textFaint:  string
-  accentFaint: string
-  isMobile:   boolean
+  selected:        boolean
+  selectionActive: boolean
+  onSelect:        (photoId: string) => void
+  gold:            string
+  textFaint:       string
+  accentFaint:     string
+  isMobile:        boolean
 }) {
   const [loaded, setLoaded] = useState(false)
   const [busy,   setBusy]   = useState(false)
@@ -230,7 +234,12 @@ function ManagedPhotoCard({
             {photo.is_official_photography ? 'Official Photography' : photo.contributor_name}
           </p>
         )}
-        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+        {selectionActive && (
+          <p style={{ margin: '2px 0 0', fontSize: '10px', color: textFaint, opacity: 0.5, fontStyle: 'italic', textAlign: 'center' }}>
+            {selected ? 'Selected' : 'Tap to select'}
+          </p>
+        )}
+        <div style={{ display: selectionActive ? 'none' : 'flex', gap: '4px', flexWrap: 'wrap' }}>
           {/* Hide/Show */}
           <button
             onClick={() => act(photo.approved ? 'hide' : 'show')}
@@ -300,18 +309,19 @@ function ManagedPhotoCard({
 // ═══ SECTION 5 — Sortable official photo card ═══
 
 function SortablePhotoCard({
-  photo, onAction, onDelete, selected, onSelect,
+  photo, onAction, onDelete, selected, selectionActive, onSelect,
   gold, textFaint, accentFaint, isMobile,
 }: {
-  photo:       GalleryPhoto
-  onAction:    (photoId: string, action: string) => void
-  onDelete:    (photoId: string) => void
-  selected:    boolean
-  onSelect:    (photoId: string) => void
-  gold:        string
-  textFaint:   string
-  accentFaint: string
-  isMobile:    boolean
+  photo:           GalleryPhoto
+  onAction:        (photoId: string, action: string) => void
+  onDelete:        (photoId: string) => void
+  selected:        boolean
+  selectionActive: boolean
+  onSelect:        (photoId: string) => void
+  gold:            string
+  textFaint:       string
+  accentFaint:     string
+  isMobile:        boolean
 }) {
   const {
     attributes,
@@ -362,6 +372,7 @@ function SortablePhotoCard({
         onAction={onAction}
         onDelete={onDelete}
         selected={selected}
+        selectionActive={selectionActive}
         onSelect={onSelect}
         gold={gold}
         textFaint={textFaint}
@@ -857,7 +868,7 @@ export default function EventMomentsManager({
                   <ManagedPhotoCard
                     key={photo.id} photo={photo}
                     onAction={handleAction} onDelete={handleDelete}
-                    selected={selectedIds.has(photo.id)} onSelect={handleSelect}
+                    selected={selectedIds.has(photo.id)} selectionActive={someSelected} onSelect={handleSelect}
                     gold={gold} textFaint={textFaint} accentFaint={accentFaint}
                     isMobile={isMobile}
                   />
@@ -909,7 +920,7 @@ export default function EventMomentsManager({
                       <SortablePhotoCard
                         key={photo.id} photo={photo}
                         onAction={handleAction} onDelete={handleDelete}
-                        selected={selectedIds.has(photo.id)} onSelect={handleSelect}
+                        selected={selectedIds.has(photo.id)} selectionActive={someSelected} onSelect={handleSelect}
                         gold={gold} textFaint={textFaint} accentFaint={accentFaint}
                         isMobile={isMobile}
                       />
