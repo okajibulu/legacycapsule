@@ -2510,21 +2510,24 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
 
           {/* -- SERVICES TAB -- */}
           {activeTab === 'services' && (
-            <ServicesTab
-              capsule={capsule}
-              approvedContributions={approved}
-              supabase={supabase}
-              eohEditor={capsule.components?.includes('ways_to_honour')
-                ? <WaysToHonourEditor capsuleId={capsule.id} supabase={supabase} />
-                : undefined}
-              onToggleFlag={handleToggleFlag}
-              onUpgrade={() => {
-                setActiveTab('services')
-                setTimeout(() => {
-                  window.scrollTo({ top: 0, behavior: 'smooth' })
-                }, 150)
+            <>
+              <ServicesTab
+                capsule={capsule}
+                approvedContributions={approved}
+                supabase={supabase}
+                eohEditor={capsule.components?.includes('ways_to_honour')
+                  ? <WaysToHonourEditor capsuleId={capsule.id} supabase={supabase} />
+                  : undefined}
+                onToggleFlag={handleToggleFlag}
+                onUpgrade={() => {
+                  setActiveTab('services')
+                  setTimeout(() => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }, 150)
+                }}
+              />
 
-                {/* ── Event Moments curation ── */}
+              {/* ── Event Moments curation ── */}
               {phases.length > 0 && (
                 <div style={{ marginTop: '28px', borderTop: `1px solid ${goldFaint}`, paddingTop: '24px' }}>
                   <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: goldMuted, margin: '0 0 4px' }}>Event Moments</p>
@@ -2544,8 +2547,7 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
                   />
                 </div>
               )}
-              }}
-            />
+            </>
           )}
 
 {/* -- SETTINGS TAB — sub-tabbed ── */}
