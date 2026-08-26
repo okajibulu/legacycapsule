@@ -695,6 +695,40 @@ export default function EventMomentsManager({
     finally { setBulkBusy(false) }
   }
 
+  // ── Purge all official photos ──────────────────────────────────────
+  const [purgeConfirm, setPurgeConfirm] = useState(false)
+  const [purging,      setPurging]      = useState(false)
+
+  const handlePurgeOfficial = async () => {
+    if (!purgeConfirm) {
+      setPurgeConfirm(true)
+      setTimeout(() => setPurgeConfirm(false), 5000)
+      return
+    }
+    const officialIds = photos.filter(p => p.is_official_photography).map(p => p.id)
+    if (officialIds.length === 0) return
+    setPurging(true)
+    try {
+      const res = await fetch(`/api/event-moments/${activePhaseId}/bulk-curate`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          capsule_id: capsuleId,
+          photo_ids:  officialIds,
+          action:     'delete',
+        }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setPhotos(prev => prev.filter(p => !p.is_official_photography))
+        setSelectedIds(new Set())
+        setSuccessMsg(`${officialIds.length} official photos removed`)
+        setTimeout(() => setSuccessMsg(null), 3000)
+      }
+    } catch (e) { console.error('[EventMomentsManager] purge error:', e) }
+    finally { setPurging(false); setPurgeConfirm(false) }
+  }
+
   // ── Drag end ───────────────────────────────────────────────────────
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
@@ -899,6 +933,21 @@ export default function EventMomentsManager({
                       ? <span style={{ fontSize: '10px', color: 'rgba(134,239,172,0.7)', fontStyle: 'italic' }}>{reorderMsg}</span>
                       : <span style={{ fontSize: '10px', color: textFaint, opacity: 0.6, fontStyle: 'italic' }}>Drag ⠿ to reorder</span>
                   }
+                  {/* Purge all official photos */}
+                  <button
+                    onClick={handlePurgeOfficial}
+                    disabled={purging}
+                    style={{
+                      padding: '3px 10px', borderRadius: '10px', fontSize: '10px', fontWeight: 600,
+                      border: `1px solid ${purgeConfirm ? 'rgba(248,113,113,0.6)' : 'rgba(248,113,113,0.25)'}`,
+                      background: purgeConfirm ? 'rgba(248,113,113,0.12)' : 'transparent',
+                      color: purgeConfirm ? 'rgba(248,113,113,0.9)' : 'rgba(248,113,113,0.6)',
+                      cursor: purging ? 'not-allowed' : 'pointer',
+                      opacity: purging ? 0.5 : 1,
+                      transition: 'all 0.2s',
+                    }}>
+                    {purging ? 'Removing…' : purgeConfirm ? 'Tap again to confirm' : '🗑 Purge all'}
+                  </button>
                   {/* Select all toggle */}
                   <button
                     onClick={() => handleSelectAll(officialPhotos)}
