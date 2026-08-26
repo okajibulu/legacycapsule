@@ -9,6 +9,8 @@
 // ARCHITECTURE: LC12 Event Moments Spec
 // BUILT BY:  AI16 · Claude Opus 4.6
 // UPDATED:   AI17 · Claude Opus 4.6 · 4 August 2026
+//            AI26 · Claude Sonnet 4.6 · 26 August 2026
+//            — Guest Eye View: Select All added
 // VERSION:   v2.11.45
 // DATE:      4 August 2026
 // ============================================================
@@ -831,7 +833,25 @@ export default function EventMomentsManager({
           {/* ── Guest Eye View ── */}
           {guestPhotos.length > 0 ? (
             <div style={{ marginBottom: '28px' }}>
-              <SectionHeading label="Guest Eye View" count={guestPhotos.length} goldMuted={goldMuted} textFaint={textFaint} accentFaint={accentFaint} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', paddingBottom: '10px', borderBottom: `1px solid ${accentFaint}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <p style={{ margin: 0, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: goldMuted }}>
+                    Guest Eye View
+                  </p>
+                  <span style={{ fontSize: '10px', color: textFaint }}>· {guestPhotos.length} {guestPhotos.length === 1 ? 'photo' : 'photos'}</span>
+                </div>
+                <button
+                  onClick={() => handleSelectAll(guestPhotos)}
+                  style={{
+                    padding: '3px 10px', borderRadius: '10px', fontSize: '10px', fontWeight: 600,
+                    border: `1px solid ${guestPhotos.every(p => selectedIds.has(p.id)) ? 'rgba(226,195,107,0.5)' : accentFaint}`,
+                    background: guestPhotos.every(p => selectedIds.has(p.id)) ? 'rgba(226,195,107,0.1)' : 'transparent',
+                    color: guestPhotos.every(p => selectedIds.has(p.id)) ? gold : textFaint,
+                    cursor: 'pointer',
+                  }}>
+                  {guestPhotos.every(p => selectedIds.has(p.id)) ? 'Deselect all' : 'Select all'}
+                </button>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '8px' }}>
                 {guestPhotos.map(photo => (
                   <ManagedPhotoCard
