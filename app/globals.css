@@ -163,6 +163,7 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #0f0a1e;
 }
 
 /* ── Shadcn base layer ── */

@@ -145,6 +145,21 @@ export async function POST(
       return NextResponse.json({ error: 'Capsule not found' }, { status: 404 })
     }
 
+    // ── Enforce 60-photo cap per phase ────────────────────────────
+    const { count: existingCount } = await db
+      .from('gallery_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('phase_id', phaseId)
+      .eq('is_official_photography', true)
+      .eq('approved', true)
+
+    if ((existingCount ?? 0) >= 60) {
+      return NextResponse.json(
+        { error: 'This phase already has 60 official photos — the maximum allowed. Remove some photos before uploading more.' },
+        { status: 400 }
+      )
+    }
+
     // ── Read + compress ────────────────────────────────────────────
     const rawBuffer      = Buffer.from(await file.arrayBuffer())
     const compressed     = await compressImage(rawBuffer, file.type)

@@ -447,9 +447,8 @@ export default async function LegacyRoomPage(
         const { count } = await supabase
           .from('gallery_items')
           .select('id', { count: 'exact', head: true })
-          .eq('capsule_id', capsule.id)
           .eq('phase_id', p.id)
-          .eq('source', 'dday')
+          .in('source', ['dday', 'contributor_gallery'])
           .eq('approved', true)
         return { ...p, photo_count: count ?? 0 }
       }))
@@ -571,7 +570,11 @@ export default async function LegacyRoomPage(
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {phases.map(phase => (
-              <div key={phase.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(226,195,107,0.12)' }}>
+              <a
+                key={phase.id}
+                href={`/for/${slug}/story/${phase.id}`}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(226,195,107,0.12)', textDecoration: 'none', cursor: 'pointer', transition: 'background 0.15s, border-color 0.15s' }}
+              >
                 <div>
                   <p style={{ fontSize: '13px', fontWeight: 700, color: 'rgba(255,255,255,0.92)', margin: '0 0 2px' }}>{phase.name}</p>
                   {phase.event_date && (
@@ -589,7 +592,7 @@ export default async function LegacyRoomPage(
                     Photos on event day
                   </span>
                 )}
-              </div>
+              </a>
             ))}
           </div>
           <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.28)', marginTop: '10px', lineHeight: 1.65 }}>
