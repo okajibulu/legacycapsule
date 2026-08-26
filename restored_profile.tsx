@@ -1,15 +1,13 @@
-/* =========================================================
+﻿/* =========================================================
    FILE PATH: app/for/[slug]/profile/page.tsx
    PURPOSE:   Public "About" page for a capsule.
               Displays profile sections, featured photos,
               gallery, event phases, and contributor gallery.
-   UPDATED:   AI25 · Claude Sonnet 4.6 · 25 August 2026
-              — Event phase boxes made clickable
-              — Contributor Gallery wired in
-              — Tab label updated to "About"
-              — Metadata updated
-            AI26 · Claude Sonnet 4.6 · 26 August 2026
-              — Event Phases moved above Contributor Gallery
+   UPDATED:   AI25 ┬╖ Claude Sonnet 4.6 ┬╖ 25 August 2026
+              ΓÇö Event phase boxes made clickable
+              ΓÇö Contributor Gallery wired in
+              ΓÇö Tab label updated to "About"
+              ΓÇö Metadata updated
 ========================================================= */
 
 import { createClient }         from '@supabase/supabase-js'
@@ -20,21 +18,21 @@ import ActivePremiumsStrip      from '@/components/ActivePremiumsStrip'
 import SectionTextClamp         from '@/components/SectionTextClamp'
 import ContributorGallery       from '@/components/ContributorGallery'
 
-// ═══ SECTION 1 — Metadata ═══
+// ΓòÉΓòÉΓòÉ SECTION 1 ΓÇö Metadata ΓòÉΓòÉΓòÉ
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
   const { data } = await db.from('capsules').select('honouree_name, event_tag, event_type').eq('slug', slug).maybeSingle()
-  if (!data) return { title: 'About · LegacyCapsule' }
+  if (!data) return { title: 'About ┬╖ LegacyCapsule' }
   const label = data.event_tag ?? data.event_type ?? 'Event'
   return {
-    title: `About ${data.honouree_name} — ${label} | LegacyCapsule`,
-    description: `${label} — photos, biography and memories on LegacyCapsule.`,
+    title: `About ${data.honouree_name} ΓÇö ${label} | LegacyCapsule`,
+    description: `${label} ΓÇö photos, biography and memories on LegacyCapsule.`,
   }
 }
 
-// ═══ SECTION 2 — Helpers ═══
+// ΓòÉΓòÉΓòÉ SECTION 2 ΓÇö Helpers ΓòÉΓòÉΓòÉ
 
 function getEventTypeLabel(type: string): string {
   const map: Record<string, string> = {
@@ -64,14 +62,14 @@ function getSectionLabel(type: string, customTitle?: string | null): string {
   return map[type] ?? 'Section'
 }
 
-// ═══ SECTION 3 — Page component ═══
+// ΓòÉΓòÉΓòÉ SECTION 3 ΓÇö Page component ΓòÉΓòÉΓòÉ
 
 export default async function ProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
 
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-  // ── Fetch capsule ──────────────────────────────────────────────────
+  // ΓöÇΓöÇ Fetch capsule ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const { data: capsule } = await db
     .from('capsules')
     .select('id, slug, honouree_name, honouree_title, event_type, event_tag, event_date, page_state, theme, hero_image_url, components, lifecycle_state, contribution_tier, approved_contrib_count')
@@ -84,7 +82,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
   const themeKey = resolveTheme(capsule.theme, capsule.event_type)
   const t        = getThemeConfig(themeKey)
 
-  // ── Parallel fetch ─────────────────────────────────────────────────
+  // ΓöÇΓöÇ Parallel fetch ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const [sectionsRes, featuredRes, galleryRes, phasesRes, supportRes] = await Promise.all([
     db.from('capsule_profile_sections')
       .select('id, section_type, custom_title, content, sort_order, is_active')
@@ -122,7 +120,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
   const phases          = phasesRes.data    ?? []
   const supportAccounts = supportRes.data   ?? []
 
-  // ── Phase photo counts ─────────────────────────────────────────────
+  // ΓöÇΓöÇ Phase photo counts ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const phasesWithCounts = await Promise.all(
     phases.map(async phase => {
       const { count } = await db
@@ -136,7 +134,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
     })
   )
 
-  // ── Gallery photo count for highlights ────────────────────────────
+  // ΓöÇΓöÇ Gallery photo count for highlights ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const { count: rawGalleryCount } = await db
     .from('contributor_gallery_photos')
     .select('id', { count: 'exact', head: true })
@@ -146,7 +144,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
 
   const hasContent = profileSections.length > 0 || featuredPhotos.length > 0 || gallerySections.length > 0
 
-  // ── Shared style helpers ───────────────────────────────────────────
+  // ΓöÇΓöÇ Shared style helpers ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const sectionHeadingStyle: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px',
   }
@@ -166,7 +164,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
     fontSize: '13px', color: t.textFaint, lineHeight: 1.85, margin: 0,
   }
 
-  // ═══ SECTION 4 — Render ═══
+  // ΓòÉΓòÉΓòÉ SECTION 4 ΓÇö Render ΓòÉΓòÉΓòÉ
 
   return (
     <div
@@ -178,12 +176,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
         overflowX:  'hidden',
       }}
     >
-      {/* Hover style for phase links — CSS only (server component safe) */}
+      {/* Hover style for phase links ΓÇö CSS only (server component safe) */}
       <style>{`.lc-phase-link:hover { background: rgba(226,195,107,0.06) !important; border-color: rgba(226,195,107,0.3) !important; }`}</style>
 
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 120px' }}>
 
-        {/* ── Hero image (if set) ───────────────────────────────── */}
+        {/* ΓöÇΓöÇ Hero image (if set) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
         {capsule.hero_image_url && (
           <div style={{ width: '100%', height: '220px', borderRadius: '0 0 20px 20px', overflow: 'hidden', marginBottom: '24px' }}>
             <img
@@ -194,7 +192,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
           </div>
         )}
 
-        {/* ── Honouree name + title ─────────────────────────────── */}
+        {/* ΓöÇΓöÇ Honouree name + title ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
         <div style={{ textAlign: 'center', padding: capsule.hero_image_url ? '0 0 28px' : '32px 0 28px' }}>
           {capsule.honouree_title && (
             <p style={{ fontSize: '11px', color: t.accentMuted, letterSpacing: '0.14em', textTransform: 'uppercase', margin: '0 0 6px', fontWeight: 700 }}>
@@ -211,7 +209,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
           )}
         </div>
 
-        {/* ── Featured photos ───────────────────────────────────── */}
+        {/* ΓöÇΓöÇ Featured photos ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
         {featuredPhotos.length > 0 && (
           <div style={{ marginBottom: '32px' }}>
             <div style={sectionHeadingStyle}>
@@ -238,7 +236,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
           </div>
         )}
 
-        {/* ── Profile sections ──────────────────────────────────── */}
+        {/* ΓöÇΓöÇ Profile sections ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
         {profileSections.map(section => (
           <div key={section.id} style={{ marginBottom: '28px' }}>
             <div style={sectionHeadingStyle}>
@@ -254,7 +252,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
           </div>
         ))}
 
-        {/* ── Gallery sections ──────────────────────────────────── */}
+        {/* ΓöÇΓöÇ Gallery sections ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
         {gallerySections.map((gs: any) => (
           <div key={gs.id} style={{ marginBottom: '32px' }}>
             <div style={sectionHeadingStyle}>
@@ -279,7 +277,21 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
           </div>
         ))}
 
-        {/* ── Event Phases ──────────────────────────────────────── */}
+        {/* ΓöÇΓöÇ Contributor Gallery ΓÇö CG-SPEC-001 ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+        <div id="lc-contributor-gallery" style={{ marginBottom: '32px' }}>
+          <div style={sectionHeadingStyle}>
+            <div style={ruleStyle} />
+            <h2 style={headingLabelStyle}>Contributor Gallery</h2>
+            <div style={ruleRightStyle} />
+          </div>
+          <ContributorGallery
+            capsuleId={capsule.id}
+            honoureeName={capsule.honouree_name}
+            themeKey={themeKey}
+          />
+        </div>
+
+        {/* ΓöÇΓöÇ Event Phases ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
         {phasesWithCounts.length > 0 && (
           <div style={{ marginBottom: '32px' }}>
             <div style={sectionHeadingStyle}>
@@ -321,10 +333,10 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     {phase.photo_count > 0 && (
                       <span style={{ fontSize: '11px', fontWeight: 700, color: t.accentMuted }}>
-                        📸 {phase.photo_count} photo{phase.photo_count !== 1 ? 's' : ''}
+                        ≡ƒô╕ {phase.photo_count} photo{phase.photo_count !== 1 ? 's' : ''}
                       </span>
                     )}
-                    <span style={{ fontSize: '14px', color: t.accentMuted }}>→</span>
+                    <span style={{ fontSize: '14px', color: t.accentMuted }}>ΓåÆ</span>
                   </div>
                 </a>
               ))}
@@ -335,21 +347,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
           </div>
         )}
 
-        {/* ── Contributor Gallery — CG-SPEC-001 ────────────────── */}
-        <div id="lc-contributor-gallery" style={{ marginBottom: '32px' }}>
-          <div style={sectionHeadingStyle}>
-            <div style={ruleStyle} />
-            <h2 style={headingLabelStyle}>Contributor Gallery</h2>
-            <div style={ruleRightStyle} />
-          </div>
-          <ContributorGallery
-            capsuleId={capsule.id}
-            honoureeName={capsule.honouree_name}
-            themeKey={themeKey}
-          />
-        </div>
-
-        {/* ── Empty state ───────────────────────────────────────── */}
+        {/* ΓöÇΓöÇ Empty state ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
         {!hasContent && phasesWithCounts.length === 0 && (
           <div style={{ textAlign: 'center', padding: '48px 24px' }}>
             <p style={{ fontSize: '13px', color: t.textFaint, lineHeight: 1.65 }}>
@@ -360,12 +358,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
 
       </div>
 
-      {/* ── Active premiums strip ─────────────────────────────── */}
+      {/* ΓöÇΓöÇ Active premiums strip ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 8px' }}>
         <ActivePremiumsStrip slug={slug} components={capsule.components ?? []} />
       </div>
 
-      {/* ── Bottom nav ────────────────────────────────────────── */}
+      {/* ΓöÇΓöÇ Bottom nav ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
       <CapsuleBottomNav
         slug={slug}
         currentPage="profile"
