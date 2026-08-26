@@ -132,14 +132,13 @@ export default async function ProfilePage({ params }: PageProps) {
       .is('deleted_at', null)
       .order('sort_order', { ascending: true })
     if (pData && pData.length > 0) {
-      // Fetch D-Day photo count per phase
+      // Fetch total photo count per phase — all types (guest + official)
       const counts = await Promise.all(pData.map(async p => {
         const { count } = await adminClient
           .from('gallery_items')
           .select('id', { count: 'exact', head: true })
-          .eq('capsule_id', capsule.id)
           .eq('phase_id', p.id)
-          .eq('source', 'dday')
+          .in('source', ['dday', 'contributor_gallery'])
           .eq('approved', true)
         return { ...p, photo_count: count ?? 0 }
       }))
