@@ -131,7 +131,7 @@ export default async function EventMomentPage({ params }: PageProps) {
     .eq('approved', true)
     .order('display_order', { ascending: true, nullsFirst: false })
     .order('storage_path',  { ascending: true })
-    .limit(30)
+    .limit(60)
 
   if (officialErr) {
     console.error('[phase page] official photos error:', JSON.stringify(officialErr))

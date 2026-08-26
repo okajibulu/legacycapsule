@@ -277,19 +277,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
           </div>
         ))}
 
-        {/* ── Contributor Gallery — CG-SPEC-001 ────────────────── */}
-        <div id="lc-contributor-gallery" style={{ marginBottom: '32px' }}>
-          <div style={sectionHeadingStyle}>
-            <div style={ruleStyle} />
-            <h2 style={headingLabelStyle}>Contributor Gallery</h2>
-            <div style={ruleRightStyle} />
-          </div>
-          <ContributorGallery
-            capsuleId={capsule.id}
-            honoureeName={capsule.honouree_name}
-            themeKey={themeKey}
-          />
-        </div>
 
         {/* ── Event Phases ──────────────────────────────────────── */}
         {phasesWithCounts.length > 0 && (
@@ -347,6 +334,21 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
           </div>
         )}
 
+
+        {/* ── Contributor Gallery — CG-SPEC-001 ────────────────── */}
+        <div id="lc-contributor-gallery" style={{ marginBottom: '32px' }}>
+          <div style={sectionHeadingStyle}>
+            <div style={ruleStyle} />
+            <h2 style={headingLabelStyle}>Contributor Gallery</h2>
+            <div style={ruleRightStyle} />
+          </div>
+          <ContributorGallery
+            capsuleId={capsule.id}
+            honoureeName={capsule.honouree_name}
+            themeKey={themeKey}
+          />
+        </div>
+        
         {/* ── Empty state ───────────────────────────────────────── */}
         {!hasContent && phasesWithCounts.length === 0 && (
           <div style={{ textAlign: 'center', padding: '48px 24px' }}>
