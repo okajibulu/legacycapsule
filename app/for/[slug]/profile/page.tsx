@@ -1,236 +1,388 @@
-/* =========================================================
-   FILE PATH: app/for/[slug]/profile/page.tsx
-   PURPOSE:   Public "About" page for a capsule.
-              Displays profile sections, featured photos,
-              gallery, event phases, and contributor gallery.
-   UPDATED:   AI25 · Claude Sonnet 4.6 · 25 August 2026
-              — Event phase boxes made clickable
-              — Contributor Gallery wired in
-              — Tab label updated to "About"
-              — Metadata updated
-            AI26 · Claude Sonnet 4.6 · 26 August 2026
-              — Event Phases moved above Contributor Gallery
-========================================================= */
+// ============================================================
+// FILE PATH: app/for/[slug]/profile/page.tsx
+// PURPOSE:   Public profile page — honouree biography, sections, appreciation plaque. Server component.
+// ARCHITECTURE: LC02
+// BUILT BY:  AI6
+// UPDATED:   AI13 - Claude Sonnet 4.6
+// VERSION:   v2.1.1
+// DATE:      22 July 2026
+// ============================================================
+// SECTIONS:
+//   See sub-section headers (// === SECTION N) within file
+// ============================================================
 
-import { createClient }         from '@supabase/supabase-js'
-import { notFound }             from 'next/navigation'
+import { notFound } from 'next/navigation'
+import { createClient } from '@supabase/supabase-js'
 import { resolveTheme, getThemeConfig } from '@/lib/themeConfig'
-import CapsuleBottomNav         from '@/components/CapsuleBottomNav'
-import ActivePremiumsStrip      from '@/components/ActivePremiumsStrip'
-import SectionTextClamp         from '@/components/SectionTextClamp'
-import ContributorGallery       from '@/components/ContributorGallery'
+import { getEventTypeLabel, getEventTypeEmoji } from '@/lib/eventLabels'
+import { getParticipationLanguage } from '@/lib/utils/getParticipationLanguage'
+import SectionReactions from '@/components/SectionReactions'
+import GalleryLightbox from '@/components/GalleryLightbox'
+import SectionTextClamp from '@/components/SectionTextClamp'
+import CapsuleBottomNav from '@/components/CapsuleBottomNav'
+import PublicationSubscribePanel  from '@/components/capsule/PublicationSubscribePanel'
+import ActivePremiumsStrip        from '@/components/ActivePremiumsStrip'
+import ContributorGallery         from '@/components/ContributorGallery'
 
-// ═══ SECTION 1 — Metadata ═══
+/* ── Client setup ──────────────────────────────────────── */
+const adminClient = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+/* ── Helpers ───────────────────────────────────────────── */
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return ''
+  try {
+    return new Date(dateStr).toLocaleDateString('en-GB', {
+      day: 'numeric', month: 'long', year: 'numeric',
+    })
+  } catch { return dateStr }
+}
+
+interface PageProps { params: Promise<{ slug: string }> }
+
+/* ── generateMetadata ──────────────────────────────────── */
+export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params
-  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-  const { data } = await db.from('capsules').select('honouree_name, event_tag, event_type').eq('slug', slug).maybeSingle()
-  if (!data) return { title: 'About · LegacyCapsule' }
-  const label = data.event_tag ?? data.event_type ?? 'Event'
-  return {
-    title: `About ${data.honouree_name} — ${label} | LegacyCapsule`,
-    description: `${label} — photos, biography and memories on LegacyCapsule.`,
-  }
-}
-
-// ═══ SECTION 2 — Helpers ═══
-
-function getEventTypeLabel(type: string): string {
-  const map: Record<string, string> = {
-    memorial:    'Memorial',
-    retirement:  'Retirement',
-    wedding:     'Wedding',
-    birthday:    'Birthday',
-    ordination:  'Ordination',
-    graduation:  'Graduation',
-    chieftaincy: 'Chieftaincy',
-    other:       'Celebration',
-  }
-  return map[type] ?? 'Event'
-}
-
-function getSectionLabel(type: string, customTitle?: string | null): string {
-  if (customTitle) return customTitle
-  const map: Record<string, string> = {
-    biography:    'Biography',
-    quote:        'A Word From',
-    achievements: 'Achievements',
-    timeline:     'Timeline',
-    legacy:       'Legacy',
-    appreciation: 'Appreciation',
-    custom:       'Note',
-  }
-  return map[type] ?? 'Section'
-}
-
-// ═══ SECTION 3 — Page component ═══
-
-export default async function ProfilePage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params
-
-  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-
-  // ── Fetch capsule ──────────────────────────────────────────────────
-  const { data: capsule } = await db
+  const { data } = await adminClient
     .from('capsules')
-    .select('id, slug, honouree_name, honouree_title, event_type, event_tag, event_date, page_state, theme, hero_image_url, components, lifecycle_state, contribution_tier, approved_contrib_count')
+    .select('honouree_name, event_tag, event_type')
     .eq('slug', slug)
     .maybeSingle()
+  if (!data) return { title: 'Profile | LegacyCapsule' }
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://itslegacycapsule.com').replace(/\/$/, '')
+  const ogImageUrl = `${appUrl}/api/og/${slug}`
+  return {
+    title: `About ${data.honouree_name} — ${data.event_tag ?? getEventTypeLabel(data.event_type)} | LegacyCapsule`,
+    description: `${data.event_tag ?? getEventTypeLabel(data.event_type)} — photos, biography and memories on LegacyCapsule.`,
+    openGraph: {
+      title: `${data.honouree_name} — ${data.event_tag ?? getEventTypeLabel(data.event_type)}`,
+      description: `A LegacyCapsule tribute collection.`,
+      url: `https://itslegacycapsule.com/for/${slug}/profile`,
+      siteName: 'LegacyCapsule',
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: `${data.honouree_name} — LegacyCapsule` }],
+    },
+    twitter: { card: 'summary_large_image', images: [ogImageUrl] },
+  }
+}
 
-  if (!capsule) notFound()
-  if (capsule.page_state === 'suspended') notFound()
+/* ── ProfilePage ───────────────────────────────────────── */
+export default async function ProfilePage({ params }: PageProps) {
+  const { slug } = await params
 
-  const themeKey = resolveTheme(capsule.theme, capsule.event_type)
-  const t        = getThemeConfig(themeKey)
+  const { data: capsule, error } = await adminClient
+    .from('capsules')
+        .select('id, slug, honouree_name, honouree_title, event_type, event_tag, event_date, page_state, tier, theme, hero_image_url, components')
+    .eq('slug', slug)
+    .is('deleted_at', null)
+    .maybeSingle()
 
-  // ── Parallel fetch ─────────────────────────────────────────────────
-  const [sectionsRes, featuredRes, galleryRes, phasesRes, supportRes] = await Promise.all([
-    db.from('capsule_profile_sections')
+  if (error || !capsule) return notFound()
+  if (capsule.page_state === 'draft') return notFound()
+
+  const [profileRes, featuredRes, galleryRes, publicationRes] = await Promise.all([
+    adminClient
+      .from('capsule_profile_sections')
       .select('id, section_type, custom_title, content, sort_order, is_active')
       .eq('capsule_id', capsule.id)
       .eq('is_active', true)
-      .order('sort_order', { ascending: true }),
+      .not('content', 'is', null)
+      .order('sort_order'),
 
-    db.from('capsule_featured_photos')
-      .select('id, image_url, caption, sort_order, is_hero')
+    adminClient
+      .from('capsule_featured_photos')
+      .select('id, image_url, caption, sort_order')
       .eq('capsule_id', capsule.id)
-      .order('sort_order', { ascending: true }),
+      .order('sort_order'),
 
-    db.from('capsule_gallery_sections')
-      .select('id, title, sort_order, gallery_photos(id, image_url, caption, sort_order)')
+    adminClient
+      .from('capsule_gallery')
+      .select('id, image_url, caption, description, sort_order, section_index, section_title')
       .eq('capsule_id', capsule.id)
-      .order('sort_order', { ascending: true }),
+      .order('section_index')
+      .order('sort_order'),
 
-    db.from('capsule_phases')
-      .select('id, name, event_date, sort_order')
+    adminClient
+      .from('publications')
+      .select('pdf_url, version')
       .eq('capsule_id', capsule.id)
-      .is('deleted_at', null)
-      .order('sort_order', { ascending: true }),
-
-    db.from('capsule_support_accounts')
-      .select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, is_active, sort_order, relationship_to_honouree')
-      .eq('capsule_id', capsule.id)
-      .eq('is_active', true)
-      .is('deleted_at', null)
-      .order('sort_order', { ascending: true }),
+      .not('pdf_url', 'is', null)
+      .maybeSingle(),
   ])
 
-  const profileSections = sectionsRes.data ?? []
-  const featuredPhotos  = featuredRes.data  ?? []
-  const gallerySections = galleryRes.data   ?? []
-  const phases          = phasesRes.data    ?? []
-  const supportAccounts = supportRes.data   ?? []
+  // Participation summary — for conditional Legacy Room nav link
+  let contributorCount = 0
+  try {
+    const { data: summaryData } = await adminClient
+      .from('capsule_participation_summary')
+      .select('contributor_count')
+      .eq('capsule_id', capsule.id)
+      .single()
+    contributorCount = summaryData?.contributor_count ?? 0
+  } catch {}
 
-  // ── Phase photo counts ─────────────────────────────────────────────
-  const phasesWithCounts = await Promise.all(
-    phases.map(async phase => {
-      const { count } = await db
-        .from('gallery_items')
-        .select('id', { count: 'exact', head: true })
-        .eq('phase_id', phase.id)
-        .in('source', ['dday', 'contributor_gallery'])
-        .eq('is_official_photography', false)
-        .eq('approved', true)
-      return { ...phase, photo_count: count ?? 0 }
-    })
+  // Phases — for pre-announcement strip on profile page
+  let phases: Array<{ id: string; name: string; event_date: string | null; photo_count: number }> = []
+  try {
+    const { data: pData } = await adminClient
+      .from('capsule_phases')
+      .select('id, name, event_date')
+      .eq('capsule_id', capsule.id)
+      .is('deleted_at', null)
+      .order('sort_order', { ascending: true })
+    if (pData && pData.length > 0) {
+      // Fetch D-Day photo count per phase
+      const counts = await Promise.all(pData.map(async p => {
+        const { count } = await adminClient
+          .from('gallery_items')
+          .select('id', { count: 'exact', head: true })
+          .eq('capsule_id', capsule.id)
+          .eq('phase_id', p.id)
+          .eq('source', 'dday')
+          .eq('approved', true)
+        return { ...p, photo_count: count ?? 0 }
+      }))
+      phases = counts
+    }
+  } catch { phases = [] }
+
+  // Milestones — optional table, graceful fallback
+  let milestones: any[] = []
+  try {
+    const { data: mData } = await adminClient
+      .from('capsule_milestones')
+      .select('id, title, date, description, sort_order')
+      .eq('capsule_id', capsule.id)
+      .order('sort_order')
+      .limit(20)
+    milestones = mData ?? []
+  } catch { milestones = [] }
+
+  const profileSections = profileRes.data ?? []
+  const featuredPhotos  = featuredRes.data ?? []
+  const galleryPhotos   = galleryRes.data ?? []
+  const publicationPdf  = publicationRes.data?.pdf_url ?? null
+
+  const hasContent = (
+    profileSections.length > 0 ||
+    featuredPhotos.length > 0 ||
+    galleryPhotos.length > 0 ||
+    milestones.length > 0
   )
 
-  // ── Gallery photo count for highlights ────────────────────────────
-  const { count: rawGalleryCount } = await db
-    .from('contributor_gallery_photos')
-    .select('id', { count: 'exact', head: true })
+  // ── Fetch support accounts for Premiums panel (EOH/Gifting) ──────────
+  const { data: supportAccounts } = await adminClient
+    .from('capsule_support_accounts')
+    .select('id, method_label, account_holder, bank_name, account_number, reference_guide, currency, is_active, sort_order, relationship_to_honouree')
     .eq('capsule_id', capsule.id)
-    .eq('status', 'visible')
-  const galleryCount = rawGalleryCount ?? 0
+    .eq('is_active', true)
+    .is('deleted_at', null)
+    .order('sort_order', { ascending: true })
 
-  const hasContent = profileSections.length > 0 || featuredPhotos.length > 0 || gallerySections.length > 0
+const { data: latestVoice } = await adminClient
+  .from('contributions')
+  .select('created_at')
+  .eq('capsule_id', capsule.id)
+  .eq('status', 'approved')
+  .order('created_at', { ascending: false })
+  .limit(1)
+  .maybeSingle()
 
-  // ── Shared style helpers ───────────────────────────────────────────
-  const sectionHeadingStyle: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px',
-  }
-  const ruleStyle: React.CSSProperties = {
-    flex: 1, height: '1px',
-    background: `linear-gradient(to right, transparent, ${t.accentFaint})`,
-  }
-  const ruleRightStyle: React.CSSProperties = {
-    flex: 1, height: '1px',
-    background: `linear-gradient(to left, transparent, ${t.accentFaint})`,
-  }
-  const headingLabelStyle: React.CSSProperties = {
-    fontSize: '9px', fontWeight: 800, letterSpacing: '0.18em',
-    textTransform: 'uppercase', color: t.accentMuted, whiteSpace: 'nowrap',
-  }
-  const bodyTextStyle: React.CSSProperties = {
-    fontSize: '13px', color: t.textFaint, lineHeight: 1.85, margin: 0,
-  }
+const { data: latestSection } = await adminClient
+  .from('capsule_profile_sections')
+  .select('updated_at')
+  .eq('capsule_id', capsule.id)
+  .eq('is_active', true)
+  .order('updated_at', { ascending: false })
+  .limit(1)
+  .maybeSingle()
 
-  // ═══ SECTION 4 — Render ═══
+  const themeKey    = resolveTheme(capsule.theme, capsule.event_type)
+  const t           = getThemeConfig(themeKey)
+  const lang        = getParticipationLanguage(capsule.event_type)
+  const eventLabel  = getEventTypeLabel(capsule.event_type)
+  const eventEmoji  = getEventTypeEmoji(capsule.event_type)
+  const resolvedHero = capsule.hero_image_url ?? '/honouree.jpg'
+
+  /* ── Style tokens ── */
+  const sectionHeadingStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '18px' }
+  const ruleStyle: React.CSSProperties = { flex: 1, height: '1px', background: `linear-gradient(to right, ${t.accentFaint}, transparent)` }
+  const ruleRightStyle: React.CSSProperties = { flex: 1, height: '1px', background: `linear-gradient(to left, ${t.accentFaint}, transparent)` }
+  const headingLabelStyle: React.CSSProperties = { fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.22em', color: t.accentMuted, margin: 0, whiteSpace: 'nowrap' as const }
+  const cardStyle: React.CSSProperties = { background: 'rgba(245,240,230,0.97)', borderRadius: '14px', padding: '22px 24px', border: `1px solid ${t.accentFaint}`, boxShadow: '0 4px 24px rgba(0,0,0,0.28)' }
+  const bodyTextStyle: React.CSSProperties = { fontFamily: "'Playfair Display', Georgia, serif", fontSize: '15px', color: '#1C1014', lineHeight: 1.85, whiteSpace: 'pre-wrap' as const, margin: 0 }
+
+  function getSectionTitle(section: { section_type: string; custom_title: string | null }): string {
+    if (section.custom_title) return section.custom_title
+    const labels: Record<string, string> = {
+      biography: 'Biography', intro: 'Introduction', occasion: 'About the Occasion',
+      quote: 'Featured Quote', message: "Organiser's Message", timeline: 'Timeline',
+      achievements: 'Achievements', family: 'Family', legacy: 'Legacy',
+      appreciation: 'Family Appreciation',
+    }
+    return labels[section.section_type] ?? section.section_type.replace(/_/g, ' ')
+  }
 
   return (
     <div
       id="top"
       style={{
-        minHeight:  '100vh',
-        background: t.pageBg,
-        fontFamily: "'DM Sans', sans-serif",
-        overflowX:  'hidden',
+        minHeight:   '100vh',
+        background:  t.pageBg,
+        fontFamily:  "'DM Sans', sans-serif",
+        overflowX:   'hidden',
       }}
     >
-      {/* Hover style for phase links — CSS only (server component safe) */}
       <style>{`.lc-phase-link:hover { background: rgba(226,195,107,0.06) !important; border-color: rgba(226,195,107,0.3) !important; }`}</style>
+      {/* TOP NAV */}
+      <div style={{ background: 'rgba(15,10,30,0.96)', borderBottom: `1px solid ${t.accentFaint}`, padding: '12px 16px', position: 'sticky', top: 0, zIndex: 40, backdropFilter: 'blur(12px)' }}>
+        <div style={{ maxWidth: '720px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <a href="/" style={{ textDecoration: 'none' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.16em', background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LEGACY</span>
+            <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.16em', color: t.textFaint, marginLeft: '0.1em' }}>CAPSULE</span>
+          </a>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <a href={`/for/${slug}`} style={{ fontSize: '12px', color: t.accentMuted, textDecoration: 'none', letterSpacing: '0.04em' }}>← The Voices</a>
+             
+          </div>
+        </div>
+      </div>
 
-      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 120px' }}>
+      {/* HERO */}
+      <div style={{ position: 'relative', overflow: 'hidden', minHeight: '260px', width: '100%' }}>
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${resolvedHero})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+        <div style={{ position: 'absolute', inset: 0, background: t.heroOverlay }} />
+        <div style={{ position: 'absolute', inset: 0, background: t.heroGlow }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: `linear-gradient(to right, transparent, ${t.accentMuted}, transparent)` }} />
+        <div style={{ position: 'relative', zIndex: 10, maxWidth: '720px', margin: '0 auto', padding: '48px 20px 36px', textAlign: 'center' }}>
+          <p style={{ fontSize: '26px', marginBottom: '10px', lineHeight: 1 }}>{eventEmoji}</p>
+          <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.24em', color: t.accentMuted, marginBottom: '12px' }}>{eventLabel}</p>
+          <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(26px, 6vw, 40px)', fontWeight: 800, color: '#ffffff', lineHeight: 1.15, marginBottom: '10px', textShadow: '0 2px 20px rgba(0,0,0,0.8)' }}>
+            {capsule.honouree_name}
+          </h1>
+          {capsule.event_tag  && <p style={{ fontSize: '14px', color: t.accentPrimary, marginBottom: '6px', fontWeight: 500 }}>{capsule.event_tag}</p>}
+          {capsule.event_date && <p style={{ fontSize: '12px', color: t.textFaint }}>{formatDate(capsule.event_date)}</p>}
+        </div>
+      </div>
 
-        {/* ── Hero image (if set) ───────────────────────────────── */}
-        {capsule.hero_image_url && (
-          <div style={{ width: '100%', height: '220px', borderRadius: '0 0 20px 20px', overflow: 'hidden', marginBottom: '24px' }}>
-            <img
-              src={capsule.hero_image_url}
-              alt={capsule.honouree_name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }}
-            />
+      {/* Gold rule */}
+      <div style={{ height: '2px', background: `linear-gradient(to right, transparent, ${t.accentMuted}, transparent)` }} />
+
+      {/* LEAVE TRIBUTE CTA */}
+      <div style={{ background: 'rgba(0,0,0,0.15)', borderBottom: `1px solid ${t.accentFaint}`, padding: '14px 20px', textAlign: 'center' }}>
+        <a href={`/for/${slug}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 24px', borderRadius: '24px', background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, color: '#1a0845', fontSize: '13px', fontWeight: 700, textDecoration: 'none', letterSpacing: '0.04em', boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}>
+          ✦ {lang.cta}
+        </a>
+      </div>
+
+      {/* MAIN CONTENT */}
+      <main style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 20px 100px', boxSizing: 'border-box' }}>
+
+{/* Auto-composed occasion block — shows when no Introduction section exists */}
+        {!profileSections.some((s: any) => s.section_type === 'intro' || s.section_type === 'introduction') && (
+          <div style={{ marginBottom: '32px' }}>
+            <div style={sectionHeadingStyle}>
+              <div style={ruleStyle} />
+              <h2 style={headingLabelStyle}>About This Occasion</h2>
+              <div style={ruleRightStyle} />
+            </div>
+            <div style={cardStyle}>
+              <p style={{ ...bodyTextStyle, fontStyle: 'italic', color: '#3a2a1e' }}>
+                {(() => {
+                  const type = capsule.event_type?.toLowerCase() ?? ''
+                  const name = capsule.honouree_name
+                  const tag = capsule.event_tag ? ` ${capsule.event_tag}.` : ''
+                  const date = capsule.event_date ? ` ${formatDate(capsule.event_date)}.` : ''
+
+                  if (type.includes('memorial') || type.includes('funeral'))
+                    return `This capsule preserves the memory and legacy of ${name}.${tag}${date}`
+                  if (type.includes('retirement'))
+                    return `This capsule celebrates the retirement of ${name}.${tag}${date}`
+                  if (type.includes('wedding'))
+                    return `This capsule celebrates the union of ${name}.${tag}${date}`
+                  if (type.includes('birthday'))
+                    return `This capsule celebrates a milestone birthday for ${name}.${tag}${date}`
+                  if (type.includes('graduation'))
+                    return `This capsule honours the graduation of ${name}.${tag}${date}`
+                  if (type.includes('chieftaincy'))
+                    return `This capsule honours the installation of ${name}.${tag}${date}`
+                  if (type.includes('ordination'))
+                    return `This capsule celebrates the ordination of ${name}.${tag}${date}`
+                  if (type.includes('anniversary'))
+                    return `This capsule celebrates a milestone anniversary for ${name}.${tag}${date}`
+                  if (type.includes('award'))
+                    return `This capsule honours ${name} on the occasion of this award ceremony.${tag}${date}`
+                  if (type.includes('thanksgiving'))
+                    return `This capsule celebrates a thanksgiving service for ${name}.${tag}${date}`
+                  if (type.includes('conference'))
+                    return `This capsule captures the voices and contributions shared at ${name}.${tag}${date}`
+                  return `This capsule honours ${name}.${tag}${date}`
+                })()}
+              </p>
+            </div>
           </div>
         )}
 
-        {/* ── Honouree name + title ─────────────────────────────── */}
-        <div style={{ textAlign: 'center', padding: capsule.hero_image_url ? '0 0 28px' : '32px 0 28px' }}>
-          {capsule.honouree_title && (
-            <p style={{ fontSize: '11px', color: t.accentMuted, letterSpacing: '0.14em', textTransform: 'uppercase', margin: '0 0 6px', fontWeight: 700 }}>
-              {capsule.honouree_title}
-            </p>
-          )}
-          <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'rgba(255,255,255,0.95)', margin: '0 0 4px', fontFamily: "Georgia, 'Playfair Display', serif" }}>
-            {capsule.honouree_name}
-          </h1>
-          {(capsule.event_tag ?? getEventTypeLabel(capsule.event_type)) && (
-            <p style={{ fontSize: '12px', color: t.textFaint, margin: 0 }}>
-              {capsule.event_tag ?? getEventTypeLabel(capsule.event_type)}
-            </p>
-          )}
-        </div>
+        {/* Profile text sections -- appreciation rendered separately at the end */}
+        {profileSections.filter((s: any) => s.section_type !== 'appreciation').map((section: any) => (
+          <div key={section.id} style={{ marginBottom: '32px' }}>
+            <div style={sectionHeadingStyle}>
+              <div style={ruleStyle} />
+              <h2 style={headingLabelStyle}>{getSectionTitle(section)}</h2>
+              <div style={ruleRightStyle} />
+            </div>
+            {section.section_type === 'quote' ? (
+              <div style={{ ...cardStyle, textAlign: 'center', padding: '28px 32px' }}>
+                <SectionTextClamp content={section.content} isQuote bodyTextStyle={bodyTextStyle} />
+              </div>
+            ) : (
+              <div style={cardStyle}>
+                <SectionTextClamp content={section.content} bodyTextStyle={bodyTextStyle} />
+              </div>
+            )}
+            <SectionReactions sectionId={section.id} capsuleId={capsule.id} />
+          </div>
+        ))}
 
-        {/* ── Featured photos ───────────────────────────────────── */}
+        {/* Milestones */}
+        {milestones.length > 0 && (
+          <div style={{ marginBottom: '32px' }}>
+            <div style={sectionHeadingStyle}>
+              <div style={ruleStyle} />
+              <h2 style={headingLabelStyle}>Timeline</h2>
+              <div style={ruleRightStyle} />
+            </div>
+            <div style={{ position: 'relative', paddingLeft: '20px' }}>
+              <div style={{ position: 'absolute', left: '7px', top: 0, bottom: 0, width: '1px', background: `linear-gradient(to bottom, ${t.accentFaint}, transparent)` }} />
+              {milestones.map((m: any) => (
+                <div key={m.id} style={{ position: 'relative', marginBottom: '20px', paddingLeft: '16px' }}>
+                  <div style={{ position: 'absolute', left: '-13px', top: '4px', width: '8px', height: '8px', borderRadius: '50%', background: t.accentPrimary, border: `2px solid ${t.pageBg}` }} />
+                  {m.date && <p style={{ fontSize: '10px', color: t.accentMuted, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '3px' }}>{formatDate(m.date)}</p>}
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: t.textBody, marginBottom: '3px' }}>{m.title}</p>
+                  {m.description && <p style={{ fontSize: '13px', color: t.textMuted, lineHeight: 1.65 }}>{m.description}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Featured Photos */}
         {featuredPhotos.length > 0 && (
           <div style={{ marginBottom: '32px' }}>
             <div style={sectionHeadingStyle}>
               <div style={ruleStyle} />
-              <h2 style={headingLabelStyle}>Photos</h2>
+              <h2 style={headingLabelStyle}>Featured Photos</h2>
               <div style={ruleRightStyle} />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {featuredPhotos.map(photo => (
-                <div key={photo.id} style={{ borderRadius: '14px', overflow: 'hidden', border: `1px solid ${t.accentFaint}` }}>
-                  <img
-                    src={photo.image_url}
-                    alt={photo.caption ?? capsule.honouree_name}
-                    style={{ width: '100%', display: 'block', objectFit: 'cover', maxHeight: '400px' }}
-                  />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+              {featuredPhotos.map((photo: any) => (
+                <div key={photo.id} style={{ borderRadius: '12px', overflow: 'hidden', border: `1px solid ${t.accentFaint}`, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
+                  <GalleryLightbox src={photo.image_url} caption={photo.caption ?? ''} alt={`Photo of ${capsule.honouree_name}`} aspectRatio="4/3" />
                   {photo.caption && (
-                    <p style={{ fontSize: '11px', color: t.textFaint, fontStyle: 'italic', padding: '10px 14px', margin: 0 }}>
-                      {photo.caption}
-                    </p>
+                    <div style={{ padding: '10px 14px', background: 'rgba(245,240,230,0.97)', borderTop: `1px solid ${t.accentFaint}` }}>
+                      <p style={{ fontSize: '12px', color: '#5F5E5A', margin: 0 }}>{photo.caption}</p>
+                    </div>
                   )}
                 </div>
               ))}
@@ -238,104 +390,38 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
           </div>
         )}
 
-        {/* ── Profile sections ──────────────────────────────────── */}
-        {profileSections.map(section => (
-          <div key={section.id} style={{ marginBottom: '28px' }}>
-            <div style={sectionHeadingStyle}>
-              <div style={ruleStyle} />
-              <h2 style={headingLabelStyle}>{getSectionLabel(section.section_type, section.custom_title)}</h2>
-              <div style={ruleRightStyle} />
-            </div>
-            <SectionTextClamp
-              content={section.content}
-              isQuote={section.section_type === 'quote'}
-              bodyTextStyle={bodyTextStyle}
-            />
-          </div>
-        ))}
+        {/* Gallery */}
+        {galleryPhotos.length > 0 && (() => {
+          const maxSection = Math.max(...galleryPhotos.map((p: any) => p.section_index ?? 0))
+          return Array.from({ length: maxSection + 1 }, (_, si) => {
+            const sectionPhotos = galleryPhotos.filter((p: any) => (p.section_index ?? 0) === si)
+            if (sectionPhotos.length === 0) return null
+            const sectionTitle = sectionPhotos[0]?.section_title ?? (maxSection > 0 ? `Gallery ${si + 1}` : 'Gallery')
+            return (
+              <div key={si} style={{ marginBottom: '32px' }}>
+                <div style={sectionHeadingStyle}>
+                  <div style={ruleStyle} />
+                  <h2 style={headingLabelStyle}>{sectionTitle}</h2>
+                  <div style={ruleRightStyle} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {sectionPhotos.map((photo: any) => (
+                    <div key={photo.id} style={{ borderRadius: '14px', overflow: 'hidden', border: `1px solid ${t.accentFaint}`, background: t.cardBg, boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }}>
+                      <GalleryLightbox src={photo.image_url} caption={photo.description || photo.caption || ''} alt="Gallery photo" photoId={photo.id} capsuleId={capsule.id} />
+                      {(photo.description || photo.caption) && (
+                        <div style={{ padding: '12px 16px', borderTop: `1px solid ${t.accentFaint}` }}>
+                          <p style={{ fontSize: '13px', color: t.textBody, lineHeight: 1.75, fontStyle: 'italic', margin: 0 }}>{photo.description || photo.caption}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })
+        })()}
 
-        {/* ── Gallery sections ──────────────────────────────────── */}
-        {gallerySections.map((gs: any) => (
-          <div key={gs.id} style={{ marginBottom: '32px' }}>
-            <div style={sectionHeadingStyle}>
-              <div style={ruleStyle} />
-              <h2 style={headingLabelStyle}>{gs.title ?? 'Gallery'}</h2>
-              <div style={ruleRightStyle} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '8px' }}>
-              {(gs.gallery_photos ?? [])
-                .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-                .map((photo: any) => (
-                  <div key={photo.id} style={{ borderRadius: '10px', overflow: 'hidden', border: `1px solid ${t.accentFaint}`, aspectRatio: '1' }}>
-                    <img
-                      src={photo.image_url}
-                      alt={photo.caption ?? ''}
-                      loading="lazy"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    />
-                  </div>
-                ))}
-            </div>
-          </div>
-        ))}
-
-        {/* ── Event Phases ──────────────────────────────────────── */}
-        {phasesWithCounts.length > 0 && (
-          <div style={{ marginBottom: '32px' }}>
-            <div style={sectionHeadingStyle}>
-              <div style={ruleStyle} />
-              <h2 style={headingLabelStyle}>Event Phases</h2>
-              <div style={ruleRightStyle} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {phasesWithCounts.map(phase => (
-                <a
-                  key={phase.id}
-                  href={`/for/${slug}/story/${phase.id}`}
-                  className="lc-phase-link"
-                  style={{
-                    display:        'flex',
-                    alignItems:     'center',
-                    justifyContent: 'space-between',
-                    padding:        '12px 16px',
-                    borderRadius:   '12px',
-                    background:     'rgba(255,255,255,0.04)',
-                    border:         `1px solid ${t.accentFaint}`,
-                    textDecoration: 'none',
-                    cursor:         'pointer',
-                    transition:     'background 0.15s, border-color 0.15s',
-                  }}
-                >
-                  <div>
-                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff', margin: '0 0 2px' }}>
-                      {phase.name}
-                    </p>
-                    {phase.event_date && (
-                      <p style={{ fontSize: '11px', color: t.textFaint, margin: 0 }}>
-                        {new Date(phase.event_date).toLocaleDateString('en-GB', {
-                          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-                        })}
-                      </p>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                    {phase.photo_count > 0 && (
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: t.accentMuted }}>
-                        📸 {phase.photo_count} photo{phase.photo_count !== 1 ? 's' : ''}
-                      </span>
-                    )}
-                    <span style={{ fontSize: '14px', color: t.accentMuted }}>→</span>
-                  </div>
-                </a>
-              ))}
-              <p style={{ fontSize: '11px', color: t.textFaint, lineHeight: 1.65, margin: '4px 0 0' }}>
-                On event day, guests can share their own photos and memories from each phase. Scan the QR code at the venue or visit the tribute wall link.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ── Contributor Gallery — CG-SPEC-001 ────────────────── */}
+        {/* ── Contributor Gallery — CG-SPEC-001 ── */}
         <div id="lc-contributor-gallery" style={{ marginBottom: '32px' }}>
           <div style={sectionHeadingStyle}>
             <div style={ruleStyle} />
@@ -349,36 +435,180 @@ export default async function ProfilePage({ params }: { params: Promise<{ slug: 
           />
         </div>
 
-        {/* ── Empty state ───────────────────────────────────────── */}
-        {!hasContent && phasesWithCounts.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <p style={{ fontSize: '13px', color: t.textFaint, lineHeight: 1.65 }}>
-              The organiser has not added profile content yet.
+        {/* Empty state */}
+        {!hasContent && (
+          <div style={{ textAlign: 'center', padding: '48px 24px', borderRadius: '16px', border: `1px solid ${t.accentFaint}`, background: 'rgba(255,255,255,0.02)' }}>
+            <p style={{ fontSize: '28px', marginBottom: '16px' }}>{eventEmoji}</p>
+            <p style={{ fontSize: '15px', color: t.textMuted, lineHeight: 1.75, fontFamily: "'Playfair Display', serif" }}>
+              
+A story worth preserving.<br />The organiser is preparing this profile — check back soon.
             </p>
           </div>
         )}
 
-      </div>
+{/* ── Appreciation Plaque -- renders last, only after event date has passed ── */}
+        {(() => {
+          const appreciationSection = profileSections.find((s: any) => s.section_type === 'appreciation' && s.is_active && s.content?.trim())
+          const eventHasPassed = capsule.event_date ? new Date(capsule.event_date) < new Date() : false
+          if (!appreciationSection || !eventHasPassed) return null
+          const text = appreciationSection.content.replace(/\[honouree_name\]/g, capsule.honouree_name)
+          return (
+            <div style={{ marginBottom: '40px', marginTop: '16px' }}>
+              {/* Outer gold frame */}
+              <div style={{
+                padding: '3px',
+                borderRadius: '18px',
+                background: 'linear-gradient(135deg, #C9960C, #E2C36B, #F5D97A, #D4A91A, #B8850A)',
+                boxShadow: '0 8px 40px rgba(188,152,60,0.3), 0 2px 8px rgba(0,0,0,0.5)',
+              }}>
+                {/* Inner plaque */}
+                <div style={{
+                  borderRadius: '16px',
+                  background: 'linear-gradient(160deg, #1a0d35 0%, #0f0820 50%, #1a0d35 100%)',
+                  padding: '36px 32px',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}>
+                  {/* Subtle background texture */}
+                  <div style={{
+                    position: 'absolute', inset: 0, borderRadius: '16px',
+                    background: 'radial-gradient(ellipse at 50% 0%, rgba(226,195,107,0.07) 0%, transparent 65%)',
+                    pointerEvents: 'none',
+                  }} />
 
-      {/* ── Active premiums strip ─────────────────────────────── */}
-      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 8px' }}>
+                  {/* Top ornament rule */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
+                    <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, transparent, rgba(212,174,42,0.5))' }} />
+                    <span style={{ fontSize: '14px', color: '#D4AE2A', letterSpacing: '0.3em' }}>&#10022; &#10022; &#10022;</span>
+                    <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to left, transparent, rgba(212,174,42,0.5))' }} />
+                  </div>
+
+                  {/* Plaque label */}
+                  <p style={{
+                    margin: '0 0 20px',
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '9px',
+                    fontWeight: 800,
+                    letterSpacing: '0.28em',
+                    textTransform: 'uppercase',
+                    color: 'rgba(212,174,42,0.55)',
+                    textAlign: 'center',
+                  }}>
+                    A Word of Appreciation
+                  </p>
+
+                  {/* Appreciation text */}
+                  <div style={{
+                    fontFamily: "'Playfair Display', Georgia, serif",
+                    fontSize: 'clamp(14px, 3.5vw, 16px)',
+                    lineHeight: 1.9,
+                    color: 'rgba(245,235,200,0.88)',
+                    textAlign: 'center',
+                    fontStyle: 'italic',
+                    whiteSpace: 'pre-line',
+                    position: 'relative',
+                  }}>
+                    {text}
+                  </div>
+
+                  {/* Bottom ornament rule */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '24px' }}>
+                    <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, transparent, rgba(212,174,42,0.5))' }} />
+                    <span style={{ fontSize: '14px', color: '#D4AE2A', letterSpacing: '0.3em' }}>&#10022; &#10022; &#10022;</span>
+                    <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to left, transparent, rgba(212,174,42,0.5))' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+
+ 
+      </main>
+
+{/* ── Event Phases — pre-announcement strip ── */}
+      {phases.length > 0 && (
+        
+        <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 24px' }}>
+          <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: t.accentMuted, marginBottom: '10px' }}>
+            Event Phases
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {phases.map((phase) => (   
+                <a   
+                   key={phase.id}
+                      href={`/for/${slug}/story/${phase.id}`}
+                      className="lc-phase-link"
+                      style={{
+                        display:        'flex',
+                        alignItems:     'center',
+                        justifyContent: 'space-between',
+                        padding:        '12px 16px',
+                        borderRadius:   '12px',
+                        background:     'rgba(255,255,255,0.04)',
+                        border:         `1px solid ${t.accentFaint}`,
+                        textDecoration: 'none',
+                        cursor:         'pointer',
+                      }}
+                    >
+                      <div>
+                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff', margin: '0 0 2px' }}>
+                          {phase.name}
+                        </p>
+                        {phase.event_date && (
+                          <p style={{ fontSize: '11px', color: t.textFaint, margin: 0 }}>
+                            {new Date(phase.event_date).toLocaleDateString('en-GB', {
+                              weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+                            })}
+                          </p>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                        {phase.photo_count > 0 && (
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: t.accentMuted }}>
+                            📸 {phase.photo_count} photo{phase.photo_count !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                        <span style={{ fontSize: '14px', color: t.accentMuted }}>→</span>
+                      </div>
+                    </a>
+                  ))}
+                  
+          </div>
+          <p style={{ fontSize: '11px', color: t.textFaint, marginTop: '10px', lineHeight: 1.65 }}>
+            On event day, guests can share their own photos and memories from each phase. Scan the QR code at the venue or visit the tribute wall link.
+          </p>
+        </div>
+      )}
+
+      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 20px 8px' }}>
         <ActivePremiumsStrip slug={slug} components={capsule.components ?? []} />
       </div>
 
-      {/* ── Bottom nav ────────────────────────────────────────── */}
       <CapsuleBottomNav
         slug={slug}
         currentPage="profile"
         components={capsule.components ?? []}
-        contributorCount={(capsule.approved_contrib_count ?? 0) + galleryCount}
-        hasPhases={phases.length > 0}
+        contributorCount={contributorCount}
+        hasPhases={false}
         themeKey={themeKey}
         capsuleId={capsule.id}
         honourName={capsule.honouree_name}
         eventType={capsule.event_type}
-        supportAccounts={supportAccounts}
-        phases={phases}
-      />
+        supportAccounts={supportAccounts ?? []}
+        phases={phases.map(p => ({ id: p.id, name: p.name }))}
+      latestVoiceAt={latestVoice?.created_at ?? null}
+latestProfileAt={latestSection?.updated_at ?? null}
+latestHighlightAt={latestVoice?.created_at ?? null}
+/>
+      
+      {/* FOOTER */}
+      <footer style={{ background: 'rgba(0,0,0,0.15)', borderTop: `1px solid ${t.accentFaint}`, padding: '28px 20px', textAlign: 'center' }}>
+        <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.16em', background: `linear-gradient(135deg, ${t.accentPrimary}, ${t.accentMuted})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>LEGACY</span>
+        <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.16em', color: t.textFaint, marginLeft: '0.1em' }}>CAPSULE</span>
+        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.14)', marginTop: '6px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Every event. Preserved.</p>
+         
+      </footer>
     </div>
   )
 }
