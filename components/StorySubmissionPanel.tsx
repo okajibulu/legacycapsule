@@ -1,51 +1,55 @@
 'use client'
 
-// FILE: components/StorySubmissionPanel.tsx
-// Purpose: Community story submission — three options (existing topic / pool / suggest)
-// Used by: CommunityStoriesClient.tsx
-// AI10 · June 2026
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE PATH: components/StorySubmissionPanel.tsx
+// PURPOSE:   Community story submission — three options (existing topic / pool / suggest)
+// USED BY:   CommunityStoriesClient.tsx
+// BUILT BY:  AI10 · June 2026
+// UPDATED:   AI25 · Claude Sonnet 4.6 · 25 August 2026
+//            — Gallery awareness tip added to story form (before submit button)
+// ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useRef } from 'react'
 import type { StoryTopic } from '@/app/for/[slug]/stories/page'
 import { DEFAULT_TOPICS_BY_EVENT_TYPE } from '@/components/TopicSelector'
 
-// ── SECTION: Types ───────────────────────────────────────────
+// ═══ SECTION 1 — Types ═══
 
 type Mode = 'choose' | 'existing' | 'pool' | 'suggest' | 'form'
 
 interface FormData {
   contributor_name: string
-  email: string
-  relationship: string
-  city: string
-  country: string
-  tribute_text: string
-  story_topic_id: string | null
-  new_topic_name: string
+  email:            string
+  relationship:     string
+  city:             string
+  country:          string
+  tribute_text:     string
+  story_topic_id:   string | null
+  new_topic_name:   string
 }
 
-// ── SECTION: Props ───────────────────────────────────────────
+// ═══ SECTION 2 — Props ═══
 
 interface Props {
-  capsuleId: string
-  capsuleSlug: string
-  eventType: string
+  capsuleId:    string
+  capsuleSlug:  string
+  eventType:    string
   activeTopics: StoryTopic[]
-  onClose: () => void
-  onSuccess: () => void
+  onClose:      () => void
+  onSuccess:    () => void
 }
 
-// ── SECTION: Component ───────────────────────────────────────
+// ═══ SECTION 3 — Component ═══
 
 export default function StorySubmissionPanel({
   capsuleId, capsuleSlug, eventType, activeTopics, onClose, onSuccess
 }: Props) {
-  const [mode, setMode] = useState<Mode>('choose')
-  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
-  const [selectedPoolTopic, setSelectedPoolTopic] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [mode,               setMode]               = useState<Mode>('choose')
+  const [selectedTopicId,    setSelectedTopicId]    = useState<string | null>(null)
+  const [selectedPoolTopic,  setSelectedPoolTopic]  = useState<string | null>(null)
+  const [loading,            setLoading]            = useState(false)
+  const [error,              setError]              = useState<string | null>(null)
+  const [photoFile,          setPhotoFile]          = useState<File | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const poolTopics = DEFAULT_TOPICS_BY_EVENT_TYPE[eventType] ??
@@ -53,20 +57,20 @@ export default function StorySubmissionPanel({
 
   const [form, setForm] = useState<FormData>({
     contributor_name: '',
-    email: '',
-    relationship: '',
-    city: '',
-    country: '',
-    tribute_text: '',
-    story_topic_id: null,
-    new_topic_name: '',
+    email:            '',
+    relationship:     '',
+    city:             '',
+    country:          '',
+    tribute_text:     '',
+    story_topic_id:   null,
+    new_topic_name:   '',
   })
 
   function updateForm(key: keyof FormData, value: string) {
     setForm(f => ({ ...f, [key]: value }))
   }
 
-  // ── SECTION: Submit ──────────────────────────────────────
+  // ═══ SECTION 4 — Submit ═══
 
   async function handleSubmit() {
     if (!form.contributor_name.trim() || !form.tribute_text.trim()) {
@@ -83,23 +87,19 @@ export default function StorySubmissionPanel({
 
     try {
       const fd = new FormData()
-      fd.append('capsule_id', capsuleId)
-      fd.append('capsule_slug', capsuleSlug)
-      fd.append('contributor_name', form.contributor_name.trim())
-      fd.append('email', form.email.trim())
-      fd.append('relationship', form.relationship.trim())
-      fd.append('city', form.city.trim())
-      fd.append('country', form.country.trim())
-      fd.append('tribute_text', form.tribute_text.trim())
-      if (form.story_topic_id) fd.append('story_topic_id', form.story_topic_id)
+      fd.append('capsule_id',        capsuleId)
+      fd.append('capsule_slug',      capsuleSlug)
+      fd.append('contributor_name',  form.contributor_name.trim())
+      fd.append('email',             form.email.trim())
+      fd.append('relationship',      form.relationship.trim())
+      fd.append('city',              form.city.trim())
+      fd.append('country',           form.country.trim())
+      fd.append('tribute_text',      form.tribute_text.trim())
+      if (form.story_topic_id)       fd.append('story_topic_id',  form.story_topic_id)
       if (form.new_topic_name.trim()) fd.append('new_topic_name', form.new_topic_name.trim())
-      if (photoFile) fd.append('photo', photoFile)
+      if (photoFile)                 fd.append('photo', photoFile)
 
-      const res = await fetch('/api/community-topics/submit', {
-        method: 'POST',
-        body: fd,
-      })
-
+      const res  = await fetch('/api/community-topics/submit', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Submission failed')
 
@@ -111,13 +111,13 @@ export default function StorySubmissionPanel({
     }
   }
 
-  // ── SECTION: Render ─────────────────────────────────────
+  // ═══ SECTION 5 — Render ═══
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
       <div className="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-y-auto">
 
-        {/* ── SECTION: Modal Header ─────────────────────── */}
+        {/* ── Modal Header ─────────────────────────────── */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#F0EBF8] sticky top-0 bg-white z-10">
           <h2 className="font-bold text-[#1A1A2E] text-lg">Share a Story</h2>
           <button onClick={onClose} className="text-[#555555] hover:text-[#1A1A2E] text-2xl leading-none">&times;</button>
@@ -125,7 +125,7 @@ export default function StorySubmissionPanel({
 
         <div className="px-6 py-6">
 
-          {/* ── SECTION: Mode Choose ───────────────────── */}
+          {/* ── Mode: Choose ─────────────────────────────── */}
           {mode === 'choose' && (
             <div className="space-y-3">
               <p className="text-[#555555] text-sm mb-5">
@@ -151,7 +151,7 @@ export default function StorySubmissionPanel({
             </div>
           )}
 
-          {/* ── SECTION: Existing Topics ──────────────── */}
+          {/* ── Mode: Existing Topics ────────────────────── */}
           {mode === 'existing' && (
             <div>
               <BackButton onBack={() => setMode('choose')} />
@@ -175,7 +175,7 @@ export default function StorySubmissionPanel({
             </div>
           )}
 
-          {/* ── SECTION: Pool Topics ──────────────────── */}
+          {/* ── Mode: Pool Topics ────────────────────────── */}
           {mode === 'pool' && (
             <div>
               <BackButton onBack={() => setMode('choose')} />
@@ -198,7 +198,7 @@ export default function StorySubmissionPanel({
             </div>
           )}
 
-          {/* ── SECTION: Suggest Topic ────────────────── */}
+          {/* ── Mode: Suggest Topic ──────────────────────── */}
           {mode === 'suggest' && (
             <div>
               <BackButton onBack={() => setMode('choose')} />
@@ -222,12 +222,12 @@ export default function StorySubmissionPanel({
             </div>
           )}
 
-          {/* ── SECTION: Story Form ───────────────────── */}
+          {/* ── Mode: Story Form ─────────────────────────── */}
           {mode === 'form' && (
             <div>
               <BackButton onBack={() => setMode('choose')} />
 
-              {/* Selected topic */}
+              {/* Selected topic pill */}
               <div className="bg-[#F0EBF8] rounded-xl px-4 py-3 mb-5 text-sm">
                 <span className="text-[#555555]">Chapter: </span>
                 <span className="font-semibold text-[#6B4C9A]">
@@ -237,6 +237,7 @@ export default function StorySubmissionPanel({
               </div>
 
               <div className="space-y-4">
+
                 <Field label="Your Name *" required>
                   <input
                     type="text"
@@ -298,7 +299,7 @@ export default function StorySubmissionPanel({
                   />
                 </Field>
 
-                {/* ── SECTION: Photo Upload ──────────────── */}
+                {/* ── Photo Upload ──────────────────────── */}
                 <Field label="Add a Photo (optional)">
                   <input
                     type="file"
@@ -315,19 +316,39 @@ export default function StorySubmissionPanel({
                     {photoFile ? `📷 ${photoFile.name}` : 'Tap to add a photo to your story'}
                   </button>
                 </Field>
+
               </div>
 
+              {/* Error */}
               {error && (
                 <p className="mt-4 text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">{error}</p>
               )}
 
+              {/* ── Gallery awareness tip ─────────────────── */}
+              <div className="mt-5 px-4 py-3 rounded-xl bg-[#F0EBF8] border border-[#E8E4DC]">
+                <p className="text-xs font-semibold text-[#6B4C9A] mb-1">📷 Have photos from this event?</p>
+                <p className="text-xs text-[#555555] leading-relaxed mb-2">
+                  After submitting your story, visit the About page to upload photos to the Contributor Gallery — they may be included in the final publication.
+                </p>
+                <a
+                  href={`/for/${capsuleSlug}/profile#lc-contributor-gallery`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-semibold text-[#6B4C9A] hover:underline"
+                >
+                  Go to Contributor Gallery →
+                </a>
+              </div>
+
+              {/* Submit button */}
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className="mt-6 w-full bg-[#6B4C9A] text-white py-3 rounded-xl font-semibold disabled:opacity-50 hover:bg-[#5a3d84] transition-colors"
+                className="mt-4 w-full bg-[#6B4C9A] text-white py-3 rounded-xl font-semibold disabled:opacity-50 hover:bg-[#5a3d84] transition-colors"
               >
                 {loading ? 'Submitting…' : 'Submit My Story'}
               </button>
+
             </div>
           )}
 
@@ -337,9 +358,11 @@ export default function StorySubmissionPanel({
   )
 }
 
-// ── SECTION: Sub-components ──────────────────────────────────
+// ═══ SECTION 6 — Sub-components ═══
 
-function ModeCard({ title, subtitle, onClick }: { title: string; subtitle: string; onClick: () => void }) {
+function ModeCard({ title, subtitle, onClick }: {
+  title: string; subtitle: string; onClick: () => void
+}) {
   return (
     <button
       onClick={onClick}
@@ -362,7 +385,9 @@ function BackButton({ onBack }: { onBack: () => void }) {
   )
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({ label, required, children }: {
+  label: string; required?: boolean; children: React.ReactNode
+}) {
   return (
     <div>
       <label className="block text-sm font-medium text-[#1A1A2E] mb-1.5">
