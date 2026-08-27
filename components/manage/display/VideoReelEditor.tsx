@@ -20,6 +20,7 @@ import { useState, useCallback, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import ExternalVideoImport from './ExternalVideoImport'
 import VideoAssetLibrary, { SelectedItem } from './VideoAssetLibrary'
+import VideoReelZipExport from './VideoReelZipExport'
 
 // VideoReelPlayer dynamically imported — large component, client-only
 const VideoReelPlayer = dynamic(
@@ -325,6 +326,27 @@ export default function VideoReelEditor({
             {saveMessage}
           </span>
         )}
+      </div>
+
+      {/* ── Zip export — offline playback ── */}
+      <div style={{
+        marginTop: '2rem',
+        paddingTop: '1.5rem',
+        borderTop: '1px solid #e5e7eb',
+      }}>
+        <div style={{ marginBottom: '1rem' }}>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: '0 0 0.25rem' }}>
+            Offline Playback
+          </h3>
+          <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: 0 }}>
+            No internet at the venue? Download a zip file you can play anywhere.
+          </p>
+        </div>
+        <VideoReelZipExport
+          capsuleSlug={capsuleSlug}
+          honoureeName={honoureeName}
+          eventType={eventType}
+        />
       </div>
 
       {/* ═══ SECTION 5 — Player Overlay ═══ */}
