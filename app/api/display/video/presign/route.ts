@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     // ── Parse request ──
     const body = await req.json()
-    const { filename, file_size, mime_type } = body
+    const { filename, file_size, mime_type, duration_seconds, width, height } = body
 
     if (!filename) return NextResponse.json({ error: 'filename is required' }, { status: 400 })
 
@@ -103,6 +103,14 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Return signed URL + metadata for browser to use ──
+    // Derive orientation from dimensions
+    let orientation: 'landscape' | 'portrait' | 'square' | null = null
+    if (width && height) {
+      if (width > height) orientation = 'landscape'
+      else if (height > width) orientation = 'portrait'
+      else orientation = 'square'
+    }
+
     return NextResponse.json({
       signed_url: signedData.signedUrl,
       token: signedData.token,
@@ -110,6 +118,8 @@ export async function POST(req: NextRequest) {
       asset_id: assetId,
       capsule_id: capsuleId,
       content_type: mime_type && mime_type.startsWith('video/') ? mime_type : 'video/mp4',
+      duration_seconds: duration_seconds || null,
+      orientation,
     })
   } catch (err) {
     console.error('[EDS video/presign] Unexpected error:', err)

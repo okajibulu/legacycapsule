@@ -111,7 +111,29 @@ export default function ExternalVideoImport({
       setProgressPct(0)
 
       try {
-        // ── Step 1: Get presigned upload URL ──
+        // ── Step 1a: Extract video metadata client-side ──
+        let duration_seconds: number | null = null
+        let width: number | null = null
+        let height: number | null = null
+        try {
+          const meta = await new Promise<{ duration: number; width: number; height: number }>((resolve, reject) => {
+            const vid = document.createElement('video')
+            vid.preload = 'metadata'
+            vid.onloadedmetadata = () => {
+              resolve({ duration: vid.duration, width: vid.videoWidth, height: vid.videoHeight })
+              URL.revokeObjectURL(vid.src)
+            }
+            vid.onerror = reject
+            vid.src = URL.createObjectURL(file)
+          })
+          duration_seconds = isFinite(meta.duration) ? Math.round(meta.duration) : null
+          width = meta.width || null
+          height = meta.height || null
+        } catch {
+          // Metadata extraction failed — continue without it
+        }
+
+      // ── Step 1b: Get presigned upload URL ──
         const presignRes = await fetch(`/api/display/video/presign?slug=${capsuleSlug}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -119,6 +141,9 @@ export default function ExternalVideoImport({
             filename: file.name,
             file_size: file.size,
             mime_type: file.type,
+            duration_seconds,
+            width,
+            height,
           }),
         })
 
@@ -172,6 +197,8 @@ export default function ExternalVideoImport({
             original_filename: file.name,
             mime_type: content_type,
             file_size_bytes: file.size,
+            duration_seconds: presignData.duration_seconds,
+            orientation: presignData.orientation,
           }),
         })
 

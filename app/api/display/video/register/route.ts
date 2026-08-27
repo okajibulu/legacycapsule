@@ -42,6 +42,8 @@ export async function POST(req: NextRequest) {
       original_filename,
       mime_type,
       file_size_bytes,
+      duration_seconds,
+      orientation,
       title,
       attribution,
     } = body
