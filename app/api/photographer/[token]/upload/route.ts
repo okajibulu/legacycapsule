@@ -6,7 +6,10 @@
 //            Stores width_px, height_px, aspect_ratio.
 // ARCHITECTURE: LC12 Event Moments Spec
 // BUILT BY:  AI16 · Claude Opus 4.6
-// VERSION:   v2.11.17
+// UPDATED:   AI26 · Claude Sonnet 4.6 · 27 August 2026
+//            — Cap raised 30→60, shared pool (organiser + photographer)
+//            — Cap query: removed source filter, added approved=true
+// VERSION:   v2.11.18
 // DATE:      2 August 2026
 // ============================================================
 
@@ -98,20 +101,20 @@ export async function POST(
       )
     }
 
-    // ── Enforce 30-photo cap ───────────────────────────────────────────
+    // ── Enforce 60-photo cap (shared pool: organiser + photographer) ───
     const { count: existingCount } = await db
       .from('gallery_items')
       .select('id', { count: 'exact', head: true })
       .eq('phase_id', phase.id)
-      .eq('source', 'dday')
       .eq('is_official_photography', true)
+      .eq('approved', true)
 
-    const CAP = 30
+    const CAP = 60
     if ((existingCount ?? 0) >= CAP) {
       return NextResponse.json(
         {
           error:   'photo_cap_reached',
-          message: `The 30-photo limit for official photography has been reached. Ask the organiser to remove a photo before adding more.`,
+          message: `This phase already has 60 official photos — the maximum allowed. Ask the organiser to remove some photos before uploading more.`,
           count:   existingCount,
           cap:     CAP,
         },
