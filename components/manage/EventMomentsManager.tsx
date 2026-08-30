@@ -804,7 +804,7 @@ export default function EventMomentsManager({
           maxSizeMB:            3,
           maxWidthOrHeight:     2400,
           useWebWorker:         true,
-          preserveExifData:     true,
+          preserveExif:     true,
           fileType:             'image/jpeg',
         }) as Promise<File>
       }
