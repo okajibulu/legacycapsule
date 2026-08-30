@@ -741,7 +741,8 @@ function renderTributes(
 function renderCommunityStories(
   contribs: ContributionData[],
   topics: StoryTopicData[],
-  styles: ThemeStyles
+  styles: ThemeStyles,
+  capsule: CapsuleData,
 ): string {
   const storyContribs = contribs.filter(c => !!c.story_topic_id)
   if (storyContribs.length === 0 || topics.length === 0) return ''
@@ -750,20 +751,30 @@ function renderCommunityStories(
     const topicStories = storyContribs.filter(s => s.story_topic_id === topic.id)
     if (topicStories.length === 0) return ''
 
+    // Replace [honouree_name] placeholder in topic titles
+    const resolvedTopicName = topic.topic_name.replace(
+      /\[honouree_name\]/gi,
+      capsule.honouree_name
+    )
+
     const storiesHtml = topicStories.map(s => {
       const name     = escapeHtml(s.contributor_name)
       const location = [s.city, s.country].filter(Boolean).map(escapeHtml).join(', ')
       const rel      = s.relationship ? escapeHtml(s.relationship) : ''
+      const photoUrl = s.thumbnail_url || s.image_url || null
 
       return `<div style="background:#FFFFFF; border:1px solid ${styles.tributeCardBorder}; border-radius:14px; padding:24px 28px; margin-bottom:14px; page-break-inside:avoid;">
         <p style="font-family:${styles.headingFont}; font-size:15px; font-weight:700; color:${styles.pageText}; margin-bottom:4px;">${name}</p>
         ${(location || rel) ? `<p style="font-family:${styles.bodyFont}; font-size:11px; color:${styles.secondaryText}; margin-bottom:12px; letter-spacing:0.03em;">${[rel, location].filter(Boolean).join(' · ')}</p>` : '<div style="margin-bottom:12px;"></div>'}
+        ${photoUrl ? `<div style="margin-bottom:14px;">
+          <img src="${photoUrl}" alt="${name}" style="width:100%; max-height:280px; object-fit:cover; object-position:top center; border-radius:8px; display:block; image-orientation:from-image;"/>
+        </div>` : ''}
         <p style="font-family:${styles.bodyFont}; font-size:14px; line-height:1.90; color:${styles.pageText};">${escapeHtml(s.tribute_text ?? '')}</p>
       </div>`
     }).join('')
 
     return `<div style="margin-bottom:40px;">
-      ${renderSubHeading(topic.topic_name, styles)}
+      ${renderSubHeading(resolvedTopicName, styles)}
       ${storiesHtml}
     </div>`
   }).join('')
@@ -1718,7 +1729,7 @@ adminClient.from('contributions')
     // Profile gallery — always included when content exists
     renderProfileGallery(profileGallery, styles),
     // Community stories and memories — auto-included when content exists
-    renderCommunityStories(contribs, storyTopics, styles),
+    renderCommunityStories(contribs, storyTopics, styles, capsule),
     renderMemories(memories, styles),
     
     // Family appreciation — always just before closing
