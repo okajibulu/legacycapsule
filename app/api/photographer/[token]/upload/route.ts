@@ -9,7 +9,9 @@
 // UPDATED:   AI26 · Claude Sonnet 4.6 · 27 August 2026
 //            — Cap raised 30→60, shared pool (organiser + photographer)
 //            — Cap query: removed source filter, added approved=true
-// VERSION:   v2.11.18
+//            — SHA-256 deduplication: skip already-uploaded photos
+//            — file_hash stored on insert
+// VERSION:   v2.11.19
 // DATE:      2 August 2026
 // ============================================================
 
@@ -101,6 +103,28 @@ export async function POST(
       )
     }
 
+    // ── Read raw buffer + dedup check ─────────────────────────────
+    const rawBuffer = Buffer.from(await file.arrayBuffer())
+    const fileHash  = crypto.createHash('sha256').update(rawBuffer).digest('hex')
+
+    const { data: existingPhoto } = await db
+      .from('gallery_items')
+      .select('id, image_url')
+      .eq('phase_id', phase.id)
+      .eq('file_hash', fileHash)
+      .eq('is_official_photography', true)
+      .maybeSingle()
+
+    if (existingPhoto) {
+      return NextResponse.json({
+        ok:        true,
+        duplicate: true,
+        photo_id:  existingPhoto.id,
+        image_url: existingPhoto.image_url,
+        message:   'Photo already uploaded — skipped.',
+      })
+    }
+
     // ── Enforce 60-photo cap (shared pool: organiser + photographer) ───
     const { count: existingCount } = await db
       .from('gallery_items')
@@ -122,8 +146,7 @@ export async function POST(
       )
     }
 
-    // ── Compress ───────────────────────────────────────────────────────
-    const rawBuffer  = Buffer.from(await file.arrayBuffer())
+      // ── Compress ───────────────────────────────────────────────────
     const compressed = await compressImage(rawBuffer, file.type)
     const outputMime = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
     const outputExt  = file.type === 'image/png' ? 'png'       : 'jpg'
@@ -160,6 +183,7 @@ export async function POST(
         width_px:                compressed.width_px,
         height_px:               compressed.height_px,
         aspect_ratio:            compressed.aspect_ratio,
+        file_hash:               fileHash,
       })
       .select('id, image_url')
       .single()

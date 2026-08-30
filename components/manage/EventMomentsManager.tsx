@@ -786,7 +786,8 @@ export default function EventMomentsManager({
     setUploading(true); setUploadError(null); setSuccessMsg(null)
     setUploadProgress({ done: 0, total: files.length })
 
-    let successCount = 0
+    let successCount   = 0
+    let duplicateCount = 0
     const failedNames: string[] = []
 
     for (let i = 0; i < files.length; i += UPLOAD_BATCH_SIZE) {
@@ -798,8 +799,9 @@ export default function EventMomentsManager({
         try {
           const res  = await fetch(`/api/event-moments/${activePhaseId}/upload-official`, { method: 'POST', body: form })
           const data = await res.json()
-          if (data.ok) successCount++
-          else failedNames.push(file.name)
+          if (data.ok && data.duplicate) duplicateCount++
+          else if (data.ok)             successCount++
+          else                          failedNames.push(file.name)
         } catch { failedNames.push(file.name) }
         setUploadProgress(prev => prev ? { ...prev, done: prev.done + 1 } : null)
       }
@@ -809,9 +811,12 @@ export default function EventMomentsManager({
     }
 
     if (successCount > 0) {
-      setSuccessMsg(`${successCount} photo${successCount > 1 ? 's' : ''} uploaded successfully`)
       await fetchFullPhotos()
     }
+    const parts: string[] = []
+    if (successCount   > 0) parts.push(`${successCount} uploaded`)
+    if (duplicateCount > 0) parts.push(`${duplicateCount} already existed — skipped`)
+    if (parts.length   > 0) setSuccessMsg(parts.join(' · '))
     if (failedNames.length > 0) {
       setUploadError(`${failedNames.length} photo${failedNames.length > 1 ? 's' : ''} failed — please retry them`)
     }

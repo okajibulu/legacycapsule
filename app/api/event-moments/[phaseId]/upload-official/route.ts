@@ -11,7 +11,10 @@
 // ARCHITECTURE: LC12 Event Moments
 // BUILT BY:  AI16 · Claude Opus 4.6
 // UPDATED:   AI17 · Claude Sonnet 4.6 · 3 August 2026
-// VERSION:   v2.11.30
+//            AI26 · Claude Sonnet 4.6 · 27 August 2026
+//            — SHA-256 deduplication: skip already-uploaded photos
+//            — file_hash stored on insert
+// VERSION:   v2.11.31
 // DATE:      3 August 2026
 // ============================================================
 
@@ -160,8 +163,31 @@ export async function POST(
       )
     }
 
-    // ── Read + compress ────────────────────────────────────────────
-    const rawBuffer      = Buffer.from(await file.arrayBuffer())
+    // ── Read raw buffer ────────────────────────────────────────────
+    const rawBuffer  = Buffer.from(await file.arrayBuffer())
+
+    // ── Deduplication check — SHA-256 of raw file bytes ───────────
+    const fileHash   = crypto.createHash('sha256').update(rawBuffer).digest('hex')
+
+    const { data: existing } = await db
+      .from('gallery_items')
+      .select('id, image_url')
+      .eq('phase_id', phaseId)
+      .eq('file_hash', fileHash)
+      .eq('is_official_photography', true)
+      .maybeSingle()
+
+    if (existing) {
+      return NextResponse.json({
+        ok:              true,
+        duplicate:       true,
+        gallery_item_id: existing.id,
+        image_url:       existing.image_url,
+        message:         'Photo already uploaded — skipped.',
+      })
+    }
+
+    // ── Compress ───────────────────────────────────────────────────
     const compressed     = await compressImage(rawBuffer, file.type)
     const outputMimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
     const outputExt      = file.type === 'image/png' ? 'png'       : 'jpg'
@@ -197,6 +223,7 @@ export async function POST(
         storage_path:            storagePath,
         width_px:                compressed.width_px,
         height_px:               compressed.height_px,
+        file_hash:               fileHash,
       })
       .select('id')
       .single()
