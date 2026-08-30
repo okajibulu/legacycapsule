@@ -705,11 +705,21 @@ export default function EventMomentsManager({
       setTimeout(() => setPurgeConfirm(false), 5000)
       return
     }
-    const officialIds = photos.filter(p => p.is_official_photography).map(p => p.id)
-    if (officialIds.length === 0) return
     setPurging(true)
     try {
-      const res = await fetch(`/api/event-moments/${activePhaseId}/bulk-curate`, {
+      // ── Fetch ALL official photo IDs for this phase from the API ──
+      // Client state only holds the first 60 — must fetch full set
+      const allRes  = await fetch(`/api/event-moments/${activePhaseId}/official-ids?capsule_id=${capsuleId}`)
+      const allData = await allRes.json()
+      const officialIds: string[] = allData.ids ?? []
+
+      if (officialIds.length === 0) {
+        setPurging(false)
+        setPurgeConfirm(false)
+        return
+      }
+
+      const res  = await fetch(`/api/event-moments/${activePhaseId}/bulk-curate`, {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
@@ -722,7 +732,7 @@ export default function EventMomentsManager({
       if (data.ok) {
         setPhotos(prev => prev.filter(p => !p.is_official_photography))
         setSelectedIds(new Set())
-        setSuccessMsg(`${officialIds.length} official photos removed`)
+        setSuccessMsg(`${data.affected} official photo${data.affected !== 1 ? 's' : ''} removed`)
         setTimeout(() => setSuccessMsg(null), 3000)
       }
     } catch (e) { console.error('[EventMomentsManager] purge error:', e) }
