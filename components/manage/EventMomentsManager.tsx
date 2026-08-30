@@ -12,9 +12,11 @@
 //            AI26 · Claude Sonnet 4.6 · 26 August 2026
 //            — Guest Eye View: Select All added
 //            — Option A bulk selection: card actions hidden when selection active
-//            AI26 · Claude Sonnet 4.6 · 26 August 2026
-//            — Guest Eye View: Select All added
-// VERSION:   v2.11.45
+//            — Purge all official photos button (two-tap confirm)
+//            — Client-side pre-compression before upload (browser-image-compression)
+//              Target 3MB — prevents Vercel 4.5MB payload limit failures
+//            — Duplicate count feedback in upload result message
+// VERSION:   v2.11.46
 // DATE:      4 August 2026
 // ============================================================
 
@@ -790,13 +792,37 @@ export default function EventMomentsManager({
     let duplicateCount = 0
     const failedNames: string[] = []
 
+    // ── Lazy-load browser-image-compression ───────────────────────
+    // Compresses client-side to stay under Vercel 4.5MB payload limit.
+    // Target 3MB max — leaves headroom for multipart overhead.
+    let compressImage: ((file: File) => Promise<File>) | null = null
+    try {
+      const ic = (await import('browser-image-compression')).default
+      compressImage = async (file: File) => {
+        if (file.size <= 3 * 1024 * 1024) return file // already small enough
+        return ic(file, {
+          maxSizeMB:            3,
+          maxWidthOrHeight:     2400,
+          useWebWorker:         true,
+          preserveExifData:     true,
+          fileType:             'image/jpeg',
+        }) as Promise<File>
+      }
+    } catch {
+      // browser-image-compression unavailable — proceed without client compression
+      // Server-side sharp compression still runs; large files may hit payload limit
+      compressImage = async (file: File) => file
+    }
+
     for (let i = 0; i < files.length; i += UPLOAD_BATCH_SIZE) {
       const batch = files.slice(i, i + UPLOAD_BATCH_SIZE)
       for (const file of batch) {
-        const form = new FormData()
-        form.append('capsule_id', capsuleId)
-        form.append('file', file)
         try {
+          // ── Client-side compress before upload ─────────────────
+          const compressed = await compressImage!(file)
+          const form = new FormData()
+          form.append('capsule_id', capsuleId)
+          form.append('file', compressed, file.name)
           const res  = await fetch(`/api/event-moments/${activePhaseId}/upload-official`, { method: 'POST', body: form })
           const data = await res.json()
           if (data.ok && data.duplicate) duplicateCount++
