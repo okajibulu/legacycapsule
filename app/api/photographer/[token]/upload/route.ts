@@ -11,7 +11,9 @@
 //            — Cap query: removed source filter, added approved=true
 //            — SHA-256 deduplication: skip already-uploaded photos
 //            — file_hash stored on insert
-// VERSION:   v2.11.19
+//            — Storage upload: Supabase JS client → direct REST fetch
+//            — Bucket corrected: gallery → tribute-photos
+// VERSION:   v2.11.20
 // DATE:      2 August 2026
 // ============================================================
 
@@ -151,22 +153,31 @@ export async function POST(
     const outputMime = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
     const outputExt  = file.type === 'image/png' ? 'png'       : 'jpg'
 
-    // ── Upload to storage ──────────────────────────────────────────────
-    const storagePath = `${phase.capsule_id}/dday/official-${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${outputExt}`
+    // ── Upload to storage via direct REST ──────────────────────────────
+    // Bypasses Supabase JS client SharedArrayBuffer restriction on Vercel.
+    // Uses tribute-photos bucket (same as upload-official route).
+    const storagePath    = `${phase.capsule_id}/dday/official-${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${outputExt}`
+    const supabaseUrl    = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    const uploadUrl      = `${supabaseUrl}/storage/v1/object/tribute-photos/${storagePath}`
 
-    const { error: uploadError } = await db.storage
-      .from('gallery')
-      .upload(storagePath, compressed.buffer, {
-        contentType: outputMime,
-        upsert:      false,
-      })
+    const uploadRes = await fetch(uploadUrl, {
+      method:  'POST',
+      headers: {
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Type':  outputMime,
+        'x-upsert':      'false',
+      },
+      body: new Uint8Array(compressed.buffer),
+    })
 
-    if (uploadError) {
-      console.error('[photographer/upload] Storage error:', uploadError)
+    if (!uploadRes.ok) {
+      const detail = await uploadRes.text()
+      console.error('[photographer/upload] Storage REST error:', uploadRes.status, detail)
       return NextResponse.json({ error: 'Upload failed. Please try again.' }, { status: 500 })
     }
 
-    const { data: urlData } = db.storage.from('gallery').getPublicUrl(storagePath)
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/tribute-photos/${storagePath}`
 
     // ── Insert gallery_items record ────────────────────────────────────
     const { data: item, error: insertError } = await db
@@ -174,7 +185,7 @@ export async function POST(
       .insert({
         capsule_id:              phase.capsule_id,
         phase_id:                phase.id,
-        image_url:               urlData.publicUrl,
+        image_url:               publicUrl,
         caption:                 'Official Photography',
         source:                  'dday',
         approved:                true,
