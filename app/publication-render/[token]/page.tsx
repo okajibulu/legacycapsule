@@ -47,6 +47,7 @@ import type {
   PhotoSlot,
   PublicationTheme,
 } from '@/lib/publication/types';
+import { getParticipationLanguage } from '@/lib/utils/getParticipationLanguage';
 
 
 // ============================================================
@@ -375,18 +376,7 @@ function renderForeword(
   contribs: ContributionData[],
   styles: ThemeStyles
 ): string {
-  const langMap: Record<string, string> = {
-    memorial:        'tributes',
-    wedding:         'blessings',
-    birthday:        'birthday wishes',
-    graduation:      'congratulations',
-    chieftaincy:     'encomiums',
-    ordination:      'blessings',
-    award_ceremony:  'honours',
-    thanksgiving:    'gratitude messages',
-    retirement:      'appreciations',
-  }
-  const participationWord = langMap[capsule.event_type] ?? 'appreciations'
+  const participationWord = getParticipationLanguage(capsule.event_type).plural.toLowerCase()
   const displayName = capsule.honouree_title
     ? `${capsule.honouree_title} ${capsule.honouree_name}`
     : capsule.honouree_name
@@ -396,7 +386,7 @@ function renderForeword(
     cover:                  'The opening page — honouree portrait, name, and event occasion.',
     honouree_profile:       'Background, occasion details, and curated notes about the honouree.',
     world_map:              'A visual record of every country from which voices arrived, with a breakdown by nation.',
-    tributes:               `The full collection of ${getTributeHeading(capsule.event_type).toLowerCase()} — every voice gathered, in full.`,
+    tributes:               `The full collection of ${getParticipationLanguage(capsule.event_type).plural.toLowerCase()} — every voice gathered, in full.`,
     phase_photos:           'Photographs from this phase of the event, curated by the organiser.',
     official_photography:   'Professional photographs captured on the day of the event.',
     guest_captures:         'Candid photographs uploaded by guests present on the day.',
@@ -440,7 +430,7 @@ function renderForeword(
       cover:                'Cover Page',
       honouree_profile:     'Honouree Profile',
       world_map:            'Contributors Country Spread',
-      tributes:             getTributeHeading(capsule.event_type),
+      tributes:             getParticipationLanguage(capsule.event_type).plural,
       official_photography: 'Official Photography',
       guest_captures:       'In The Room',
       memories:             'Memories',
@@ -677,19 +667,9 @@ function renderProfileGallery(
 // SECTION 9 — Tributes renderer (with serial numbers)
 // ============================================================
 
-// Routes participation heading by event type — mirrors platform
-// Participation Language Engine for server-side HTML generation.
-function getTributeHeading(eventType: string): string {
-  switch (eventType) {
-    case 'memorial':    return 'Tributes'
-    case 'wedding':     return 'Blessings'
-    case 'birthday':    return 'Birthday Wishes'
-    case 'graduation':  return 'Congratulations'
-    case 'chieftaincy': return 'Royal Felicitations'
-    case 'dedication':  return 'Dedications'
-    default:            return 'Appreciations'
-  }
-}
+// Participation heading now sourced directly from the canonical
+// Participation Language Engine (getParticipationLanguage().plural) —
+// see call sites below. Local duplicate map removed, AI27 audit Sept 2026.
 
 function renderTributes(
   section: TributesSection,
@@ -726,7 +706,7 @@ function renderTributes(
   }).join('')
 
   return `<div style="${SECTION_WRAP}">
-    ${renderSectionHeader(getTributeHeading(eventType), styles)}
+    ${renderSectionHeader(getParticipationLanguage(eventType).plural, styles)}
     <p style="font-family:${styles.bodyFont}; font-size:13px; color:${styles.secondaryText}; margin-bottom:28px; font-style:italic; letter-spacing:0.03em;">${tributeList.length} voice${tributeList.length !== 1 ? 's' : ''} gathered</p>
     ${cards}
     ${SECTION_FOOTER}
@@ -1266,19 +1246,8 @@ function renderCollectionIntelligence(
     ? `${new Date(topDay[0]).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · ${topDay[1]} voices`
     : null
 
-  // Participation language
-  const langMap: Record<string, { singular: string; plural: string }> = {
-    chieftaincy:     { singular: 'Encomium',        plural: 'Encomiums' },
-    birthday:        { singular: 'Wish',             plural: 'Wishes' },
-    wedding:         { singular: 'Blessing',         plural: 'Blessings' },
-    graduation:      { singular: 'Congratulation',   plural: 'Congratulations' },
-    ordination:      { singular: 'Blessing',         plural: 'Blessings' },
-    award_ceremony:  { singular: 'Honour',           plural: 'Honours' },
-    memorial:        { singular: 'Tribute',          plural: 'Tributes' },
-    thanksgiving:    { singular: 'Gratitude',        plural: 'Gratitude Messages' },
-    retirement:      { singular: 'Appreciation',     plural: 'Appreciations' },
-  }
-  const lang = langMap[eventType] ?? { singular: 'Voice', plural: 'Voices' }
+  // Participation language — sourced from the canonical engine
+  const lang = getParticipationLanguage(eventType)
 
   const metricRow = (label: string, value: string) =>
     `<div style="display:flex; justify-content:space-between; align-items:baseline; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.06);">

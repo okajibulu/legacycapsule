@@ -95,16 +95,10 @@ export const THEMES: Record<string, {
 }
 
 // ═══ SECTION 3 — Copy Helpers ═══
-
-function getVoiceLabel(eventType: string): string {
-  const map: Record<string, string> = {
-    memorial: 'Tribute', retirement: 'Message', birthday: 'Wish',
-    wedding: 'Blessing', anniversary: 'Message', graduation: 'Message',
-    chieftaincy: 'Message', ordination: 'Message', thanksgiving: 'Message',
-    award: 'Message',
-  }
-  return map[eventType] ?? 'Voice'
-}
+// Participation language (voice/tribute/appreciation labels) is owned
+// exclusively by lib/config/participationLanguage.ts, routed through
+// lib/utils/getParticipationLanguage.ts. Do not reintroduce a local
+// hardcoded map here — see AI27 build-integrity audit, Sept 2026.
 
 function getIntroText(eventType: string, honoureeName: string): string {
   const first = honoureeName.split(' ')[0]
