@@ -37,7 +37,7 @@ async function writeAuditLog(entry: AuditEntry) {
 export async function getDashboardStats() {
   const [capsuleRes, activeRes, pendingVerifyRes, pendingModRes, approvedRes] = await Promise.all([
     adminClient.from('capsules').select('id', { count: 'exact', head: true }).is('deleted_at', null),
-    adminClient.from('capsules').select('id', { count: 'exact', head: true }).is('deleted_at', null).in('page_state', ['active', 'tribute_collection']),
+    adminClient.from('capsules').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('page_state', 'active'),
     adminClient.from('capsules').select('id', { count: 'exact', head: true }).is('deleted_at', null).is('verified_at', null),
     adminClient.from('contributions').select('id', { count: 'exact', head: true }).is('deleted_at', null).in('status', ['pending_review', 'pending']),
     adminClient.from('contributions').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('status', 'approved'),
