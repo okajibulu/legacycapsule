@@ -1,14 +1,21 @@
-// FILE: app/api/webhooks/stripe/route.ts
-// PURPOSE: Handles Stripe payment events. Signature verification mandatory.
-//          Raw body parsing required -- body parsers corrupt the Stripe signature.
-// UPDATED: AI13 - Claude Opus 4.6 - 22 July 2026
-//   -- Step 3 added: payment confirmation email to organiser after unlock
-//   -- Warm thank-you tone in confirmation email
+// FILE PATH: app/api/webhooks/stripe/route.ts
+// PURPOSE:   Handles Stripe payment events. Signature verification mandatory.
+//            Raw body parsing required — body parsers corrupt the Stripe signature.
+// ARCHITECTURE: LC04 Payment Engine — Stripe webhook handler.
+// BUILT BY:  AI13 · Claude Opus 4.6
+// UPDATED:   AI29 · Claude Opus 4.6 · 25 September 2026
+//   — Step 2b added: tryClaimPromoSlot() after featureUnlocker
+//     Atomic promo slot claim for launch pricing (first 50 paying customers)
+//     Non-fatal — wrapped in try/catch, never blocks payment activation
+// UPDATED:   AI13 · Claude Opus 4.6 · 22 July 2026
+//   — Step 3 added: payment confirmation email to organiser after unlock
+//   — Warm thank-you tone in confirmation email
 
 import { NextRequest, NextResponse }      from 'next/server'
 import { verifyWebhookSignature }         from '@/lib/payments/adapters/StripeAdapter'
 import { confirmPayment, failPayment }    from '@/lib/payments/PaymentService'
 import { unlockCapsuleFeatures }          from '@/lib/payments/featureUnlocker'
+import { tryClaimPromoSlot }             from '@/lib/payments/promoClaim'
 import { createClient }                   from '@supabase/supabase-js'
 import { Resend }                         from 'resend'
 
@@ -234,6 +241,21 @@ export async function POST(req: NextRequest) {
         // Step 2: unlock purchased features on capsule
         await unlockCapsuleFeatures(payment_id)
 
+        // Step 2b: promo slot claim — non-fatal, atomic at DB level
+        // organiser_email sourced from metadata (set at checkout creation)
+        try {
+          const promoEmail = (metadata.organiser_email ?? session.customer_email ?? '') as string
+          if (promoEmail) {
+            await tryClaimPromoSlot(
+              promoEmail,
+              (metadata.capsule_id ?? '') as string,
+              payment_id
+            )
+          }
+        } catch (promoErr) {
+          console.error('[stripe webhook] promo claim error (non-fatal):', promoErr)
+        }
+
         // Step 3: send payment confirmation email to organiser
         const featureIds: string[] = metadata.feature_ids
           ? metadata.feature_ids.split(',').map((s: string) => s.trim()).filter(Boolean)
@@ -312,3 +334,6 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ received: true })
 }
+
+
+

@@ -54,6 +54,9 @@
    — gift_deliver_at passed to bundle checkout route
    — Event tag placeholder: practical example, not event description copy
    — Gift mode note clarified: delivery is on chosen date, not automatic
+   UPDATED: AI29 · Claude Opus 4.6 · 25 September 2026
+   — LaunchPromoBanner added above GoldRule in Screen 3 services selector
+     Scarcity-aware promo awareness with live counter
    VERSION: AI20v2.11.99b
 ========================================================= */
 
@@ -69,6 +72,7 @@ import {
   BOOKING_SERVICE_ORDER,
   CATEGORY_BREAKS,
 } from '../../lib/content/serviceDetails'
+import { LaunchPromoBanner } from '@/components/promo/LaunchPromoBanner'
 
 interface ContentMap { [key: string]: string }
 type Path = 'free' | 'book' | ''
@@ -779,6 +783,9 @@ function BookPage() {
               Every service below was designed so you can focus on your guests — not on managing technology. Your capsule already includes a generous set of tools at no charge. Add anything else that fits your occasion.
             </p>
           </div>
+          {/* ── Launch Promo Awareness ── */}
+          <LaunchPromoBanner context="booking" style={{ marginBottom: '16px' }} />
+
           <GoldRule />
 
           {/* ═══ Always Included — Free Strip ═══ */}
@@ -1076,3 +1083,7 @@ export default function BookPageWrapper() {
     </Suspense>
   )
 }
+
+
+
+

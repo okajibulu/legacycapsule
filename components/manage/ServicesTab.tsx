@@ -19,6 +19,10 @@
 //            — Standard file header added
 // VERSION:   AI21v2.12.16
 // DATE:      17 August 2026
+// UPDATED:   AI29 · Claude Opus 4.6 · 25 September 2026
+//            — LaunchPromoBanner added below page header (above LimitsBar)
+//            — LaunchPromoInline chip added beside Services & Add-ons heading
+//            — Both components inline-style only — match LC dark palette
 // UPDATED:   AI21 · Claude Opus 4.6 · 17 August 2026
 //            — QR code removed from D-Day Live Wall section
 //            — Live Wall description updated (no QR, clear URL-only instruction)
@@ -29,6 +33,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import EventPhasesSection from '@/components/manage/EventPhasesSection'
+import { LaunchPromoBanner, LaunchPromoInline } from '@/components/promo/LaunchPromoBanner'
 
 interface Contribution {
   id: string; contributor_name: string; city: string; country: string
@@ -573,15 +578,21 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
       {/* ── Page header ── */}
       {/* ECS: plain English, warm, no jargon. Tells organiser exactly what this page is for. */}
       <div style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid rgba(226,195,107,0.1)' }}>
-        <p style={{ fontSize: '18px', fontWeight: 700, color: textPrimary, margin: '0 0 6px', fontFamily: "'Playfair Display', serif" }}>
-          Services & Add-ons
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 6px', flexWrap: 'wrap' }}>
+          <p style={{ fontSize: '18px', fontWeight: 700, color: textPrimary, margin: 0, fontFamily: "'Playfair Display', serif" }}>
+            Services & Add-ons
+          </p>
+          <LaunchPromoInline />
+        </div>
         <p style={{ fontSize: '13px', color: textSecondary, lineHeight: 1.7, margin: 0 }}>
           Your capsule comes with a set of tools already included at no charge. Below, you can add extra services
           that enhance your event — from a beautifully designed keepsake publication to voice and video tributes.
           Tap any service to learn more, then add what fits your occasion.
         </p>
       </div>
+
+      {/* ── Launch promo awareness ── */}
+      <LaunchPromoBanner context="services" style={{ marginBottom: '16px' }} />
 
       {/* ── Limits bar — free tier only ── */}
       <LimitsBar capsuleId={capsule.id} onUpgrade={() => {}} />
@@ -801,3 +812,5 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
     </div>
   )
 }
+
+

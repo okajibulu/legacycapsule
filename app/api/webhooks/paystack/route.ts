@@ -11,7 +11,11 @@
 //               Raw body must be read before JSON parsing — required for
 //               HMAC signature verification.
 // BUILT BY:  AI20 · Claude Opus 4.6
-// UPDATED:   11 August 2026
+// UPDATED:   AI29 · Claude Opus 4.6 · 25 September 2026
+//   — Promo slot claim added after unlockCapsuleFeatures()
+//     Fetches organiser_email via payments→capsules join (not in Paystack payload)
+//     Atomic DB claim via tryClaimPromoSlot() — non-fatal, never blocks activation
+// UPDATED:   AI20 · Claude Opus 4.6 · 11 August 2026
 // VERSION:   AI20v2.11.97
 // DATE:      11 August 2026
 //
@@ -31,6 +35,7 @@ import {
   verifyPaystackTransaction,
 } from '@/lib/payments/adapters/PaystackAdapter'
 import { unlockCapsuleFeatures }     from '@/lib/payments/featureUnlocker'
+import { tryClaimPromoSlot }        from '@/lib/payments/promoClaim'
 import { confirmPayment, failPayment } from '@/lib/payments/PaymentService'
 
 // ═══ SECTION 1 — DB client ═══
@@ -126,6 +131,32 @@ export async function POST(req: NextRequest) {
         // Unlock capsule features
         await unlockCapsuleFeatures(payment_id)
 
+        // Promo slot claim — non-fatal, atomic at DB level
+        // Fetch organiser_email via payment record (not in Paystack payload)
+        try {
+          const { data: pmtRow } = await db
+            .from('payments')
+            .select('capsule_id')
+            .eq('id', payment_id)
+            .maybeSingle()
+          if (pmtRow?.capsule_id) {
+            const { data: cap } = await db
+              .from('capsules')
+              .select('organiser_email')
+              .eq('id', pmtRow.capsule_id)
+              .maybeSingle()
+            if (cap?.organiser_email) {
+              await tryClaimPromoSlot(
+                cap.organiser_email,
+                pmtRow.capsule_id,
+                payment_id
+              )
+            }
+          }
+        } catch (promoErr) {
+          console.error('[paystack-webhook] promo claim error (non-fatal):', promoErr)
+        }
+
         console.log(`[paystack-webhook] Payment ${payment_id} confirmed + features unlocked`)
         break
       }
@@ -173,3 +204,6 @@ export async function GET(): Promise<NextResponse> {
     { status: 405 }
   )
 }
+
+
+

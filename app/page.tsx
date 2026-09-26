@@ -5,7 +5,10 @@
 // PURPOSE:   LegacyCapsule public homepage. Hero, pillars, stats, event types, how it works, showcase, CTA.
 // ARCHITECTURE: LC00
 // BUILT BY:  AI10
-// UPDATED:   AI13 - Claude Sonnet 4.6
+// UPDATED:   AI29 · Claude Opus 4.6 · 25 September 2026
+//   — LaunchPromoBanner inserted between hero and Section 2
+//     Scarcity-aware promo awareness with live counter
+// UPDATED:   AI13 · Claude Sonnet 4.6 · 22 July 2026
 // VERSION:   v2.1.6
 // DATE:      22 July 2026
 // ============================================================
@@ -16,7 +19,8 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
 import AnimatedWorldMap from "@/components/AnimatedWorldMap"
-
+ import { LaunchPromoBanner } from '@/components/promo/LaunchPromoBanner'
+ 
 /* ============================================================
    ANIMATED WORLD MAP — Canvas implementation
    Gold pulses from multiple world cities, narrative arc:
@@ -562,6 +566,13 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
 
   </div>
 </section>
+
+      {/* ── LAUNCH PROMO AWARENESS BANNER ────────────────── */}
+      <section className="section-white" style={{ padding: "var(--space-6) 0 0" }}>
+        <div className="container" style={{ maxWidth: "860px" }}>
+          <LaunchPromoBanner context="homepage" />
+        </div>
+      </section>
 
       {/* ── SECTION 2: EMOTIONAL PROMISE ────────────────── */}
       <section className="section-white" style={{ padding: "var(--space-24) 0" }}>
@@ -1177,6 +1188,10 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
     </>
   )
 }
+
+
+
+
 
 
 
