@@ -570,7 +570,7 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
       {/* ── LAUNCH PROMO AWARENESS BANNER ────────────────── */}
       <section className="section-white" style={{ padding: "var(--space-6) 0 0" }}>
         <div className="container" style={{ maxWidth: "860px" }}>
-          <LaunchPromoBanner context="homepage" />
+          <LaunchPromoBanner />
         </div>
       </section>
 
@@ -1188,14 +1188,4 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
     </>
   )
 }
-
-
-
-
-
-
-
-
-
-
 

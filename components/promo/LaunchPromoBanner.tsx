@@ -81,16 +81,12 @@ function usePromoCounter() {
 
 // ── 4. LaunchPromoBanner — full banner ────────────────────────────────────
 
-type BannerContext = 'homepage' | 'booking' | 'services' | 'generic'
-
 interface LaunchPromoBannerProps {
-  context?:   BannerContext
-  style?:     React.CSSProperties
+  style?: React.CSSProperties
 }
 
 export function LaunchPromoBanner({
-  context = 'generic',
-  style   = {},
+  style = {},
 }: LaunchPromoBannerProps) {
   const { promo, loading } = usePromoCounter()
 
@@ -109,16 +105,15 @@ export function LaunchPromoBanner({
       : 'normal'
 
   const headlines: Record<string, string> = {
-    normal:   `🎉 Launch offer — ${discPct}% off for our first ${limit} customers`,
-    high:     `⚡ Only ${remaining} launch spots left — ${discPct}% off everything`,
-    critical: `🔥 ${remaining} spot${remaining === 1 ? '' : 's'} remaining — don't miss the launch price`,
+    normal:   `Experience a new way to capture, preserve and share your premium event memories.`,
+    high:     `Experience a new way to capture, preserve and share your premium event memories.`,
+    critical: `Experience a new way to capture, preserve and share your premium event memories.`,
   }
 
-  const subCopy: Record<BannerContext, string> = {
-    homepage: 'Create a capsule today and lock in your launch price before it\'s gone.',
-    booking:  'This discount applies to everything in your order — applied automatically at checkout.',
-    services: 'Launch pricing is active — all add-ons are at 50% off for you.',
-    generic:  'Join our first families and get 50% off every feature.',
+  const urgencySub: Record<string, string> = {
+    normal:   `Be part of the 50% off offer for the next ${remaining !== null ? remaining : limit} bookings.`,
+    high:     `Only ${remaining} spots left — be part of the 50% off offer before it closes.`,
+    critical: `${remaining} spot${remaining === 1 ? '' : 's'} remaining — 50% off, closing soon.`,
   }
 
   const barWidth = limit ? Math.min(100, Math.round((claimed / limit) * 100)) : 0
@@ -146,14 +141,14 @@ export function LaunchPromoBanner({
         {headlines[urgency]}
       </p>
 
-      {/* ── Sub-copy ── */}
+      {/* ── Urgency sub-line ── */}
       <p style={{
         fontSize:   '12px',
         color:      textSub,
         margin:     0,
         lineHeight: 1.6,
       }}>
-        {subCopy[context]}
+        {urgencySub[urgency]}
       </p>
 
       {/* ── Progress bar ── */}
@@ -229,8 +224,7 @@ export function LaunchPromoInline({ style = {} }: LaunchPromoInlineProps) {
     }}>
       <span>🏷️</span>
       <span>
-        {discPct}% launch discount
-        {remaining !== null && remaining <= 10 && ` · ${remaining} left`}
+        {discPct}% off — next {remaining !== null && remaining <= 10 ? `${remaining} bookings left` : '50 bookings'}
       </span>
     </span>
   )

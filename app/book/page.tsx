@@ -784,7 +784,7 @@ function BookPage() {
             </p>
           </div>
           {/* ── Launch Promo Awareness ── */}
-          <LaunchPromoBanner context="booking" style={{ marginBottom: '16px' }} />
+          <LaunchPromoBanner style={{ marginBottom: '16px' }} />
 
           <GoldRule />
 
@@ -1083,7 +1083,4 @@ export default function BookPageWrapper() {
     </Suspense>
   )
 }
-
-
-
 

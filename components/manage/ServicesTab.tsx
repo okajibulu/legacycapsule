@@ -592,7 +592,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
       </div>
 
       {/* ── Launch promo awareness ── */}
-      <LaunchPromoBanner context="services" style={{ marginBottom: '16px' }} />
+      <LaunchPromoBanner style={{ marginBottom: '16px' }} />
 
       {/* ── Limits bar — free tier only ── */}
       <LimitsBar capsuleId={capsule.id} onUpgrade={() => {}} />
@@ -812,5 +812,4 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
     </div>
   )
 }
-
 
