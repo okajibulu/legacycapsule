@@ -585,7 +585,7 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
             fontSize:     "clamp(var(--text-xl), 2.0vw, var(--text-3xl))",
             fontWeight:   300,
             fontStyle:    "italic",
-            color:        "var(--lc-charcoal)",
+            color:        "var(--lc-gold)",
             lineHeight:   1.55,
             letterSpacing: "-0.01em",
           }}>
