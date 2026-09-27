@@ -19,6 +19,11 @@
 //            — try/catch brace structure corrected
 // VERSION:   AI20v2.11.98
 // DATE:      11 August 2026
+// UPDATED:   AI31 · Claude Sonnet 4.6 · 27 September 2026
+//            — resolvePromoPrices() wired in after getRegionalPrice() resolution
+//            — totalAmount and total_kobo now use promo price when active
+//            — Stripe line items also use promo unit_amount
+//            — Payment record stores promo amount (what customer actually pays)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse }    from 'next/server'
@@ -26,6 +31,7 @@ import { createClient }                 from '@supabase/supabase-js'
 import Stripe                           from 'stripe'
 import { detectRegionFromHeaders }      from '@/lib/payments/regionDetector'
 import { getRegionalPrice }             from '@/lib/payments/priceFetcher'
+import { resolvePromoPrices, type SupportedCurrency } from '@/lib/payments/promoResolver'
 import { createPaystackBundleCheckout } from '@/lib/payments/adapters/PaystackAdapter'
 
 // ═══ SECTION 1 — Clients ═══
@@ -156,16 +162,17 @@ export async function POST(req: NextRequest) {
     const zone        = detectRegionFromHeaders(req as unknown as Request) ?? 'ROW'
     const usePaystack = isAfricanZone(zone)
 
-    // ── Fetch prices for all features ─────────────────────────────────────────
+    // ── Fetch regional base prices for all features ───────────────────────────
     const priceResults = await Promise.allSettled(
       resolvedFeatureIds.map((id: string) => getRegionalPrice(id, zone))
     )
 
-    const validFeatureIds:    string[] = []
-    const validFeatureLabels: string[] = []
-    let   totalAmount                   = 0
-    let   resolvedCurrency              = usePaystack ? 'NGN' : 'EUR'
-    const lineItems: any[]              = []
+    // Build valid base prices first
+    const validBaseItems: Array<{
+      featureId: string
+      amount:    number       // whole units (e.g. 50 for ₦50)
+      currency:  string
+    }> = []
 
     for (let i = 0; i < resolvedFeatureIds.length; i++) {
       const result = priceResults[i]
@@ -173,27 +180,53 @@ export async function POST(req: NextRequest) {
         console.warn(`[checkout/bundle] No published price for: ${resolvedFeatureIds[i]} in zone ${zone} — skipped`)
         continue
       }
-
-      const price          = result.value
-      const stripeAmount   = toStripeAmount(price.amount)
-      const stripeCurrency = toStripeCurrency(price.currency)
-
-      if (!stripeCurrency || stripeAmount <= 0) {
+      const p = result.value
+      if (!p.currency || p.amount <= 0) {
         console.warn(`[checkout/bundle] Invalid price for ${resolvedFeatureIds[i]}`)
         continue
       }
+      validBaseItems.push({ featureId: resolvedFeatureIds[i], amount: p.amount, currency: p.currency })
+    }
 
-      validFeatureIds.push(resolvedFeatureIds[i])
-      validFeatureLabels.push(FEATURE_LABELS[resolvedFeatureIds[i]] ?? resolvedFeatureIds[i])
-      totalAmount      += price.amount
-      resolvedCurrency  = price.currency
+    // ── Apply promo discount to the whole batch (single DB fetch) ─────────────
+    // getRegionalPrice() returns whole units; resolvePromoPrices() needs minor units.
+    const promoBatch = validBaseItems.map(item => ({
+      pricing_key: item.featureId,
+      currency:    item.currency as SupportedCurrency,
+      base_price:  Math.round(item.amount * 100),  // → minor units
+    }))
+    const promoResolved = promoBatch.length > 0 ? await resolvePromoPrices(promoBatch) : []
+    const promoMap = new Map(promoResolved.map(r => [r.pricing_key, r]))
 
+    // ── Build final line items with promo-aware amounts ───────────────────────
+    const validFeatureIds:    string[] = []
+    const validFeatureLabels: string[] = []
+    let   totalAmount                   = 0        // whole units, promo-aware
+    let   resolvedCurrency              = usePaystack ? 'NGN' : 'EUR'
+    const lineItems: any[]              = []
+
+    for (const item of validBaseItems) {
+      const resolved   = promoMap.get(item.featureId)
+      // promo_price is in minor units → convert back to whole units for summing
+      const finalAmount = resolved?.has_promo
+        ? resolved.promo_price / 100
+        : item.amount
+
+      const stripeAmount   = toStripeAmount(finalAmount)
+      const stripeCurrency = toStripeCurrency(item.currency)
+
+      validFeatureIds.push(item.featureId)
+      validFeatureLabels.push(FEATURE_LABELS[item.featureId] ?? item.featureId)
+      totalAmount      += finalAmount
+      resolvedCurrency  = item.currency
+
+      const promoSuffix = resolved?.has_promo ? ` (${resolved.discount_pct}% off)` : ''
       lineItems.push({
         price_data: {
           currency:     stripeCurrency,
           unit_amount:  stripeAmount,
           product_data: {
-            name:        `LegacyCapsule — ${FEATURE_LABELS[resolvedFeatureIds[i]] ?? resolvedFeatureIds[i]}`,
+            name:        `LegacyCapsule — ${FEATURE_LABELS[item.featureId] ?? item.featureId}${promoSuffix}`,
             description: `For capsule: ${capsule_slug}`,
           },
         },
