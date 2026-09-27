@@ -57,7 +57,11 @@
    UPDATED: AI29 · Claude Opus 4.6 · 25 September 2026
    — LaunchPromoBanner added above GoldRule in Screen 3 services selector
      Scarcity-aware promo awareness with live counter
-   VERSION: AI20v2.11.99b
+   UPDATED: AI31 · Claude Sonnet 4.6 · 27 September 2026
+   — featurePrices type expanded with promo_amount, has_promo, discount_pct, promo_label
+   — getTotal() now sums promo_amount when has_promo, else amount
+   — Screen 3 price render: strikethrough base + gold promo price when has_promo
+   VERSION: AI31v2.12.68
 ========================================================= */
 
 /* =========================================================
@@ -289,7 +293,16 @@ function BookPage() {
 
   // Services selector state
   const [selectedServices, setSelectedServices] = useState<string[]>([])
-  const [featurePrices, setFeaturePrices] = useState<Record<string, { amount: number; symbol: string; currency: string } | null>>({})
+  const [featurePrices, setFeaturePrices] = useState<Record<string, {
+    amount:       number
+    symbol:       string
+    currency:     string
+    promo_amount: number
+    has_promo:    boolean
+    discount_pct: number | null
+    promo_label:  string | null
+    sold_out:     boolean
+  } | null>>({})
   const [pricesLoading, setPricesLoading] = useState(false)
 
   // Gift delivery state — controls when recipient is notified
@@ -407,6 +420,7 @@ function BookPage() {
   }
 
   // ═══ Calculate total from selected services ═══
+  // Uses promo_amount when has_promo so customer pays discounted price
   function getTotal(): { amount: number; symbol: string; currency: string } | null {
     let total = 0
     let symbol = ''
@@ -414,7 +428,7 @@ function BookPage() {
     for (const id of selectedServices) {
       const p = featurePrices[id]
       if (!p) continue
-      total += p.amount
+      total += p.has_promo ? p.promo_amount : p.amount
       symbol = p.symbol
       currency = p.currency
     }
@@ -955,12 +969,23 @@ function BookPage() {
                           <p style={{ fontSize: '11px', color: textFaint, margin: 0, lineHeight: 1.5 }}>{svc.tagline}</p>
                         </div>
 
-                        {/* Price */}
+                        {/* Price — shows strikethrough base + gold promo when has_promo */}
                         {price && (
                           <div style={{ flexShrink: 0, textAlign: 'right' as const }}>
-                            <span style={{ fontSize: '13px', fontWeight: 700, color: selected ? gold : textFaint }}>
-                              {price.symbol}{price.amount.toLocaleString()}
-                            </span>
+                            {price.has_promo ? (
+                              <>
+                                <span style={{ display: 'block', fontSize: '11px', fontWeight: 400, color: textFaint, textDecoration: 'line-through', lineHeight: 1.2 }}>
+                                  {price.symbol}{price.amount.toLocaleString()}
+                                </span>
+                                <span style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: gold, lineHeight: 1.2 }}>
+                                  {price.symbol}{price.promo_amount.toLocaleString()}
+                                </span>
+                              </>
+                            ) : (
+                              <span style={{ fontSize: '13px', fontWeight: 700, color: selected ? gold : textFaint }}>
+                                {price.symbol}{price.amount.toLocaleString()}
+                              </span>
+                            )}
                           </div>
                         )}
                         {unavailable && (
