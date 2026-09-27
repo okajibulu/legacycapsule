@@ -23,6 +23,11 @@
 //            — LaunchPromoBanner added below page header (above LimitsBar)
 //            — LaunchPromoInline chip added beside Services & Add-ons heading
 //            — Both components inline-style only — match LC dark palette
+// UPDATED:   AI31 · Claude Sonnet 4.6 · 27 September 2026
+//            — PriceRow.price and ServiceCardProps.price types expanded with promo fields
+//            — featurePrices state type expanded to carry promo_amount, has_promo etc.
+//            — ServiceCard locked price render: strikethrough base + gold promo when has_promo
+//            — Floating bar total and cart chips now use promo_amount when has_promo
 // UPDATED:   AI21 · Claude Opus 4.6 · 17 August 2026
 //            — QR code removed from D-Day Live Wall section
 //            — Live Wall description updated (no QR, clear URL-only instruction)
@@ -73,7 +78,15 @@ interface ServiceCardProps {
   status: 'active' | 'locked' | 'coming_soon' | 'always_on'
   externalLink?: string
   children?: React.ReactNode
-  price?: { amount: number; symbol: string } | null
+  price?: {
+    amount:       number
+    symbol:       string
+    promo_amount: number
+    has_promo:    boolean
+    discount_pct: number | null
+    promo_label:  string | null
+    sold_out:     boolean
+  } | null
   inCart?: boolean
   onToggle?: (id: string) => void
   detailSummary?: string
@@ -148,11 +161,23 @@ function ServiceCard({
             </div>
           )}
           {/* Locked — price + Add button always visible */}
+          {/* When has_promo: strikethrough base (muted, 11px) + gold promo price (13px) */}
           {isLocked && price && onToggle && (
             <>
-              <span style={{ fontSize: '13px', fontWeight: 800, color: inCart ? gold : textSecondary, lineHeight: 1 }}>
-                {price.symbol}{price.amount.toLocaleString()}
-              </span>
+              {price.has_promo ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1, gap: '1px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 400, color: textFaint, textDecoration: 'line-through' }}>
+                    {price.symbol}{price.amount.toLocaleString()}
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: gold }}>
+                    {price.symbol}{price.promo_amount.toLocaleString()}
+                  </span>
+                </div>
+              ) : (
+                <span style={{ fontSize: '13px', fontWeight: 800, color: inCart ? gold : textSecondary, lineHeight: 1 }}>
+                  {price.symbol}{price.amount.toLocaleString()}
+                </span>
+              )}
               <button
                 onClick={e => { e.stopPropagation(); onToggle(id) }}
                 style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '8px', border: `1px solid ${inCart ? 'rgba(226,195,107,0.5)' : 'rgba(255,255,255,0.15)'}`, background: inCart ? 'rgba(226,195,107,0.15)' : 'transparent', color: inCart ? gold : textFaint, cursor: 'pointer', fontWeight: 700, whiteSpace: 'nowrap' as const }}
@@ -420,14 +445,30 @@ interface PriceRow {
   id:     string
   label:  string
   status: 'active' | 'locked' | 'coming_soon'
-  price?: { amount: number; symbol: string } | null
+  price?: {
+    amount:       number
+    symbol:       string
+    promo_amount: number
+    has_promo:    boolean
+    discount_pct: number | null
+    promo_label:  string | null
+    sold_out:     boolean
+  } | null
 }
 
 // ═══ SECTION 5 — Main ServicesTab component ═══
 
 export default function ServicesTab({ capsule, approvedContributions, supabase, onUpgrade, eohEditor, onToggleFlag }: ServicesTabProps) {
   const [unlocking,       setUnlocking]       = useState<string | null>(null)
-  const [featurePrices,   setFeaturePrices]   = useState<Record<string, { amount: number; symbol: string } | null>>({})
+  const [featurePrices,   setFeaturePrices]   = useState<Record<string, {
+    amount:       number
+    symbol:       string
+    promo_amount: number
+    has_promo:    boolean
+    discount_pct: number | null
+    promo_label:  string | null
+    sold_out:     boolean
+  } | null>>({})
   const [cart,            setCart]            = useState<string[]>([])
   const [cardHeights,     setCardHeights]     = useState<Record<string, number>>({})
   const [capacityAlert,   setCapacityAlert]   = useState<'none'|'friendly'|'recommend'|'strong'|'grace'>('none')
@@ -747,7 +788,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
               {priceRows.filter(r => cart.includes(r.id)).map(r => (
                 <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '20px', background: 'rgba(226,195,107,0.1)', border: '1px solid rgba(226,195,107,0.25)' }}>
                   <span style={{ fontSize: '11px', color: gold, fontWeight: 600 }}>{r.label}</span>
-                  {r.price && <span style={{ fontSize: '10px', color: goldMuted }}>{r.price.symbol}{r.price.amount.toLocaleString()}</span>}
+                  {r.price && <span style={{ fontSize: '10px', color: goldMuted }}>{r.price.symbol}{(r.price.has_promo ? r.price.promo_amount : r.price.amount).toLocaleString()}</span>}
                   <button onClick={() => toggleCart(r.id)} style={{ background: 'none', border: 'none', color: goldMuted, cursor: 'pointer', fontSize: '13px', lineHeight: 1, padding: 0, marginLeft: '2px' }}>×</button>
                 </div>
               ))}
@@ -757,7 +798,7 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
                 <p style={{ margin: 0, fontSize: '10px', color: textFaint, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>Total</p>
                 <p style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: gold, lineHeight: 1.2 }}>
                   {priceRows.filter(r => cart.includes(r.id)).find(r => r.price?.symbol)?.price?.symbol ?? ''}
-                  {priceRows.filter(r => cart.includes(r.id)).reduce((s, r) => s + (r.price?.amount ?? 0), 0).toLocaleString()}
+                  {priceRows.filter(r => cart.includes(r.id)).reduce((s, r) => s + (r.price ? (r.price.has_promo ? r.price.promo_amount : r.price.amount) : 0), 0).toLocaleString()}
                 </p>
               </div>
               <button onClick={() => setShowSendModal(true)} style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(226,195,107,0.25)', background: 'transparent', color: goldMuted, fontSize: '11px', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>✉ Link</button>
