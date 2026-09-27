@@ -4,11 +4,16 @@
 // Detects visitor zone from IP, returns regional prices for both paid tiers.
 // Called by booking page on mount — replaces hardcoded EUR display.
 // D12: Single currency per user. Never returns dual currency.
+// UPDATED:   AI31 · Claude Sonnet 4.6 · 27 September 2026
+//            — Promo price wiring: features path enriched with resolvePromoPrices()
+//            — Unit conversion: getRegionalPrice() → ×100 → resolvePromoPrices() → ÷100
+//            — Tier path (honourPrice/premierPrice) untouched — legacy/outdated
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from 'next/server'
 import { detectRegionFromHeaders, detectRegion } from '@/lib/payments/regionDetector'
 import { getRegionalPrice } from '@/lib/payments/priceFetcher'
+import { resolvePromoPrices, type SupportedCurrency } from '@/lib/payments/promoResolver'
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,21 +34,77 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // ── Feature prices request (ServicesTab) ──────────────────────────────
+    // ── Feature prices request (ServicesTab / booking flow) ──────────────
     const featuresParam = req.nextUrl.searchParams.get('features')
 
     if (featuresParam) {
       const keys = featuresParam.split(',').map(k => k.trim()).filter(Boolean)
-      const featurePrices: Record<string, { amount: number; symbol: string; currency: string } | null> = {}
 
-      await Promise.all(keys.map(async key => {
-        try {
-          const p = await getRegionalPrice(key, zone)
-          featurePrices[key] = p ? { amount: p.amount, symbol: p.symbol, currency: p.currency } : null
-        } catch {
-          featurePrices[key] = null // unpublished or not found — show nothing
+      // Step 1: resolve regional base prices for all keys in parallel
+      const regionalResults = await Promise.all(
+        keys.map(async key => {
+          try {
+            const p = await getRegionalPrice(key, zone)
+            return { key, price: p }
+          } catch {
+            return { key, price: null }
+          }
+        })
+      )
+
+      // Step 2: build batch input for resolvePromoPrices()
+      // getRegionalPrice() returns whole units (e.g. 50 for €50).
+      // resolvePromoPrices() expects minor units (kobo/cents) — multiply ×100.
+      const batchInput = regionalResults
+        .filter(r => r.price !== null)
+        .map(r => ({
+          pricing_key: r.key,
+          currency:    r.price!.currency as SupportedCurrency,
+          base_price:  Math.round(r.price!.amount * 100),
+        }))
+
+      // Step 3: resolve promo for the whole batch in one DB fetch
+      const promoResults = batchInput.length > 0
+        ? await resolvePromoPrices(batchInput)
+        : []
+
+      // Build a lookup map: pricing_key → ResolvedPrice
+      const promoMap = new Map(promoResults.map(r => [r.pricing_key, r]))
+
+      // Step 4: merge into featurePrices response
+      // Divide minor-unit prices back to whole units for display.
+      const featurePrices: Record<string, {
+        amount:       number
+        symbol:       string
+        currency:     string
+        promo_amount: number
+        has_promo:    boolean
+        discount_pct: number | null
+        promo_label:  string | null
+        sold_out:     boolean
+      } | null> = {}
+
+      for (const { key, price } of regionalResults) {
+        if (!price) {
+          featurePrices[key] = null
+          continue
         }
-      }))
+
+        const resolved = promoMap.get(key)
+
+        featurePrices[key] = {
+          amount:       price.amount,
+          symbol:       price.symbol,
+          currency:     price.currency,
+          promo_amount: resolved
+            ? Math.round(resolved.promo_price / 100 * 100) / 100
+            : price.amount,
+          has_promo:    resolved?.has_promo    ?? false,
+          discount_pct: resolved?.discount_pct ?? null,
+          promo_label:  resolved?.promo_label  ?? null,
+          sold_out:     resolved?.sold_out      ?? false,
+        }
+      }
 
       return NextResponse.json({ zone, features: featurePrices })
     }
