@@ -28,6 +28,7 @@
 //            — featurePrices state type expanded to carry promo_amount, has_promo etc.
 //            — ServiceCard locked price render: strikethrough base + gold promo when has_promo
 //            — Floating bar total and cart chips now use promo_amount when has_promo
+//            — Floating bar: "You save Xκ — 50% off ✓" green savings line when promo active
 // UPDATED:   AI21 · Claude Opus 4.6 · 17 August 2026
 //            — QR code removed from D-Day Live Wall section
 //            — Live Wall description updated (no QR, clear URL-only instruction)
@@ -796,10 +797,26 @@ export default function ServicesTab({ capsule, approvedContributions, supabase, 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ flex: 1 }}>
                 <p style={{ margin: 0, fontSize: '10px', color: textFaint, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>Total</p>
-                <p style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: gold, lineHeight: 1.2 }}>
-                  {priceRows.filter(r => cart.includes(r.id)).find(r => r.price?.symbol)?.price?.symbol ?? ''}
-                  {priceRows.filter(r => cart.includes(r.id)).reduce((s, r) => s + (r.price ? (r.price.has_promo ? r.price.promo_amount : r.price.amount) : 0), 0).toLocaleString()}
+                <p style={{ margin: '0 0 1px', fontSize: '18px', fontWeight: 800, color: gold, lineHeight: 1.2 }}>
+                  {(() => {
+                    const cartRows = priceRows.filter(r => cart.includes(r.id))
+                    const sym = cartRows.find(r => r.price?.symbol)?.price?.symbol ?? ''
+                    const total = cartRows.reduce((s, r) => s + (r.price ? (r.price.has_promo ? r.price.promo_amount : r.price.amount) : 0), 0)
+                    return `${sym}${total.toLocaleString()}`
+                  })()}
                 </p>
+                {/* Savings line — green, only when at least one cart item has an active promo */}
+                {(() => {
+                  const cartRows = priceRows.filter(r => cart.includes(r.id) && r.price?.has_promo)
+                  if (cartRows.length === 0) return null
+                  const sym = cartRows[0].price!.symbol
+                  const saved = cartRows.reduce((s, r) => s + (r.price!.amount - r.price!.promo_amount), 0)
+                  return (
+                    <p style={{ margin: 0, fontSize: '10px', color: 'rgba(134,239,172,0.85)', fontWeight: 600, lineHeight: 1 }}>
+                      You save {sym}{saved.toLocaleString()} — 50% off ✓
+                    </p>
+                  )
+                })()}
               </div>
               <button onClick={() => setShowSendModal(true)} style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(226,195,107,0.25)', background: 'transparent', color: goldMuted, fontSize: '11px', fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>✉ Link</button>
               <button onClick={handleCartCheckout} disabled={unlocking === 'cart'} style={{ padding: '10px 24px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #E2C36B, #C9A84E)', color: '#1a0845', fontSize: '14px', fontWeight: 800, cursor: unlocking === 'cart' ? 'not-allowed' : 'pointer', letterSpacing: '0.04em', opacity: unlocking === 'cart' ? 0.7 : 1, flexShrink: 0 }}>

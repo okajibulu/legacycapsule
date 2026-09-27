@@ -61,7 +61,12 @@
    — featurePrices type expanded with promo_amount, has_promo, discount_pct, promo_label
    — getTotal() now sums promo_amount when has_promo, else amount
    — Screen 3 price render: strikethrough base + gold promo price when has_promo
-   VERSION: AI31v2.12.68
+   — getSavings() helper: total base-minus-promo across selected items
+   — Running total row: green "You save Xκ" line when promo active
+   — Checkout button label: "(50% launch price)" suffix when savings > 0
+   — pricesFetchWarning state: soft notice when some prices returned null
+   — Coming-soon badge: styled "Soon" pill on unavailable items (was plain text)
+   VERSION: AI31v2.12.71
 ========================================================= */
 
 /* =========================================================
@@ -304,6 +309,7 @@ function BookPage() {
     sold_out:     boolean
   } | null>>({})
   const [pricesLoading, setPricesLoading] = useState(false)
+  const [pricesFetchWarning, setPricesFetchWarning] = useState(false)
 
   // Gift delivery state — controls when recipient is notified
   // giftDeliverNow: true = immediate after payment, false = on specific date
@@ -332,8 +338,15 @@ function BookPage() {
     const keys = BOOKING_SERVICE_ORDER.join(',')
     fetch(`/api/regional-prices?features=${keys}`)
       .then(r => r.json())
-      .then(d => { if (d.features) setFeaturePrices(d.features) })
-      .catch(() => {})
+      .then(d => {
+        if (d.features) {
+          setFeaturePrices(d.features)
+          // Warn when ≥1 expected purchasable service has no price (silent DB gap)
+          const nullCount = BOOKING_SERVICE_ORDER.filter(k => d.features[k] === null).length
+          if (nullCount > 0) setPricesFetchWarning(true)
+        }
+      })
+      .catch(() => setPricesFetchWarning(true))
       .finally(() => setPricesLoading(false))
   }, [screen])
 
@@ -434,6 +447,21 @@ function BookPage() {
     }
     if (!symbol || total === 0) return null
     return { amount: total, symbol, currency }
+  }
+
+  // ═══ Calculate total savings from active promo across selected services ═══
+  // Returns null when no promo is active on any selected item.
+  function getSavings(): { amount: number; symbol: string } | null {
+    let saved = 0
+    let symbol = ''
+    for (const id of selectedServices) {
+      const p = featurePrices[id]
+      if (!p || !p.has_promo) continue
+      saved += p.amount - p.promo_amount
+      symbol = p.symbol
+    }
+    if (saved <= 0 || !symbol) return null
+    return { amount: saved, symbol }
   }
 
   // ═══ Proceed to bundle checkout ═══
@@ -746,7 +774,8 @@ function BookPage() {
      9e. SCREEN 3 — SERVICES SELECTOR (Book path only)
   ───────────────────────────────────────────────────────── */
   if (screen === 3) {
-    const total = getTotal()
+    const total   = getTotal()
+    const savings = getSavings()
     const hasUnpublished = selectedServices.some(id => featurePrices[id] === null)
 
     // ═══ Always Included — Free strip ═══
@@ -912,6 +941,15 @@ function BookPage() {
             Add to your capsule
           </p>
 
+          {/* Partial price-fetch warning — shown only when some services returned no price */}
+          {!pricesLoading && pricesFetchWarning && (
+            <div style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid rgba(248,113,113,0.2)', background: 'rgba(248,113,113,0.05)', marginBottom: '12px' }}>
+              <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.75)', margin: 0, lineHeight: 1.6 }}>
+                Some service prices couldn't be loaded for your region. You can still proceed — the prices shown are correct. If anything looks missing, please try refreshing.
+              </p>
+            </div>
+          )}
+
           {pricesLoading ? (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '2px solid rgba(226,195,107,0.2)', borderTopColor: gold, animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
@@ -989,7 +1027,7 @@ function BookPage() {
                           </div>
                         )}
                         {unavailable && (
-                          <span style={{ fontSize: '9px', color: textFaint, flexShrink: 0 }}>Available soon</span>
+                          <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)', color: textFaint, background: 'rgba(255,255,255,0.03)', flexShrink: 0, textTransform: 'uppercase' as const }}>Soon</span>
                         )}
                       </div>
 
@@ -1012,10 +1050,16 @@ function BookPage() {
           {total ? (
             <div style={{ padding: '14px 18px', borderRadius: '12px', border: '1px solid rgba(226,195,107,0.25)', background: 'rgba(226,195,107,0.06)', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <p style={{ fontSize: '10px', color: 'rgba(226,195,107,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px' }}>Your total</p>
-                <p style={{ fontSize: '10px', color: textFaint }}>{selectedServices.length} service{selectedServices.length !== 1 ? 's' : ''} added</p>
+                <p style={{ fontSize: '10px', color: 'rgba(226,195,107,0.6)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: '2px' }}>Your total</p>
+                <p style={{ fontSize: '10px', color: textFaint, margin: 0 }}>{selectedServices.length} service{selectedServices.length !== 1 ? 's' : ''} added</p>
+                {/* Savings line — only shown when promo is active on at least one selected item */}
+                {savings && (
+                  <p style={{ fontSize: '10px', color: 'rgba(134,239,172,0.85)', margin: '3px 0 0', fontWeight: 600 }}>
+                    You save {savings.symbol}{savings.amount.toLocaleString()} ✓
+                  </p>
+                )}
               </div>
-              <p style={{ fontSize: '22px', fontWeight: 800, color: gold, fontFamily: "'Playfair Display', serif" }}>
+              <p style={{ fontSize: '22px', fontWeight: 800, color: gold, fontFamily: "'Playfair Display', serif", margin: 0 }}>
                 {total.symbol}{total.amount.toLocaleString()}
               </p>
             </div>
@@ -1028,7 +1072,13 @@ function BookPage() {
           {error && <p style={{ fontSize: '12px', color: 'rgba(248,113,113,0.8)', marginBottom: '12px', textAlign: 'center' }}>{error}</p>}
 
           <PrimaryBtn onClick={handleCheckout} disabled={selectedServices.length === 0 || checkingOut || hasUnpublished} loading={checkingOut}>
-            {checkingOut ? 'Preparing checkout…' : total ? `Continue to Payment · ${total.symbol}${total.amount.toLocaleString()} →` : 'Select at least one service'}
+            {checkingOut
+              ? 'Preparing checkout…'
+              : total
+              ? savings
+                ? `Continue to Payment · ${total.symbol}${total.amount.toLocaleString()} (50% launch price) →`
+                : `Continue to Payment · ${total.symbol}${total.amount.toLocaleString()} →`
+              : 'Select at least one service'}
           </PrimaryBtn>
 
           <p style={{ fontSize: '11px', color: textFaint, marginTop: '12px', textAlign: 'center', lineHeight: 1.65 }}>
