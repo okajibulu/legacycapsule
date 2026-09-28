@@ -21,8 +21,16 @@
 //                       Body copy now event-type aware (6 variants).
 //                       "Digital Capsule Publication" established as brand term.
 //                       Pronouns: neutral "their" throughout.
-// VERSION:   AI20v2.11.94
-// DATE:      11 August 2026
+// UPDATED:   AI31 · Claude Sonnet 4.6 · 28 September 2026
+//            v2.11.95 — PB-1: Idempotency guard on subscriber fetch.
+//                       collectRecipients now filters publication_subscribers by
+//                       .is('sent_at', null) — only unsent subscribers are
+//                       included in each dispatch run. The update step at the end
+//                       already had this filter; subscriber fetch now matches.
+//                       Contributors + dday participants are not filtered (they
+//                       have no sent_at column — dedup Set prevents double-send).
+// VERSION:   AI31v2.11.95
+// DATE:      28 September 2026
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -150,11 +158,12 @@ async function collectRecipients(capsule_id: string): Promise<{
     }
   }
 
-  // ── Source 3: Publication subscribers ─────────────────────────────────
+  // ── Source 3: Publication subscribers (unsent only — idempotency guard) ──
   const { data: subs } = await db
     .from('publication_subscribers')
     .select('name, email')
     .eq('capsule_id', capsule_id)
+    .is('sent_at', null)
 
   for (const s of subs ?? []) {
     if (s.email?.trim()) {

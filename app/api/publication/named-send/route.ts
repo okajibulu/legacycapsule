@@ -18,8 +18,13 @@
 //                       nominees) who may not have contributed themselves.
 //                       "Digital Capsule Publication" as brand term throughout.
 //                       Pronouns: neutral "their" throughout.
-// VERSION:   AI20v2.11.94
-// DATE:      11 August 2026
+// UPDATED:   AI31 · Claude Sonnet 4.6 · 28 September 2026
+//            v2.11.95 — B-3: Insert row to publication_named_sends after each
+//                       successful email send (publication_id, capsule_id,
+//                       recipient_name, recipient_email, version_sent, sent_at).
+//                       Non-fatal — log insert errors but never skip the send count.
+// VERSION:   AI31v2.11.95
+// DATE:      28 September 2026
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -158,7 +163,7 @@ export async function POST(req: NextRequest) {
     // ── Fetch publication ────────────────────────────────────────────────
     const { data: pub } = await db
       .from('publications')
-      .select('render_token, pdf_url, version')
+      .select('id, render_token, pdf_url, version')
       .eq('capsule_id', capsule_id)
       .maybeSingle()
 
@@ -198,6 +203,23 @@ export async function POST(req: NextRequest) {
           }),
         })
         sent++
+
+        // Log this named send \u2014 non-fatal if insert fails
+        if (pub?.id) {
+          const { error: insertErr } = await db
+            .from('publication_named_sends')
+            .insert({
+              publication_id:  pub.id,
+              capsule_id,
+              recipient_name:  name,
+              recipient_email: email,
+              version_sent:    currentVersion,
+              sent_at:         new Date().toISOString(),
+            })
+          if (insertErr) {
+            console.error(`[named-send] Failed to log send for ${email}:`, insertErr.message)
+          }
+        }
       } catch (emailErr) {
         console.error(`[named-send] Failed for ${email}:`, emailErr)
         errors.push(email)

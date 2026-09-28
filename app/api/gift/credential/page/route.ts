@@ -15,6 +15,13 @@
 //   The token in /gift/collect/[token] IS the qr_payload stored in gift_credentials.
 //   Token lookup: exact match on gift_credentials.qr_payload.
 //   No auth required — token authenticates the guest.
+//
+// UPDATED:   AI31 · Claude Sonnet 4.6 · 28 September 2026
+//            G-1: Fixed silent failure in visit tracking fire-and-forget block.
+//              — Insert error now logged (was silently swallowed)
+//              — writeLedgerEvent wrapped in its own try/catch so a ledger
+//                failure doesn't suppress the visit log success branch
+// VERSION:   AI31v2.12.22
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -123,7 +130,11 @@ export async function GET(req: NextRequest) {
         credential_id: credential.id,
         capsule_id:    credential.capsule_id,
       })
-      if (!visitErr) {
+      if (visitErr) {
+        console.error('[GCS Credential Page] Visit insert failed:', visitErr.message)
+        return
+      }
+      try {
         writeLedgerEvent({
           capsule_id:    credential.capsule_id,
           event_type:    'CODE_VIEWED',
@@ -132,6 +143,8 @@ export async function GET(req: NextRequest) {
           credential_id: credential.id,
           payload:       { visit_logged: true },
         })
+      } catch (ledgerErr) {
+        console.error('[GCS Credential Page] Ledger event failed (non-fatal):', ledgerErr)
       }
     } catch {
       // Visit logging failure never surfaces to guest
