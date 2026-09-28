@@ -405,7 +405,7 @@ export default function EditTributePage() {
         .eq('id', contribution.id)
 
       if (updateError) {
-        setSaveError('Something went wrong. Please try again.')
+        setSaveError("We couldn't save your tribute — please try once more.")
         setSaving(false)
         return
       }
@@ -414,7 +414,7 @@ export default function EditTributePage() {
       window.scrollTo({ top: 0, behavior: 'smooth' })
 
     } catch {
-      setSaveError('Something went wrong. Please try again.')
+      setSaveError("We couldn't save your tribute — please try once more.")
     }
 
     setSaving(false)

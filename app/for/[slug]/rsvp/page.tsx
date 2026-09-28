@@ -141,7 +141,7 @@ export default function RSVPPage() {
         setPageState('form')
 
       } catch {
-        setErrorMsg('Could not load event details. Please try again.')
+        setErrorMsg('We had trouble loading the event details — please refresh and try again.')
         setPageState('error')
       }
     }
@@ -173,7 +173,7 @@ export default function RSVPPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setErrorMsg(data.error || 'Something went wrong. Please try again.')
+        setErrorMsg(data.error || "We couldn't record your response — please try once more.")
         setPageState('form')
         return
       }

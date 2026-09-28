@@ -312,7 +312,7 @@ export default function DDayPage() {
             setUploadError(data.message)
             break
           }
-          setUploadError(data.error ?? 'Upload failed. Please try again.')
+          setUploadError(data.error ?? "We couldn't save that photo — please try once more.")
           continue
         }
 

@@ -242,7 +242,7 @@ export default function HonoureePortalClient({ capsule, tributes, supportAccount
             {tributes.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '48px 24px' }}>
                 <p style={{ fontSize: '32px', marginBottom: '12px' }}>✦</p>
-                <p style={{ fontSize: '14px', color: textFaint, lineHeight: 1.7 }}>No tributes yet. They will appear here as they are approved.</p>
+                <p style={{ fontSize: '14px', color: textFaint, lineHeight: 1.7 }}>Voices will gather here as tributes arrive and are approved.</p>
               </div>
             ) : tributes.map(tribute => (
               <TributeRepCard
