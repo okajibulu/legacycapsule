@@ -1,8 +1,8 @@
 // -----------------------------------------------------------------------------
-// lib/payments/PaymentService.ts
-// Unified payment orchestrator. All API routes call this, never an adapter
-// directly. Handles: region detection, price fetching, payment record creation,
-// processor routing, and payment status updates.
+// FILE PATH: lib/payments/PaymentService.ts
+// PURPOSE:   Unified payment orchestrator. All API routes call this, never an
+//            adapter directly. Handles: region detection, price fetching,
+//            payment record creation, processor routing, payment status updates.
 //
 // Route map (current):
 //   Public tribute wall:  /for/[slug]
@@ -11,6 +11,12 @@
 //
 // Phase 1: Stripe only.
 // Phase 2: add 'paystack' case to createCheckout() for NG/GH/KE zones.
+//
+// UPDATED:   AI31 · Claude Sonnet 4.6 · 28 September 2026
+//            M-7: confirmPayment — added .eq('status', 'pending') idempotency
+//              guard. Webhook retries now no-op instead of overwriting paid_at
+//              and processor_ref on an already-succeeded payment.
+// VERSION:   AI31v2.x.1
 // -----------------------------------------------------------------------------
 
 // ─── IMPORTS ──────────────────────────────────────────────────────────────────
@@ -206,6 +212,11 @@ export async function confirmPayment(
   stripe_session_id?:      string,
   stripe_payment_intent?:  string
 ): Promise<void> {
+  // M-7: Idempotency guard — only update if still pending.
+  // Webhooks can fire twice on retry; a second confirm must be a no-op
+  // to prevent overwriting paid_at and processor_ref on an already-succeeded
+  // payment. Supabase returns no error when zero rows match the filter —
+  // treat that as success (payment already confirmed by the first webhook).
   const { error } = await db
     .from('payments')
     .update({
@@ -218,6 +229,7 @@ export async function confirmPayment(
       updated_at:            new Date().toISOString(),
     })
     .eq('id', payment_id)
+    .eq('status', 'pending')   // ← idempotency guard: no-op if already succeeded
 
   if (error) {
     throw new Error(`Failed to confirm payment ${payment_id}: ${error.message}`)

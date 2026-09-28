@@ -1,6 +1,6 @@
 'use client'
 
-// FILE: components/PremiumsPanel.tsx
+// FILE PATH: components/PremiumsPanel.tsx
 // PURPOSE: Bottom sheet panel for the Premiums tab in CapsuleBottomNav.
 //          Shows all guest-facing premium services. Active ones are functional,
 //          inactive ones are greyed with hover/tap tooltip.
@@ -8,12 +8,17 @@
 //          All other active services navigate to their own page.
 // UPDATED: AI13 - Claude Opus 4.6 - 22 July 2026
 //   -- z-index raised to 60/61 (above submission panel at 50)
+// UPDATED: AI31 · Claude Sonnet 4.6 · 28 September 2026
+//   M-5: ServiceButton tooltip now closes on window scroll. On mobile,
+//        onMouseLeave never fires during touch scroll — tooltip was stranded.
+//        Added useEffect scroll listener (passive, once) that fires setTooltipVisible(false).
+// VERSION: AI31v2.x.1
 
 // ============================================================
 // SECTION 1 -- Imports & types
 // ============================================================
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import WaysToHonourSection from '@/components/WaysToHonourSection'
 
@@ -121,6 +126,16 @@ function ServiceButton({ service, isActive, slug, onGifting }: {
   onGifting: () => void
 }) {
   const [tooltipVisible, setTooltipVisible] = useState(false)
+
+  // M-5: Close tooltip on scroll — on mobile, onMouseLeave never fires during
+  // touch scrolling, leaving the tooltip stranded. Attach a one-time scroll
+  // listener whenever the tooltip opens; remove it on close or component unmount.
+  useEffect(() => {
+    if (!tooltipVisible) return
+    const close = () => setTooltipVisible(false)
+    window.addEventListener('scroll', close, { passive: true, once: true })
+    return () => window.removeEventListener('scroll', close)
+  }, [tooltipVisible])
 
   if (!isActive) {
     return (

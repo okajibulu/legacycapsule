@@ -21,8 +21,12 @@
 //              (was never set; render_token is the correct existence check).
 //            — All other sections untouched: init, autosave, photos,
 //              tributes, generation, family preview, named send.
-// VERSION:   AI20v2.11.96
-// DATE:      11 August 2026
+// UPDATED:   AI31 · Claude Sonnet 4.6 · 28 September 2026
+//            M-3: Init effect now fetches publication_named_sends history
+//              (20 most recent) from the DB after pub_id is resolved.
+//              Named send log no longer resets on page refresh.
+// VERSION:   AI31v2.11.97
+// DATE:      28 September 2026
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -340,6 +344,21 @@ export default function PublicationEditor({
         if (pubRow?.render_token) setCurrentToken(pubRow.render_token);
         if (pubRow?.generated_at) setCurrentGeneratedAt(pubRow.generated_at);
         if (pubRow?.version)      setPubVersion(pubRow.version);
+
+        // M-3: Load named send history so the log survives page refresh.
+        // Fetch the 20 most recent sends for this publication from the DB.
+        // Displayed in the sidebar as a session-persistent audit trail.
+        if (pub_id) {
+          const { data: sendHistory } = await supabase
+            .from('publication_named_sends')
+            .select('id, recipient_name, recipient_email, version_sent, sent_at')
+            .eq('publication_id', pub_id)
+            .order('sent_at', { ascending: false })
+            .limit(20);
+          if (sendHistory && sendHistory.length > 0) {
+            setNamedSends(sendHistory);
+          }
+        }
 
         const allPhotoIds = getAllPhotoIds(layout_config);
         if (allPhotoIds.length > 0) {
