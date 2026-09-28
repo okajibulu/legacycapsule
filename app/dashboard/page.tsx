@@ -51,9 +51,9 @@ function CapsuleCard({ capsule }: { capsule: CapsuleRow }) {
   let expiryUrgent = false
   if (isFree && capsule.free_tier_expires_at) {
     const daysLeft = Math.ceil((new Date(capsule.free_tier_expires_at).getTime() - Date.now()) / 86400000)
-    if (daysLeft <= 0) { expiryLabel = 'Expired'; expiryUrgent = true }
-    else if (daysLeft <= 14) { expiryLabel = `${daysLeft}d before expiry`; expiryUrgent = true }
-    else { expiryLabel = `${daysLeft} days before capsule expiry` }
+    if (daysLeft <= 0) { expiryLabel = 'Collection closed'; expiryUrgent = true }
+    else if (daysLeft <= 14) { expiryLabel = `${daysLeft}d before wall closes`; expiryUrgent = true }
+    else { expiryLabel = `${daysLeft} days before wall closes` }
   }
 
   return (
