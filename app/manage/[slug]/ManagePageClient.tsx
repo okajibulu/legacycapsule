@@ -37,7 +37,13 @@
 //            — AdminLoginPanel added — password login slides over magic link
 //            — /api/team/verify route — email + password → session cookie
 //            — showPasswordLogin state added
-// 
+//
+// UPDATED:   AI31 · Claude Opus 4.6 · 28 September 2026 (AI31v2.12.75)
+//            — Payment success celebration banner on overview tab
+//            — Detects ?payment=success, fetches latest-confirmation API
+//            — Founding Customer slot number displayed when promo claimed
+//            — Banner dismissible, gold-border LC design language
+//
 // ============================================================
 // SECTIONS:
 //   See sub-section headers (// === SECTION N) within file
@@ -1846,6 +1852,13 @@ const [heroUploading, setHeroUploading] = useState(false)
   const [showHeroPicker, setShowHeroPicker] = useState(false)
   const [settingsTab, setSettingsTab] = useState<SettingsSubTab>('capsule')
  const [showPasswordLogin, setShowPasswordLogin] = useState(false)
+  // ── Payment success celebration state ──
+  const [paymentSuccess, setPaymentSuccess] = useState(false)
+  const [paymentConfirmation, setPaymentConfirmation] = useState<{
+    amount: number; currency: string; packageTier: string;
+    promoSlot: number | null; promoLabel: string | null;
+  } | null>(null)
+  const [celebrationDismissed, setCelebrationDismissed] = useState(false)
   const heroPhotoRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -1872,6 +1885,23 @@ const [heroUploading, setHeroUploading] = useState(false)
     }
     checkSession()
   }, [])
+
+  // ── Detect ?payment=success and fetch confirmation data ──
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('payment') === 'success') {
+      setPaymentSuccess(true)
+      // Clean the URL
+      window.history.replaceState({}, '', window.location.pathname)
+      // Fetch confirmation details
+      fetch(`/api/payment/latest-confirmation?slug=${slug}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.found) setPaymentConfirmation(data)
+        })
+        .catch(() => {/* non-fatal */})
+    }
+  }, [slug])
 
   const fetchAll = useCallback(async () => {
     if (!slug) return
@@ -2207,6 +2237,65 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
           {/* -- OVERVIEW TAB -- */}
           {activeTab === 'overview' && (
             <div>
+              {/* ── Payment success celebration banner ── */}
+              {paymentSuccess && !celebrationDismissed && (
+                <div style={{
+                  marginBottom: '18px', padding: '3px', borderRadius: '18px',
+                  background: 'linear-gradient(135deg, #D4AE2A, #B8960C, #D4AE2A)',
+                }}>
+                  <div style={{
+                    padding: '24px 28px', borderRadius: '16px',
+                    background: '#F5F3EE', position: 'relative',
+                  }}>
+                    {/* Dismiss button */}
+                    <button
+                      onClick={() => setCelebrationDismissed(true)}
+                      style={{
+                        position: 'absolute', top: '12px', right: '14px',
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        fontSize: '18px', color: '#9090a0', lineHeight: 1,
+                      }}
+                      aria-label="Dismiss"
+                    >&times;</button>
+
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ margin: '0 0 6px', fontSize: '28px', color: '#D4AE2A' }}>&#10022;</p>
+                      <h2 style={{
+                        margin: '0 0 8px', fontFamily: "Georgia, 'Playfair Display', serif",
+                        fontSize: '20px', fontWeight: 700, color: '#2D1B69', lineHeight: 1.35,
+                      }}>
+                        Payment Confirmed
+                      </h2>
+                      <p style={{ margin: '0 0 16px', fontSize: '14px', color: '#4a4a5e', lineHeight: 1.6 }}>
+                        Your services are now active. Share your capsule link and start receiving tributes.
+                      </p>
+
+                      {/* Founding Customer badge */}
+                      {paymentConfirmation?.promoSlot && paymentConfirmation?.promoLabel && (
+                        <div style={{
+                          display: 'inline-block', padding: '14px 28px', borderRadius: '12px',
+                          background: 'linear-gradient(135deg, rgba(212,174,42,0.12), rgba(212,174,42,0.06))',
+                          border: '1px solid rgba(212,174,42,0.25)', marginBottom: '12px',
+                        }}>
+                          <p style={{
+                            margin: '0 0 2px', fontSize: '10px', fontWeight: 800,
+                            letterSpacing: '0.15em', color: '#D4AE2A', textTransform: 'uppercase' as const,
+                          }}>
+                            {paymentConfirmation.promoLabel}
+                          </p>
+                          <p style={{
+                            margin: 0, fontSize: '24px', fontWeight: 700, color: '#2D1B69',
+                            fontFamily: "Georgia, 'Playfair Display', serif",
+                          }}>
+                            Customer #{paymentConfirmation.promoSlot}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* ── Tier upgrade panel — shown when wall is warning or full ── */}
               <TierUpgradePanel
                 capsuleId={capsule.id}

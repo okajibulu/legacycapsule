@@ -15,9 +15,13 @@
 //   — Promo slot claim added after unlockCapsuleFeatures()
 //     Fetches organiser_email via payments→capsules join (not in Paystack payload)
 //     Atomic DB claim via tryClaimPromoSlot() — non-fatal, never blocks activation
+// UPDATED:   AI31 · Claude Opus 4.6 · 28 September 2026
+//   — Payment confirmation email sent after promo claim (fire-and-forget)
+//     Fetches capsule + payment fields for email content
+//     Uses sendPaymentConfirmation() from lib/email/
 // UPDATED:   AI20 · Claude Opus 4.6 · 11 August 2026
-// VERSION:   AI20v2.11.97
-// DATE:      11 August 2026
+// VERSION:   AI31v2.12.73
+// DATE:      28 September 2026
 //
 // SETUP REQUIRED:
 //   1. Register https://itslegacycapsule.com/api/webhooks/paystack in
@@ -37,6 +41,7 @@ import {
 import { unlockCapsuleFeatures }     from '@/lib/payments/featureUnlocker'
 import { tryClaimPromoSlot }        from '@/lib/payments/promoClaim'
 import { confirmPayment, failPayment } from '@/lib/payments/PaymentService'
+import { sendPaymentConfirmation } from '@/lib/email/sendPaymentConfirmation'
 
 // ═══ SECTION 1 — DB client ═══
 
@@ -131,30 +136,61 @@ export async function POST(req: NextRequest) {
         // Unlock capsule features
         await unlockCapsuleFeatures(payment_id)
 
-        // Promo slot claim — non-fatal, atomic at DB level
-        // Fetch organiser_email via payment record (not in Paystack payload)
+        // Promo slot claim + confirmation email
+        // Fetch payment + capsule data needed for both (not in Paystack payload)
+        let promoResult: { claimed?: boolean | null; slot?: number; promo_label?: string; discount_pct?: number } = {}
+        let capsuleData: { organiser_email?: string; honouree_name?: string; event_type?: string; event_tag?: string; slug?: string } = {}
+        let paymentData: { capsule_id?: string; amount?: number; currency?: string; package_tier?: string } = {}
+
         try {
           const { data: pmtRow } = await db
             .from('payments')
-            .select('capsule_id')
+            .select('capsule_id, amount, currency, package_tier')
             .eq('id', payment_id)
             .maybeSingle()
-          if (pmtRow?.capsule_id) {
-            const { data: cap } = await db
-              .from('capsules')
-              .select('organiser_email')
-              .eq('id', pmtRow.capsule_id)
-              .maybeSingle()
-            if (cap?.organiser_email) {
-              await tryClaimPromoSlot(
-                cap.organiser_email,
-                pmtRow.capsule_id,
-                payment_id
-              )
+          if (pmtRow) {
+            paymentData = pmtRow
+            if (pmtRow.capsule_id) {
+              const { data: cap } = await db
+                .from('capsules')
+                .select('organiser_email, honouree_name, event_type, event_tag, slug')
+                .eq('id', pmtRow.capsule_id)
+                .maybeSingle()
+              if (cap) {
+                capsuleData = cap
+                if (cap.organiser_email) {
+                  promoResult = await tryClaimPromoSlot(
+                    cap.organiser_email,
+                    pmtRow.capsule_id,
+                    payment_id
+                  )
+                }
+              }
             }
           }
         } catch (promoErr) {
           console.error('[paystack-webhook] promo claim error (non-fatal):', promoErr)
+        }
+
+        // Send payment confirmation email — fire-and-forget
+        if (capsuleData.organiser_email && capsuleData.slug) {
+          sendPaymentConfirmation({
+            organiserEmail: capsuleData.organiser_email,
+            honoureeName:   capsuleData.honouree_name ?? 'your honouree',
+            capsuleSlug:    capsuleData.slug,
+            eventType:      capsuleData.event_type ?? '',
+            eventTag:       capsuleData.event_tag ?? '',
+            packageTier:    paymentData.package_tier ?? '',
+            amount:         paymentData.amount ?? 0,
+            currency:       paymentData.currency ?? 'NGN',
+            processor:      'paystack',
+            paymentId:      payment_id,
+            promoSlot:      promoResult.claimed === true ? (promoResult.slot ?? null) : null,
+            promoLabel:     promoResult.claimed === true ? (promoResult.promo_label ?? null) : null,
+            discountPct:    promoResult.claimed === true ? (promoResult.discount_pct ?? null) : null,
+          }).catch(emailErr => {
+            console.error('[paystack-webhook] confirmation email error (non-fatal):', emailErr)
+          })
         }
 
         console.log(`[paystack-webhook] Payment ${payment_id} confirmed + features unlocked`)
