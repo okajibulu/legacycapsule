@@ -4,8 +4,13 @@
 // ARCHITECTURE: LC02
 // BUILT BY:  AI6
 // UPDATED:   AI13 - Claude Sonnet 4.6
-// VERSION:   v2.1.1
-// DATE:      22 July 2026
+// UPDATED:   AI31 · Claude Sonnet 4.6 · 28 September 2026
+//            P-1: Event Phases block moved inside <main> before Contributor Gallery
+//                 (was orphaned outside </main>, skipped by DOM flow)
+//                 hasPhases prop fixed: false → phases.length > 0
+//                 Phase heading now uses consistent sectionHeadingStyle + headingLabelStyle
+// VERSION:   AI31v2.1.2
+// DATE:      28 September 2026
 // ============================================================
 // SECTIONS:
 //   See sub-section headers (// === SECTION N) within file
@@ -132,13 +137,15 @@ export default async function ProfilePage({ params }: PageProps) {
       .is('deleted_at', null)
       .order('sort_order', { ascending: true })
     if (pData && pData.length > 0) {
-      // Fetch total photo count per phase — all types (guest + official)
+      // Fetch guest photo count per phase — excludes official photography to
+      // match the "X people were here" count shown on the story page (E-1 fix)
       const counts = await Promise.all(pData.map(async p => {
         const { count } = await adminClient
           .from('gallery_items')
           .select('id', { count: 'exact', head: true })
           .eq('phase_id', p.id)
           .in('source', ['dday', 'contributor_gallery'])
+          .eq('is_official_photography', false)
           .eq('approved', true)
         return { ...p, photo_count: count ?? 0 }
       }))
@@ -420,6 +427,61 @@ const { data: latestSection } = await adminClient
           })
         })()}
 
+        {/* ── Event Phases — pre-announcement strip ── */}
+        {phases.length > 0 && (
+          <div style={{ marginBottom: '32px' }}>
+            <div style={sectionHeadingStyle}>
+              <div style={ruleStyle} />
+              <p style={headingLabelStyle}>Event Phases</p>
+              <div style={ruleRightStyle} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {phases.map((phase) => (
+                <a
+                  key={phase.id}
+                  href={`/for/${slug}/story/${phase.id}`}
+                  className="lc-phase-link"
+                  style={{
+                    display:        'flex',
+                    alignItems:     'center',
+                    justifyContent: 'space-between',
+                    padding:        '12px 16px',
+                    borderRadius:   '12px',
+                    background:     'rgba(255,255,255,0.04)',
+                    border:         `1px solid ${t.accentFaint}`,
+                    textDecoration: 'none',
+                    cursor:         'pointer',
+                  }}
+                >
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff', margin: '0 0 2px' }}>
+                      {phase.name}
+                    </p>
+                    {phase.event_date && (
+                      <p style={{ fontSize: '11px', color: t.textFaint, margin: 0 }}>
+                        {new Date(phase.event_date).toLocaleDateString('en-GB', {
+                          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+                        })}
+                      </p>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    {phase.photo_count > 0 && (
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: t.accentMuted }}>
+                        📸 {phase.photo_count} photo{phase.photo_count !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                    <span style={{ fontSize: '14px', color: t.accentMuted }}>→</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+            <p style={{ fontSize: '11px', color: t.textFaint, marginTop: '10px', lineHeight: 1.65 }}>
+              On event day, guests can share their own photos and memories from each phase. Scan the QR code at the venue or visit the tribute wall link.
+            </p>
+          </div>
+        )}
+
         {/* ── Contributor Gallery — CG-SPEC-001 ── */}
         <div id="lc-contributor-gallery" style={{ marginBottom: '32px' }}>
           <div style={sectionHeadingStyle}>
@@ -522,63 +584,7 @@ A story worth preserving.<br />The organiser is preparing this profile — check
           )
         })()}
 
- 
       </main>
-
-{/* ── Event Phases — pre-announcement strip ── */}
-      {phases.length > 0 && (
-        
-        <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 16px 24px' }}>
-          <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: t.accentMuted, marginBottom: '10px' }}>
-            Event Phases
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {phases.map((phase) => (   
-                <a   
-                   key={phase.id}
-                      href={`/for/${slug}/story/${phase.id}`}
-                      className="lc-phase-link"
-                      style={{
-                        display:        'flex',
-                        alignItems:     'center',
-                        justifyContent: 'space-between',
-                        padding:        '12px 16px',
-                        borderRadius:   '12px',
-                        background:     'rgba(255,255,255,0.04)',
-                        border:         `1px solid ${t.accentFaint}`,
-                        textDecoration: 'none',
-                        cursor:         'pointer',
-                      }}
-                    >
-                      <div>
-                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff', margin: '0 0 2px' }}>
-                          {phase.name}
-                        </p>
-                        {phase.event_date && (
-                          <p style={{ fontSize: '11px', color: t.textFaint, margin: 0 }}>
-                            {new Date(phase.event_date).toLocaleDateString('en-GB', {
-                              weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-                            })}
-                          </p>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                        {phase.photo_count > 0 && (
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: t.accentMuted }}>
-                            📸 {phase.photo_count} photo{phase.photo_count !== 1 ? 's' : ''}
-                          </span>
-                        )}
-                        <span style={{ fontSize: '14px', color: t.accentMuted }}>→</span>
-                      </div>
-                    </a>
-                  ))}
-                  
-          </div>
-          <p style={{ fontSize: '11px', color: t.textFaint, marginTop: '10px', lineHeight: 1.65 }}>
-            On event day, guests can share their own photos and memories from each phase. Scan the QR code at the venue or visit the tribute wall link.
-          </p>
-        </div>
-      )}
 
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '0 20px 8px' }}>
         <ActivePremiumsStrip slug={slug} components={capsule.components ?? []} />
@@ -589,7 +595,7 @@ A story worth preserving.<br />The organiser is preparing this profile — check
         currentPage="profile"
         components={capsule.components ?? []}
         contributorCount={contributorCount}
-        hasPhases={false}
+        hasPhases={phases.length > 0}
         themeKey={themeKey}
         capsuleId={capsule.id}
         honourName={capsule.honouree_name}
