@@ -7,6 +7,13 @@
 // ─── UPDATE HISTORY ────────────────────────────────────────────────────────
 // AI29 · 25 Sep 2026 · Initial build — promo counter banner + inline chip
 //   Rewrote from Tailwind className to LC inline-style design system
+// AI31 · Claude Sonnet 4.6 · 28 September 2026
+//   M-9: Counter visibility threshold — raw "X of Y claimed" number and
+//        progress bar only shown when claimed >= 70% of limit. Below that,
+//        urgency copy ("Founding pricing closes when capacity fills…") is
+//        shown instead. This prevents the low-count anti-pattern where
+//        "3 of 50 claimed" signals low demand rather than urgency.
+//        Threshold is percentage-based so it scales with any cap value.
 // ───────────────────────────────────────────────────────────────────────────
 //
 // ─── PURPOSE ───────────────────────────────────────────────────────────────
@@ -97,6 +104,13 @@ export function LaunchPromoBanner({
   const remaining = promo.remaining ?? null
   const discPct   = promo.discount_pct ?? 50
 
+  // M-9: Counter visibility — only reveal the raw number when ≥70% claimed.
+  // Below that threshold, showing "3 of 50 claimed" signals low demand.
+  // Once we hit 70%+ the scarcity is credible and the number itself persuades.
+  const COUNTER_VISIBILITY_THRESHOLD = 0.70
+  const claimedPct  = limit && limit > 0 ? claimed / limit : 0
+  const showCounter = claimedPct >= COUNTER_VISIBILITY_THRESHOLD
+
   const urgency =
     remaining !== null && remaining <= 5
       ? 'critical'
@@ -110,11 +124,19 @@ export function LaunchPromoBanner({
     critical: `Experience a new way to capture, preserve and share your premium event memories.`,
   }
 
-  const urgencySub: Record<string, string> = {
-    normal:   `Be part of the 50% off offer for the next ${remaining !== null ? remaining : limit} bookings.`,
-    high:     `Only ${remaining} spots left — be part of the 50% off offer before it closes.`,
-    critical: `${remaining} spot${remaining === 1 ? '' : 's'} remaining — 50% off, closing soon.`,
-  }
+  // M-9: Sub-line copy — when counter is hidden, use founding-pricing urgency copy.
+  // When counter is visible (≥70% claimed), revert to scarcity-count copy.
+  const urgencySub: Record<string, string> = showCounter
+    ? {
+        normal:   `Be part of the 50% off offer for the next ${remaining !== null ? remaining : limit} bookings.`,
+        high:     `Only ${remaining} spots left — be part of the 50% off offer before it closes.`,
+        critical: `${remaining} spot${remaining === 1 ? '' : 's'} remaining — 50% off, closing soon.`,
+      }
+    : {
+        normal:   `Founding pricing is available for a limited number of events only. Once capacity closes, it won't reopen at this price.`,
+        high:     `Founding pricing is available for a limited number of events only. Once capacity closes, it won't reopen at this price.`,
+        critical: `Founding pricing is available for a limited number of events only. Once capacity closes, it won't reopen at this price.`,
+      }
 
   const barWidth = limit ? Math.min(100, Math.round((claimed / limit) * 100)) : 0
 
@@ -151,8 +173,8 @@ export function LaunchPromoBanner({
         {urgencySub[urgency]}
       </p>
 
-      {/* ── Progress bar ── */}
-      {limit !== null && (
+      {/* ── Progress bar — only shown once ≥70% claimed (M-9) ── */}
+      {limit !== null && showCounter && (
         <div style={{ marginTop: '12px' }}>
           <div style={{
             display:        'flex',
