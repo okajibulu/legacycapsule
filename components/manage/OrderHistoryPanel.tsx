@@ -96,7 +96,7 @@ function ExpiryBadge({ expiresAt }: { expiresAt: string | null }) {
 
   return (
     <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' as const, padding: '3px 8px', borderRadius: '20px', background: expired ? 'rgba(248,113,113,0.08)' : 'rgba(251,191,36,0.08)', border: `1px solid ${expired ? 'rgba(248,113,113,0.25)' : 'rgba(251,191,36,0.25)'}`, color: expired ? 'rgba(248,113,113,0.8)' : 'rgba(251,191,36,0.8)', flexShrink: 0 }}>
-      {expired ? 'Expired' : `Expires ${formatDate(expiresAt)}`}
+      {expired ? 'Collection closed' : `Closes ${formatDate(expiresAt)}`}
     </span>
   )
 }
@@ -209,7 +209,7 @@ export default function OrderHistoryPanel({ capsuleId }: { capsuleId: string }) 
                     <ExpiryBadge expiresAt={order.expires_at} />
                     {!isExpired(order.expires_at) && !isExpiringSoon(order.expires_at) && (
                       <span style={{ fontSize: '10px', color: textFaint }}>
-                        Expires {formatDate(order.expires_at)}
+                        Closes {formatDate(order.expires_at)}
                       </span>
                     )}
                   </div>

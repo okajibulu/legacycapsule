@@ -395,7 +395,7 @@ function LimitsBar({ capsuleId, onUpgrade }: { capsuleId: string; onUpgrade: () 
         </p>
         {limits.days_remaining.days !== null && (
           <p style={{ fontSize: '10px', color: limits.days_remaining.days < 14 ? 'rgba(248,113,113,0.8)' : 'rgba(255,255,255,0.35)', margin: 0 }}>
-            {limits.days_remaining.days > 0 ? `${limits.days_remaining.days} days remaining` : 'Expired'}
+            {limits.days_remaining.days > 0 ? `${limits.days_remaining.days} days remaining` : 'Collection closed'}
           </p>
         )}
       </div>

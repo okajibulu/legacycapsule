@@ -12,10 +12,11 @@
 //           tribute text pathway removed, config-driven limits
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@supabase/supabase-js'
-import sharp                         from 'sharp'
-import crypto                        from 'crypto'
+import { NextRequest, NextResponse }                       from 'next/server'
+import { createClient }                                    from '@supabase/supabase-js'
+import sharp                                               from 'sharp'
+import crypto                                              from 'crypto'
+import { checkCollectionWindow, WINDOW_CLOSED_MESSAGES }  from '@/lib/capsule/collectionWindowGuard'
 
 // ═══ SECTION 1 — Clients ═══
 
@@ -222,7 +223,7 @@ export async function POST(req: NextRequest) {
 
     const { data: capsule, error: capsuleError } = await db
       .from('capsules')
-      .select('id, page_state')
+      .select('id, page_state, free_tier_expires_at')
       .eq('slug', capsule_slug.trim())
       .is('deleted_at', null)
       .maybeSingle()
@@ -245,12 +246,13 @@ export async function POST(req: NextRequest) {
 
     // From this point onward, always use the server-resolved capsule ID.
     const resolvedCapsuleId = capsule.id
-    
 
-
-    if (capsule.page_state !== 'active') {
+    // Collection window guard — checks page_state AND free_tier_expires_at.
+    // No cron required: each request self-enforces based on the expiry date.
+    const window = checkCollectionWindow(capsule.page_state, capsule.free_tier_expires_at)
+    if (!window.open) {
       return NextResponse.json(
-        { error: 'This capsule is not currently accepting uploads.' },
+        { error: WINDOW_CLOSED_MESSAGES[window.reason] },
         { status: 403 }
       )
     }

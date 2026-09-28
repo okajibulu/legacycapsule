@@ -10,9 +10,10 @@
 // DATE:      24 August 2026
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@supabase/supabase-js'
-import { sendContributorThankYou }   from '@/lib/email/sendContributorThankYou'
+import { NextRequest, NextResponse }                        from 'next/server'
+import { createClient }                                     from '@supabase/supabase-js'
+import { sendContributorThankYou }                          from '@/lib/email/sendContributorThankYou'
+import { checkCollectionWindow, WINDOW_CLOSED_MESSAGES }   from '@/lib/capsule/collectionWindowGuard'
 
 // ═══ SECTION 1 — Client ═══
 
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
     // ── Capsule check ───────────────────────────────────────────────────
     const { data: capsule } = await db
       .from('capsules')
-      .select('id, honouree_name, slug, page_state')
+      .select('id, honouree_name, slug, page_state, free_tier_expires_at')
       .eq('id', capsuleId)
       .maybeSingle()
 
@@ -64,8 +65,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Capsule not found.' }, { status: 404 })
     }
 
-    if (capsule.page_state === 'suspended') {
-      return NextResponse.json({ error: 'This capsule is currently unavailable.' }, { status: 403 })
+    // Collection window guard — checks page_state AND free_tier_expires_at.
+    // No cron required: each request self-enforces based on the expiry date.
+    const window = checkCollectionWindow(capsule.page_state, capsule.free_tier_expires_at)
+    if (!window.open) {
+      return NextResponse.json(
+        { error: WINDOW_CLOSED_MESSAGES[window.reason] },
+        { status: 403 }
+      )
     }
 
     // ── Per-person limit check ──────────────────────────────────────────

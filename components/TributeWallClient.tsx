@@ -901,6 +901,19 @@ const handleCopy = async () => {
   const handleSubmit = async () => {
     if (!validate()) return; setSubmitting(true); setSubmitErr('')
     try {
+      // ── Collection window check — before any upload or insert ──────────────
+      // The tribute wall may still render after free_tier_expires_at if
+      // page_state hasn't been manually updated. Guard here so contributors
+      // receive a clear message rather than a silent failure.
+      if (capsule.free_tier_expires_at) {
+        const expiresAt = new Date(capsule.free_tier_expires_at)
+        if (expiresAt < new Date()) {
+          setSubmitErr('The contribution window for this tribute wall has closed.')
+          setSubmitting(false)
+          return
+        }
+      }
+
       let photoUrl: string | null = null
       if (fPhoto) { const ext = fPhoto.name.split('.').pop() ?? 'jpg'; const path = capsule.id + '/' + Date.now() + '.' + ext; const { error: ue } = await supabaseClient.storage.from(BUCKET).upload(path, fPhoto, { upsert: false }); if (!ue) photoUrl = supabaseClient.storage.from(BUCKET).getPublicUrl(path).data.publicUrl }
 

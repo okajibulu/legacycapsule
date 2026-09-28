@@ -2208,7 +2208,7 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
           const banners = {
             complete:    { tone: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.25)', heading: `${capsule.honouree_name}'s legacy is preserved`, body: `This capsule has gathered its community. It remains accessible at your link. Extended Validity is available from Services if needed.`, cta: null, href: null },
             wrapping_up: { tone: 'rgba(147,197,253,0.08)', border: 'rgba(147,197,253,0.25)', heading: `Ready to compile the final record?`, body: `${daysLeft} days remaining. The tributes are gathered -- a Digital Publication will preserve them permanently.`, cta: 'Generate Publication', href: `/manage/${slug}/publication` },
-            active:      { tone: 'rgba(226,195,107,0.07)', border: 'rgba(226,195,107,0.3)', heading: `Your capsule closes in ${daysLeft} days`, body: `Voices are still arriving. Extend your capsule to keep the tribute wall open.`, cta: 'Extend Access', href: null },
+            active:      { tone: 'rgba(226,195,107,0.07)', border: 'rgba(226,195,107,0.3)', heading: `Tribute wall closes in ${daysLeft} days`, body: `Voices are still arriving. Extend your collection window to keep the tribute wall open.`, cta: 'Keep the tribute wall open', href: null },
             underused:   { tone: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.08)', heading: `Your capsule is still waiting`, body: `${capsule.honouree_name}'s tribute wall hasn't gathered many voices yet. Share the link to get started.`, cta: 'Share Your Capsule', href: `/for/${slug}` },
           }
           const b = banners[status]
