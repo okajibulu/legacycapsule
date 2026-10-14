@@ -565,6 +565,34 @@ function BookPage() {
           <PrimaryBtn onClick={() => { if (!path) return; setScreen(1) }} disabled={!path}>
             Continue →
           </PrimaryBtn>
+
+          {/* ── Returning organisers — keep sign-in separate from first-time setup ── */}
+          <div style={{
+            marginTop: '20px',
+            padding: '16px 18px',
+            borderRadius: '12px',
+            border: '1px solid rgba(226,195,107,0.12)',
+            background: 'rgba(255,255,255,0.02)',
+            textAlign: 'center',
+          }}>
+            <p style={{ fontSize: '12px', color: textSecondary, margin: '0 0 8px', lineHeight: 1.6 }}>
+              Already created a LegacyCapsule?
+            </p>
+            <Link
+              href="/signin"
+              style={{
+                display: 'inline-block',
+                color: gold,
+                fontSize: '13px',
+                fontWeight: 700,
+                textDecoration: 'none',
+                padding: '8px 12px',
+              }}
+            >
+              Sign in to manage your capsule →
+            </Link>
+          </div>
+
           <Footer />
         </div>
       </Shell>
