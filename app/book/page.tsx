@@ -66,7 +66,8 @@
    — Checkout button label: "(50% launch price)" suffix when savings > 0
    — pricesFetchWarning state: soft notice when some prices returned null
    — Coming-soon badge: styled "Soon" pill on unavailable items (was plain text)
-   VERSION: AI31v2.12.71
+   VERSION: AI31v2.12.72
+   — Smart Capsule URL suggestions, 3–40 character validation, live counter and availability status
 ========================================================= */
 
 /* =========================================================
@@ -140,8 +141,25 @@ const greenBorder = 'rgba(74,222,128,0.1)'
 /* =========================================================
    SECTION 3 — HELPERS
 ========================================================= */
+const SLUG_MIN_LENGTH = 3
+const SLUG_MAX_LENGTH = 40
+
 function toSlug(str: string): string {
-  return str.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-').slice(0, 60)
+  return str
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-+/g, '-')
+    .slice(0, SLUG_MAX_LENGTH)
+    .replace(/-+$/g, '')
+}
+
+function isValidSlug(value: string): boolean {
+  return value.length >= SLUG_MIN_LENGTH
+    && value.length <= SLUG_MAX_LENGTH
+    && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)
 }
 
 function getHonoureeLabel(eventType: string): string {
@@ -286,6 +304,7 @@ function BookPage() {
   const [recipientEmail, setRecipientEmail] = useState('')
   const [slug, setSlug] = useState('')
   const [slugManual, setSlugManual] = useState(false)
+  const [slugAvailability, setSlugAvailability] = useState<'idle' | 'checking' | 'available' | 'taken' | 'error'>('idle')
   const [verifyCode, setVerifyCode] = useState('')
   const [verifyError, setVerifyError] = useState('')
   const [verifying, setVerifying] = useState(false)
@@ -318,10 +337,43 @@ function BookPage() {
   /* =========================================================
      SECTION 7 — EFFECTS
   ========================================================= */
-  // Auto-generate slug from honouree name
+  // Auto-suggest a clean, editable URL from the honouree name.
   useEffect(() => {
     if (!slugManual && honoureeName) setSlug(toSlug(honoureeName))
   }, [honoureeName, slugManual])
+
+  // Debounced availability check. Server-side uniqueness remains authoritative.
+  useEffect(() => {
+    if (screen !== 2) return
+    if (!isValidSlug(slug)) {
+      setSlugAvailability('idle')
+      return
+    }
+
+    const controller = new AbortController()
+    setSlugAvailability('checking')
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/capsules/check-slug?slug=${encodeURIComponent(slug)}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok) {
+          setSlugAvailability('error')
+          return
+        }
+        setSlugAvailability(result.available === true ? 'available' : 'taken')
+      } catch {
+        if (!controller.signal.aborted) setSlugAvailability('error')
+      }
+    }, 350)
+
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [slug, screen])
 
   // Pre-select suggested services when event type is set
   useEffect(() => {
@@ -379,6 +431,7 @@ function BookPage() {
       const result = await response.json().catch(() => ({}))
 
       if (!response.ok || !result.success || !result.capsuleId || !result.capsuleSlug) {
+        if (response.status === 409) setSlugAvailability('taken')
         setError(
           response.status === 409
             ? 'That capsule URL is already taken. Please choose a different one.'
@@ -663,7 +716,7 @@ function BookPage() {
   if (screen === 2) {
     const totalSteps = path === 'book' ? 4 : 3
     const giftFieldsValid = bookMode !== 'gift' || (recipientName.trim() && recipientEmail.trim() && recipientEmail.includes('@'))
-    const canContinue = !!honoureeName.trim() && !!organiserEmail.trim() && organiserEmail.includes('@') && !!slug.trim() && giftFieldsValid
+    const canContinue = !!honoureeName.trim() && !!organiserEmail.trim() && organiserEmail.includes('@') && isValidSlug(slug) && slugAvailability === 'available' && giftFieldsValid
 
     return (
       <Shell>
@@ -701,11 +754,36 @@ function BookPage() {
             <InputField label="Your Email" hint="We'll send a 4-character verification code to confirm your email">
               <input type="email" style={inputStyle} placeholder="you@example.com" maxLength={120} value={organiserEmail} onChange={e => setOrganiserEmail(e.target.value)} />
             </InputField>
-            <InputField label="Capsule URL" hint={`Your link: itslegacycapsule.com/for/${slug || 'your-slug'}`} error={error || undefined}>
+            <InputField label="Capsule URL" hint={`Your link: itslegacycapsule.com/for/${slug || 'your-slug'}`} error={error || (slug.length > 0 && slug.length < SLUG_MIN_LENGTH ? `Use at least ${SLUG_MIN_LENGTH} characters.` : undefined)}>
               <div style={{ display: 'flex', alignItems: 'center', border: '1px solid rgba(226,195,107,0.22)', borderRadius: '10px', overflow: 'hidden', background: 'rgba(255,255,255,0.06)' }}>
                 <span style={{ fontSize: '11px', color: textFaint, whiteSpace: 'nowrap', padding: '13px 12px', borderRight: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', flexShrink: 0 }}>/for/</span>
-                <input style={{ ...inputStyle, border: 'none', borderRadius: 0, background: 'transparent', flex: 1 }} placeholder="your-slug" maxLength={60} value={slug} onChange={e => { setSlugManual(true); setSlug(toSlug(e.target.value)) }} />
+                <input
+                  aria-label="Capsule URL slug"
+                  aria-describedby="capsule-url-help capsule-url-status"
+                  style={{ ...inputStyle, border: 'none', borderRadius: 0, background: 'transparent', flex: 1, minWidth: 0 }}
+                  placeholder="your-slug"
+                  maxLength={SLUG_MAX_LENGTH}
+                  value={slug}
+                  onChange={e => { setSlugManual(true); setSlug(toSlug(e.target.value)); setError('') }}
+                />
               </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginTop: '6px' }}>
+                <span id="capsule-url-help" style={{ fontSize: '11px', color: textFaint, lineHeight: 1.6 }}>
+                  Make it yours. You can change this suggested link to something shorter or more personal. Your honouree's name stays unchanged.
+                </span>
+                <span aria-live="polite" style={{ fontSize: '10px', color: slug.length > SLUG_MAX_LENGTH ? 'rgba(248,113,113,0.9)' : textFaint, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  {slug.length}/{SLUG_MAX_LENGTH}
+                </span>
+              </div>
+              <p id="capsule-url-status" aria-live="polite" style={{ fontSize: '11px', marginTop: '6px', color: slugAvailability === 'available' ? greenAccent : slugAvailability === 'taken' ? 'rgba(248,113,113,0.9)' : textFaint }}>
+                {!slug ? 'Use 3–40 characters: lowercase letters, numbers and single hyphens.' :
+                  !isValidSlug(slug) ? 'Use 3–40 characters with no spaces or leading/trailing hyphens.' :
+                  slugAvailability === 'checking' ? 'Checking URL availability…' :
+                  slugAvailability === 'available' ? '✓ This capsule URL is available.' :
+                  slugAvailability === 'taken' ? 'This URL is already in use. Try adding a short word or year.' :
+                  slugAvailability === 'error' ? 'We could not check availability. Check your connection and try again.' :
+                  'Checking URL availability…'}
+              </p>
             </InputField>
           </div>
 
