@@ -75,7 +75,6 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '../../lib/supabase-browser'
 import {
   SERVICE_DETAILS,
   BOOKING_SERVICE_ORDER,
@@ -357,49 +356,45 @@ function BookPage() {
   // ═══ Create capsule + send verification code ═══
   async function handleCreateAndVerify() {
     if (!honoureeName.trim() || !organiserEmail.trim() || !slug.trim()) return
-    setCreating(true); setError('')
+    setCreating(true)
+    setError('')
+
     try {
-      const { data, error: insertError } = await supabase
-        .from('capsules')
-        .insert({
-          honouree_name: honoureeName.trim(),
-          event_tag: eventTag.trim() || null,
-          event_type: eventType === 'Other Event' && otherEventLabel.trim()
-            ? otherEventLabel.trim()
-            : eventType,
-
-          organiser_email: organiserEmail.trim().toLowerCase(),
-          slug: slug.trim(),
-          tier: 'free',
-          pricing_key: '',
-          visitor_type: bookMode === 'gift' ? 'gift' : 'personal',
-          // Free path: active immediately. Book path: pending until payment.
-           page_state: path === 'book' ? 'pending_payment' : 'pending',
-          theme: 'classic',
-          components: ['community_stories'],
-          free_tier_expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-        })
-        .select('id, slug').single()
-
-      if (insertError) {
-        setError(insertError.code === '23505' ? 'That capsule URL is already taken. Please choose a different one.' : 'Something went wrong. Please try again.')
-        setCreating(false); return
-      }
-
-      setCapsuleId(data.id)
-      setCapsuleSlug(data.slug)
-
-      await fetch('/api/email/verify-code', {
+      const response = await fetch('/api/capsules/create-and-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ capsuleId: data.id, capsuleSlug: data.slug, organiserEmail: organiserEmail.trim().toLowerCase(), honoureeName: honoureeName.trim() }),
+        body: JSON.stringify({
+          honoureeName: honoureeName.trim(),
+          eventTag: eventTag.trim(),
+          eventType: eventType === 'Other Event' && otherEventLabel.trim()
+            ? otherEventLabel.trim()
+            : eventType,
+          organiserEmail: organiserEmail.trim().toLowerCase(),
+          slug: slug.trim(),
+          path,
+          bookMode,
+        }),
       })
 
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok || !result.success || !result.capsuleId || !result.capsuleSlug) {
+        setError(
+          response.status === 409
+            ? 'That capsule URL is already taken. Please choose a different one.'
+            : result.error || 'We could not create your capsule. Please try again.'
+        )
+        return
+      }
+
+      setCapsuleId(result.capsuleId)
+      setCapsuleSlug(result.capsuleSlug)
       setScreen(4)
     } catch {
-      setError('Something went wrong. Please try again.')
+      setError('We could not connect securely to create your capsule. Please check your connection and try again.')
+    } finally {
+      setCreating(false)
     }
-    setCreating(false)
   }
 
   // ═══ Verify the 4-char code ═══

@@ -90,13 +90,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to store code' }, { status: 500 })
     }
 
-    // Send verification code email
-    await resend.emails.send({
+    // Send verification code email. Resend can return an error without throwing,
+    // so inspect the result before reporting success to the booking interface.
+    const { error: emailError } = await resend.emails.send({
       from:    FROM,
-      to:      organiserEmail,
+      to:      organiserEmail.trim().toLowerCase(),
       subject: `Your verification code: ${code}`,
       html:    verificationEmailHtml({ code, honoureeName, capsuleSlug }),
     })
+
+    if (emailError) {
+      console.error('Verification email send failed:', emailError.name, emailError.message)
+      await supabase
+        .from('email_verifications')
+        .delete()
+        .eq('record_id', capsuleId)
+        .eq('type', 'booking_verification')
+        .is('verified_at', null)
+
+      return NextResponse.json(
+        { success: false, error: 'Unable to send verification email' },
+        { status: 502 }
+      )
+    }
 
     return NextResponse.json({ success: true })
 
