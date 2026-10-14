@@ -764,7 +764,13 @@ function BookPage() {
                   placeholder="your-slug"
                   maxLength={SLUG_MAX_LENGTH}
                   value={slug}
-                  onChange={e => { setSlugManual(true); setSlug(toSlug(e.target.value)); setError('') }}
+                  onChange={e => {
+                    // Invalidate the previous result immediately; never allow a stale "available" state to survive an edit.
+                    setSlugManual(true)
+                    setSlug(toSlug(e.target.value))
+                    setSlugAvailability('idle')
+                    setError('')
+                  }}
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginTop: '6px' }}>
