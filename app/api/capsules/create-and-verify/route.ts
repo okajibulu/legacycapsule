@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(organiserEmail) || organiserEmail.length > 254) {
     return jsonError('Please enter a valid email address.', 400)
   }
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 60) {
-    return jsonError('Please choose a valid capsule URL.', 400)
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length < 3 || slug.length > 40) {
+    return jsonError('Please choose a capsule URL using 3–40 lowercase letters, numbers, and single hyphens.', 400)
   }
   if (!path || !bookMode) {
     return jsonError('Please select a booking option and continue again.', 400)
