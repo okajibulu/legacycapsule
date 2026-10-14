@@ -144,7 +144,7 @@ const greenBorder = 'rgba(74,222,128,0.1)'
 const SLUG_MIN_LENGTH = 3
 const SLUG_MAX_LENGTH = 40
 
-function toSlug(str: string): string {
+function normaliseSlug(str: string): string {
   return str
     .toLowerCase()
     .normalize('NFKD')
@@ -154,6 +154,47 @@ function toSlug(str: string): string {
     .replace(/-+/g, '-')
     .slice(0, SLUG_MAX_LENGTH)
     .replace(/-+$/g, '')
+}
+
+// Keep suggestions recognisable and respectful of meaningful titles.
+// Most names use first-name + final-name; selected honorific/rank titles
+// are retained with the final name (e.g. Commander Oloye).
+function getSlugSuggestions(name: string): string[] {
+  const words = name
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .match(/[a-z0-9]+/g) ?? []
+  if (words.length === 0) return []
+
+  const retainedTitles = new Set([
+    'commander', 'chief', 'king', 'queen', 'oba', 'emir', 'sultan',
+    'prince', 'princess', 'duke', 'duchess', 'elder'
+  ])
+  const removableTitles = new Set([
+    'prof', 'professor', 'dr', 'doctor', 'mr', 'mrs', 'ms', 'miss',
+    'rev', 'reverend', 'pastor', 'bishop', 'imam', 'father', 'fr',
+    'sir', 'madam', 'alhaji', 'alhaja', 'hon', 'honourable'
+  ])
+
+  let meaningful = [...words]
+  while (meaningful.length > 1 && removableTitles.has(meaningful[0])) meaningful.shift()
+
+  const last = meaningful[meaningful.length - 1]
+  const first = meaningful[0]
+  const compact = retainedTitles.has(first) && meaningful.length > 1
+    ? normaliseSlug(`${first}-${last}`)
+    : normaliseSlug(`${first}-${last}`)
+  const full = normaliseSlug(words.join('-'))
+  const firstLast = normaliseSlug(`${first}-${last}`)
+  const candidates = [compact, firstLast, full]
+  return [...new Set(candidates)].filter(candidate =>
+    candidate.length >= SLUG_MIN_LENGTH && isValidSlug(candidate)
+  )
+}
+
+function toSlug(str: string): string {
+  return getSlugSuggestions(str)[0] ?? normaliseSlug(str)
 }
 
 function isValidSlug(value: string): boolean {
@@ -305,6 +346,7 @@ function BookPage() {
   const [slug, setSlug] = useState('')
   const [slugManual, setSlugManual] = useState(false)
   const [slugAvailability, setSlugAvailability] = useState<'idle' | 'checking' | 'available' | 'taken' | 'error'>('idle')
+  const [slugAlternatives, setSlugAlternatives] = useState<string[]>([])
   const [verifyCode, setVerifyCode] = useState('')
   const [verifyError, setVerifyError] = useState('')
   const [verifying, setVerifying] = useState(false)
@@ -339,7 +381,12 @@ function BookPage() {
   ========================================================= */
   // Auto-suggest a clean, editable URL from the honouree name.
   useEffect(() => {
-    if (!slugManual && honoureeName) setSlug(toSlug(honoureeName))
+    if (!slugManual && honoureeName) {
+      const suggestions = getSlugSuggestions(honoureeName)
+      setSlug(suggestions[0] ?? '')
+      setSlugAlternatives(suggestions.slice(1))
+      setSlugAvailability('idle')
+    }
   }, [honoureeName, slugManual])
 
   // Debounced availability check. Server-side uniqueness remains authoritative.
@@ -786,10 +833,29 @@ function BookPage() {
                   !isValidSlug(slug) ? 'Use 3–40 characters with no spaces or leading/trailing hyphens.' :
                   slugAvailability === 'checking' ? 'Checking URL availability…' :
                   slugAvailability === 'available' ? '✓ This capsule URL is available.' :
-                  slugAvailability === 'taken' ? 'This URL is already in use. Try adding a short word or year.' :
+                  slugAvailability === 'taken' ? 'This URL is already in use. Choose an alternative below or edit the link.' :
                   slugAvailability === 'error' ? 'We could not check availability. Check your connection and try again.' :
                   'Checking URL availability…'}
               </p>
+              {slugAvailability === 'taken' && slugAlternatives.filter(candidate => candidate !== slug).length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+                  {slugAlternatives.filter(candidate => candidate !== slug).map(candidate => (
+                    <button
+                      key={candidate}
+                      type="button"
+                      onClick={() => {
+                        setSlugManual(true)
+                        setSlug(candidate)
+                        setSlugAvailability('idle')
+                        setError('')
+                      }}
+                      style={{ border: '1px solid rgba(226,195,107,0.3)', borderRadius: '8px', padding: '7px 10px', background: 'rgba(226,195,107,0.06)', color: 'rgba(226,195,107,0.9)', fontSize: '11px', cursor: 'pointer' }}
+                    >
+                      Try /for/{candidate}
+                    </button>
+                  ))}
+                </div>
+              )}
             </InputField>
           </div>
 
