@@ -3,7 +3,7 @@
 **FILE PATH** `/docs/COMMUNAL_CAPSULE_UPGRADE_PLAN.md`  
 **DOCUMENT OWNER** CG08-LC — LegacyCapsule implementation coordination  
 **STATUS** Approved for Adoption — authoritative working plan; implementation and migration remain separately gated  
-**VERSION** v1.5  
+**VERSION** v1.6  
 **CREATED** 17 October 2026  
 **LAST UPDATED** 17 October 2026  
 **DEPENDS ON** `PROJECT_RULES.md`; `AI_CONTEXT.md`; `LC00_ARCHITECTURE_INDEX.md` in Project Knowledge; `LC01A_INTERFACE_AND_EXPERIENCE_STANDARD.md`; `OG02_COVER_SYSTEM.md`; `LC03_LEGACY_PUBLICATION_SYSTEM.md`; live code and live Supabase schema  
@@ -372,6 +372,40 @@ Physical Gift Collection is the event-operations workflow for guests receiving p
 - Preserve purchased-gift notification behaviour for existing personal Capsules and enforce the separately approved communal eligibility rule.
 
 
+
+## 8D. Caller-Graph and Shared Email Contract Audit — 17 October 2026
+
+This pass traced the source-visible callers for several event-facing email and contribution flows. It identified one confirmed request-contract mismatch and two email endpoints whose in-repository callers remain unconfirmed. These are audit findings only; no source code was changed.
+
+### Caller and contract matrix
+
+| Source / caller | Destination or helper | Source-confirmed behaviour | Audit disposition |
+|---|---|---|---|
+| `components/TributeWallClient.tsx` | `POST /api/email/submission-confirmation` | Sends camelCase fields including `contributionId`, `capsuleSlug`, `contributorName`, `contributorEmail`, `subjectName`, and `eventType`. The route accepts the required identity fields and creates a 7-day edit token. | Existing direct-wall caller aligns with the route's required payload. Extend the subject/path context compatibly; preserve edit-token behaviour. |
+| `app/api/community-topics/submit/route.ts` | `POST /api/email/submission-confirmation` | Sends `contributor_name`, `email`, `capsule_slug`, and `contribution_type`; it does not send the route-required `contributionId`, `capsuleSlug`, `contributorName`, or `contributorEmail` field names. The confirmation route therefore rejects this request at its required-field validation if this payload reaches it unchanged. | **Confirmed pre-existing request-contract mismatch in source.** Determine whether this path is active and whether the intended behaviour is the shared confirmation email or only the separate thank-you email. Do not silently broaden the route contract during the communal upgrade without agreeing the desired semantics. |
+| `app/api/community-topics/submit/route.ts` | `lib/email/sendContributorThankYou.ts` | Fetches `honouree_name, slug` and passes the honouree name into story thank-you copy. | Add path-aware subject context if this flow is eligible for communal Capsules; preserve the non-blocking send behaviour. |
+| `app/api/email/approval/route.ts` | `lib/email.ts` → `sendKeepsakeCard` | Loads `slug, honouree_name, event_type` and uses `honouree_name` as `subjectName` for the contributor Keepsake Card. | Include in the contributor-facing email inventory. Establish whether communal contributions use the same Keepsake Card concept and, if so, use the resolved event subject without changing approval or ref-code behaviour. |
+| `app/api/webhooks/paystack/route.ts` | `lib/email/sendPaymentConfirmation.ts` | Calls the shared payment-confirmation helper using a fallback honouree label when the Capsule name is absent. | Update the shared helper and this caller together; preserve amount, currency, processor, promo and payment-state semantics. |
+| `app/api/webhooks/stripe/route.ts` | Local `sendPaymentConfirmationEmail` and gift routes | Implements a separate person-centred payment confirmation; independently calls gift notification/scheduling for gift-mode purchases. | Treat Stripe confirmation separately from Paystack's shared helper. Keep purchased-gift eligibility distinct from physical Gift Collection. |
+| `app/api/email/verify-code/route.ts` | Capsule verification/welcome flow | On successful verification, selects `slug, honouree_name, organiser_email, event_type` and constructs the welcome subject from `honouree_name`. Gift-mode welcome is delegated to gift-notification. | This is the verified creation-flow dependency to adapt first; preserve verification, access creation, expiry and cleanup behaviour. |
+| `app/api/email/verify-organiser/route.ts` | `lib/verification.ts` → `sendOrganiserVerification` | Route requires `honoreeName`. The audited creation endpoint calls `/api/email/verify-code`, not this route. No internal caller was established in this source pass. | **Caller status unresolved**, not confirmed dead. Check runtime/log evidence and broader caller references before changing or removing its contract. |
+| `app/api/email/verify-contributor/route.ts` | `lib/verification.ts` → `sendContributorVerification` | Route requires `honoreeName`; no internal caller was established in this source pass. | **Caller status unresolved**, not confirmed dead. Preserve until usage is confirmed; communal eligibility and payload design remain open. |
+| `app/api/capsule/honouree-reveal/route.ts` | `lib/honoureeEmail.ts` / reveal delivery | Reads the honouree record and creates a token for an individual honouree portal. | Keep personal-only unless a distinct communal-recipient model is approved; enforce at the server boundary. |
+| `app/api/capsule/appreciation/route.ts` | Family Appreciation profile section | Creates/updates a `capsule_profile_sections` appreciation section; dashboard templates use family/person language. | Decide and enforce personal-only eligibility unless a communal appreciation concept is explicitly defined. |
+
+### Additional confirmed constraints
+
+- The public Tribute Wall writes ordinary contributions directly from `components/TributeWallClient.tsx` with `story_topic_id: null`; the communal upgrade must not change this discriminator.
+- Community-topic submissions are a separate code path and carry their own topic/story semantics. Preserve the distinction between ordinary wall contributions and Community Stories.
+- `app/api/community-topics/submit/route.ts` uses `honouree_name` for its thank-you email, while its shared submission-confirmation request currently does not match the destination route's required payload. Treat the mismatch as pre-existing; test and resolve it deliberately rather than folding an incidental fix into unrelated identity changes.
+- The repository's code-search connector returned no indexed matches for function/route caller searches during this audit. The caller dispositions above are based on direct source inspection and the repository's checked-in `email_audit.txt` search artifact; a missing match is not proof that an endpoint is unused.
+- The checked-in `email_audit.txt`, `og_callers.txt`, and similar root-level text files are search/audit artifacts, not authoritative architecture or migration records. Do not treat them as a substitute for current source or runtime evidence.
+
+### Gate update
+
+The email caller graph is **partially traced, not closed**. Before implementation, still verify the runtime usage of the two verification endpoints, trace thank-you and Keepsake Card callers comprehensively, and inspect all remaining direct `capsules` reads/writes and feature gates. No endpoint should be removed solely because an internal callsite was not found in this pass.
+
+
 ## 9. Out of Scope
 
 - A new event-planning engine.
@@ -392,6 +426,7 @@ Physical Gift Collection is the event-operations workflow for guests receiving p
 | v1.3 | 17 October 2026 | Added source-confirmed email/organiser-flow contracts, distinguished subject resolution from feature eligibility, and formalised remaining caller-graph, direct-database-read, publication and migration-convention audit gates. |
 | v1.4 | 17 October 2026 | Added source-confirmed OG cover, public publication, publication distribution, and physical Gift Collection schema/consumer mismatch findings; separated physical gifting from purchased-gift notifications and added regression requirements. |
 | v1.5 | 17 October 2026 | Founder approved the plan for adoption as the authoritative working plan. This approval does not authorise code implementation, database migration, production deployment, or merge to `main`; existing audit gates remain mandatory. |
+| v1.6 | 17 October 2026 | Added direct caller-graph findings, a confirmed community-topic submission-confirmation payload mismatch, Keepsake Card dependency, and unresolved verification-endpoint caller status; clarified that absent search results do not establish that routes are unused. |
 
 ## 11. Attribution
 
