@@ -236,7 +236,42 @@ These are proposed responsibilities for the master map, not a claim that the mas
 
 **Map governance:** the live repository did not contain `/docs/COMPONENT_MAP.md` at audit time. The Project Knowledge map contains substantial historical notes. Reconcile the complete source with the repository's expected authoritative location before creating or replacing the file; preserve existing addenda and ownership rules.
 
-## 7. Out of Scope
+## 7. Additional Dependency Audit Findings
+
+The following dependencies were confirmed in the read-only audit. These findings refine implementation scope; they do not mean every dependent feature must become communal-capable.
+
+| Dependency | Confirmed concern | Implementation requirement |
+|---|---|---|
+| Organiser dashboard: `app/manage/[slug]/ManagePageClient.tsx` | Numerous labels, prompts, sharing messages and child components assume an individual honouree. Some child features are inherently personal. | Introduce the shared display-subject rule; audit and gate individual-only controls rather than mechanically replacing every name reference. |
+| Update API: `app/api/capsule/update/route.ts` | Explicit update-field allowlist omits `event_path` and `event_name`. | Validate and permit only the intended new fields; retain protected-field restrictions. |
+| Public Capsule APIs: `app/api/capsule-by-slug/route.ts`, `app/api/capsule/public-info/route.ts` | Current response contracts expose existing person-oriented fields only. | Extend contracts only where traced consumers require path/name data. |
+| Story prompts: `app/api/capsule/seed-prompts/route.ts` | Prompt selection currently uses `event_type` only. | Review prompt-library coverage and ensure communal prompts are appropriate; preserve legacy prompt seeding. |
+| Contributor verification: `app/api/email/verify-contributor/route.ts`, `lib/verification.ts` | Route contract requires `honoreeName`; contributor copy is person-oriented. | Trace the caller and carry event context where needed. Keep personal behaviour stable and avoid fabricating a honouree for communal events. |
+| Gift notification: `app/api/email/gift-notification/route.ts` | Email copy assumes a gift capsule is created in honour of a person. | First establish whether communal Capsules are eligible for this flow; adapt copy only if supported, otherwise enforce/document the eligibility boundary. |
+| Admin: `lib/admin/queries.ts`, `app/admin/capsule/[id]/page.tsx` | Admin listings and detail headings use `honouree_name`. | Display the resolved subject and expose path/event classification where useful for safe support operations. |
+| Community Stories: `components/CommunityStoriesClient.tsx`, `app/for/[slug]/stories/page.tsx` | Prompts, headings, relationship questions and metadata interpolate honouree names. | Make topic wording and page metadata path-aware; preserve the distinction between ordinary wall contributions and Community Stories. |
+| Publication rendering: `app/publication-render/[token]/page.tsx`, `app/publication/[slug]/page.tsx` | Publication cover, narrative, topic headings and metadata rely on `honouree_name`. | Review section-by-section, implement communal narrative variants, and inspect a generated PDF end-to-end. |
+| Social cover: `app/api/og/[slug]/route.tsx` | Current headline derives from honouree/title and uses `event_tag` as context. | Use communal `event_name` as the headline and retain `event_tag` as supplementary context. |
+
+### Shared display-subject rule
+
+Use one shared, tested resolution contract across public pages, management, email, social covers and publication output:
+
+- Personal Capsule: use the honouree or appropriate personal-occasion wording.
+- Communal Capsule: use the event name as the primary subject.
+- Legacy record: use a safe fallback when the new fields are absent.
+
+Do not make every individual-specific feature communal by default. Profile, family-representative, appreciation and honouree-portal features require explicit eligibility decisions.
+
+### Additional verified implementation constraints
+
+- The live `capsules` table currently has neither `event_path` nor `event_name`; `honouree_name` is currently NOT NULL. A communal insert therefore requires a staged schema/application rollout, not just UI changes.
+- Existing `event_type` values include mixed-case and legacy labels. The record using `other` is a personal example and must not be blanket-classified communal. Backfill mapping must be explicit and reviewed.
+- `app/api/capsule/update/route.ts` and creation/API payloads must agree on canonical values and validation.
+- The repository has no test script in `package.json`; validation must explicitly include lint/build and documented manual regression checks.
+- The plan’s current Component Map table is an impact proposal only. The repository did not contain the expected live `/docs/COMPONENT_MAP.md`; reconcile the complete Project Knowledge map before restoring or replacing it.
+
+## 8. Out of Scope
 
 - A new event-planning engine.
 - Replacing the booking system or wholesale homepage redesign.
@@ -246,12 +281,13 @@ These are proposed responsibilities for the master map, not a claim that the mas
 - Unrelated cleanup of duplicate story-prompt seeding unless testing shows a direct dependency.
 - Marketing/flyer campaign production in the implementation branch; adoption strategy can be consolidated separately after the core path is stable.
 
-## 8. Document History
+## 9. Document History
 
 | Version | Date | Change |
 |---|---|---|
 | v1.0 | 17 October 2026 | Initial audit-derived plan, schema proposal, implementation waves, regression matrix, and Component Map impact. |
+| v1.1 | 17 October 2026 | Added organiser/admin, public API, story prompt, verification, gift eligibility, social cover and publication dependency findings; clarified shared display-subject rule and rollout constraints. |
 
-## 9. Attribution
+## 10. Attribution
 
 Prepared under implementation coordination reference **CG08-LC**. This plan is based on the live repository and read-only Supabase schema/data checks performed on 17 October 2026. All proposed changes remain unimplemented until the relevant branch commits, tests, and migration record confirm otherwise.
