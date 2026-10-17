@@ -271,7 +271,28 @@ Do not make every individual-specific feature communal by default. Profile, fami
 - The repository has no test script in `package.json`; validation must explicitly include lint/build and documented manual regression checks.
 - The plan’s current Component Map table is an impact proposal only. The repository did not contain the expected live `/docs/COMPONENT_MAP.md`; reconcile the complete Project Knowledge map before restoring or replacing it.
 
-## 8. Out of Scope
+## 8. Extended Route and Event-Story Dependency Audit
+
+A further repository-tree pass identified additional event-facing routes beyond the original inventory. These should be included in implementation review because they can expose person-centred copy even when the main Capsule page is path-aware.
+
+| File | Dependency / risk | Required review |
+|---|---|---|
+| `app/api/capsule/honouree-reveal/route.ts` | Sends the honouree a reveal email and builds subject/body copy from `honouree_name`. | Confirm eligibility is personal-only or adapt the flow to communal event recipients; do not address a group event as if it were an individual. |
+| `app/api/email/gift-schedule/route.ts` | Scheduled gift email repeats the person-centred assumptions found in immediate gift notification. | Treat gift notification and scheduled delivery as one eligibility/copy decision; ensure both routes behave consistently. |
+| `app/for/[slug]/story/page.tsx` | Event Story landing page metadata and headings use the honouree name. | Make metadata and visible event heading path-aware while retaining event type, tag and phase navigation. |
+| `app/for/[slug]/story/[phaseId]/page.tsx` | Phase story metadata and rendered data use the honouree name. | Use event subject for communal phase pages; preserve the phase name as the local page heading. |
+| `app/api/publication/distribute/route.ts` | Publication distribution email subject/body refers to the honouree's event. | Adapt the publication title and message for communal event names; preserve distribution/access behaviour. |
+| `app/api/publication/named-send/route.ts` | Named-recipient publication send uses honouree possessives in subject/body. | Apply the same display-subject helper as standard distribution and test both delivery routes. |
+| `app/api/team/capsules/route.ts` | Team Capsule API returns `honouree_name`, `event_type`, and `event_tag` only. | Trace team UI consumers and include path/event name only if they need to identify communal Capsules correctly. |
+| `app/manage/[slug]/publication/page.tsx` and publication editor components | Publication editor is a separate entry point into publication operations. | Confirm it remains compatible with communal data and the same render/distribution contracts. |
+
+### Audit conclusion
+
+The dependency surface includes more than the primary public wall and organiser dashboard. In particular, the honouree-reveal, gift scheduling, story/phase pages, and two publication delivery routes can independently generate misleading person-centred copy. These routes must either be explicitly personal-only with enforced eligibility or use the shared path-aware subject contract.
+
+The audit has identified the relevant source files, but has not yet proven every route's caller graph or eligibility policy. Those checks remain implementation prerequisites. Do not infer that a route is communal-enabled solely because its API can accept a capsule ID.
+
+## 9. Out of Scope
 
 - A new event-planning engine.
 - Replacing the booking system or wholesale homepage redesign.
@@ -281,13 +302,14 @@ Do not make every individual-specific feature communal by default. Profile, fami
 - Unrelated cleanup of duplicate story-prompt seeding unless testing shows a direct dependency.
 - Marketing/flyer campaign production in the implementation branch; adoption strategy can be consolidated separately after the core path is stable.
 
-## 9. Document History
+## 10. Document History
 
 | Version | Date | Change |
 |---|---|---|
 | v1.0 | 17 October 2026 | Initial audit-derived plan, schema proposal, implementation waves, regression matrix, and Component Map impact. |
 | v1.1 | 17 October 2026 | Added organiser/admin, public API, story prompt, verification, gift eligibility, social cover and publication dependency findings; clarified shared display-subject rule and rollout constraints. |
+| v1.2 | 17 October 2026 | Extended dependency audit to honouree reveal, scheduled gift delivery, event/phase story pages, publication distribution and named-send routes, team Capsule API, and publication editor entry point. |
 
-## 10. Attribution
+## 11. Attribution
 
 Prepared under implementation coordination reference **CG08-LC**. This plan is based on the live repository and read-only Supabase schema/data checks performed on 17 October 2026. All proposed changes remain unimplemented until the relevant branch commits, tests, and migration record confirm otherwise.
