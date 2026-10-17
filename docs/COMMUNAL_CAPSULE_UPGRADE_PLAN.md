@@ -3,7 +3,7 @@
 **FILE PATH** `/docs/COMMUNAL_CAPSULE_UPGRADE_PLAN.md`  
 **DOCUMENT OWNER** CG08-LC — LegacyCapsule implementation coordination  
 **STATUS** Draft — audit-derived plan; not an implementation approval or migration execution record  
-**VERSION** v1.3  
+**VERSION** v1.4  
 **CREATED** 17 October 2026  
 **LAST UPDATED** 17 October 2026  
 **DEPENDS ON** `PROJECT_RULES.md`; `AI_CONTEXT.md`; `LC00_ARCHITECTURE_INDEX.md` in Project Knowledge; `LC01A_INTERFACE_AND_EXPERIENCE_STANDARD.md`; `OG02_COVER_SYSTEM.md`; `LC03_LEGACY_PUBLICATION_SYSTEM.md`; live code and live Supabase schema  
@@ -329,6 +329,49 @@ Before production implementation or migration, close these items:
 
 These gates are mandatory because a successful creation form alone would not demonstrate a safe communal-event implementation.
 
+
+## 8C. Cover, Publication and Gift Collection Contract Audit — 17 October 2026
+
+This section records additional source-file findings from the read-only audit. It extends the dependency inventory; it does not approve implementation or schema changes.
+
+### Social cover and public publication
+
+| File | Confirmed current dependency | Required implementation control |
+|---|---|---|
+| `app/api/og/[slug]/route.tsx` | OG image query selects `honouree_name`, `honouree_title`, `event_type`, `event_tag`, and `hero_image_url`; the primary display name is derived from honouree fields. | Select path/name fields when available and use the shared subject resolver. Preserve existing theme, ornament, prompt, and both cover modes. |
+| `app/publication/[slug]/page.tsx` | Public publication metadata and holding-page heading use `honouree_name`. | Use path-aware event identity in metadata and holding state while preserving publication lookup and availability behaviour. |
+| `app/publication-render/[token]/page.tsx` | The renderer has a typed `honouree_name: string` contract and person-specific foreword, profile section labels, and narrative. | Review the renderer section-by-section. Define which personal profile sections are omitted or replaced for communal publications; preserve personal output and inspect a generated communal PDF end-to-end. |
+| `app/api/publication/distribute/route.ts` | Distribution selects `honouree_name`, `event_type`, `event_tag`; subject and body copy assume an individual. | Use path-aware publication subject/copy without changing recipient selection, idempotency, or distribution semantics. |
+| `app/api/publication/named-send/route.ts` | Named-recipient distribution independently uses honouree possessives and person-centred copy. | Apply the same subject/copy contract as standard distribution; test both routes. |
+| `app/manage/[slug]/publication/page.tsx` | Separate publication editor entry point. | Verify its data contract and editor components against communal Capsules; do not assume the editor is compatible because the render route is updated. |
+
+### Physical Gift Collection: schema/consumer mismatch
+
+The following code requests Capsule fields that are absent from the audited live `public.capsules` schema:
+
+- `app/api/gift/credential/deliver/route.ts` selects `event_name, event_date, event_location` and falls back to `Your Event` when the query yields no Capsule data.
+- `app/api/gift/credential/page/route.ts` selects `event_name, honouree_name, event_date, event_location, slug`.
+- `app/gift/collect/[token]/page.tsx` selects `event_name, honouree_name, event_date, event_location`, then uses the event name for the guest page and metadata.
+- `components/gift/GiftCredentialDisplay.tsx` expects an event name and optional event date/location.
+
+This confirms a source/schema contract mismatch. It does not, by itself, prove the frequency or extent of user-facing incidents. Do not fix this by blindly adding fields. Establish the authoritative Capsule event identity and event-location contract, then update all affected consumers as a coordinated group.
+
+Physical Gift Collection is the event-operations workflow for guests receiving physical gifts. It must not be conflated with the separate purchased-gift Capsule notification flow. A communal event should be able to identify itself on physical gift credentials without requiring an individual honouree. The source of location data remains unresolved; `capsule_phases.location` is phase-level data and must not be treated as a general Capsule location without an explicit contract.
+
+### Purchased-gift notifications — separate eligibility decision
+
+`app/api/email/gift-notification/route.ts` and `app/api/email/gift-schedule/route.ts` remain person-centred and select `honouree_name, event_type, event_tag, organiser_email`. These routes concern the purchased-gift Capsule notification flow, not physical Gift Collection. Determine whether communal Capsules are eligible for this workflow before changing its copy or contracts. If not eligible, enforce and document the boundary rather than silently making the flow communal-capable.
+
+### Additional regression requirements
+
+- Test both Open Graph cover modes with a communal event name and with legacy personal data.
+- Test the publication holding page, generated publication, standard distribution, and named-recipient send separately.
+- Verify that personal honouree profile sections do not render empty or misleading placeholders in communal publications.
+- Test physical credential API data, guest page, email delivery, and event display as one end-to-end group.
+- Keep event date/location semantics distinct from event name; do not infer Capsule-level location from phase-level location.
+- Preserve purchased-gift notification behaviour for existing personal Capsules and enforce the separately approved communal eligibility rule.
+
+
 ## 9. Out of Scope
 
 - A new event-planning engine.
@@ -347,6 +390,7 @@ These gates are mandatory because a successful creation form alone would not dem
 | v1.1 | 17 October 2026 | Added organiser/admin, public API, story prompt, verification, gift eligibility, social cover and publication dependency findings; clarified shared display-subject rule and rollout constraints. |
 | v1.2 | 17 October 2026 | Extended dependency audit to honouree reveal, scheduled gift delivery, event/phase story pages, publication distribution and named-send routes, team Capsule API, and publication editor entry point. |
 | v1.3 | 17 October 2026 | Added source-confirmed email/organiser-flow contracts, distinguished subject resolution from feature eligibility, and formalised remaining caller-graph, direct-database-read, publication and migration-convention audit gates. |
+| v1.4 | 17 October 2026 | Added source-confirmed OG cover, public publication, publication distribution, and physical Gift Collection schema/consumer mismatch findings; separated physical gifting from purchased-gift notifications and added regression requirements. |
 
 ## 11. Attribution
 
