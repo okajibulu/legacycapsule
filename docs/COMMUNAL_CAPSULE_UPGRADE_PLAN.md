@@ -3,7 +3,7 @@
 **FILE PATH** `/docs/COMMUNAL_CAPSULE_UPGRADE_PLAN.md`  
 **DOCUMENT OWNER** CG08-LC — LegacyCapsule implementation coordination  
 **STATUS** Approved for Adoption — authoritative working plan; implementation and migration remain separately gated  
-**VERSION** v1.6  
+**VERSION** v1.7  
 **CREATED** 17 October 2026  
 **LAST UPDATED** 17 October 2026  
 **DEPENDS ON** `PROJECT_RULES.md`; `AI_CONTEXT.md`; `LC00_ARCHITECTURE_INDEX.md` in Project Knowledge; `LC01A_INTERFACE_AND_EXPERIENCE_STANDARD.md`; `OG02_COVER_SYSTEM.md`; `LC03_LEGACY_PUBLICATION_SYSTEM.md`; live code and live Supabase schema  
@@ -406,6 +406,57 @@ This pass traced the source-visible callers for several event-facing email and c
 The email caller graph is **partially traced, not closed**. Before implementation, still verify the runtime usage of the two verification endpoints, trace thank-you and Keepsake Card callers comprehensively, and inspect all remaining direct `capsules` reads/writes and feature gates. No endpoint should be removed solely because an internal callsite was not found in this pass.
 
 
+
+## 8E. Contribution Lifecycle Findings Register — 17 October 2026
+
+This section consolidates source/schema findings from the read-only audit. These findings are not implementation authorisation. Production impact must not be asserted without deployment/runtime verification.
+
+### Confirmed source or schema mismatches
+
+1. **RSVP contribution source column:** `app/api/rsvp/respond/route.ts` inserts `source: 'rsvp'` into `public.contributions`, while the live schema exposes `contribution_source`. The route catches insertion errors and allows the RSVP to succeed, so an RSVP message may not become a contribution. Runtime frequency is unverified.
+2. **Community Stories confirmation payload:** `app/api/community-topics/submit/route.ts` sends snake_case fields (`contributor_name`, `email`, `capsule_slug`, `contribution_type`) to `/api/email/submission-confirmation`, whose required request fields are `contributionId`, `capsuleSlug`, `contributorName`, and `contributorEmail`. The request is incompatible as written; the caller treats email failure as non-fatal.
+3. **Queue restoration endpoint:** `components/TributeWallClient.tsx` requests `/api/capsule/restore-submission?token=...`. No corresponding route appears in the recursive repository trees inspected for either `main` or `cg08/communal-capsule-upgrade-plan`. Deployment state remains unverified. Do not conclude that production restoration is broken until the deployed version is checked.
+
+### Confirmed status-contract differences
+
+- Ordinary Tribute Wall and Community Stories insert contributions with `pending_review`.
+- RSVP-generated messages use `pending` in source, alongside the separate source-column mismatch.
+- `lib/admin/actions.ts` includes `pending_review` and `pending` in the admin moderation list and counter.
+- `app/api/contributions/pending/route.ts` filters `pending` and `pending_correction`, so its query does not include `pending_review`.
+- `queued_submissions.status = 'queued'` belongs to a separate queue table and must not be treated as a contribution moderation status.
+
+The status differences are confirmed in source. Their live operational impact and the intended canonical status vocabulary remain to be established. No status should be renamed or bulk-updated as part of the communal-event migration without a separate approved disposition.
+
+### Moderation retention policy requires a product decision
+
+- `app/api/contributions/reject/route.ts` deletes a contribution.
+- `lib/admin/actions.ts::adminRemoveContribution` sets `status = 'declined'` and `deleted_at`.
+- Approval routes set `status = 'approved'`; notification and audit behaviour varies by route.
+
+These behaviours have different retention and audit consequences. Before consolidation, define whether organiser rejection and admin removal are intentionally different, what records must be retained, and which approval side effects must run for each moderation interface.
+
+### Lifecycle invariants to preserve
+
+1. Ordinary Tribute Wall contributions remain distinct from Community Stories; `story_topic_id = null` continues to identify the ordinary wall path, while topic-linked submissions retain their topic association.
+2. Queue restoration must preserve the session token, expiry/purge semantics, contributor details, and already-uploaded media references.
+3. A successful RSVP must remain independent of optional public contribution insertion unless a separately approved consistency change defines otherwise.
+4. All moderation surfaces must agree on the approved pending-status contract and include regression tests for each supported submission path.
+5. Notification failures must have explicit and observable handling; non-fatal email failures must not be misreported as successful delivery.
+6. Personal-only honouree functionality must remain eligibility-gated when communal Capsules are introduced.
+
+### Required verification and disposition gates
+
+- Verify the deployed application version and endpoint availability for queue restoration.
+- Trace how queued submissions are converted into contributions, including final status, media references, and purge/consumption behaviour.
+- Establish the canonical contribution status vocabulary and reconcile every moderation query and counter.
+- Confirm the intended `contribution_source` values and the migration/compatibility policy for historical records.
+- Align Community Stories submission-confirmation payload with the receiving endpoint contract and add a caller/receiver contract test.
+- Define rejection, deletion, soft-deletion, and audit-retention policy.
+- Add regression coverage for ordinary wall, Community Stories, RSVP, queued restoration, admin moderation, organiser moderation, and notification failure.
+
+These gates belong to the pre-implementation dependency audit. They do not authorise a production fix, database migration, or unrelated refactor.
+
+
 ## 9. Out of Scope
 
 - A new event-planning engine.
@@ -427,6 +478,7 @@ The email caller graph is **partially traced, not closed**. Before implementatio
 | v1.4 | 17 October 2026 | Added source-confirmed OG cover, public publication, publication distribution, and physical Gift Collection schema/consumer mismatch findings; separated physical gifting from purchased-gift notifications and added regression requirements. |
 | v1.5 | 17 October 2026 | Founder approved the plan for adoption as the authoritative working plan. This approval does not authorise code implementation, database migration, production deployment, or merge to `main`; existing audit gates remain mandatory. |
 | v1.6 | 17 October 2026 | Added direct caller-graph findings, a confirmed community-topic submission-confirmation payload mismatch, Keepsake Card dependency, and unresolved verification-endpoint caller status; clarified that absent search results do not establish that routes are unused. |
+| v1.7 | 17 October 2026 | Added consolidated contribution-lifecycle findings register: RSVP source/schema mismatch, moderation-status query divergence, queue-restoration route discrepancy across inspected branches, notification contract mismatch, moderation-retention decision, and verification gates. No code or database changes authorised. |
 
 ## 11. Attribution
 
