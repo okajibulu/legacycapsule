@@ -3,7 +3,7 @@
 **FILE PATH** `/docs/COMMUNAL_CAPSULE_UPGRADE_PLAN.md`  
 **DOCUMENT OWNER** CG08-LC — LegacyCapsule implementation coordination  
 **STATUS** Approved for Adoption — authoritative working plan; implementation and migration remain separately gated  
-**VERSION** v1.7  
+**VERSION** v1.8  
 **CREATED** 17 October 2026  
 **LAST UPDATED** 17 October 2026  
 **DEPENDS ON** `PROJECT_RULES.md`; `AI_CONTEXT.md`; `LC00_ARCHITECTURE_INDEX.md` in Project Knowledge; `LC01A_INTERFACE_AND_EXPERIENCE_STANDARD.md`; `OG02_COVER_SYSTEM.md`; `LC03_LEGACY_PUBLICATION_SYSTEM.md`; live code and live Supabase schema  
@@ -457,6 +457,42 @@ These behaviours have different retention and audit consequences. Before consoli
 These gates belong to the pre-implementation dependency audit. They do not authorise a production fix, database migration, or unrelated refactor.
 
 
+
+
+### Queue persistence, restoration, notification and expiry — additional audit evidence
+
+This subsection records a further read-only source/database pass completed on 17 October 2026. It narrows what is known about the queue lifecycle; it does not establish the state of the deployed application.
+
+**Source-confirmed queue creation and client behaviour**
+
+- `app/api/capsule/queue-submission/route.ts` creates a random session token, sets `purge_after` to 30 days, and inserts the contributor details, tribute text, media URLs, `assets_pending = true`, and `status = 'queued'` into `public.queued_submissions`. It logs a `wall_hit` lifecycle event on a best-effort basis and returns a restore URL containing the token.
+- `app/api/capsule/queue-update-email/route.ts` updates the email address only when the token identifies a row whose status remains `queued`.
+- `components/TributeWallClient.tsx` requests `/api/capsule/restore-submission?token=...`, but that route was not present in the inspected recursive trees for `main` or this plan branch. The visible restoration logic repopulates contributor identity, location, relationship, tribute text, and audio/video URLs. Photo restoration into the form state was not established by this pass.
+- The visible client path submits directly to `public.contributions` with `pending_review` when wall capacity permits. When capacity is full, it queues the draft and presents a return/restore path. Source inspection did not establish an automatic conversion of queued rows into contributions when capacity reopens.
+- The queue route comment says the 30-day purge is handled separately. No queue purge job or restoration route was found in the inspected repository tree. This is a repository finding, not proof that an external scheduler or deployed endpoint does not exist.
+- `app/api/cron/notify-pending/route.ts` is the only relevant cron route identified in this pass; it notifies organisers about pending contributions. It does not establish notification to contributors when queued capacity becomes available.
+
+**Read-only live database snapshot**
+
+- `public.queued_submissions` contains fields for `status`, `notified_at`, `completed_at`, and `purge_after`, as well as contributor fields and photo/audio/video URLs.
+- The table had **0 rows at the time of inspection**. This does not prove the queue feature is unused or that no queued records existed historically.
+- No triggers on `queued_submissions` and no database routines referencing it were returned by the inspected `information_schema` queries. The Supabase Edge Functions listing returned no functions. The migration history inspected contains 11 entries through 7 October 2026, with no obvious queue restore/purge migration.
+- No identified source writer for `notified_at` or `completed_at` was established in this pass. Deployment configuration and external scheduled jobs were not accessible for verification.
+
+**Disposition: lifecycle contract remains open**
+
+Do not claim that queued submissions are automatically restored, converted, notified, or purged until the deployed application and any external scheduler are verified. Before implementation, specify and test:
+
+1. A working, token-protected restoration endpoint with a defined expiry check; restore every persisted form field and media reference, including photo.
+2. The intended user journey when capacity reopens. The current source does not prove silent auto-submission; preserve explicit contributor review/confirmation unless a different contract is approved.
+3. Idempotent completion so retries, repeated restores, and double submissions cannot create duplicate contributions.
+4. A defined state transition and timestamp contract, including when `completed_at` and `notified_at` are written and how failures are surfaced.
+5. A real retention/expiry mechanism for queue rows and an explicit policy for associated media objects; a `purge_after` timestamp alone does not purge data.
+6. A verified notification path if the product promises to tell contributors when the wall reopens.
+7. Regression tests for token expiry, expired links, missing/deleted media, retries, capacity reopening, notification failure, and queue completion.
+
+**Evidence boundary:** repository source and live schema were inspected; production deployment, historical queue activity, external schedulers, and user-facing incident frequency remain unverified. No source code, database, migration, or deployment was changed by this audit.
+
 ## 9. Out of Scope
 
 - A new event-planning engine.
@@ -479,6 +515,7 @@ These gates belong to the pre-implementation dependency audit. They do not autho
 | v1.5 | 17 October 2026 | Founder approved the plan for adoption as the authoritative working plan. This approval does not authorise code implementation, database migration, production deployment, or merge to `main`; existing audit gates remain mandatory. |
 | v1.6 | 17 October 2026 | Added direct caller-graph findings, a confirmed community-topic submission-confirmation payload mismatch, Keepsake Card dependency, and unresolved verification-endpoint caller status; clarified that absent search results do not establish that routes are unused. |
 | v1.7 | 17 October 2026 | Added consolidated contribution-lifecycle findings register: RSVP source/schema mismatch, moderation-status query divergence, queue-restoration route discrepancy across inspected branches, notification contract mismatch, moderation-retention decision, and verification gates. No code or database changes authorised. |
+| v1.8 | 17 October 2026 | Extended the contribution-lifecycle register with queue schema/state evidence, restoration and photo-recovery gaps, unverified notification and expiry mechanisms, and explicit lifecycle contract gates. Deployment remains unverified; no implementation or database changes authorised. |
 
 ## 11. Attribution
 
