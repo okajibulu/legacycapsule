@@ -3,7 +3,7 @@
 **FILE PATH** `/docs/COMMUNAL_CAPSULE_UPGRADE_PLAN.md`  
 **DOCUMENT OWNER** CG08-LC — LegacyCapsule implementation coordination  
 **STATUS** Approved for Adoption — authoritative working plan; implementation and migration remain separately gated  
-**VERSION** v1.8  
+**VERSION** v1.9  
 **CREATED** 17 October 2026  
 **LAST UPDATED** 17 October 2026  
 **DEPENDS ON** `PROJECT_RULES.md`; `AI_CONTEXT.md`; `LC00_ARCHITECTURE_INDEX.md` in Project Knowledge; `LC01A_INTERFACE_AND_EXPERIENCE_STANDARD.md`; `OG02_COVER_SYSTEM.md`; `LC03_LEGACY_PUBLICATION_SYSTEM.md`; live code and live Supabase schema  
@@ -493,6 +493,40 @@ Do not claim that queued submissions are automatically restored, converted, noti
 
 **Evidence boundary:** repository source and live schema were inspected; production deployment, historical queue activity, external schedulers, and user-facing incident frequency remain unverified. No source code, database, migration, or deployment was changed by this audit.
 
+
+## 8F. Personal-Only Feature Eligibility and Server-Boundary Audit — 17 October 2026
+
+This pass inspected the server routes for honouree reveal, Family Appreciation, purchased-gift notifications, scheduled gift delivery, Capsule updates, prompt seeding, and RSVP contribution creation. Findings below are source-confirmed observations from `main`; runtime exposure, caller authentication, and production impact require separate verification. No code or database was changed.
+
+### Feature eligibility and server-side enforcement
+
+| File / capability | Source-confirmed observation | Required disposition before communal launch |
+|---|---|---|
+| `app/api/capsule/honouree-reveal/route.ts` | Accepts `capsule_id` and caller-supplied `honouree_email`, loads Capsule details with the service-role client, creates a honouree portal token and sends person-specific copy. In the inspected handler, no organiser-session/ownership check or explicit personal-path eligibility check is visible before token creation and email delivery. | Treat as a high-priority server-boundary review. Confirm intended caller authentication and ownership contract. Enforce personal-only eligibility server-side unless a distinct communal-recipient model is approved. Do not rely on hiding the dashboard control. Review token generation and send retry behaviour as part of the same route audit. |
+| `app/api/capsule/appreciation/route.ts` | The route comment says portal access is an implicit auth check, but the inspected handler uses the service-role client and does not visibly validate a session, organiser ownership, or Capsule path. It can create/update a `capsule_profile_sections` appreciation section by supplied Capsule/section IDs. | Verify whether middleware or an external boundary protects this route. If no verified boundary exists, require explicit authorisation and personal-only eligibility where Family Appreciation remains personal. Verify section ownership on both create and update paths. |
+| `app/api/email/gift-notification/route.ts` | Sends a purchased-gift Capsule notification using `honouree_name` and person-centred copy. It is described in source as called by the Stripe webhook for `book_mode === 'gift'`. | Keep this workflow distinct from physical Gift Collection. Decide whether communal Capsules can be purchased as gifts; if not, enforce that rule at the creation/payment/webhook boundary. If allowed, define recipient and event-identity semantics before changing copy. |
+| `app/api/email/gift-schedule/route.ts` | Schedules recipient email through Resend and writes delivery metadata to the Capsule. It uses `honouree_name` in recipient and organiser messages. The source describes this as called by the Stripe webhook for scheduled gift delivery. | Apply the same separately approved eligibility rule as immediate gift notification. Preserve scheduling, cancellation/rescheduling, and payment semantics; verify external send IDs and error handling before changes. |
+| `app/api/capsule/update/route.ts` | Uses a field allowlist and currently permits fields such as `honouree_name` and `event_type`, but not the proposed `event_path` or `event_name`. It uses a service-role client; this file alone does not establish how the request is authenticated upstream. | Preserve protected-field restrictions. Add the new fields only after schema rollout and request-identity/ownership checks are established; validate canonical path/type and event-name requirements server-side. |
+| `app/api/capsule/seed-prompts/route.ts` | Accepts a caller-supplied `capsule_id` and optional `event_type`; if the latter is absent, it reads the Capsule type. It seeds system prompts based on event type and general prompts. The inspected handler does not visibly validate ownership or reconcile a supplied type with the stored Capsule type. | Verify its caller and protection boundary. Derive canonical path/type from the stored Capsule where possible; ensure caller-supplied values cannot seed inappropriate prompts or cross-Capsule data. Add communal prompt coverage without collapsing ordinary wall and Community Stories. |
+| `app/api/rsvp/respond/route.ts` | Validates a guest `rsvp_token`, updates the RSVP, and optionally inserts a public contribution. The contribution insert uses `source: 'rsvp'` and status `pending`, while the audited schema/status contract findings in Section 8E remain unresolved. | Preserve RSVP success independently of optional contribution insertion. Resolve the source-column and status contracts separately, and define whether RSVP messaging is suitable for communal Capsules. |
+
+### Important evidence boundary
+
+- The observations above mean **the inspected route code does not itself show the stated check**. They do not prove that a route is publicly reachable or unprotected in production; middleware, hosting configuration, or another verified upstream boundary may exist.
+- A comment saying authentication is implicit is not, by itself, proof of an effective security boundary.
+- Do not remove personal-only functionality or expand eligibility based only on UI visibility. The server must enforce the approved eligibility and authorisation contract.
+- No penetration test, deployed-route test, middleware audit, or runtime log review was performed in this pass. Treat possible authorisation gaps as verification priorities, not as confirmed exploitation or a claim of production compromise.
+
+### Required gates
+
+1. Trace every caller and inspect middleware/route protection for the reveal, appreciation, update, and prompt-seeding endpoints.
+2. Verify Capsule ownership/organiser authorisation on all service-role mutations and side-effecting email/token routes.
+3. Define a single explicit eligibility matrix for personal-only, communal-capable, and separately purchased-gift features.
+4. Enforce that matrix at server boundaries and test direct HTTP requests that bypass UI controls.
+5. Test wrong-Capsule IDs, unauthorised callers, repeated requests, expired/deleted Capsules, communal Capsules, and failure/retry paths.
+6. Keep the physical Gift Collection workflow separate from purchased-gift Capsule notifications.
+7. Do not start implementation until these gates and the open lifecycle gates in Section 8E have been dispositioned.
+
 ## 9. Out of Scope
 
 - A new event-planning engine.
@@ -516,6 +550,7 @@ Do not claim that queued submissions are automatically restored, converted, noti
 | v1.6 | 17 October 2026 | Added direct caller-graph findings, a confirmed community-topic submission-confirmation payload mismatch, Keepsake Card dependency, and unresolved verification-endpoint caller status; clarified that absent search results do not establish that routes are unused. |
 | v1.7 | 17 October 2026 | Added consolidated contribution-lifecycle findings register: RSVP source/schema mismatch, moderation-status query divergence, queue-restoration route discrepancy across inspected branches, notification contract mismatch, moderation-retention decision, and verification gates. No code or database changes authorised. |
 | v1.8 | 17 October 2026 | Extended the contribution-lifecycle register with queue schema/state evidence, restoration and photo-recovery gaps, unverified notification and expiry mechanisms, and explicit lifecycle contract gates. Deployment remains unverified; no implementation or database changes authorised. |
+| v1.9 | 17 October 2026 | Added personal-only feature eligibility and server-boundary audit findings for honouree reveal, Family Appreciation, purchased-gift notifications, Capsule updates, prompt seeding, and RSVP contribution handling. Potential authorisation gaps are marked for verification, not asserted as production exposure. No code or database changes authorised. |
 
 ## 11. Attribution
 
