@@ -3,7 +3,7 @@
 **FILE PATH** `/docs/COMMUNAL_CAPSULE_UPGRADE_PLAN.md`  
 **DOCUMENT OWNER** CG08-LC — LegacyCapsule implementation coordination  
 **STATUS** Approved for Adoption — authoritative working plan; implementation and migration remain separately gated  
-**VERSION** v1.9  
+**VERSION** v2.0  
 **CREATED** 17 October 2026  
 **LAST UPDATED** 17 October 2026  
 **DEPENDS ON** `PROJECT_RULES.md`; `AI_CONTEXT.md`; `LC00_ARCHITECTURE_INDEX.md` in Project Knowledge; `LC01A_INTERFACE_AND_EXPERIENCE_STANDARD.md`; `OG02_COVER_SYSTEM.md`; `LC03_LEGACY_PUBLICATION_SYSTEM.md`; live code and live Supabase schema  
@@ -527,6 +527,43 @@ This pass inspected the server routes for honouree reveal, Family Appreciation, 
 6. Keep the physical Gift Collection workflow separate from purchased-gift Capsule notifications.
 7. Do not start implementation until these gates and the open lifecycle gates in Section 8E have been dispositioned.
 
+
+## 8G. Route-Protection and Caller-Trace Follow-up — 17 October 2026
+
+This pass inspected the recursive `main` tree, the management page/server wrapper, selected route handlers, authentication routes, and the checked-in Next.js configuration. It supplements Section 8F. It is a source-level audit only; no deployed requests, penetration tests, or runtime logs were examined.
+
+### Repository-level protection evidence
+
+- The recursive `main` tree contains 793 paths and 175 `app/api/**/route.ts` files. No root `middleware.ts`, `middleware.js`, `proxy.ts`, or `proxy.js` was present in that tree.
+- The inspected `next.config.js` defines a host-based redirect and build configuration; it does not show a general API authentication rule.
+- This absence does **not** prove there is no protection: hosting controls, route-local checks, imported helpers, or another external boundary may apply. The Vercel project configuration and deployed behaviour were not available in this pass.
+- GitHub code-search calls for the four endpoint paths returned no indexed matches. Treat those results as inconclusive; the endpoint caller graph remains unresolved.
+
+### Additional source-confirmed details
+
+1. **Management page boundary:** `app/manage/[slug]/page.tsx` calls `checkManageAuth(slug)` for Family Representative/Co-admin sessions, but its own header states that the organiser flow is still identified client-side through localStorage when no manager cookie is found. The client component also creates a Supabase anon client. This page alone does not establish whether the four service-role API routes enforce organiser ownership.
+2. **Capsule update endpoint:** `app/api/capsule/update/route.ts` filters request fields through an allowlist and writes through a service-role client. The inspected handler does not visibly verify caller identity or Capsule ownership before the update. This is a high-priority verification item; do not infer public exploitability without examining all upstream controls.
+3. **Appreciation endpoint:** `app/api/capsule/appreciation/route.ts` accepts supplied Capsule and section IDs and performs service-role writes. The handler does not visibly authenticate the caller or verify Capsule ownership for the create path. On the update path, it filters by `section_id`, `capsule_id`, and `section_type`, but still does not visibly prove the requester is authorised for that Capsule.
+4. **Prompt seeding endpoint:** `app/api/capsule/seed-prompts/route.ts` accepts a Capsule ID and optional event type, then writes system topics using the service-role client. The inspected handler does not visibly authenticate the caller or validate that the supplied event type matches the Capsule record when provided.
+5. **Honouree reveal endpoint:** `app/api/capsule/honouree-reveal/route.ts` accepts a Capsule ID and honouree email, creates a portal token, and sends an email using service-role access. No route-local caller identity/ownership check is visible in the inspected handler.
+6. **Creation endpoint:** `app/api/capsules/create-and-verify/route.ts` is intentionally a public registration route, performs request validation, creates a Capsule and calls the established verification endpoint. Its public nature is not itself a finding; communal upgrade work must preserve validation, verification, and cleanup semantics while adding the approved path/name contract.
+
+### Audit disposition
+
+The four endpoints in the initial review—honouree reveal, appreciation, Capsule update, and prompt seeding—remain **authorisation verification priorities**. The source inspected so far does not show a route-local identity/ownership check in those handlers, and no repository-wide middleware/proxy file was found. However, upstream and deployment controls remain unverified, so the audit does not label these confirmed production vulnerabilities.
+
+### Required verification sequence
+
+1. Inspect `lib/manageAuth.ts`, any shared auth/permission helpers, and all route-specific imported helpers.
+2. Retrieve the full callers from the repository with a local/complete search rather than relying on connector code-search results.
+3. Inspect Vercel project settings and deployed route behaviour through an authorised environment; do not expose secrets or tokens in the audit record.
+4. For every service-role mutation or side effect, define and enforce a caller identity + Capsule ownership/permission contract. Use narrowly scoped permissions where a co-admin/FRFA role is involved.
+5. Add direct-request tests for unauthenticated callers, users who own a different Capsule, wrong section IDs, communal/personal eligibility, repeated requests, and allowed roles.
+6. Verify the intended public nature and abuse controls of registration, RSVP, queue, and verification endpoints separately; do not indiscriminately require organiser authentication on legitimate public participant routes.
+7. Record the result as one of: **verified protected**, **confirmed missing control**, or **unresolved**. Do not classify a control as absent solely because it is not visible in a single file.
+
+No code, database, migration, deployment, or main-branch change was made.
+
 ## 9. Out of Scope
 
 - A new event-planning engine.
@@ -551,6 +588,7 @@ This pass inspected the server routes for honouree reveal, Family Appreciation, 
 | v1.7 | 17 October 2026 | Added consolidated contribution-lifecycle findings register: RSVP source/schema mismatch, moderation-status query divergence, queue-restoration route discrepancy across inspected branches, notification contract mismatch, moderation-retention decision, and verification gates. No code or database changes authorised. |
 | v1.8 | 17 October 2026 | Extended the contribution-lifecycle register with queue schema/state evidence, restoration and photo-recovery gaps, unverified notification and expiry mechanisms, and explicit lifecycle contract gates. Deployment remains unverified; no implementation or database changes authorised. |
 | v1.9 | 17 October 2026 | Added personal-only feature eligibility and server-boundary audit findings for honouree reveal, Family Appreciation, purchased-gift notifications, Capsule updates, prompt seeding, and RSVP contribution handling. Potential authorisation gaps are marked for verification, not asserted as production exposure. No code or database changes authorised. |
+| v2.0 | 17 October 2026 | Added repository-level route-protection and caller-trace follow-up: no root middleware/proxy file found, service-role route checks requiring verification, management auth boundary observations, and an explicit evidence classification sequence. No production exposure asserted; no code or database changes authorised. |
 
 ## 11. Attribution
 
