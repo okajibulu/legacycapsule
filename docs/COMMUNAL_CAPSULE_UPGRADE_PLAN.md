@@ -3,7 +3,7 @@
 **FILE PATH** `/docs/COMMUNAL_CAPSULE_UPGRADE_PLAN.md`  
 **DOCUMENT OWNER** CG08-LC — LegacyCapsule implementation coordination  
 **STATUS** Draft — audit-derived plan; not an implementation approval or migration execution record  
-**VERSION** v1.0  
+**VERSION** v1.3  
 **CREATED** 17 October 2026  
 **LAST UPDATED** 17 October 2026  
 **DEPENDS ON** `PROJECT_RULES.md`; `AI_CONTEXT.md`; `LC00_ARCHITECTURE_INDEX.md` in Project Knowledge; `LC01A_INTERFACE_AND_EXPERIENCE_STANDARD.md`; `OG02_COVER_SYSTEM.md`; `LC03_LEGACY_PUBLICATION_SYSTEM.md`; live code and live Supabase schema  
@@ -292,6 +292,43 @@ The dependency surface includes more than the primary public wall and organiser 
 
 The audit has identified the relevant source files, but has not yet proven every route's caller graph or eligibility policy. Those checks remain implementation prerequisites. Do not infer that a route is communal-enabled solely because its API can accept a capsule ID.
 
+
+
+## 8A. Email and Organiser-Flow Audit — 17 October 2026
+
+The next source-file pass confirms that several email endpoints require coordinated contract changes, not merely updated templates:
+
+| File | Confirmed current contract | Required implementation control |
+|---|---|---|
+| `app/api/email/verify-organiser/route.ts` → `lib/verification.ts` | Organiser verification requires `honoreeName`. | Accept a resolved Capsule subject/path context for communal creation; retain compatibility for existing callers and personal Capsules. Trace all callers before changing required fields. |
+| `app/api/email/verify-contributor/route.ts` → `lib/verification.ts` | Contributor verification requires `honoreeName`; event type is optional. | Make verification subject path-aware while keeping contributor identity, contribution ID, slug, token and verification behaviour unchanged. Trace callers. |
+| `app/api/email/submission-confirmation/route.ts` | Event-copy builder takes event type and a subject name, and creates a 7-day contributor edit token. | Pass path/event-name context into copy generation; do not alter edit-token lifecycle or contribution submission semantics. |
+| `lib/email/sendContributorThankYou.ts` | Thank-you copy uses `honoureeName` in gallery/story confirmation and page title. | Extend parameters compatibly to accept resolved display subject; update both photo and story variants. Trace callers and preserve personal copy. |
+| `lib/email/sendPaymentConfirmation.ts` | Payment confirmation requires `honoureeName`, `eventType`, and `eventTag`. | Identify communal Capsules by event name without affecting amount, currency, processor, promo-slot or payment-status details. Trace Stripe and Paystack callers. |
+| `app/api/capsule/honouree-reveal/route.ts` and `lib/honoureeEmail.ts` | Feature explicitly creates a token for an individual honouree portal. | Treat as personal-only unless a distinct communal-recipient model is approved. Enforce eligibility server-side; hiding a button is insufficient. |
+| `lib/gift/emailTemplates.ts` | Gift credential builder already has a separate `eventName` parameter. | Reuse this concept only where semantically correct; do not conflate gift-system event details with Capsule classification. |
+
+### Confirmed implementation principles
+
+1. Establish a shared server-safe subject resolver with explicit inputs for `event_path`, `event_name`, `honouree_name`, and legacy fallback. Avoid duplicated, inconsistent conditionals across routes.
+2. Treat subject resolution and feature eligibility as separate concerns. A valid display name does not make an individual-only workflow suitable for a communal Capsule.
+3. Before editing a route contract, trace every caller and record whether it is internal, public, webhook-driven, or UI-driven. Preserve existing personal callers during rollout.
+4. Preserve verification, payment, contribution moderation, publication distribution, and token expiry semantics. This upgrade changes event identity and wording, not those business processes.
+5. The source review confirms endpoint parameter assumptions; it does not yet establish the full caller graph for every helper. That remains an audit gate, not an assumed fact.
+
+## 8B. Remaining Audit Gates
+
+Before production implementation or migration, close these items:
+
+- Trace callers of organiser/contributor verification, submission confirmation, thank-you email, payment confirmation, gift notification/scheduling and honouree reveal.
+- Search every direct `capsules` read/write, including server actions, Supabase helpers and publication/editor paths, for assumptions that `honouree_name` is always present.
+- Confirm eligibility for individual honouree portal/reveal, appreciation, family representative/co-admin features, gifts, and person-profile publication sections. Enforce at server/API boundaries where necessary.
+- Inspect `PublicationEditor`, layout generation/reconciliation and PDF narrative code together. Decide how communal publications replace or omit individual profile sections, then inspect a generated communal PDF end-to-end.
+- Define the repository migration convention before authoring DDL. No migrations directory or SQL migration file was found in the audited tree; do not invent a second migration mechanism without reconciling deployment practice.
+- Retrieve and reconcile the complete authoritative Project Knowledge `COMPONENT_MAP(1).md` before restoring or changing the map. The map is not yet present in the branch repository.
+
+These gates are mandatory because a successful creation form alone would not demonstrate a safe communal-event implementation.
+
 ## 9. Out of Scope
 
 - A new event-planning engine.
@@ -309,6 +346,7 @@ The audit has identified the relevant source files, but has not yet proven every
 | v1.0 | 17 October 2026 | Initial audit-derived plan, schema proposal, implementation waves, regression matrix, and Component Map impact. |
 | v1.1 | 17 October 2026 | Added organiser/admin, public API, story prompt, verification, gift eligibility, social cover and publication dependency findings; clarified shared display-subject rule and rollout constraints. |
 | v1.2 | 17 October 2026 | Extended dependency audit to honouree reveal, scheduled gift delivery, event/phase story pages, publication distribution and named-send routes, team Capsule API, and publication editor entry point. |
+| v1.3 | 17 October 2026 | Added source-confirmed email/organiser-flow contracts, distinguished subject resolution from feature eligibility, and formalised remaining caller-graph, direct-database-read, publication and migration-convention audit gates. |
 
 ## 11. Attribution
 
