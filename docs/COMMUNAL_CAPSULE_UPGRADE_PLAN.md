@@ -3,7 +3,7 @@
 **FILE PATH** `/docs/COMMUNAL_CAPSULE_UPGRADE_PLAN.md`  
 **DOCUMENT OWNER** CG08-LC — LegacyCapsule implementation coordination  
 **STATUS** Approved for Adoption — authoritative working plan; implementation and migration remain separately gated  
-**VERSION** v2.0  
+**VERSION** v2.1  
 **CREATED** 17 October 2026  
 **LAST UPDATED** 17 October 2026  
 **DEPENDS ON** `PROJECT_RULES.md`; `AI_CONTEXT.md`; `LC00_ARCHITECTURE_INDEX.md` in Project Knowledge; `LC01A_INTERFACE_AND_EXPERIENCE_STANDARD.md`; `OG02_COVER_SYSTEM.md`; `LC03_LEGACY_PUBLICATION_SYSTEM.md`; live code and live Supabase schema  
@@ -564,6 +564,58 @@ The four endpoints in the initial review—honouree reveal, appreciation, Capsul
 
 No code, database, migration, deployment, or main-branch change was made.
 
+
+## 8H. Shared Management Authentication Review — 17 October 2026
+
+This pass inspected `lib/manageAuth.ts`, `app/manage/[slug]/page.tsx`, `app/api/team/verify/route.ts`, and the four priority service-role routes. This is source review only; deployed behaviour and external controls remain unverified.
+
+### Verified source behaviour
+
+**1. Organiser authentication is not established by `checkManageAuth`.**
+
+- `lib/manageAuth.ts` validates the `lc_mgr_[slug]` cookie for active Family Representative Full Access and Co-admin accounts. That is a scoped manager-session check.
+- If no valid manager cookie is found, `checkManageAuth(slug)` returns `accountType: 'organiser'` with no server-verified organiser identity. The file explicitly delegates organiser identity to the existing client-side localStorage flow.
+- `app/manage/[slug]/page.tsx` passes that result into the dashboard client. Therefore, the page's server wrapper must not be treated as proof of organiser authentication for service-role API requests.
+
+**2. The manager cookie verifies an account session, but does not itself authorise API mutations.**
+
+- `app/api/team/verify/route.ts` checks the submitted email/password against an active FR Full Access or Co-admin account, then sets an HttpOnly, SameSite=Strict cookie scoped to `/manage/[slug]`.
+- `lib/manageAuth.ts` can validate that cookie against the stored session hash and account/Capsule association. The four priority API handlers inspected do not call `validateManageSession` or another visible authorisation helper.
+- The cookie's `/manage/[slug]` path scope means it is not automatically sent to `/api/capsule/*` endpoints. Any future shared API-auth design must account for this intentionally scoped cookie and must not weaken it casually.
+
+**3. Capsule update is a priority authorisation gate.**
+
+- `app/api/capsule/update/route.ts` accepts a caller-supplied `capsule_id`, allowlisted fields, and caller-supplied `actor_name`/`actor_email`. It updates the Capsule using the service-role client and logs the supplied actor details as an organiser. The inspected handler does not visibly verify the caller's identity, Capsule ownership, or permission before the write.
+- The allowlist protects certain fields from browser updates, but it does not substitute for authentication and object-level authorisation. Caller-supplied audit identity must not be treated as verified identity.
+- This is a **confirmed source-level missing check in the handler**, but not yet a confirmed production vulnerability because upstream/deployment protection and actual route reachability remain unverified.
+
+**4. Appreciation, prompt seeding, and reveal remain unverified at the route boundary.**
+
+- `app/api/capsule/appreciation/route.ts` uses the service-role client and accepts supplied Capsule/section IDs; no visible session/ownership check is present in the handler.
+- `app/api/capsule/seed-prompts/route.ts` accepts a supplied Capsule ID and optionally supplied event type; no visible session/ownership check is present, and a caller-supplied event type is used without visibly confirming it against the stored Capsule.
+- `app/api/capsule/honouree-reveal/route.ts` accepts a supplied Capsule ID and email, creates a private portal token, and sends the reveal email; no visible session/ownership or personal-path eligibility check is present.
+- The UI caller for reveal is `components/HonoureeRevealPanel.tsx`, used by the management dashboard. The source comment for appreciation names the Family Representative Elder portal as its caller, but the exact caller component was not resolved in this pass. Prompt-seeding caller was not conclusively established by connector code search.
+- These are handler-level observations. Do not assert production exposure until the full caller graph and external controls are verified.
+
+### Implementation implications for the communal upgrade
+
+1. Do not build communal eligibility on top of unverified client-side organiser identity.
+2. Before enabling new Capsule identity fields or communal-specific mutations, establish a trusted server-side organiser identity and Capsule-level authorisation contract.
+3. Use the existing manager-session helper only for the account types it actually validates; do not assume it authenticates organisers.
+4. Define how organiser accounts, FR Full Access, Co-admin permissions, and FR Elder portal sessions map to endpoint-specific actions. Do not grant blanket access merely because a valid session exists.
+5. Derive actor identity from a validated server-side session. Do not accept caller-supplied `actor_name` or `actor_email` as authoritative audit identity.
+6. Keep route authentication distinct from feature eligibility: a valid actor may still be ineligible to use a personal-only feature on a communal Capsule.
+7. Test direct HTTP calls without UI access, cross-Capsule IDs, insufficient co-admin permissions, invalid/expired sessions, and all approved personal/communal eligibility combinations.
+
+### Remaining unknowns
+
+- Whether Vercel/hosting configuration or an external gateway protects any of these routes.
+- The complete caller graph for appreciation and prompt seeding.
+- The existing organiser session mechanism, beyond the client-side localStorage reference in the inspected management files.
+- The production deployment's exact commit and runtime behaviour.
+
+No code, database, migration, deployment, or main-branch change was made.
+
 ## 9. Out of Scope
 
 - A new event-planning engine.
@@ -589,6 +641,7 @@ No code, database, migration, deployment, or main-branch change was made.
 | v1.8 | 17 October 2026 | Extended the contribution-lifecycle register with queue schema/state evidence, restoration and photo-recovery gaps, unverified notification and expiry mechanisms, and explicit lifecycle contract gates. Deployment remains unverified; no implementation or database changes authorised. |
 | v1.9 | 17 October 2026 | Added personal-only feature eligibility and server-boundary audit findings for honouree reveal, Family Appreciation, purchased-gift notifications, Capsule updates, prompt seeding, and RSVP contribution handling. Potential authorisation gaps are marked for verification, not asserted as production exposure. No code or database changes authorised. |
 | v2.0 | 17 October 2026 | Added repository-level route-protection and caller-trace follow-up: no root middleware/proxy file found, service-role route checks requiring verification, management auth boundary observations, and an explicit evidence classification sequence. No production exposure asserted; no code or database changes authorised. |
+| v2.1 | 17 October 2026 | Inspected shared management authentication. Documented that manager-session validation covers FR Full Access/Co-admin only, organiser identity remains client-side in the inspected dashboard flow, and Capsule update accepts caller-supplied actor labels without visible route-level identity/ownership checks. Production reachability remains unverified. No implementation authorised. |
 
 ## 11. Attribution
 
