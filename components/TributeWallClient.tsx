@@ -1388,70 +1388,7 @@ background:
       }}
     />
 
-    {/* centered ceremonial identity */}
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-        textAlign: 'center'
-      }}
-    >
-      <div
-        style={{
-          fontSize: '11px',
-          letterSpacing: '0.42em',
-          textTransform: 'uppercase',
-          color: 'rgba(226,195,107,0.72)',
-          marginBottom: '14px',
-          fontWeight: 700
-        }}
-      >
-        Legacy Capsule
-      </div>
 
-      <div
-        style={{
-          fontSize: 'clamp(32px, 7vw, 64px)',
-          fontWeight: 800,
-          lineHeight: 1,
-          color: '#f4d47a',
-          textShadow: '0 6px 24px rgba(0,0,0,0.45)',
-          marginBottom: '12px'
-        }}
-      >
-        {honourName}
-      </div>
-
-      {capsule?.event_tag && (
-        <div
-          style={{
-            fontSize: '14px',
-            letterSpacing: '0.08em',
-            color: 'rgba(255,255,255,0.74)',
-            maxWidth: '80%'
-          }}
-        >
-        {capsule?.event_tag}
-        </div>
-      )}
-
-      <div
-        style={{
-          marginTop: '26px',
-          fontSize: '10px',
-          letterSpacing: '0.28em',
-          textTransform: 'uppercase',
-          color: 'rgba(255,255,255,0.34)'
-        }}
-      >
-        A space for memories, honour and presence
-      </div>
-    </div>
   </div>
 )}
 
@@ -1471,9 +1408,23 @@ background:
               </div>
             )}
 
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, padding: '0 20px 20px', textAlign: 'center' }}>
+            <div style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 10,
+              padding: resolvedHero ? '0 20px 20px' : '24px',
+              textAlign: 'center',
+              ...(resolvedHero ? {} : {
+                top: 0,
+                display: 'flex',
+                flexDirection: 'column' as const,
+                justifyContent: 'center',
+              }),
+            }}>
               <div style={{ fontSize: '28px', marginBottom: '8px', lineHeight: 1 }}>{ornament}</div>
-              <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(22px, 6vw, 32px)', fontWeight: 800, color: t.textHeading, lineHeight: 1.15, textShadow: '0 2px 20px rgba(0,0,0,0.9)', marginBottom: '6px' }}>{pageTitle}</h1>
+              <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 5.2vw, 30px)', fontWeight: 800, color: t.textHeading, lineHeight: 1.2, maxWidth: '100%', overflowWrap: 'anywhere', textShadow: '0 2px 20px rgba(0,0,0,0.9)', marginBottom: '6px' }}>{pageTitle}</h1>
               {capsule.event_tag && <p style={{ fontSize: '11px', color: t.accentMuted, letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: '6px' }}>{capsule.event_tag}</p>}
               {capsule.event_date && (() => {
 
