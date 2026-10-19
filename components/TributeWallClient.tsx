@@ -879,13 +879,13 @@ const handleCopy = async () => {
     } catch { setRepAccessError('Something went wrong. Please try again.') }
     setRepAccessSending(false)
   }
-  const validate = () => {
+  const validate = (countryToSubmit: string) => {
     const e: Record<string, string> = {}
     if (!fFirstName.trim()) e.firstName = 'Please add your first name'
     if (!fLastName.trim()) e.lastName = `Please add your last name — it helps ${honourName} know who this is from`
     if (!fEmail.trim() || !fEmail.includes('@')) e.email = 'Please add a valid email address'
     if (!fCity.trim()) e.city = 'Please add your city'
-    if (!fCountry) e.country = 'Please select your country'
+    if (!countryToSubmit) e.country = 'Please select your country'
     if (fMsg.trim().length < MIN_CHARS) e.msg = `Please write a little more — at least ${MIN_CHARS} characters`
     if (fMsg.trim().length > MAX_CHARS) e.msg = `Please shorten this to ${MAX_CHARS} characters or fewer`
     setErrors(e)
@@ -899,7 +899,16 @@ const handleCopy = async () => {
 ].filter(Boolean).join(' ') || null
 
   const handleSubmit = async () => {
-    if (!validate()) return; setSubmitting(true); setSubmitErr('')
+    // Browser autofill can update the visible input without updating React state.
+    // Read the live field value and normalize it against our supported country list
+    // before validation and persistence, so the displayed value is the saved value.
+    const visibleCountry = countryRef.current?.querySelector('input')?.value.trim() || countryQuery.trim() || fCountry
+    const countryToSubmit = COUNTRIES.find(c => c.toLowerCase() === visibleCountry.toLowerCase()) || ''
+    if (countryToSubmit) {
+      setFCountry(countryToSubmit)
+      setCountryQuery('')
+    }
+    if (!validate(countryToSubmit)) return; setSubmitting(true); setSubmitErr('')
     try {
       // ── Collection window check — before any upload or insert ──────────────
       // The tribute wall may still render after free_tier_expires_at if
@@ -947,7 +956,7 @@ const handleCopy = async () => {
         }
       }
       const coords = await getIPCoords()
-      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, phase_id: phaseId || null, contributor_name: composedContributorName, city: fCity.trim(), country: fCountry, relationship: fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review', legacy_builder_consent: fConsent, story_topic_id: null }).select('id').single()
+      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, phase_id: phaseId || null, contributor_name: composedContributorName, city: fCity.trim(), country: countryToSubmit, relationship: fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review', legacy_builder_consent: fConsent, story_topic_id: null }).select('id').single()
       if (ie) { setSubmitErr(ie.message); setSubmitting(false); return }
       if (nc) { fetch('/api/email/submission-confirmation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contributionId: nc.id, capsuleSlug: capsule.slug, contributorName: composedContributorName, contributorEmail: fEmail.trim(), subjectName: honourName, eventType: capsule.event_type, tributeText: fMsg.trim() }) }).catch(() => {}) }
      
