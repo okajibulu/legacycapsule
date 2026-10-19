@@ -2280,7 +2280,7 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
                       </div>
                       <button onClick={() => setActiveTab('setprofile')} style={{
                         width: '100%', padding: '12px 16px', borderRadius: '10px',
-                        border: 'none', background: goldBtn, color: '#1a0845',
+                        border: 'none', background: `linear-gradient(135deg, ${gold}, rgba(226,195,107,0.7))`, color: '#1a0845',
                         fontSize: '13px', fontWeight: 800, cursor: 'pointer',
                       }}>
                         {hasPhoto ? 'Complete Profile Details →' : 'Add Photos & Details →'}
