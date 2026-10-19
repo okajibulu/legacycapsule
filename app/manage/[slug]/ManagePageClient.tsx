@@ -1067,9 +1067,9 @@ function BottomNav({ active, onChange, pendingCount, isCoadmin, permissions }: {
   }
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'overview',    label: 'Overview',   icon: '🏠' },
-    { id: 'setstories',  label: 'S/Stories',  icon: '📖' },
+    { id: 'setstories',  label: 'Stories',  icon: '📖' },
      
-    { id: 'setprofile',  label: 'S/Profile',  icon: '👤' },
+    { id: 'setprofile',  label: 'Profile',  icon: '👤' },
     { id: 'settings',    label: 'Settings',   icon: '⚙️' },
     { id: 'services',    label: 'Services',   icon: '✨' },
   ]
@@ -1840,6 +1840,14 @@ export default function ManagePageClient({
   const [permissions,    setPermissions]    = useState<string[]>(serverPermissions)
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [loading, setLoading] = useState(true)
+
+  // GC11-LC: Honour the guided next step from capsule creation.
+  // The organiser lands directly in the existing Profile tab rather than
+  // having to discover the abbreviated navigation label.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('setup') === 'profile') setActiveTab('setprofile')
+  }, [])
   const [copied, setCopied] = useState(false)
   const [communityTopics, setCommunityTopics] = useState<any[]>([])
   const [phases, setPhases] = useState<any[]>([])
@@ -2237,6 +2245,50 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
           {/* -- OVERVIEW TAB -- */}
           {activeTab === 'overview' && (
             <div>
+              {/* GC11-LC — Guided setup: shown only while core profile items are missing. */}
+              {capsule && (
+                (() => {
+                  const hasPhoto = Boolean(heroImage || capsule.hero_image_url)
+                  const hasBiography = profileSections.some(section =>
+                    section.section_type === 'biography' && Boolean(section.content?.trim())
+                  )
+                  if (hasPhoto && hasBiography) return null
+                  return (
+                    <section style={{
+                      marginBottom: '18px',
+                      padding: '18px',
+                      borderRadius: '14px',
+                      border: '1px solid rgba(226,195,107,0.28)',
+                      background: 'linear-gradient(135deg, rgba(226,195,107,0.09), rgba(255,255,255,0.02))',
+                    }}>
+                      <p style={{ margin: '0 0 5px', fontSize: '10px', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: goldMuted }}>
+                        Your next step
+                      </p>
+                      <h2 style={{ margin: '0 0 7px', fontSize: '17px', lineHeight: 1.35, fontWeight: 700, color: textPrimary }}>
+                        Bring {capsule.honouree_name}'s story to life
+                      </h2>
+                      <p style={{ margin: '0 0 13px', fontSize: '12px', lineHeight: 1.7, color: textFaint }}>
+                        Add a photo and a little about their life. You can save your progress and return whenever you are ready.
+                      </p>
+                      <div style={{ display: 'grid', gap: '7px', marginBottom: '14px' }}>
+                        <p style={{ margin: 0, fontSize: '12px', color: hasPhoto ? 'rgba(134,239,172,0.9)' : textSecondary }}>
+                          {hasPhoto ? '✓' : '1.'} Add a clear photo
+                        </p>
+                        <p style={{ margin: 0, fontSize: '12px', color: hasBiography ? 'rgba(134,239,172,0.9)' : textSecondary }}>
+                          {hasBiography ? '✓' : '2.'} Tell their story
+                        </p>
+                      </div>
+                      <button onClick={() => setActiveTab('setprofile')} style={{
+                        width: '100%', padding: '12px 16px', borderRadius: '10px',
+                        border: 'none', background: goldBtn, color: '#1a0845',
+                        fontSize: '13px', fontWeight: 800, cursor: 'pointer',
+                      }}>
+                        {hasPhoto ? 'Complete Profile Details →' : 'Add Photos & Details →'}
+                      </button>
+                    </section>
+                  )
+                })()
+              )}
               {/* ── Payment success celebration banner ── */}
               {paymentSuccess && !celebrationDismissed && (
                 <div style={{
