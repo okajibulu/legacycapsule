@@ -947,8 +947,36 @@ const handleCopy = async () => {
         }
       }
       const coords = await getIPCoords()
-      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, phase_id: phaseId || null, contributor_name: composedContributorName, city: fCity.trim(), country: fCountry, relationship: fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review', legacy_builder_consent: fConsent, story_topic_id: null }).select('id').single()
-      if (ie) { setSubmitErr(ie.message); setSubmitting(false); return }
+      // Public submissions go through the server endpoint so pending rows do not
+      // need to be exposed through the approved-only public SELECT policy.
+      const submitResponse = await fetch('/api/contributions/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          capsuleId: capsule.id,
+          phaseId: phaseId || null,
+          contributorName: composedContributorName,
+          city: fCity.trim(),
+          country: fCountry,
+          relationship: fRel.length > 0 ? fRel.join(', ') : null,
+          tributeText: fMsg.trim(),
+          email: fEmail.trim(),
+          thumbnailUrl: fVideoThumb ?? photoUrl,
+          audioUrl: fAudioUrl ?? null,
+          videoUrl: fVideoUrl ?? null,
+          lat: coords?.lat ?? null,
+          lng: coords?.lng ?? null,
+          ipCountry: coords?.country ?? null,
+          legacyBuilderConsent: fConsent,
+        }),
+      })
+      const submitResult = await submitResponse.json().catch(() => ({}))
+      if (!submitResponse.ok || typeof submitResult.id !== 'string') {
+        setSubmitErr(typeof submitResult.error === 'string' ? submitResult.error : 'Your contribution could not be submitted. Please try again.')
+        setSubmitting(false)
+        return
+      }
+      const nc = { id: submitResult.id }
       if (nc) { fetch('/api/email/submission-confirmation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contributionId: nc.id, capsuleSlug: capsule.slug, contributorName: composedContributorName, contributorEmail: fEmail.trim(), subjectName: honourName, eventType: capsule.event_type, tributeText: fMsg.trim() }) }).catch(() => {}) }
      
      // LC-PARTICIPATION-001: Record attribution if visitor arrived via ?ref= link
