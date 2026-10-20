@@ -1067,9 +1067,9 @@ function BottomNav({ active, onChange, pendingCount, isCoadmin, permissions }: {
   }
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'overview',    label: 'Overview',   icon: '🏠' },
-    { id: 'setstories',  label: 'Stories',  icon: '📖' },
+    { id: 'setstories',  label: 'S/Stories',  icon: '📖' },
      
-    { id: 'setprofile',  label: 'Profile',  icon: '👤' },
+    { id: 'setprofile',  label: 'S/Profile',  icon: '👤' },
     { id: 'settings',    label: 'Settings',   icon: '⚙️' },
     { id: 'services',    label: 'Services',   icon: '✨' },
   ]
