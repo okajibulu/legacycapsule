@@ -193,3 +193,31 @@ If no material action was performed, state: **No material LC action performed; n
 | Version | Date | Change | Author |
 |---|---|---|---|
 | v1.0 | 20 October 2026 | Initial worker activity-trail standard, entry template, evidence requirements, and adoption entry. | ChatGPT — GPT-6 |
+
+
+### LC-ACT-20261020-002 — Clarify Component Map purpose and pruning requirement
+
+- **Date/time (UTC):** 2026-10-20 [exact time not captured]
+- **Entry type:** Documentation / Governance
+- **Actor / worker ID:** ChatGPT — project governance session
+- **Model and tool context:** GPT-6; GitHub repository connector
+- **Session ID:** Not assigned
+- **Request / task reference:** Founder instruction to define the Component Map's file-level recording purpose and state that the file requires pruning of non-suitable data.
+- **Approval:** Explicitly requested by Founder.
+- **Repository:** `okajibulu/legacycapsule`
+- **Branch and base commit:** `docs/lc-worker-activity-trail`
+- **Commit / PR / change reference:** `e0dfe265367ce3bc136f4993fb1705aeb115c69c`
+- **Environment affected:** Documentation branch only.
+- **Action performed:** Updated the top of `docs/COMPONENT_MAP.md` to require file name, repository path, action, summary, worker, date, and evidence for each file-level entry. Added explicit guidance that non-suitable, duplicated, obsolete, speculative, or out-of-scope content must be pruned carefully in bounded, reviewed sections. Incremented the Component Map version to v2.2.
+- **Reason and intended outcome:** Align the map with the Founder's intended use as a concise, attributable record of files worked on or created, rather than an unfiltered repository of mixed material.
+- **Files added:** None.
+- **Files modified:** `docs/COMPONENT_MAP.md` — purpose, required recording standard, pruning directive, version metadata and document history.
+- **Files moved / renamed / deleted:** None.
+- **Database / external-system effects:** None.
+- **Existing behaviour impact:** None; documentation only.
+- **Verification performed:** Update was committed to the documentation branch using the previously fetched file SHA as the update precondition.
+- **Verification not performed / limitations:** The map has not yet been pruned. No claim is made that its existing entries are accurate or fully reconciled.
+- **Outcome status:** Completed.
+- **Known risks / follow-up:** Review and prune the Component Map section by section. Preserve evidence-backed file records; do not invent missing attribution. Keep `main` unchanged until the branch is reviewed and approved.
+- **Component Map impact:** Updated `docs/COMPONENT_MAP.md` to v2.2. The map explicitly states that the clean-up remains pending.
+- **Related activity IDs:** LC-ACT-20261020-001
