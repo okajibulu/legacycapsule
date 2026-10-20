@@ -947,8 +947,36 @@ const handleCopy = async () => {
         }
       }
       const coords = await getIPCoords()
-      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, phase_id: phaseId || null, contributor_name: composedContributorName, city: fCity.trim(), country: fCountry, relationship: fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review', legacy_builder_consent: fConsent, story_topic_id: null }).select('id').single()
-      if (ie) { setSubmitErr(ie.message); setSubmitting(false); return }
+      // The server returns the pending contribution ID without exposing pending rows
+      // through the public SELECT policy. This avoids an INSERT ... RETURNING RLS failure.
+      const submitResponse = await fetch('/api/contributions/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          capsuleId: capsule.id,
+          phaseId: phaseId || null,
+          contributorName: composedContributorName,
+          city: fCity.trim(),
+          country: fCountry,
+          relationship: fRel.length > 0 ? fRel.join(', ') : null,
+          tributeText: fMsg.trim(),
+          email: fEmail.trim(),
+          thumbnailUrl: fVideoThumb ?? photoUrl,
+          audioUrl: fAudioUrl ?? null,
+          videoUrl: fVideoUrl ?? null,
+          lat: coords?.lat ?? null,
+          lng: coords?.lng ?? null,
+          ipCountry: coords?.country ?? null,
+          legacyBuilderConsent: fConsent,
+        }),
+      })
+      const submitData = await submitResponse.json().catch(() => ({}))
+      if (!submitResponse.ok || !submitData.contributionId) {
+        setSubmitErr(submitData.error || 'Your submission could not be saved. Please try again.')
+        setSubmitting(false)
+        return
+      }
+      const nc = { id: submitData.contributionId }
       if (nc) { fetch('/api/email/submission-confirmation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contributionId: nc.id, capsuleSlug: capsule.slug, contributorName: composedContributorName, contributorEmail: fEmail.trim(), subjectName: honourName, eventType: capsule.event_type, tributeText: fMsg.trim() }) }).catch(() => {}) }
      
      // LC-PARTICIPATION-001: Record attribution if visitor arrived via ?ref= link
