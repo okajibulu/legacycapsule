@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
   if (phaseId) {
     const { data: phase, error: phaseError } = await admin
       .from('capsule_phases')
-      .select('id')
+      .select('id, deleted_at, capture_window_closes_at')
       .eq('id', phaseId)
       .eq('capsule_id', capsuleId)
       .maybeSingle()
@@ -114,7 +114,10 @@ export async function POST(request: NextRequest) {
       console.error('[contributions/submit] Phase lookup failed:', phaseError.message)
       return jsonError('Unable to verify this event phase. Please try again.', 500)
     }
-    if (!phase) return jsonError('The selected event phase does not belong to this tribute wall.', 400)
+    if (!phase || phase.deleted_at) return jsonError('The selected event phase is not available for contributions.', 400)
+    if (phase.capture_window_closes_at && Date.parse(phase.capture_window_closes_at) < now) {
+      return jsonError('The contribution window for this event phase has closed.', 403)
+    }
   }
 
   // SECTION 4 — PERSIST PENDING CONTRIBUTION
