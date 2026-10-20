@@ -1388,70 +1388,9 @@ background:
       }}
     />
 
-    {/* centered ceremonial identity */}
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-        textAlign: 'center'
-      }}
-    >
-      <div
-        style={{
-          fontSize: '11px',
-          letterSpacing: '0.42em',
-          textTransform: 'uppercase',
-          color: 'rgba(226,195,107,0.72)',
-          marginBottom: '14px',
-          fontWeight: 700
-        }}
-      >
-        Legacy Capsule
-      </div>
-
-      <div
-        style={{
-          fontSize: 'clamp(32px, 7vw, 64px)',
-          fontWeight: 800,
-          lineHeight: 1,
-          color: '#f4d47a',
-          textShadow: '0 6px 24px rgba(0,0,0,0.45)',
-          marginBottom: '12px'
-        }}
-      >
-        {honourName}
-      </div>
-
-      {capsule?.event_tag && (
-        <div
-          style={{
-            fontSize: '14px',
-            letterSpacing: '0.08em',
-            color: 'rgba(255,255,255,0.74)',
-            maxWidth: '80%'
-          }}
-        >
-        {capsule?.event_tag}
-        </div>
-      )}
-
-      <div
-        style={{
-          marginTop: '26px',
-          fontSize: '10px',
-          letterSpacing: '0.28em',
-          textTransform: 'uppercase',
-          color: 'rgba(255,255,255,0.34)'
-        }}
-      >
-        A space for memories, honour and presence
-      </div>
-    </div>
+    {/* SECTION — Decorative fallback background only.
+        The primary hero heading below owns the honouree name and event title.
+        Do not render a second copy of that identity inside the background. */}
   </div>
 )}
 

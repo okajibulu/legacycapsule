@@ -3,6 +3,13 @@
 **Platform:** itslegacycapsule.com
 **Versioning:** Semantic (Major.Minor.Patch)
 
+## 20 October 2026 — Public Hero Text Overlap Correction
+**Status:** Merged to `main`; deployment and live mobile verification pending
+- Removed the duplicate honouree name, event tag and tagline from the no-photo decorative hero background in `components/TributeWallClient.tsx`.
+- Preserved the primary hero heading and decorative gradient, glow, texture and ceremonial lines.
+- No tribute submission, moderation, RLS or database behaviour changed.
+- Change tracked in PR #14.
+
 ---
 
 ## v1.0.0 — Phase 1 MVP Launch
