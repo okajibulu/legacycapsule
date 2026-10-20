@@ -879,13 +879,13 @@ const handleCopy = async () => {
     } catch { setRepAccessError('Something went wrong. Please try again.') }
     setRepAccessSending(false)
   }
-  const validate = () => {
+  const validate = (countryToSubmit: string) => {
     const e: Record<string, string> = {}
     if (!fFirstName.trim()) e.firstName = 'Please add your first name'
     if (!fLastName.trim()) e.lastName = `Please add your last name — it helps ${honourName} know who this is from`
     if (!fEmail.trim() || !fEmail.includes('@')) e.email = 'Please add a valid email address'
     if (!fCity.trim()) e.city = 'Please add your city'
-    if (!fCountry) e.country = 'Please select your country'
+    if (!countryToSubmit) e.country = 'Please select your country'
     if (fMsg.trim().length < MIN_CHARS) e.msg = `Please write a little more — at least ${MIN_CHARS} characters`
     if (fMsg.trim().length > MAX_CHARS) e.msg = `Please shorten this to ${MAX_CHARS} characters or fewer`
     setErrors(e)
@@ -899,7 +899,16 @@ const handleCopy = async () => {
 ].filter(Boolean).join(' ') || null
 
   const handleSubmit = async () => {
-    if (!validate()) return; setSubmitting(true); setSubmitErr('')
+    // Browser autofill can update the visible input without updating React state.
+    // Read the live field value and normalize it against our supported country list
+    // before validation and persistence, so the displayed value is the saved value.
+    const visibleCountry = countryRef.current?.querySelector('input')?.value.trim() || countryQuery.trim() || fCountry
+    const countryToSubmit = COUNTRIES.find(c => c.toLowerCase() === visibleCountry.toLowerCase()) || ''
+    if (countryToSubmit) {
+      setFCountry(countryToSubmit)
+      setCountryQuery('')
+    }
+    if (!validate(countryToSubmit)) return; setSubmitting(true); setSubmitErr('')
     try {
       // ── Collection window check — before any upload or insert ──────────────
       // The tribute wall may still render after free_tier_expires_at if
@@ -947,7 +956,7 @@ const handleCopy = async () => {
         }
       }
       const coords = await getIPCoords()
-      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, phase_id: phaseId || null, contributor_name: composedContributorName, city: fCity.trim(), country: fCountry, relationship: fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review', legacy_builder_consent: fConsent, story_topic_id: null }).select('id').single()
+      const { data: nc, error: ie } = await supabaseClient.from('contributions').insert({ capsule_id: capsule.id, phase_id: phaseId || null, contributor_name: composedContributorName, city: fCity.trim(), country: countryToSubmit, relationship: fRel.length > 0 ? fRel.join(', ') : null, tribute_text: fMsg.trim(), email: fEmail.trim(), thumbnail_url: fVideoThumb ?? photoUrl, audio_url: fAudioUrl ?? null, video_url: fVideoUrl ?? null, lat: coords?.lat ?? null, lng: coords?.lng ?? null, ip_country: coords?.country ?? null, status: 'pending_review', legacy_builder_consent: fConsent, story_topic_id: null }).select('id').single()
       if (ie) { setSubmitErr(ie.message); setSubmitting(false); return }
       if (nc) { fetch('/api/email/submission-confirmation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contributionId: nc.id, capsuleSlug: capsule.slug, contributorName: composedContributorName, contributorEmail: fEmail.trim(), subjectName: honourName, eventType: capsule.event_type, tributeText: fMsg.trim() }) }).catch(() => {}) }
      
@@ -1388,70 +1397,7 @@ background:
       }}
     />
 
-    {/* centered ceremonial identity */}
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-        textAlign: 'center'
-      }}
-    >
-      <div
-        style={{
-          fontSize: '11px',
-          letterSpacing: '0.42em',
-          textTransform: 'uppercase',
-          color: 'rgba(226,195,107,0.72)',
-          marginBottom: '14px',
-          fontWeight: 700
-        }}
-      >
-        Legacy Capsule
-      </div>
 
-      <div
-        style={{
-          fontSize: 'clamp(32px, 7vw, 64px)',
-          fontWeight: 800,
-          lineHeight: 1,
-          color: '#f4d47a',
-          textShadow: '0 6px 24px rgba(0,0,0,0.45)',
-          marginBottom: '12px'
-        }}
-      >
-        {honourName}
-      </div>
-
-      {capsule?.event_tag && (
-        <div
-          style={{
-            fontSize: '14px',
-            letterSpacing: '0.08em',
-            color: 'rgba(255,255,255,0.74)',
-            maxWidth: '80%'
-          }}
-        >
-        {capsule?.event_tag}
-        </div>
-      )}
-
-      <div
-        style={{
-          marginTop: '26px',
-          fontSize: '10px',
-          letterSpacing: '0.28em',
-          textTransform: 'uppercase',
-          color: 'rgba(255,255,255,0.34)'
-        }}
-      >
-        A space for memories, honour and presence
-      </div>
-    </div>
   </div>
 )}
 
@@ -1471,9 +1417,23 @@ background:
               </div>
             )}
 
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, padding: '0 20px 20px', textAlign: 'center' }}>
+            <div style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 10,
+              padding: resolvedHero ? '0 20px 20px' : '24px',
+              textAlign: 'center',
+              ...(resolvedHero ? {} : {
+                top: 0,
+                display: 'flex',
+                flexDirection: 'column' as const,
+                justifyContent: 'center',
+              }),
+            }}>
               <div style={{ fontSize: '28px', marginBottom: '8px', lineHeight: 1 }}>{ornament}</div>
-              <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(22px, 6vw, 32px)', fontWeight: 800, color: t.textHeading, lineHeight: 1.15, textShadow: '0 2px 20px rgba(0,0,0,0.9)', marginBottom: '6px' }}>{pageTitle}</h1>
+              <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(20px, 5.2vw, 30px)', fontWeight: 800, color: t.textHeading, lineHeight: 1.2, maxWidth: '100%', overflowWrap: 'anywhere', textShadow: '0 2px 20px rgba(0,0,0,0.9)', marginBottom: '6px' }}>{pageTitle}</h1>
               {capsule.event_tag && <p style={{ fontSize: '11px', color: t.accentMuted, letterSpacing: '0.22em', textTransform: 'uppercase', marginTop: '6px' }}>{capsule.event_tag}</p>}
               {capsule.event_date && (() => {
 
