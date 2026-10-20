@@ -1011,7 +1011,9 @@ const handleCopy = async () => {
 setFName(''); setFCity(''); setFCountry(''); setFMsg(''); setFRel([]); setFPhoto(null); setFPhotoPreview(null); setCountryQuery(''); setErrors({})
 setFAudioUrl(null); setFVideoUrl(null); setFVideoThumb(null); setFConsent(false)
       setShowAudioRecorder(false); setShowVideoUploader(false)
-      setSubmitSuccess(true); setComposerOpen(false); setTimeout(() => setSubmitSuccess(false), 3500); poll()
+      // Keep the acknowledgement visible: the server has saved this tribute as pending_review.
+      // It must not imply public publication before an administrator approves it.
+      setSubmitSuccess(true); setComposerOpen(false); poll()
        
     } catch { setSubmitErr('Something went wrong. Please try again.') }
     setSubmitting(false)
@@ -1772,7 +1774,7 @@ background:
                     />
                   )}
 
-                  {submitSuccess && <div style={{ borderRadius: '12px', padding: '12px 16px', fontSize: '12px', textAlign: 'center', letterSpacing: '0.04em', border: `1px solid ${t.accentFaint}`, background: t.cardBg, color: t.accentPrimary }}>✦ Your {lang.singular.toLowerCase()} is now part of this record.</div>}
+                  {submitSuccess && <div role="status" aria-live="polite" style={{ borderRadius: '12px', padding: '12px 16px', fontSize: '12px', textAlign: 'center', letterSpacing: '0.02em', border: `1px solid ${t.accentFaint}`, background: t.cardBg, color: t.accentPrimary }}>✓ Your tribute has been received and is awaiting admin approval. It will appear on this page once approved.</div>}
                   {submitErr && <p style={{ fontSize: '11px', color: 'rgba(248,113,113,0.85)', textAlign: 'center' }}>{submitErr}</p>}
                 </div>
               </div>
@@ -1783,11 +1785,10 @@ background:
           {submitSuccess && !composerOpen && (
             <div style={{ margin: '10px 12px 0', borderRadius: '12px', border: `1px solid ${t.accentFaint}`, background: t.cardBg, overflow: 'hidden' }}>
               <div style={{ padding: '14px 16px', textAlign: 'center', borderBottom: `1px solid ${t.accentFaint}` }}>
-                <p style={{ fontSize: '13px', color: t.accentPrimary, margin: '0 0 6px' }}>✦ Your {lang.singular.toLowerCase()} is now part of this record.</p>
+                <p style={{ fontSize: '13px', color: t.accentPrimary, margin: '0 0 6px' }}>✓ Your tribute has been received and is awaiting admin approval.</p>
                 <p style={{ fontSize: '11px', color: t.textFaint, margin: 0, lineHeight: 1.7 }}>
-                  {fEmail
-                    ? `You are part of ${honourName}'s story. The keepsake publication will be sent to you when it is ready.`
-                    : `Leave your email below to receive the keepsake publication — a permanent record of everything gathered for this occasion.`}
+                  It will appear on this page once an administrator approves it. Your submission has been saved; you do not need to submit it again.
+                  {fEmail ? ' We can send you a confirmation by email.' : ' Add your email if you would like to receive updates about the keepsake publication.'}
                 </p>
                 <p style={{ fontSize: '11px', color: t.textFaint, margin: '8px 0 0', lineHeight: 1.65 }}>
                   📷 Have photos from this event? <a href={`/for/${capsule.slug}/profile#lc-contributor-gallery`} style={{ color: t.accentPrimary, textDecoration: 'none', fontWeight: 600 }}>Add them to the About page</a> — they may be included in the final publication.
