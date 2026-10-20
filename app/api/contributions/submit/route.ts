@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     // SECTION 3 — Verify capsule and optional phase
     const { data: capsule, error: capsuleError } = await db
       .from('capsules')
-      .select('id, community_id, deleted_at, lifecycle_state, components, expires_at, contribution_tier, voice_ceiling')
+      .select('id, community_id, deleted_at, lifecycle_state, components, submission_deadline, contribution_tier, voice_ceiling')
       .eq('id', capsuleId)
       .maybeSingle()
 
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     if (!capsule || capsule.deleted_at || capsule.lifecycle_state === 'deleted') {
       return NextResponse.json({ error: 'This capsule is not available for submissions.' }, { status: 404 })
     }
-    if (capsule.expires_at && new Date(capsule.expires_at).getTime() < Date.now()) {
+    if (capsule.submission_deadline && new Date(capsule.submission_deadline).getTime() < Date.now()) {
       return NextResponse.json({ error: 'The contribution period for this capsule has ended.' }, { status: 403 })
     }
 
