@@ -170,7 +170,7 @@ If no material action was performed, state: **No material LC action performed; n
 - **Approval:** Explicitly requested by Founder for creation of the activity-trail file.
 - **Repository:** `okajibulu/legacycapsule`
 - **Branch and base commit:** `docs/lc-worker-activity-trail`, branched from `docs/initial-component-map`; base commit SHA must be captured from GitHub before merge.
-- **Commit / PR / change reference:** To be completed after file creation.
+- **Commit / PR / change reference:** Initial file-creation commit: `5485553c60949e46a9c2205fdda16e7bc224fe51`; subsequent governance updates are recorded in Git history.
 - **Environment affected:** Documentation branch only; no application runtime, database, or production change intended.
 - **Action performed:** Drafted this append-only worker activity trail standard and created a dedicated documentation branch.
 - **Reason and intended outcome:** Establish traceability for actions across multiple LC workers and reduce silent, unattributed, or unauthorised changes.
@@ -181,9 +181,9 @@ If no material action was performed, state: **No material LC action performed; n
 - **Existing behaviour impact:** None; governance documentation only.
 - **Verification performed:** Repository branches and existing activity-log implementation paths were inspected. The application runtime activity log was distinguished from this worker governance trail.
 - **Verification not performed / limitations:** The Component Map branch contains a substantial, historically accumulated document that has not yet been reconciled against the current implementation. This entry does not claim a full Component Map audit.
-- **Outcome status:** Completed when the file is committed; otherwise update status before handover.
+- **Outcome status:** Completed — initial file committed.
 - **Known risks / follow-up:** Capture the resulting commit SHA; review the Component Map against the current tree in bounded sections; append a new activity entry for each material follow-up.
-- **Component Map impact:** Add this governance document to the map's governance/documentation references if the map's current structure supports it. Do not imply that the map has already been updated.
+- **Component Map impact:** Updated `docs/COMPONENT_MAP.md` on this documentation branch to register this governance document. The broader implementation inventory remains unreconciled.
 - **Related activity IDs:** None
 
 ---
