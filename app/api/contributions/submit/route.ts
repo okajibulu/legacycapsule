@@ -40,9 +40,8 @@ export async function POST(request: NextRequest) {
       typeof tributeText !== 'string' ||
       tributeText.trim().length < 20 ||
       tributeText.trim().length > MAX_TEXT_LENGTH ||
-      typeof email !== 'string' ||
-      !email.trim() ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+      (email != null && typeof email !== 'string') ||
+      (typeof email === 'string' && email.trim() !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
     ) {
       return NextResponse.json({ error: 'Please check your name, email and tribute, then try again.' }, { status: 400 })
     }
@@ -94,7 +93,7 @@ export async function POST(request: NextRequest) {
         country: typeof country === 'string' ? country.trim().slice(0, MAX_LOCATION_LENGTH) || null : null,
         relationship: typeof relationship === 'string' ? relationship.trim().slice(0, 240) || null : null,
         tribute_text: tributeText.trim(),
-        email: email.trim().toLowerCase().slice(0, 254),
+        email: typeof email === 'string' && email.trim() ? email.trim().toLowerCase().slice(0, 254) : null,
         thumbnail_url: typeof thumbnailUrl === 'string' ? thumbnailUrl.slice(0, 2048) : null,
         audio_url: typeof audioUrl === 'string' ? audioUrl.slice(0, 2048) : null,
         video_url: typeof videoUrl === 'string' ? videoUrl.slice(0, 2048) : null,
