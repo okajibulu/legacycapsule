@@ -18,7 +18,7 @@ Active
 
 VERSION
 
-v2.1
+v2.2
 
 CREATED
 
@@ -39,6 +39,47 @@ CURRENT_STATE.md
 LC00–LC10 Architecture Library
 
 DOCUMENT PURPOSE
+
+This document is the authoritative file-level work and implementation map for LegacyCapsule.
+
+---
+
+# COMPONENT MAP — REQUIRED RECORDING STANDARD
+
+The primary purpose of this map is to make clear **which file was created or worked on, where it lives, what it contains, which worker handled it, and when the work occurred**.
+
+For every file created or materially worked on, record:
+
+| Required field | What to record |
+|---|---|
+| File name | Exact file name |
+| File path | Exact repository-relative path |
+| Action | Created / Modified / Renamed / Moved / Deleted / Reviewed |
+| Summary | Concise, factual description of what the file contains or what changed |
+| Worker | Exact worker ID or contributor identity; do not guess or misattribute |
+| Date | Date the work occurred (use YYYY-MM-DD where possible) |
+| Evidence | Commit SHA, pull request, or other reference where available |
+
+Use one entry per file. If a task affects multiple files, record each affected file separately. A summary may group related files only when each path and worker/date attribution remains explicit.
+
+The map is an implementation inventory, not a general project diary. Do not use it as a repository for lengthy AI session transcripts, repeated handover prose, speculative ideas, architecture essays, generic instructions, duplicated changelogs, or historical claims that cannot be tied to a file and a supported source. Put those in their appropriate authoritative document or activity record instead.
+
+## REQUIRED CLEAN-UP: PRUNE NON-SUITABLE DATA
+
+This file has accumulated material that does not consistently serve the file-level mapping purpose. **It must be pruned and reorganised** to remove non-suitable, duplicated, obsolete, speculative, or out-of-scope data while preserving useful, evidence-backed file records and necessary governance references.
+
+Pruning must be carried out carefully:
+- Do not delete useful file history or attribution merely because it is old.
+- Do not invent missing worker names, dates, paths, or summaries.
+- Mark uncertain records for verification rather than silently treating them as facts.
+- Move information to another document only when the appropriate destination is known and authoritative; do not create duplicate sources of truth.
+- Do not remove architecture or governance content until confirming it belongs elsewhere and is preserved in that authoritative location.
+- Perform the clean-up in bounded sections and review each section before proceeding.
+- Record the pruning work itself in the Worker Activity Trail.
+
+Until that clean-up is completed, treat the existing map as a **legacy, partially reconciled inventory**. Its presence in this file does not guarantee that every entry is current or suitable.
+
+---
 
 This document is the authoritative implementation inventory for LegacyCapsule.
 
@@ -3111,3 +3152,10 @@ These were identified in live testing but NOT completed by AI21 (context limit):
 | Version | Date | Change |
 |---|---|---|
 | v2.1 | 20 October 2026 | Registered `docs/LC_WORKER_ACTIVITY_TRAIL.md`; updated document metadata. Broader inventory reconciliation remains pending. |
+
+
+## Document History — v2.2
+
+| Version | Date | Change |
+|---|---|---|
+| v2.2 | 20 October 2026 | Clarified the map's primary purpose as a file-level work register requiring file name/path, action, summary, worker, date, and evidence; explicitly required careful pruning of non-suitable data. |
