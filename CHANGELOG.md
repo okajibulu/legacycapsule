@@ -1,4 +1,12 @@
 # LegacyCapsule — Changelog
+
+## 20 October 2026 — Server-Side Contribution Submission (Proposed)
+**Status:** Pull request review; not merged or deployed
+- Added `app/api/contributions/submit/route.ts` to validate capsule/phase eligibility and insert public contributions server-side with `pending_review` status.
+- Updated `components/TributeWallClient.tsx` to use the endpoint instead of direct client INSERT with `.select('id')`, avoiding reliance on public SELECT access to pending rows.
+- Preserved the existing confirmation-email call and attribution follow-up after a successful submission.
+- Public SELECT policy remains approved-only; no production database policy was changed.
+- Requires review and verification before merge/deployment.
 ## VALNEX, UNIPESSOAL LDA · RevoWorldTech
 **Platform:** itslegacycapsule.com
 **Versioning:** Semantic (Major.Minor.Patch)
