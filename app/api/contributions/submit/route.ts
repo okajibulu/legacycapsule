@@ -124,9 +124,11 @@ export async function POST(request: NextRequest) {
     const components: string[] = capsule.components ?? []
     const tier = capsule.contribution_tier ?? 'free'
     const isFreeTier = tier === 'free'
-    const voiceCeiling = isFreeTier
-      ? limits.voice_ceiling_free
-      : (tier === 'estate_v' ? null : (capsule.voice_ceiling ?? null))
+    const voiceCeiling = tier === 'estate_v'
+      ? null
+      : (!isFreeTier && capsule.voice_ceiling
+        ? capsule.voice_ceiling
+        : limits.voice_ceiling_free)
 
     const countActive = async (column: 'story_topic_id' | 'audio_url' | 'video_url' | null, notNull = false) => {
       let query = db.from('contributions')
