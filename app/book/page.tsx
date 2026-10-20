@@ -1253,8 +1253,8 @@ function BookPage() {
           {bookMode === 'gift'
             ? <>A LegacyCapsule has been reserved for <span style={{ color: textPrimary, fontWeight: 600 }}>{honoureeName}</span>. Access details will be sent to <span style={{ color: gold, fontWeight: 600 }}>{recipientEmail}</span> when you are ready to activate it.</>
             : path === 'book'
-            ? <>Your LegacyCapsule for <span style={{ color: textPrimary, fontWeight: 600 }}>{honoureeName}</span> has been reserved with your selected services. Next, add a photo and personal details so family and friends can get to know {honoureeName}. We will take you straight to the profile editor. You can share the capsule when you are ready.</>
-            : <>Your LegacyCapsule for <span style={{ color: textPrimary, fontWeight: 600 }}>{honoureeName}</span> is created. Your next step is to add a photo and tell their story. We will take you straight to the profile editor, where you can add personal details before sharing the capsule with family and friends.</>
+            ? <>Your LegacyCapsule for <span style={{ color: textPrimary, fontWeight: 600 }}>{honoureeName}</span> has been reserved with your selected services. Your guest management, event coordination, and tribute collection tools are all waiting in your dashboard. Share the link when you are ready — your capsule goes live when the first tribute arrives.</>
+            : <>Your LegacyCapsule for <span style={{ color: textPrimary, fontWeight: 600 }}>{honoureeName}</span> is set up and ready. Everything you need to collect tributes, share memories, and coordinate your event is waiting in your dashboard. Share the link below — your capsule goes live when the first tribute arrives.</>
           }
         </p>
 
@@ -1266,8 +1266,8 @@ function BookPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
           {bookMode !== 'gift' && (
-            <Link href={`/manage/${capsuleSlug || slug}?setup=profile`} style={{ display: 'block', padding: '14px', borderRadius: '12px', textDecoration: 'none', background: goldBtn, color: '#1a0845', fontSize: '14px', fontWeight: 700, letterSpacing: '0.04em', textAlign: 'center', boxShadow: '0 4px 24px rgba(226,195,107,0.3)' }}>
-              Add Photos & Complete Profile →
+            <Link href={`/manage/${capsuleSlug || slug}`} style={{ display: 'block', padding: '14px', borderRadius: '12px', textDecoration: 'none', background: goldBtn, color: '#1a0845', fontSize: '14px', fontWeight: 700, letterSpacing: '0.04em', textAlign: 'center', boxShadow: '0 4px 24px rgba(226,195,107,0.3)' }}>
+              Open Your Dashboard →
             </Link>
           )}
           <Link href={`/for/${capsuleSlug || slug}`} target="_blank" style={{ display: 'block', padding: '13px', borderRadius: '12px', textDecoration: 'none', border: '1px solid rgba(226,195,107,0.22)', background: 'rgba(226,195,107,0.05)', color: 'rgba(226,195,107,0.75)', fontSize: '13px', fontWeight: 600, textAlign: 'center', letterSpacing: '0.04em' }}>
