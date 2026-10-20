@@ -159,23 +159,3 @@ Hero additions: `hero_image_position` · `hero_image_zoom` · `hero_image_fit` �
 
 *Maintained by: AI5 / RevoWorldTech development team*
 *Format: Keep What Changed · Why · DB changes · Known issues*
-
-
-## GC11-LC — Focused User Experience Corrections
-**Date:** 19 October 2026
-**Status:** Implementation in progress on `gc11-lc-focused-ux-fixes`
-
-### Public Experience
-- Removed the duplicate identity text rendered inside the no-photo hero fallback; the primary hero heading now owns the identity display.
-- Centered the single hero heading when no photograph is present and improved long-name wrapping on mobile.
-- Preserved the existing hero image and event-specific presentation when a photograph is available.
-
-### Organiser Experience
-- The capsule creation confirmation now explains the next step in plain language.
-- The primary confirmation action opens the existing organiser dashboard directly on the Profile tab.
-- The dashboard displays a concise setup guide while the capsule photo or biography is missing.
-- Renamed abbreviated organiser navigation labels from `S/Stories` and `S/Profile` to `Stories` and `Profile`.
-
-### Verification
-- Changes are on a dedicated branch and require build/runtime verification before merge.
-- The authoritative Component Map and current-state snapshots are not present in this repository tree; their project copies must be reconciled after verification rather than recreated as competing documents.
