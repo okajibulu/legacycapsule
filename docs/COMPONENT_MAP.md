@@ -18,7 +18,7 @@ Active
 
 VERSION
 
-v2.0
+v2.1
 
 CREATED
 
@@ -26,7 +26,7 @@ CREATED
 
 LAST UPDATED
 
-26 June 2026
+20 October 2026
 
 DEPENDS ON
 
@@ -3091,3 +3091,23 @@ These were identified in live testing but NOT completed by AI21 (context limit):
 ---
 
 *Component map addendum 2 compiled by AI21 · Claude Opus 4.6 · 17 August 2026*
+
+---
+
+# GOVERNANCE DOCUMENT REGISTRY — 20 OCTOBER 2026
+
+## Worker Activity Trail
+
+- **Document:** `docs/LC_WORKER_ACTIVITY_TRAIL.md`
+- **Purpose:** Append-only record of material actions performed by any AI or human worker on LegacyCapsule, including investigations, code/document changes, verification, approvals, database or external-system effects, branch/commit references, and handovers.
+- **Governance owner:** Founder (CG01).
+- **Worker responsibility:** Each worker records its own material work and reports the Activity ID(s) in its handover.
+- **Relationship to runtime activity log:** This is a repository governance record. It does not replace the application's runtime activity log or Git history.
+- **Status:** Initial standard established; historical activity has not been reconstructed.
+- **Component Map status:** This entry records the new governance document only. It does not mean the broader implementation inventory has been reconciled or brought fully up to date.
+
+## Document History
+
+| Version | Date | Change |
+|---|---|---|
+| v2.1 | 20 October 2026 | Registered `docs/LC_WORKER_ACTIVITY_TRAIL.md`; updated document metadata. Broader inventory reconciliation remains pending. |
