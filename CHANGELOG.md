@@ -2,21 +2,16 @@
 
 ## 21 October 2026 — Consolidated Contribution Submission and Lifecycle Remediation (Proposed)
 **Status:** Draft review; not merged or deployed
-- Consolidates the proposed server-side public contribution submission endpoint with lifecycle validity and representative response authorization work.
-- Public contribution inserts are performed server-side with `pending_review`; the public approved-only SELECT policy is not weakened.
-- Browser submission now calls the server endpoint and receives only the new contribution ID.
-- The endpoint still requires final lifecycle eligibility alignment, request-size/rate-limit protections, tier/ceiling enforcement, and runtime verification before release.
+- Routes public contribution submission through a server endpoint that validates capsule eligibility, event phase, expiry/deadline and combined voice ceiling, then inserts only as `pending_review`.
+- Keeps the public approved-only SELECT policy unchanged; the browser receives only the new contribution ID.
+- Proposes `capsules.valid_until` as the canonical validity-end field and starts validity on first approval, without resetting it on later approvals.
+- Free capsules default to 90 days; paid capsules use configured `validity_months`, falling back to six months where no duration is configured.
+- Purchased extensions before commencement accumulate in `validity_months`; extensions after commencement extend `valid_until`.
+- Updates the limits endpoint and payment extension helper to stop querying the nonexistent `expires_at` column.
+- Strengthens representative-response session validation, verifies the target contribution belongs to the capsule, and HTML-escapes untrusted values in the response email.
+- Adds a 32 KiB request-body cap to the public submission endpoint. Distributed rate limiting remains a release gate because no existing reusable rate-limit implementation was found in the repository search.
+- Migration remains proposed only. Legacy expiry reconciliation, tier/limit verification, automated tests, build/type checks and rollout ordering remain unresolved.
 - No production database policy or migration has been changed or applied.
-
-## 21 October 2026 — Validity Commencement Contract (Proposed)
-**Status:** Pull request review required; migration not applied to production
-- Added a proposed database migration introducing `capsules.valid_until` as the canonical validity-end field.
-- Added an approval trigger so the first approved tribute or story starts the validity period once; later approvals do not reset it.
-- Free capsules use 90 days by default; paid capsules use configured `validity_months` (six months for legacy paid rows without a configured duration).
-- Validity extensions purchased before commencement are accumulated in `validity_months`; extensions after commencement extend `valid_until`.
-- Updated the limits endpoint and payment extension helper to stop querying the nonexistent `expires_at` column.
-- This is a proposed repository migration only. Production application and any historical-data reconciliation require separate review and approval.
-- Secured the family-representative response route by validating the actual manager session cookie and confirming the response target belongs to the supplied capsule.
 
 ## VALNEX, UNIPESSOAL LDA · RevoWorldTech
 **Platform:** itslegacycapsule.com
