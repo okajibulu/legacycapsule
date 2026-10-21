@@ -40,6 +40,9 @@ export async function POST(request: NextRequest) {
     if (responseText.length > 10000 || (typeof respondedBy === 'string' && respondedBy.length > 160)) {
       return NextResponse.json({ error: 'Response is too long.' }, { status: 400 })
     }
+    const respondedByText = typeof respondedBy === 'string' && respondedBy.trim()
+      ? respondedBy.trim()
+      : 'The Family'
 
     // ── Auth path 1: Portal token (Family Representative) ──
     // ── Auth path 2: Manage session (FRFA via dashboard) ──
@@ -104,7 +107,7 @@ export async function POST(request: NextRequest) {
         contribution_id: contributionId,
         capsule_id: capsuleId,
         response_text: responseText.trim(),
-        responded_by: respondedBy?.trim() || 'The Family',
+        responded_by: respondedByText,
       })
 
     if (insertError) {
@@ -177,7 +180,7 @@ export async function POST(request: NextRequest) {
             <!-- Family response -->
             <tr><td style="padding-bottom:28px;">
               <div style="background:rgba(226,195,107,0.06);border:1px solid rgba(226,195,107,0.2);border-radius:12px;padding:16px 18px;">
-                <p style="font-size:10px;color:rgba(226,195,107,0.55);text-transform:uppercase;letter-spacing:0.12em;margin:0 0 10px;">Family response · ${escapeHtml(typeof respondedBy === 'string' ? respondedBy.trim() : 'The Family')}</p>
+                <p style="font-size:10px;color:rgba(226,195,107,0.55);text-transform:uppercase;letter-spacing:0.12em;margin:0 0 10px;">Family response · ${escapeHtml(respondedByText)}</p>
                 <p style="font-size:14px;color:rgba(255,255,255,0.88);line-height:1.8;margin:0;font-style:italic;">"${escapeHtml(responseText.trim())}"</p>
               </div>
             </td></tr>
