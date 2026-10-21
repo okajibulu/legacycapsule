@@ -127,9 +127,7 @@ const FEATURE_MAP: Record<string, FeatureDefinition> = {
       contribution_tier: 'foundation_150v',
       voice_ceiling:     150,
       validity_months:   6,
-      activated_at:      new Date().toISOString(),
     },
-    extends:   6,
     log_event: 'activated',
   },
 
@@ -147,7 +145,6 @@ const FEATURE_MAP: Record<string, FeatureDefinition> = {
       voice_ceiling:     150,
       validity_months:   6,
     },
-    extends:   6,
     log_event: 'activated',
   },
   full_platform_base: {
@@ -159,7 +156,6 @@ const FEATURE_MAP: Record<string, FeatureDefinition> = {
       voice_ceiling:     150,
       validity_months:   6,
     },
-    extends:   6,
     log_event: 'activated',
   },
 
@@ -300,9 +296,9 @@ const FEATURE_MAP: Record<string, FeatureDefinition> = {
 }
 
 // ═══ SECTION 5 — Validity extension helper ═══
-// Adds months to capsule.expires_at.
-// If expires_at is null or in the past, starts from today.
-// Always additive — never resets existing expiry.
+// Adds months to capsules.valid_until.
+// Before validity commences, purchased extension months are accumulated in validity_months.
+// After validity commences, extensions are additive to the existing valid_until.
 // Max 6 months per call (founder spec: max 6mo extension at a time).
 // Writes a lifecycle event on success.
 
@@ -315,7 +311,7 @@ async function extendCapsuleValidity(
 
   const { data: capsule, error } = await db
     .from('capsules')
-    .select('expires_at')
+    .select('valid_until, validity_months, contribution_tier')
     .eq('id', capsule_id)
     .single()
 
@@ -324,17 +320,49 @@ async function extendCapsuleValidity(
     return
   }
 
-  const base = capsule.expires_at && new Date(capsule.expires_at) > new Date()
-    ? new Date(capsule.expires_at)
-    : new Date()
+  // Before the first approved tribute/story, preserve purchased extensions as
+  // duration months. The approval trigger will start the full period once.
+  if (!capsule.valid_until) {
+    const tier = capsule.contribution_tier ?? 'free'
+    const baseMonths = Number(capsule.validity_months ?? 0) > 0
+      ? Number(capsule.validity_months)
+      : tier === 'free' ? 3 : 6
+    const accumulatedMonths = baseMonths + safeMonths
+    const { error: pendingError } = await db
+      .from('capsules')
+      .update({ validity_months: accumulatedMonths })
+      .eq('id', capsule_id)
+      .is('valid_until', null)
 
+    if (pendingError) {
+      console.error('[featureUnlocker] Could not accumulate pre-commencement validity extension:', pendingError)
+      throw pendingError
+    }
+
+    if (logEvent) {
+      await logLifecycleEvent(capsule_id, 'extension_queued', {
+        months_added: safeMonths,
+        validity_months: accumulatedMonths,
+        commencement: 'first_approved_tribute_or_story',
+      })
+    }
+    return
+  }
+
+  const currentExpiry = new Date(capsule.valid_until)
+  const base = currentExpiry > new Date() ? currentExpiry : new Date()
   const newExpiry = new Date(base)
   newExpiry.setMonth(newExpiry.getMonth() + safeMonths)
 
-  await db
+  const { error: expiryError } = await db
     .from('capsules')
-    .update({ expires_at: newExpiry.toISOString() })
+    .update({ valid_until: newExpiry.toISOString() })
     .eq('id', capsule_id)
+
+  if (expiryError) {
+    console.error('[featureUnlocker] Could not update capsule validity:', expiryError)
+    throw expiryError
+  }
 
   if (logEvent) {
     await logLifecycleEvent(capsule_id, 'extended', {

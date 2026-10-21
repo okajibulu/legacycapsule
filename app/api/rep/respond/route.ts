@@ -7,6 +7,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { validateManageSession } from '@/lib/manageAuth'
+
+// SECTION — EMAIL HTML OUTPUT ENCODING
+// All untrusted values interpolated into the HTML email must be escaped.
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,26 +28,44 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: NextRequest) {
   try {
-    const { contributionId, capsuleId, responseText, respondedBy, token, authMode } = await request.json()
+    const requestBody: unknown = await request.json()
+    if (!requestBody || typeof requestBody !== 'object' || Array.isArray(requestBody)) {
+      return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
+    }
+    const { contributionId, capsuleId, responseText, respondedBy, token, authMode } = requestBody as Record<string, unknown>
 
-    if (!contributionId || !capsuleId || !responseText?.trim()) {
+    if (!contributionId || !capsuleId || typeof responseText !== 'string' || !responseText.trim()) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
     }
+    if (responseText.length > 10000 || (typeof respondedBy === 'string' && respondedBy.length > 160)) {
+      return NextResponse.json({ error: 'Response is too long.' }, { status: 400 })
+    }
+    const respondedByText = typeof respondedBy === 'string' && respondedBy.trim()
+      ? respondedBy.trim()
+      : 'The Family'
 
     // ── Auth path 1: Portal token (Family Representative) ──
     // ── Auth path 2: Manage session (FRFA via dashboard) ──
     if (authMode === 'manage') {
-      // FRFA auth — verify capsule_accounts record exists and is family_rep_full_access
-      const { data: frfaAccount } = await supabase
-        .from('capsule_accounts')
-        .select('id, account_type')
-        .eq('capsule_id', capsuleId)
-        .eq('account_type', 'family_rep_full_access')
-        .eq('is_active', true)
+      // A database account existing is not proof that this request owns a session.
+      // Validate the actual httpOnly manager cookie and bind it to this capsule.
+      const { data: manageCapsule } = await supabase
+        .from('capsules')
+        .select('slug')
+        .eq('id', capsuleId)
         .maybeSingle()
 
-      if (!frfaAccount) {
-        return NextResponse.json({ error: 'Unauthorised — no active Full Access account found.' }, { status: 401 })
+      if (!manageCapsule?.slug) {
+        return NextResponse.json({ error: 'Capsule not found.' }, { status: 404 })
+      }
+
+      const manageSession = await validateManageSession(manageCapsule.slug)
+      if (
+        !manageSession ||
+        manageSession.accountType !== 'family_rep_full_access' ||
+        manageSession.capsuleId !== capsuleId
+      ) {
+        return NextResponse.json({ error: 'Unauthorised.' }, { status: 401 })
       }
     } else {
       // Portal token auth (original path)
@@ -57,6 +87,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Validate that the target contribution belongs to this same capsule.
+    const { data: targetContribution } = await supabase
+      .from('contributions')
+      .select('id, capsule_id')
+      .eq('id', contributionId)
+      .eq('capsule_id', capsuleId)
+      .is('deleted_at', null)
+      .maybeSingle()
+
+    if (!targetContribution) {
+      return NextResponse.json({ error: 'Tribute not found for this capsule.' }, { status: 404 })
+    }
+
     // Save response
     const { error: insertError } = await supabase
       .from('tribute_responses')
@@ -64,7 +107,7 @@ export async function POST(request: NextRequest) {
         contribution_id: contributionId,
         capsule_id: capsuleId,
         response_text: responseText.trim(),
-        responded_by: respondedBy?.trim() || 'The Family',
+        responded_by: respondedByText,
       })
 
     if (insertError) {
@@ -122,7 +165,7 @@ export async function POST(request: NextRequest) {
 
             <tr><td align="center" style="padding-bottom:24px;">
               <p style="font-size:13px;color:rgba(255,255,255,0.55);line-height:1.7;margin:0;">
-                The family of <strong style="color:rgba(255,255,255,0.85);">${capsule.honouree_name}</strong> has responded to the tribute you left on their LegacyCapsule.
+                The family of <strong style="color:rgba(255,255,255,0.85);">${escapeHtml(capsule.honouree_name)}</strong> has responded to the tribute you left on their LegacyCapsule.
               </p>
             </td></tr>
 
@@ -130,15 +173,15 @@ export async function POST(request: NextRequest) {
             <tr><td style="padding-bottom:16px;">
               <div style="background:rgba(255,255,255,0.03);border-left:3px solid rgba(226,195,107,0.3);border-radius:0 10px 10px 0;padding:14px 16px;">
                 <p style="font-size:10px;color:rgba(226,195,107,0.55);text-transform:uppercase;letter-spacing:0.12em;margin:0 0 8px;">Your tribute</p>
-                <p style="font-size:13px;color:rgba(255,255,255,0.55);line-height:1.7;margin:0;font-style:italic;">"${contribution.tribute_text.slice(0, 200)}${contribution.tribute_text.length > 200 ? '…' : ''}"</p>
+                <p style="font-size:13px;color:rgba(255,255,255,0.55);line-height:1.7;margin:0;font-style:italic;">"${escapeHtml(contribution.tribute_text.slice(0, 200))}${contribution.tribute_text.length > 200 ? '…' : ''}"</p>
               </div>
             </td></tr>
 
             <!-- Family response -->
             <tr><td style="padding-bottom:28px;">
               <div style="background:rgba(226,195,107,0.06);border:1px solid rgba(226,195,107,0.2);border-radius:12px;padding:16px 18px;">
-                <p style="font-size:10px;color:rgba(226,195,107,0.55);text-transform:uppercase;letter-spacing:0.12em;margin:0 0 10px;">Family response · ${respondedBy?.trim() || 'The Family'}</p>
-                <p style="font-size:14px;color:rgba(255,255,255,0.88);line-height:1.8;margin:0;font-style:italic;">"${responseText.trim()}"</p>
+                <p style="font-size:10px;color:rgba(226,195,107,0.55);text-transform:uppercase;letter-spacing:0.12em;margin:0 0 10px;">Family response · ${escapeHtml(respondedByText)}</p>
+                <p style="font-size:14px;color:rgba(255,255,255,0.88);line-height:1.8;margin:0;font-style:italic;">"${escapeHtml(responseText.trim())}"</p>
               </div>
             </td></tr>
 

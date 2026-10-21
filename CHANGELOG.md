@@ -1,4 +1,18 @@
 # LegacyCapsule — Changelog
+
+## 21 October 2026 — Consolidated Contribution Submission and Lifecycle Remediation (Proposed)
+**Status:** Draft review; not merged or deployed
+- Routes public contribution submission through a server endpoint that validates capsule eligibility, event phase, expiry/deadline and combined voice ceiling, then inserts only as `pending_review`.
+- Keeps the public approved-only SELECT policy unchanged; the browser receives only the new contribution ID.
+- Proposes `capsules.valid_until` as the canonical validity-end field and starts validity on first approval, without resetting it on later approvals.
+- Free capsules default to 90 days; paid capsules use configured `validity_months`, falling back to six months where no duration is configured.
+- Purchased extensions before commencement accumulate in `validity_months`; extensions after commencement extend `valid_until`.
+- Updates the limits endpoint and payment extension helper to stop querying the nonexistent `expires_at` column.
+- Strengthens representative-response session validation, verifies the target contribution belongs to the capsule, and HTML-escapes untrusted values in the response email.
+- Adds a 32 KiB request-body cap to the public submission endpoint. Distributed rate limiting remains a release gate because no existing reusable rate-limit implementation was found in the repository search.
+- Migration remains proposed only. Legacy expiry reconciliation, tier/limit verification, automated tests, build/type checks and rollout ordering remain unresolved.
+- No production database policy or migration has been changed or applied.
+
 ## VALNEX, UNIPESSOAL LDA · RevoWorldTech
 **Platform:** itslegacycapsule.com
 **Versioning:** Semantic (Major.Minor.Patch)

@@ -120,7 +120,7 @@ export async function GET(req: NextRequest) {
     // Now reads Sprint 1 columns: lifecycle_state, contribution_tier, voice_ceiling
     const { data: capsule, error: capsuleError } = await db
       .from('capsules')
-      .select('components, expires_at, tier, page_state, lifecycle_state, contribution_tier, voice_ceiling')
+      .select('components, valid_until, tier, page_state, lifecycle_state, contribution_tier, voice_ceiling')
       .eq('id', capsule_id)
       .maybeSingle()
 
@@ -217,10 +217,10 @@ const isFreeTier = !capsule.contribution_tier ||
     let expiresAt: string | null = null
     let daysPct: number | null = null
 
-    if (capsule.expires_at) {
-      expiresAt = capsule.expires_at
+    if (capsule.valid_until) {
+      expiresAt = capsule.valid_until
       const now  = new Date()
-      const exp  = new Date(capsule.expires_at)
+      const exp  = new Date(capsule.valid_until)
       const diff = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
       daysRemaining = Math.max(0, diff)
       const totalDays = isFreeTier ? freeLimits.capsule_days : 180  // 6 months for paid
@@ -290,7 +290,7 @@ const isFreeTier = !capsule.contribution_tier ||
         days:       daysRemaining,
         expires_at: expiresAt,
         pct:        daysPct,
-        unlimited:  !capsule.expires_at,
+        unlimited:  !capsule.valid_until,
       },
     })
 
