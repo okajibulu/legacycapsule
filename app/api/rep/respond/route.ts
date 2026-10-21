@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { validateManageSession } from '@/lib/manageAuth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,24 +19,35 @@ export async function POST(request: NextRequest) {
   try {
     const { contributionId, capsuleId, responseText, respondedBy, token, authMode } = await request.json()
 
-    if (!contributionId || !capsuleId || !responseText?.trim()) {
+    if (!contributionId || !capsuleId || typeof responseText !== 'string' || !responseText.trim()) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+    }
+    if (responseText.length > 10000 || (typeof respondedBy === 'string' && respondedBy.length > 160)) {
+      return NextResponse.json({ error: 'Response is too long.' }, { status: 400 })
     }
 
     // ── Auth path 1: Portal token (Family Representative) ──
     // ── Auth path 2: Manage session (FRFA via dashboard) ──
     if (authMode === 'manage') {
-      // FRFA auth — verify capsule_accounts record exists and is family_rep_full_access
-      const { data: frfaAccount } = await supabase
-        .from('capsule_accounts')
-        .select('id, account_type')
-        .eq('capsule_id', capsuleId)
-        .eq('account_type', 'family_rep_full_access')
-        .eq('is_active', true)
+      // A database account existing is not proof that this request owns a session.
+      // Validate the actual httpOnly manager cookie and bind it to this capsule.
+      const { data: manageCapsule } = await supabase
+        .from('capsules')
+        .select('slug')
+        .eq('id', capsuleId)
         .maybeSingle()
 
-      if (!frfaAccount) {
-        return NextResponse.json({ error: 'Unauthorised — no active Full Access account found.' }, { status: 401 })
+      if (!manageCapsule?.slug) {
+        return NextResponse.json({ error: 'Capsule not found.' }, { status: 404 })
+      }
+
+      const manageSession = await validateManageSession(manageCapsule.slug)
+      if (
+        !manageSession ||
+        manageSession.accountType !== 'family_rep_full_access' ||
+        manageSession.capsuleId !== capsuleId
+      ) {
+        return NextResponse.json({ error: 'Unauthorised.' }, { status: 401 })
       }
     } else {
       // Portal token auth (original path)
@@ -55,6 +67,19 @@ export async function POST(request: NextRequest) {
       if (tokenRow.expires_at && new Date(tokenRow.expires_at) < new Date()) {
         return NextResponse.json({ error: 'Token expired' }, { status: 401 })
       }
+    }
+
+    // Validate that the target contribution belongs to this same capsule.
+    const { data: targetContribution } = await supabase
+      .from('contributions')
+      .select('id, capsule_id')
+      .eq('id', contributionId)
+      .eq('capsule_id', capsuleId)
+      .is('deleted_at', null)
+      .maybeSingle()
+
+    if (!targetContribution) {
+      return NextResponse.json({ error: 'Tribute not found for this capsule.' }, { status: 404 })
     }
 
     // Save response
