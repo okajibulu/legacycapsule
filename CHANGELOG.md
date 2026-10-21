@@ -8,6 +8,7 @@
 - Validity extensions purchased before commencement are accumulated in `validity_months`; extensions after commencement extend `valid_until`.
 - Updated the limits endpoint and payment extension helper to stop querying the nonexistent `expires_at` column.
 - This is a proposed repository migration only. Production application and any historical-data reconciliation require separate review and approval.
+- Secured the family-representative response route by validating the actual manager session cookie and confirming the response target belongs to the supplied capsule.
 
 ## VALNEX, UNIPESSOAL LDA · RevoWorldTech
 **Platform:** itslegacycapsule.com
