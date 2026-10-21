@@ -1,4 +1,14 @@
 # LegacyCapsule — Changelog
+
+## 21 October 2026 — Validity Commencement Contract (Proposed)
+**Status:** Pull request review required; migration not applied to production
+- Added a proposed database migration introducing `capsules.valid_until` as the canonical validity-end field.
+- Added an approval trigger so the first approved tribute or story starts the validity period once; later approvals do not reset it.
+- Free capsules use 90 days by default; paid capsules use configured `validity_months` (six months for legacy paid rows without a configured duration).
+- Validity extensions purchased before commencement are accumulated in `validity_months`; extensions after commencement extend `valid_until`.
+- Updated the limits endpoint and payment extension helper to stop querying the nonexistent `expires_at` column.
+- This is a proposed repository migration only. Production application and any historical-data reconciliation require separate review and approval.
+
 ## VALNEX, UNIPESSOAL LDA · RevoWorldTech
 **Platform:** itslegacycapsule.com
 **Versioning:** Semantic (Major.Minor.Patch)
