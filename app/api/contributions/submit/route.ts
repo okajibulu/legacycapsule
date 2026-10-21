@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
 
   const { data: capsule, error: capsuleError } = await admin
     .from('capsules')
-    .select('id, slug, page_state, deleted_at, free_tier_expires_at, submission_deadline')
+    .select('id, slug, page_state, deleted_at, verified_at, valid_until, submission_deadline, contribution_tier, voice_ceiling')
     .eq('id', capsuleId)
     .maybeSingle()
 
@@ -91,16 +91,48 @@ export async function POST(request: NextRequest) {
     console.error('[contributions/submit] Capsule lookup failed:', capsuleError.message)
     return jsonError('Unable to verify this tribute wall. Please try again.', 500)
   }
-  if (!capsule || capsule.deleted_at || capsule.page_state !== 'active') {
+  if (!capsule || capsule.deleted_at) {
+    return jsonError('This tribute wall is not accepting contributions.', 403)
+  }
+
+  // A verified free capsule may receive its first contribution while awaiting
+  // first approval. Paid capsules awaiting payment must never pass this gate.
+  const isFreeTier = !capsule.contribution_tier || capsule.contribution_tier === 'free'
+  const canReceiveFirstContribution =
+    capsule.page_state === 'pending_verification' &&
+    Boolean(capsule.verified_at) &&
+    isFreeTier
+  if (capsule.page_state !== 'active' && !canReceiveFirstContribution) {
     return jsonError('This tribute wall is not accepting contributions.', 403)
   }
 
   const now = Date.now()
-  if (capsule.free_tier_expires_at && Date.parse(capsule.free_tier_expires_at) < now) {
+  if (capsule.valid_until && Date.parse(capsule.valid_until) < now) {
     return jsonError('The contribution window for this tribute wall has closed.', 403)
   }
   if (capsule.submission_deadline && Date.parse(capsule.submission_deadline) < now) {
     return jsonError('The contribution window for this tribute wall has closed.', 403)
+  }
+
+  // Enforce the configured combined voice ceiling on the server, including
+  // pending submissions, so callers cannot bypass the client-side limit check.
+  const voiceCeiling = isFreeTier
+    ? 30
+    : (typeof capsule.voice_ceiling === 'number' ? capsule.voice_ceiling : null)
+  if (voiceCeiling !== null) {
+    const { count: existingCount, error: countError } = await admin
+      .from('contributions')
+      .select('id', { count: 'exact', head: true })
+      .eq('capsule_id', capsuleId)
+      .in('status', ['pending', 'pending_review', 'approved'])
+      .is('deleted_at', null)
+    if (countError) {
+      console.error('[contributions/submit] Contribution count failed:', countError.message)
+      return jsonError('Unable to verify contribution capacity. Please try again.', 500)
+    }
+    if ((existingCount ?? 0) >= voiceCeiling) {
+      return jsonError('This tribute wall has reached its contribution limit.', 403)
+    }
   }
 
   if (phaseId) {
