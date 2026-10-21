@@ -1,5 +1,13 @@
 # LegacyCapsule — Changelog
 
+## 21 October 2026 — Consolidated Contribution Submission and Lifecycle Remediation (Proposed)
+**Status:** Draft review; not merged or deployed
+- Consolidates the proposed server-side public contribution submission endpoint with lifecycle validity and representative response authorization work.
+- Public contribution inserts are performed server-side with `pending_review`; the public approved-only SELECT policy is not weakened.
+- Browser submission now calls the server endpoint and receives only the new contribution ID.
+- The endpoint still requires final lifecycle eligibility alignment, request-size/rate-limit protections, tier/ceiling enforcement, and runtime verification before release.
+- No production database policy or migration has been changed or applied.
+
 ## 21 October 2026 — Validity Commencement Contract (Proposed)
 **Status:** Pull request review required; migration not applied to production
 - Added a proposed database migration introducing `capsules.valid_until` as the canonical validity-end field.
