@@ -1,4 +1,14 @@
 # LegacyCapsule — Changelog
+## 21 October 2026 — Temporary Start Your Capsule Maintenance Notice
+**Status:** Committed to `main`; deployment and live verification pending
+- Changed both homepage `Start Your Capsule` buttons to open a temporary maintenance notice instead of navigating to `/book`.
+- Preserved button labels, styling classes, placement and all other homepage actions.
+- The notice can be dismissed; no booking routes, APIs, database records, or other public routes were changed.
+- This is a limited entry-point pause, not a site-wide maintenance gate. Direct links to capsule creation or other routes remain accessible.
+- Commit: `76c96794bf321d4960c2809e578c060badb7da68`.
+
+---
+
 ## VALNEX, UNIPESSOAL LDA · RevoWorldTech
 **Platform:** itslegacycapsule.com
 **Versioning:** Semantic (Major.Minor.Patch)
