@@ -37,9 +37,28 @@ export async function POST(request: NextRequest) {
     return jsonError('Submission service is temporarily unavailable. Please try again later.', 503)
   }
 
+  // SECTION 2A — BOUND REQUEST BODY SIZE
+  // Reject oversized requests before JSON parsing; enforce the limit even when
+  // Content-Length is absent or inaccurate.
+  const MAX_BODY_BYTES = 32 * 1024
+  const contentLength = Number(request.headers.get('content-length') ?? 0)
+  if (contentLength > MAX_BODY_BYTES) {
+    return jsonError('Submission payload is too large.', 413)
+  }
+
+  let rawBody: string
+  try {
+    rawBody = await request.text()
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
+      return jsonError('Submission payload is too large.', 413)
+    }
+  } catch {
+    return jsonError('Invalid request body.', 400)
+  }
+
   let body: Record<string, unknown>
   try {
-    const parsed: unknown = await request.json()
+    const parsed: unknown = JSON.parse(rawBody)
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       return jsonError('Invalid submission payload.', 400)
     }
