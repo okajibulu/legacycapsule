@@ -51,7 +51,10 @@ begin
            end
      where c.id = new.capsule_id
        and c.valid_until is null
-       and c.deleted_at is null;
+       and c.deleted_at is null
+       -- A pending-payment capsule must not be activated or begin validity
+       -- merely because a contribution was moderated unexpectedly.
+       and c.page_state <> 'pending_payment';
 
   end if;
 
