@@ -336,6 +336,7 @@ const STEPS = [
    ============================================================ */
 export default function HomePage() {
   const { stats, featured, clickable } = useHomepageData()
+  const [showMaintenanceNotice, setShowMaintenanceNotice] = useState(false)
 
   return (
     <>
@@ -472,10 +473,14 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
 
       {/* CTAs — pointer-events-auto so they remain clickable */}
       <div style={{ display: 'flex', gap: '1rem', pointerEvents: 'auto', marginTop: '0.5rem' }}>
-        <Link href="/book" className="btn-primary btn-primary-lg"
-          style={{ pointerEvents: "auto" }}>
+        <button
+          type="button"
+          className="btn-primary btn-primary-lg"
+          onClick={() => setShowMaintenanceNotice(true)}
+          style={{ pointerEvents: "auto", cursor: "pointer", border: "none" }}
+        >
           Start Your Capsule
-        </Link>
+        </button>
         <Link href="/#showcase"
           style={{
             display:       "inline-flex",
@@ -1146,9 +1151,14 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
             flexWrap:       "wrap",
             marginBottom:   "var(--space-8)",
           }}>
-            <Link href="/book" className="btn-primary btn-primary-lg">
+            <button
+              type="button"
+              className="btn-primary btn-primary-lg"
+              onClick={() => setShowMaintenanceNotice(true)}
+              style={{ cursor: "pointer", border: "none" }}
+            >
               Start Your Capsule
-            </Link>
+            </button>
             <Link href="/pricing" className="btn-ghost btn-primary-lg">
               View Pricing
             </Link>
@@ -1167,6 +1177,63 @@ textShadow: '0 0 40px rgba(184,150,12,0.35), 0 2px 12px rgba(0,0,0,0.9)',
           <div className="gold-threshold" style={{ marginTop: "var(--space-16)", opacity: 0.3 }} />
         </div>
       </section>
+
+      {/* Temporary Start Your Capsule maintenance notice */}
+      {showMaintenanceNotice && (
+        <div
+          role="presentation"
+          onClick={() => setShowMaintenanceNotice(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            background: "rgba(8, 6, 18, 0.82)",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="capsule-maintenance-title"
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: "520px",
+              padding: "clamp(28px, 6vw, 44px)",
+              borderRadius: "var(--radius-lg)",
+              border: "1px solid rgba(212, 174, 42, 0.35)",
+              background: "#171126",
+              color: "var(--lc-ivory)",
+              textAlign: "center",
+              boxShadow: "0 24px 80px rgba(0,0,0,0.45)",
+            }}
+          >
+            <div aria-hidden="true" style={{ color: "#D4AE2A", fontSize: "28px", marginBottom: "16px" }}>✦</div>
+            <h2 id="capsule-maintenance-title" style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(1.5rem, 4vw, 2rem)", lineHeight: 1.2, margin: "0 0 16px" }}>
+              We’re Making LegacyCapsule Better
+            </h2>
+            <p style={{ color: "rgba(245,243,238,0.78)", lineHeight: 1.7, margin: "0 0 14px" }}>
+              We’re making improvements to provide a better LegacyCapsule experience.
+            </p>
+            <p style={{ color: "rgba(245,243,238,0.65)", lineHeight: 1.7, margin: "0 0 28px" }}>
+              Starting a new Capsule is temporarily unavailable while we complete this work. Thank you for your patience.
+            </p>
+            <button
+              type="button"
+              autoFocus
+              onClick={() => setShowMaintenanceNotice(false)}
+              className="btn-primary btn-primary-lg"
+              style={{ cursor: "pointer", border: "none" }}
+            >
+              Understood
+            </button>
+          </section>
+        </div>
+      )}
 
       {/* Global animation styles */}
       <style>{`
