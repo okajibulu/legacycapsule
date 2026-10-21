@@ -9,6 +9,17 @@ import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { validateManageSession } from '@/lib/manageAuth'
 
+// SECTION — EMAIL HTML OUTPUT ENCODING
+// All untrusted values interpolated into the HTML email must be escaped.
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -17,7 +28,11 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: NextRequest) {
   try {
-    const { contributionId, capsuleId, responseText, respondedBy, token, authMode } = await request.json()
+    const requestBody: unknown = await request.json()
+    if (!requestBody || typeof requestBody !== 'object' || Array.isArray(requestBody)) {
+      return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
+    }
+    const { contributionId, capsuleId, responseText, respondedBy, token, authMode } = requestBody as Record<string, unknown>
 
     if (!contributionId || !capsuleId || typeof responseText !== 'string' || !responseText.trim()) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
@@ -147,7 +162,7 @@ export async function POST(request: NextRequest) {
 
             <tr><td align="center" style="padding-bottom:24px;">
               <p style="font-size:13px;color:rgba(255,255,255,0.55);line-height:1.7;margin:0;">
-                The family of <strong style="color:rgba(255,255,255,0.85);">${capsule.honouree_name}</strong> has responded to the tribute you left on their LegacyCapsule.
+                The family of <strong style="color:rgba(255,255,255,0.85);">${escapeHtml(capsule.honouree_name)}</strong> has responded to the tribute you left on their LegacyCapsule.
               </p>
             </td></tr>
 
@@ -155,15 +170,15 @@ export async function POST(request: NextRequest) {
             <tr><td style="padding-bottom:16px;">
               <div style="background:rgba(255,255,255,0.03);border-left:3px solid rgba(226,195,107,0.3);border-radius:0 10px 10px 0;padding:14px 16px;">
                 <p style="font-size:10px;color:rgba(226,195,107,0.55);text-transform:uppercase;letter-spacing:0.12em;margin:0 0 8px;">Your tribute</p>
-                <p style="font-size:13px;color:rgba(255,255,255,0.55);line-height:1.7;margin:0;font-style:italic;">"${contribution.tribute_text.slice(0, 200)}${contribution.tribute_text.length > 200 ? '…' : ''}"</p>
+                <p style="font-size:13px;color:rgba(255,255,255,0.55);line-height:1.7;margin:0;font-style:italic;">"${escapeHtml(contribution.tribute_text.slice(0, 200))}${contribution.tribute_text.length > 200 ? '…' : ''}"</p>
               </div>
             </td></tr>
 
             <!-- Family response -->
             <tr><td style="padding-bottom:28px;">
               <div style="background:rgba(226,195,107,0.06);border:1px solid rgba(226,195,107,0.2);border-radius:12px;padding:16px 18px;">
-                <p style="font-size:10px;color:rgba(226,195,107,0.55);text-transform:uppercase;letter-spacing:0.12em;margin:0 0 10px;">Family response · ${respondedBy?.trim() || 'The Family'}</p>
-                <p style="font-size:14px;color:rgba(255,255,255,0.88);line-height:1.8;margin:0;font-style:italic;">"${responseText.trim()}"</p>
+                <p style="font-size:10px;color:rgba(226,195,107,0.55);text-transform:uppercase;letter-spacing:0.12em;margin:0 0 10px;">Family response · ${escapeHtml(typeof respondedBy === 'string' ? respondedBy.trim() : 'The Family')}</p>
+                <p style="font-size:14px;color:rgba(255,255,255,0.88);line-height:1.8;margin:0;font-style:italic;">"${escapeHtml(responseText.trim())}"</p>
               </div>
             </td></tr>
 
