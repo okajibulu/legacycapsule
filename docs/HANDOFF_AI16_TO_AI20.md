@@ -1,0 +1,491 @@
+# HANDOFF_AI16_TO_AI20.md
+## LegacyCapsule — What AI16 Built
+### For AI20 — Platform Orientation
+### Date: 10 August 2026
+
+---
+
+This document covers everything AI16 built and changed after AI19's handoff
+at v2.11.87. AI16 ran as a parallel session handling frontend UX, terminology,
+Stories room, and platform-wide fixes while AI19 was completing publication work.
+
+Version range: **v2.11.3 → v2.11.61**
+
+---
+
+## 1. PARTICIPATION LANGUAGE MIGRATION
+
+All client-facing "Tribute" / "tribute" terminology was migrated to the
+event-aware Participation Language Engine across every surface.
+
+### Files changed:
+- `components/CapsuleBottomNav.tsx` — Voices tab label confirmed
+- `app/for/[slug]/profile/page.tsx` — CTA button now uses `lang.cta`
+- `app/for/[slug]/submit/page.tsx` — field label, placeholder, preview button use `lang.singular`
+- `lib/eventLabels.ts` — fallback strings updated (voice/your voice)
+- `app/for/[slug]/page.tsx` — OG description updated
+- `app/api/email/submission-confirmation/route.ts` — subject, body, template
+- `lib/email.ts` — keepsake card headline, body, CTA, subject all use lang engine
+- `components/LegacyRoomClient.tsx` — Tribute Room links → The Voices
+- `app/manage/[slug]/page.tsx` — FreeTierBar, service cards, export labels
+
+### Key rule:
+Never hardcode tribute/appreciation/wishes strings. Always use
+`getParticipationLanguage(event_type)`. Memorial events keep "Tribute" — all
+others use event-type-specific language.
+
+---
+
+## 2. ENCOMIUM TERMINOLOGY
+
+Four event types now use Encomium terminology:
+
+| Event Type | wallTitle | cta |
+|------------|-----------|-----|
+| `birthday` | Encomium Wall | Share Your Encomium |
+| `chieftaincy` | Encomium Wall | Share Your Encomium |
+| `award_ceremony` | Encomium Wall | Share Your Encomium |
+| `ordination` | Encomium Wall · cta → Offer Your Blessing |
+
+File: `lib/config/participationLanguage.ts`
+
+Other CTA refinements in same file:
+- `anniversary` → Share Your Celebration / Celebration Wall
+- `wedding` → Share Your Blessing / Blessings Wall
+- `graduation` → Send Your Congratulations
+
+---
+
+## 3. PROFILE PAGE NAV REFACTOR
+
+The profile page had a custom hand-rolled bottom navigation block that was
+completely different from all other pages. This caused:
+- Inconsistent scroll behaviour
+- White foreground sliding in (ivory card background rgba issue)
+- Bottom nav not always visible
+
+### What was done:
+- Custom nav block removed entirely
+- `CapsuleBottomNav` is now the sole nav on the profile page
+- Main content padding increased to 100px to clear fixed nav
+- Card background softened from `rgba(255,253,248,0.93)` to `rgba(245,240,230,0.97)`
+- `overflowX: hidden` added to outer wrapper (prevented horizontal scroll)
+
+File: `app/for/[slug]/profile/page.tsx`
+
+---
+
+## 4. SERIAL NUMBER REVERSAL ON VOICES WALL
+
+Voices were numbered lowest-to-newest. Fixed so newest voice gets highest number.
+
+Formula: `serialNumber={visible.length - idx}`
+
+Export format also updated to match — `#001` = oldest, highest = newest.
+
+File: `components/TributeWallClient.tsx`
+
+---
+
+## 5. MEMORIES/STORIES ROOM — TERMINOLOGY
+
+- "Prompts" renamed to "Topics" throughout `CommunityStoriesClient.tsx`
+- S/Stories organiser tab: category column added to fetch (was missing — caused
+  all topics to show under General)
+- "Add Prompt" → "Add Topic" button
+- "Back to Tribute Wall" → "Back to The Voices"
+
+---
+
+## 6. EVENT MOMENTS — LC12 (PHASES REDESIGNED)
+
+The phase page (`/for/[slug]/story/[phaseId]`) was wrongly built as a tribute
+submission room. AI16 redesigned it as a photo-only "I Was There" gallery.
+
+### Architecture:
+- Event Moments IS D-Day, phase-tagged. One upload system, many entry points.
+- Phase page = gallery display only. No tribute form ever.
+- D-Day upload route extended with `phase_id` tagging
+- `gallery_items` table: 4 new columns added:
+  - `phase_id` UUID NULL FK
+  - `is_official_photography` BOOLEAN DEFAULT FALSE
+  - `featured_in_publication` BOOLEAN DEFAULT FALSE
+  - `display_order` INTEGER NULL
+
+### New files:
+- `app/api/event-moments/[phaseId]/route.ts` — GET public gallery
+- `app/api/event-moments/[phaseId]/upload-official/route.ts` — POST official photos
+- `app/api/event-moments/[phaseId]/curate/route.ts` — PATCH curation actions
+- `components/capsule/EventMomentsClient.tsx` — guest gallery UI
+- `components/manage/EventMomentsManager.tsx` — organiser curation UI
+
+### Modified files:
+- `app/for/[slug]/story/[phaseId]/page.tsx` — full redesign
+- `app/api/dday/upload/route.ts` — extended with phase_id, dimensions
+
+### EventPhasesSection fully rebuilt:
+- Inline phase edit (was a TODO stub — now works)
+- "Manage Photos" button per phase opens EventMomentsManager inline
+- Photographer token generation per phase (7-day expiry, revocable)
+- QR print link per phase
+
+### Photographer Portal:
+- `/photographer/[token]` — secure upload-only portal for photographers
+- Shows existing uploads, cap status (30 photos), drag-drop upload
+- Token generated by organiser, shared with photographer
+- Files: `app/photographer/[token]/page.tsx`, `components/capsule/PhotographerPortalClient.tsx`
+- Token API routes: `app/api/photographer/token/generate/route.ts`,
+  `app/api/photographer/token/revoke/route.ts`,
+  `app/api/photographer/[token]/route.ts`,
+  `app/api/photographer/[token]/upload/route.ts`
+
+### QR Print page:
+- `app/manage/[slug]/phases/[phaseId]/print/page.tsx`
+- `components/manage/PhaseQRPrintClient.tsx`
+- Premium white card design, browser print button
+
+### Manage dashboard:
+- Event Moments moved from standalone nav tab into Services tab
+- `EventMomentsManager` wired below service cards list
+- "D-Day Captures" removed from Premiums panel greyed list
+- Event Moments section added to Premiums panel with per-phase navigation links
+
+---
+
+## 7. CAPSULE BOTTOM NAV ENHANCEMENTS
+
+### Notification dots:
+- Green dot — new content since last visit (localStorage tracked per tab per capsule)
+- Gold dot — Premiums always-on when any premium component activated
+- Props added: `latestVoiceAt`, `latestMemoryAt`, `latestProfileAt`, `latestHighlightAt`
+- `clearDot()` fires on tab tap — writes current timestamp to localStorage
+- Key: `lc_visited_${slug}_${tab}`
+
+### Press feedback:
+- `.lc-nav-tab:active` — opacity 0.55, scale 0.91
+- `WebkitTapHighlightColor: transparent` — no blue flash on mobile
+
+### New prop:
+- `phases` — passed to PremiumsPanel for Event Moments links
+- `CapsulePage` type extended with `'none'` — for pages not corresponding to nav tabs
+  (phase pages, story pages use `currentPage="none"`)
+
+File: `components/CapsuleBottomNav.tsx`
+
+---
+
+## 8. OG IMAGE SYSTEM (STATIC)
+
+### Problem:
+OG image URL had a changing `Date.now()` cache-buster timestamp. WhatsApp
+could not cache reliably. Images were not showing on shared links.
+
+### Fix — Option C (cache headers):
+- Cache-buster removed from OG URL
+- URL simplified to `${appUrl}/api/og/${slug}` — no query params
+- Cache headers: `public, s-maxage=86400, stale-while-revalidate=604800`
+- `og:type = website` added
+
+### Fix — Option A (static generation):
+- New DB column: `capsules.og_image_url TEXT NULL`
+- New API route: `app/api/og/generate/route.ts`
+  - Fetches dynamic OG route, stores PNG in `tribute-photos` bucket at `og/[capsule_id].png`
+  - Saves public URL to `capsules.og_image_url`
+- Public wall page reads `og_image_url` first, falls back to dynamic route
+- Auto-triggered after hero image upload
+- Manual "Generate Image" button in manage dashboard Settings tab
+- Backfill script for existing capsules (run from browser console)
+
+Files changed:
+- `app/for/[slug]/page.tsx` — reads og_image_url
+- `app/manage/[slug]/page.tsx` — hero upload triggers OG generation
+- `app/api/og/[slug]/route.tsx` — cache headers added
+
+---
+
+## 9. RELATIONSHIP QUESTION ENGINE
+
+### Problem:
+"Who is [first word of name] to you?" broke for names with honorifics.
+"Who is His to you?" for "His Royal Highness Shadamoro".
+Also not event-aware — same question for all event types.
+
+### Solution:
+New utility: `lib/utils/getRelationshipQuestion.ts`
+
+Exports:
+- `getFamiliarName(fullName)` — strips honorific prefixes, returns first meaningful word
+- `getRelationshipQuestion(eventType, honoureeName)` — event-aware question
+- `getRelationshipOptions(eventType)` — event-aware options list
+
+### Honorifics stripped:
+His, Her, Their, Prof, Dr, Mr, Mrs, Ms, Rev, Pastor, Bishop, Deacon, Elder,
+Chief, Oba, Alhaji, Alhaja, Otunba, Engineer, Engr, Barrister, Barr,
+Justice, Judge, Hon, Royal, Highness, Excellency, Majesty, Sir, Dame, Lord, Lady
+
+### Event-aware questions:
+| Event Type | Question |
+|------------|----------|
+| memorial | "Who was [Full Name] to you?" (past tense, full name) |
+| retirement | "Who is the retiree to you?" |
+| birthday / thanksgiving | "Who is the celebrant to you?" |
+| wedding / anniversary | "Who are you to the couple?" |
+| chieftaincy / ordination / award | "Who is the honouree to you?" |
+| graduation | "Who is the graduate to you?" |
+| default | "Who is [FamiliarName] to you?" |
+
+### Gated options (shown only for relevant event types):
+- `Legacy Beneficiary` — memorial, retirement, chieftaincy only
+- `Caregiver/Healthcare Worker` — memorial, retirement only
+
+### Wedding/Anniversary uses dedicated options list:
+Friend of Bride/Groom, Parent of Bride/Groom, Sibling of Bride/Groom,
+Best Man/Maid of Honour, Groomsman/Bridesmaid etc.
+
+### Files updated to use utility:
+- `components/TributeWallClient.tsx`
+- `components/CommunityStoriesClient.tsx`
+- `lib/eventLabels.ts` — `getRelationshipLabel` delegates to utility
+- `app/for/[slug]/submit/page.tsx` — helper text below field
+
+### Relationship display fix:
+All relationship displays across Voices and Stories cards now prefix "My":
+"Olugbenga · My Parent (Mother/Father)" — reads naturally.
+
+---
+
+## 10. STORIES ROOM — CRITICAL DISCOVERY
+
+### Key finding:
+`community_stories` table does NOT exist. Stories are stored in
+`contributions` table with `story_topic_id IS NOT NULL`.
+
+All code querying `community_stories` was wrong — returning empty results.
+Stories existed in the DB but were invisible. Fixed in all files.
+
+### Correct query pattern:
+```sql
+SELECT * FROM contributions
+WHERE capsule_id = $1
+AND story_topic_id IS NOT NULL
+AND status = 'approved'
+ORDER BY created_at DESC
+```
+
+### New table created:
+`story_reactions` — reactions on community stories
+- `contribution_id` UUID FK → contributions(id) CASCADE
+- `capsule_id` UUID FK
+- `emoji` TEXT CHECK IN (heart, prayer, star, sad, clap, dove)
+- `ip_hash` TEXT (localStorage UUID device token)
+- UNIQUE (contribution_id, ip_hash, emoji)
+
+---
+
+## 11. STORIES ROOM — FULL REDESIGN (CommunityStoriesClient v3.0.0)
+
+### Previous design (wrong):
+Category cards → drill into category → see topics → submit.
+Content buried behind 3 taps. No feed visible on landing.
+
+### New design:
+1. Page header + "Share a Memory" CTA
+2. Fixed-height (420px) scrollable story feed — newest first, flat
+3. Active filter chip (clears with ✕)
+4. TopicExplorer — category dropdown → topic chips → Write CTA
+5. Share strip
+6. Back to The Voices
+
+### StoryCard design:
+- Line 1: Topic name (gold, italic, prominent) + Date (right-aligned)
+- Line 2: Serial number circle + Contributor name + "My [Relationship]"
+- Story text with read more/less (300 char threshold)
+- Photo display
+- Admin response block (gold left border)
+- Reaction strip: ❤️ 🙏 ✦ 😢 👏 🕊️ with counts and toggle
+- "Add your memory under this topic →" link
+
+### Serial numbers:
+`filteredStories.length - idx` — newest = highest number (matches Voices wall)
+
+### Reactions:
+- Toggle via `POST /api/stories/react`
+- Batch fetch on load via `GET /api/stories/reactions`
+- Optimistic update with revert on failure
+- Device token stored in localStorage key `lc_device_token`
+
+### Empty state:
+Three-paragraph Playfair Display italic emotional copy:
+"Every life worth celebrating has chapters that deserve to be told.
+This is where those chapters live.
+Be the first to write one for [honouree name]."
+
+### New API routes:
+- `app/api/stories/react/route.ts` — POST toggle reaction
+- `app/api/stories/reactions/route.ts` — GET batch counts
+
+---
+
+## 12. STORIES DISCOVERY — VOICES WALL
+
+Added three discovery surfaces to drive traffic to Stories room:
+
+### Persistent teaser card (above Voices wall header):
+Title: "Also Visit the Stories Room"
+Text: "Read and also post more stories and memories about [honourName]."
+Button: "Read →" links to `/for/[slug]/stories`
+
+### Post-submission prompt (after voice submitted):
+"Have a longer memory or story about [honourName]?"
+"Share a Story →" button appears in the success confirmation card.
+
+### Email — keepsake card:
+Stories room mention added after share URL:
+"Have a longer memory or story about [name]? Share it in the Stories room —
+every word belongs in this record."
+
+### Email — submission confirmation:
+Stories invitation added before view wall link.
+Stale "tribute" copy fixed: "Edit your tribute" → "Edit your ${lang.singular}".
+"View tribute wall" → "View [subjectName]'s record".
+
+---
+
+## 13. HIGHLIGHTS PAGE — STORIES PREVIEW
+
+`LegacyRoomClient` now shows up to 3 recent approved stories from the
+Stories room, between the Recently Joined section and the Gallery section.
+
+Each story card: contributor name, topic label, 140-char excerpt.
+"Read all stories →" link at bottom.
+
+Props added: `recentStories` array (optional).
+
+`app/for/[slug]/legacy/page.tsx` — fetches stories with join to
+`community_story_topics(topic_name)` and passes to `LegacyRoomClient`.
+
+---
+
+## 14. WHATSAPP SHARE TEXT
+
+All hardcoded "leave a tribute" phrases in WhatsApp share strings replaced:
+
+- `app/manage/[slug]/page.tsx` — "Add your voice to [name]'s story"
+- `app/for/[slug]/submit/page.tsx` — "I just added my voice to [name]'s story"
+
+---
+
+## 15. STORY TOPICS — LIBRARY POPULATED
+
+`story_prompt_library` table was empty — no stories could be seeded.
+
+### What was done:
+- 79 prompts inserted across 9 event types + general category
+- Old human-readable event_type labels cleaned (Memorial & Funeral → memorial etc)
+- All capsule event_type values normalised to lowercase DB keys
+- 33 existing capsules backfilled: 785 topics seeded (23 per capsule)
+
+### Event types normalised:
+memorial, retirement, birthday, wedding, graduation, chieftaincy, ordination,
+anniversary, religious_service, award_ceremony, other
+
+---
+
+## 16. MANAGE DASHBOARD FIXES
+
+### S/Stories tab:
+- `storiesCount` fixed — was querying `community_stories` (doesn't exist),
+  now queries `contributions WHERE story_topic_id IS NOT NULL`
+- Category column added to community_story_topics fetch (was missing — all topics showed under General)
+- `StoryReviewCard` component added — organiser can approve, decline, edit, delete stories
+- Pending stories notice added to Overview tab (blue, distinct from gold voices notice)
+- Story handlers added: `handleStoryApprove`, `handleStoryDecline`, `handleStoryDelete`, `handleStoryEdit`
+
+### Export tab:
+- "Approved Tributes" → "Approved Voices"
+- Copy button labels updated
+- Export format includes serial numbers
+
+### Voices counter (top bar):
+- "TRIBUTES" → "VOICES"
+- "first tribute" → "first voice" in expiry copy
+
+### Service cards:
+- Text/Photo/Voice/Video Tributes renamed to Text/Photo/Voice/Video Voices
+- Descriptions updated
+
+---
+
+## 17. PHASES PATCH HANDLER
+
+`/api/phases` route was missing a PATCH handler.
+Added: `PATCH` delegates to existing `PUT`.
+`PUT`/`PATCH` both read `id` from request body (not query string).
+
+File: `app/api/phases/route.ts`
+
+---
+
+## 18. FILES CREATED BY AI16
+
+| File | Path |
+|------|------|
+| Relationship Question Utility | `lib/utils/getRelationshipQuestion.ts` |
+| Event Moments Gallery API | `app/api/event-moments/[phaseId]/route.ts` |
+| Official Upload API | `app/api/event-moments/[phaseId]/upload-official/route.ts` |
+| Curation API | `app/api/event-moments/[phaseId]/curate/route.ts` |
+| Event Moments Client | `components/capsule/EventMomentsClient.tsx` |
+| Event Moments Manager | `components/manage/EventMomentsManager.tsx` |
+| Photographer Portal Page | `app/photographer/[token]/page.tsx` |
+| Photographer Portal Client | `components/capsule/PhotographerPortalClient.tsx` |
+| Photographer Token Generate | `app/api/photographer/token/generate/route.ts` |
+| Photographer Token Revoke | `app/api/photographer/token/revoke/route.ts` |
+| Photographer Token Validate | `app/api/photographer/[token]/route.ts` |
+| Photographer Upload | `app/api/photographer/[token]/upload/route.ts` |
+| QR Print Page | `app/manage/[slug]/phases/[phaseId]/print/page.tsx` |
+| QR Print Client | `components/manage/PhaseQRPrintClient.tsx` |
+| OG Generate API | `app/api/og/generate/route.ts` |
+| Story React API | `app/api/stories/react/route.ts` |
+| Story Reactions GET | `app/api/stories/reactions/route.ts` |
+| LC12 Architecture Doc | `LC12_EVENT_MOMENTS.md` |
+| LC12 Spec Doc | `LC12_EVENT_MOMENTS_SPEC_v2.md` |
+
+---
+
+## 19. DATABASE CHANGES BY AI16
+
+| Table/Column | Change |
+|-------------|--------|
+| `gallery_items.phase_id` | UUID NULL FK → capsule_phases(id) |
+| `gallery_items.is_official_photography` | BOOLEAN DEFAULT FALSE |
+| `gallery_items.featured_in_publication` | BOOLEAN DEFAULT FALSE |
+| `gallery_items.display_order` | INTEGER NULL |
+| `capsule_phases.photographer_token` | TEXT NULL |
+| `capsule_phases.photographer_token_expires_at` | TIMESTAMPTZ NULL |
+| `capsules.og_image_url` | TEXT NULL |
+| `story_reactions` | NEW TABLE (see Section 10) |
+| `platform_config` (RW-Ecosystem) | `lc.dday.photos_per_device_per_phase` updated 6 → 5 |
+| `story_prompt_library` | Populated — 79 prompts, 9 event types |
+| `community_story_topics` | 785 topics backfilled across 33 capsules |
+| `capsules.event_type` | All normalised to lowercase DB keys |
+
+---
+
+## 20. IMPORTANT STANDING FACTS FOR AI20
+
+1. **`community_stories` table does not exist** — always query `contributions WHERE story_topic_id IS NOT NULL`
+2. **`aspect_ratio` is a generated column** — never insert it manually
+3. **Upload to Supabase storage must use direct REST fetch** — not Supabase JS client (SharedArrayBuffer restriction on Vercel)
+4. **`gallery_items.uploaded_by_name`** not `contributor_name` — check schema before any insert
+5. **Manage dashboard does NOT use `organiser_session` cookie** — uses Supabase Auth. Routes called from manage dashboard must NOT gate on `organiser_session` cookie.
+6. **Event Moments API routes** (`upload-official`, `curate`) — auth gates removed, capsule ownership checked by capsule_id only
+7. **`CapsulePage` type includes `'none'`** — use for phase and story pages
+8. **All photos compressed via sharp** — no raw images stored
+9. **OG image URL is slug-only** — no query params: `${appUrl}/api/og/${slug}`
+10. **Relationship question is event-aware** — use `getRelationshipQuestion(eventType, name)` not `.split(' ')[0]`
+
+---
+
+*Compiled by AI16 · Claude Opus 4.6 / Sonnet 4.6*
+*Covers: v2.11.3 → v2.11.61 · Date: 10 August 2026*
+*VALNEX, UNIPESSOAL LDA · RevoWorldTech · LegacyCapsule*
