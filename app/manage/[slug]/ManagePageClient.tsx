@@ -1984,46 +1984,57 @@ if (storiesRes.data) setStories(storiesRes.data.map((s: any) => ({
   const expiryDate = firstTributeAt ? new Date(new Date(firstTributeAt).getTime() + 90 * 86400000) : null
   const days = expiryDate && hasFirstTribute ? Math.max(0, Math.ceil((expiryDate.getTime() - Date.now()) / 86400000)) : null
 
-   const handleApprove = async (id: string) => {
-    await fetch('/api/contributions/approve', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        contribution_id: id,
-        capsule_id:      capsule?.id,
-        actor_name:      'Organiser',
-        actor_email:     visitorEmail,
-      }),
-    })
-    fetchAll()
+  // SECTION — MODERATION ACTION FEEDBACK
+  // Do not refresh as if a moderation action succeeded when the API rejected it.
+  const postModerationAction = async (url: string, payload: Record<string, unknown>) => {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        window.alert(typeof result.error === 'string'
+          ? result.error
+          : 'The action could not be completed. Please try again.')
+        return false
+      }
+      await fetchAll()
+      return true
+    } catch {
+      window.alert('Unable to reach the server. Check your connection and try again.')
+      return false
+    }
   }
+
+  const handleApprove = async (id: string) => {
+    await postModerationAction('/api/contributions/approve', {
+      contribution_id: id,
+      capsule_id: capsule?.id,
+      actor_name: 'Organiser',
+      actor_email: visitorEmail,
+    })
+  }
+
   const handleDecline = async (id: string) => {
-    await fetch('/api/contributions/reject', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        contribution_id: id,
-        capsule_id:      capsule?.id,
-        actor_name:      'Organiser',
-        actor_email:     visitorEmail,
-      }),
+    await postModerationAction('/api/contributions/reject', {
+      contribution_id: id,
+      capsule_id: capsule?.id,
+      actor_name: 'Organiser',
+      actor_email: visitorEmail,
     })
-    fetchAll()
   }
- const storyAction = async (action: string, id: string, text?: string) => {
-    await fetch('/api/stories/action', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        action,
-        story_id:    id,
-        capsule_id:  capsule?.id,
-        text,
-        actor_name:  'Organiser',
-        actor_email: visitorEmail,
-      }),
+
+  const storyAction = async (action: string, id: string, text?: string) => {
+    await postModerationAction('/api/stories/action', {
+      action,
+      story_id: id,
+      capsule_id: capsule?.id,
+      text,
+      actor_name: 'Organiser',
+      actor_email: visitorEmail,
     })
-    fetchAll()
   }
   const handleStoryApprove = (id: string) => storyAction('approve', id)
   const handleStoryDecline = (id: string) => storyAction('decline', id)
